@@ -19,6 +19,7 @@ import { PlayerProfile } from "./pages/PlayerProfile";
 import { UserProfile } from "./pages/UserProfile";
 import { DisplayView } from "./pages/DisplayView";
 import { TournamentDisplayView } from "./pages/TournamentDisplayView";
+import { TournamentInvite } from "./pages/TournamentInvite";
 import { AuthCallback } from "./pages/AuthCallback";
 import { MenuDrawer } from "./components/layout/MenuDrawer";
 import { IdentityInitializer } from "./components/IdentityInitializer";
@@ -143,6 +144,7 @@ function AppContent() {
             <Route path="/league/:id/display" element={<DisplayView />} />
             <Route path="/tournament/:id" element={<TournamentDashboard />} />
             <Route path="/tournament/:id/display" element={<TournamentDisplayView />} />
+            <Route path="/tournament/:id/invite" element={<TournamentInvite />} />
             <Route path="/player/:playerId" element={<PlayerProfile />} />
             <Route path="/user/profile" element={<UserProfile />} />
           </Routes>

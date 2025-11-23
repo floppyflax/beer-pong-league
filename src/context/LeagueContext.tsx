@@ -74,15 +74,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   const { localUser, isLoading: identityLoading } = useIdentity();
 
   // Initialize from localStorage for immediate display (optimistic)
-  const [leagues, setLeagues] = useState<League[]>(() => {
-    const saved = localStorage.getItem("bpl_leagues");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [tournaments, setTournaments] = useState<Tournament[]>(() => {
-    const saved = localStorage.getItem("bpl_tournaments");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Note: These will be filtered by user when data loads from Supabase
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
 
   const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(() => {
     return localStorage.getItem("bpl_current_league_id");
@@ -136,19 +130,38 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
           databaseService.loadTournaments(userId, anonymousUserId),
         ]);
 
-        // Step 3: Merge with localStorage data (Supabase takes priority)
-        // This handles cases where Supabase has newer data
+        // Step 3: Filter localStorage data by current user before merging
+        // This ensures we don't mix data from different users
         const localStorageLeagues = JSON.parse(localStorage.getItem("bpl_leagues") || "[]") as League[];
         const localStorageTournaments = JSON.parse(localStorage.getItem("bpl_tournaments") || "[]") as Tournament[];
 
-        // Merge strategy: Use Supabase data if available, otherwise keep localStorage
+        // Filter localStorage data by current user
+        const filteredLocalStorageLeagues = localStorageLeagues.filter((league) => {
+          if (userId) {
+            return league.creator_user_id === userId;
+          } else if (anonymousUserId) {
+            return league.creator_anonymous_user_id === anonymousUserId;
+          }
+          return false; // If no user ID, don't include localStorage data
+        });
+
+        const filteredLocalStorageTournaments = localStorageTournaments.filter((tournament) => {
+          if (userId) {
+            return tournament.creator_user_id === userId;
+          } else if (anonymousUserId) {
+            return tournament.creator_anonymous_user_id === anonymousUserId;
+          }
+          return false; // If no user ID, don't include localStorage data
+        });
+
+        // Merge strategy: Use Supabase data if available, otherwise use filtered localStorage
         const mergedLeagues = loadedLeagues.length > 0 
           ? loadedLeagues 
-          : localStorageLeagues;
+          : filteredLocalStorageLeagues;
         
         const mergedTournaments = loadedTournaments.length > 0 
           ? loadedTournaments 
-          : localStorageTournaments;
+          : filteredLocalStorageTournaments;
 
         // Update state
         setLeagues(mergedLeagues);

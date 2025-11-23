@@ -9,6 +9,7 @@ import {
   Users,
   History,
   Monitor,
+  Share2,
 } from "lucide-react";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
@@ -222,13 +223,22 @@ export const TournamentDashboard = () => {
             {tournament.leagueId && league && ` • ${league.name}`}
           </div>
         </div>
-        <button
-          onClick={() => navigate(`/tournament/${tournament.id}/display`)}
-          className="p-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg transition-colors"
-          title="Vue Display (plein écran)"
-        >
-          <Monitor size={20} />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/tournament/${tournament.id}/invite`)}
+            className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors"
+            title="Partager l'invitation"
+          >
+            <Share2 size={20} />
+          </button>
+          <button
+            onClick={() => navigate(`/tournament/${tournament.id}/display`)}
+            className="p-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg transition-colors"
+            title="Vue Display (plein écran)"
+          >
+            <Monitor size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Stats Summary */}

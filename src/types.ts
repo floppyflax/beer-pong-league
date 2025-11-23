@@ -22,6 +22,10 @@ export interface Match {
   eloChanges?: Record<string, number>; // Player ID -> ELO change (positive = gain, negative = loss)
   created_by_user_id?: string | null; // User ID if created by authenticated user
   created_by_anonymous_user_id?: string | null; // Anonymous user ID if created by local user
+  status?: "pending" | "confirmed" | "rejected"; // Match confirmation status
+  confirmed_by_user_id?: string | null; // User ID who confirmed the match
+  confirmed_by_anonymous_user_id?: string | null; // Anonymous user ID who confirmed the match
+  confirmed_at?: string | null; // When the match was confirmed
 }
 
 export interface League {
@@ -34,6 +38,7 @@ export interface League {
   tournaments?: string[]; // Tournament IDs associated with this League
   creator_user_id?: string | null; // User ID if created by authenticated user
   creator_anonymous_user_id?: string | null; // Anonymous user ID if created by local user
+  anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
 }
 
 export interface Tournament {
@@ -47,5 +52,6 @@ export interface Tournament {
   isFinished: boolean; // true if tournament is finished
   creator_user_id?: string | null; // User ID if created by authenticated user
   creator_anonymous_user_id?: string | null; // Anonymous user ID if created by local user
+  anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
   // Local ranking is calculated on-the-fly from matches, starting from base ELO
 }

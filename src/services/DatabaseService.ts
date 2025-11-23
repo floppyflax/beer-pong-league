@@ -110,6 +110,10 @@ class DatabaseService {
             scoreB: m.score_b || 0,
             created_by_user_id: m.created_by_user_id,
             created_by_anonymous_user_id: m.created_by_anonymous_user_id,
+            status: m.status || 'confirmed',
+            confirmed_by_user_id: m.confirmed_by_user_id,
+            confirmed_by_anonymous_user_id: m.confirmed_by_anonymous_user_id,
+            confirmed_at: m.confirmed_at,
           }));
 
           // Charger les tournaments associés
@@ -132,6 +136,7 @@ class DatabaseService {
             tournaments,
             creator_user_id: leagueRow.creator_user_id,
             creator_anonymous_user_id: leagueRow.creator_anonymous_user_id,
+            anti_cheat_enabled: leagueRow.anti_cheat_enabled || false,
           };
         })
       );
@@ -210,6 +215,10 @@ class DatabaseService {
             scoreB: m.score_b || 0,
             created_by_user_id: m.created_by_user_id,
             created_by_anonymous_user_id: m.created_by_anonymous_user_id,
+            status: m.status || 'confirmed',
+            confirmed_by_user_id: m.confirmed_by_user_id,
+            confirmed_by_anonymous_user_id: m.confirmed_by_anonymous_user_id,
+            confirmed_at: m.confirmed_at,
           }));
 
           return {
@@ -223,6 +232,7 @@ class DatabaseService {
             isFinished: typedRow.is_finished,
             creator_user_id: typedRow.creator_user_id,
             creator_anonymous_user_id: typedRow.creator_anonymous_user_id,
+            anti_cheat_enabled: tournamentRow.anti_cheat_enabled || false,
           };
         })
       );
@@ -254,6 +264,7 @@ class DatabaseService {
           created_at: league.createdAt,
           creator_user_id: league.creator_user_id,
           creator_anonymous_user_id: league.creator_anonymous_user_id,
+          anti_cheat_enabled: league.anti_cheat_enabled || false,
         }, {
           onConflict: 'id'
         });
@@ -298,6 +309,10 @@ class DatabaseService {
           created_at: match.date,
           created_by_user_id: match.created_by_user_id,
           created_by_anonymous_user_id: match.created_by_anonymous_user_id,
+          status: match.status || 'confirmed',
+          confirmed_by_user_id: match.confirmed_by_user_id || null,
+          confirmed_by_anonymous_user_id: match.confirmed_by_anonymous_user_id || null,
+          confirmed_at: match.confirmed_at || null,
         }));
 
         const { error: matchesError } = await supabase!
@@ -360,6 +375,10 @@ class DatabaseService {
           created_at: match.date,
           created_by_user_id: match.created_by_user_id,
           created_by_anonymous_user_id: match.created_by_anonymous_user_id,
+          status: match.status || 'confirmed',
+          confirmed_by_user_id: match.confirmed_by_user_id || null,
+          confirmed_by_anonymous_user_id: match.confirmed_by_anonymous_user_id || null,
+          confirmed_at: match.confirmed_at || null,
         }));
 
         const { error: matchesError } = await supabase!
