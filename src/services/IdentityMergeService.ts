@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
-import type { LocalUser } from './LocalUserService';
+// import type { LocalUser } from './LocalUserService'; // Unused
 import { authService } from './AuthService';
 
 class IdentityMergeService {
@@ -61,6 +61,7 @@ class IdentityMergeService {
       await this.migrateCreators(anonymousUserId, userId);
 
       // 8. Create merge record
+      if (!supabase) return { success: false, error: 'Supabase not available' };
       await supabase.from('user_identity_merges').insert({
         anonymous_user_id: anonymousUserId,
         user_id: userId,
@@ -81,6 +82,7 @@ class IdentityMergeService {
     anonymousUserId: string,
     userId: string
   ): Promise<void> {
+    if (!supabase) return;
     // Find all league_players with anonymous_user_id
     const { data: leaguePlayers } = await supabase
       .from('league_players')
@@ -122,6 +124,7 @@ class IdentityMergeService {
     anonymousUserId: string,
     userId: string
   ): Promise<void> {
+    if (!supabase) return;
     const { data: tournamentPlayers } = await supabase
       .from('tournament_players')
       .select('*')
@@ -158,6 +161,7 @@ class IdentityMergeService {
     anonymousUserId: string,
     userId: string
   ): Promise<void> {
+    if (!supabase) return;
     // Get all matches and filter in memory (PostgreSQL array contains)
     const { data: allMatches } = await supabase
       .from('matches')
@@ -194,6 +198,7 @@ class IdentityMergeService {
     anonymousUserId: string,
     userId: string
   ): Promise<void> {
+    if (!supabase) return;
     await supabase
       .from('elo_history')
       .update({
@@ -207,6 +212,7 @@ class IdentityMergeService {
     anonymousUserId: string,
     userId: string
   ): Promise<void> {
+    if (!supabase) return;
     // Migrate league creators
     await supabase
       .from('leagues')

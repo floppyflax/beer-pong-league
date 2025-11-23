@@ -19,7 +19,7 @@ export function generateDeviceFingerprint(): string {
     new Date().getTimezoneOffset(),
     canvas.toDataURL(),
     navigator.hardwareConcurrency || 'unknown',
-    navigator.deviceMemory || 'unknown',
+    (navigator as any).deviceMemory || 'unknown',
   ].join('|');
   
   // Simple hash (or use a proper hashing library)

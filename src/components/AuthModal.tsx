@@ -5,10 +5,10 @@ import { authService } from '../services/AuthService';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // onSuccess: () => void; // Unused
+  onSuccess?: () => void;
 }
 
-export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
+export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
   const [email, setEmail] = useState('');
   const [step, setStep] = useState<'email' | 'sent'>('email');
   const [isLoading, setIsLoading] = useState(false);

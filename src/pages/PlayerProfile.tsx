@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const { leagues } = useLeague();
+  const { leagues, updatePlayer } = useLeague();
   const navigate = useNavigate();
   const [showEditModal, setShowEditModal] = useState(false);
   const [newName, setNewName] = useState("");

@@ -88,41 +88,50 @@ class DatabaseService {
 
       // Pour chaque league, charger les players et matches
       const leagues: League[] = await Promise.all(
-        leaguesData.map(async (leagueRow: LeagueRow) => {
+        leaguesData.map(async (leagueRow: any) => {
+          // Type assertion pour correspondre à la structure DB
+          const typedRow: LeagueRow = {
+            id: leagueRow.id,
+            name: leagueRow.name,
+            type: leagueRow.type as 'event' | 'season',
+            created_at: leagueRow.created_at || new Date().toISOString(),
+            creator_user_id: leagueRow.creator_user_id,
+            creator_anonymous_user_id: leagueRow.creator_anonymous_user_id,
+          };
           // Charger les players
           const { data: playersData, error: playersError } = await supabase!
             .from('league_players')
             .select('*')
-            .eq('league_id', leagueRow.id);
+            .eq('league_id', typedRow.id);
 
           if (playersError) throw playersError;
 
-          const players: Player[] = (playersData || []).map((p: LeaguePlayerRow) => ({
+          const players: Player[] = (playersData || []).map((p: any) => ({
             id: p.id,
             name: p.pseudo_in_league,
-            elo: p.elo,
-            wins: p.wins,
-            losses: p.losses,
-            matchesPlayed: p.matches_played,
-            streak: p.streak,
+            elo: p.elo || 1000,
+            wins: p.wins || 0,
+            losses: p.losses || 0,
+            matchesPlayed: p.matches_played || 0,
+            streak: p.streak || 0,
           }));
 
           // Charger les matches
           const { data: matchesData, error: matchesError } = await supabase!
             .from('matches')
             .select('*')
-            .eq('league_id', leagueRow.id)
+            .eq('league_id', typedRow.id)
             .order('created_at', { ascending: false });
 
           if (matchesError) throw matchesError;
 
-          const matches: Match[] = (matchesData || []).map((m: MatchRow) => ({
+          const matches: Match[] = (matchesData || []).map((m: any) => ({
             id: m.id,
-            date: m.created_at,
-            teamA: m.team_a_player_ids,
-            teamB: m.team_b_player_ids,
-            scoreA: m.score_a,
-            scoreB: m.score_b,
+            date: m.created_at || new Date().toISOString(),
+            teamA: m.team_a_player_ids || [],
+            teamB: m.team_b_player_ids || [],
+            scoreA: m.score_a || 0,
+            scoreB: m.score_b || 0,
             created_by_user_id: m.created_by_user_id,
             created_by_anonymous_user_id: m.created_by_anonymous_user_id,
           }));
@@ -131,17 +140,17 @@ class DatabaseService {
           const { data: tournamentsData, error: tournamentsError } = await supabase!
             .from('tournaments')
             .select('id')
-            .eq('league_id', leagueRow.id);
+            .eq('league_id', typedRow.id);
 
           if (tournamentsError) throw tournamentsError;
 
           const tournaments = (tournamentsData || []).map((t: { id: string }) => t.id);
 
           return {
-            id: leagueRow.id,
-            name: leagueRow.name,
-            type: leagueRow.type,
-            createdAt: leagueRow.created_at,
+            id: typedRow.id,
+            name: typedRow.name,
+            type: typedRow.type,
+            createdAt: typedRow.created_at,
             players,
             matches,
             tournaments,
@@ -184,12 +193,22 @@ class DatabaseService {
 
       // Pour chaque tournament, charger les matches
       const tournaments: Tournament[] = await Promise.all(
-        tournamentsData.map(async (tournamentRow: TournamentRow) => {
+        tournamentsData.map(async (tournamentRow: any) => {
+          const typedRow: TournamentRow = {
+            id: tournamentRow.id,
+            name: tournamentRow.name,
+            date: tournamentRow.date,
+            league_id: tournamentRow.league_id,
+            is_finished: tournamentRow.is_finished || false,
+            created_at: tournamentRow.created_at || new Date().toISOString(),
+            creator_user_id: tournamentRow.creator_user_id,
+            creator_anonymous_user_id: tournamentRow.creator_anonymous_user_id,
+          };
           // Charger les player IDs
           const { data: playersData, error: playersError } = await supabase!
             .from('tournament_players')
             .select('id, user_id, anonymous_user_id')
-            .eq('tournament_id', tournamentRow.id);
+            .eq('tournament_id', typedRow.id);
 
           if (playersError) throw playersError;
 
@@ -201,33 +220,33 @@ class DatabaseService {
           const { data: matchesData, error: matchesError } = await supabase!
             .from('matches')
             .select('*')
-            .eq('tournament_id', tournamentRow.id)
+            .eq('tournament_id', typedRow.id)
             .order('created_at', { ascending: false });
 
           if (matchesError) throw matchesError;
 
-          const matches: Match[] = (matchesData || []).map((m: MatchRow) => ({
+          const matches: Match[] = (matchesData || []).map((m: any) => ({
             id: m.id,
-            date: m.created_at,
-            teamA: m.team_a_player_ids,
-            teamB: m.team_b_player_ids,
-            scoreA: m.score_a,
-            scoreB: m.score_b,
+            date: m.created_at || new Date().toISOString(),
+            teamA: m.team_a_player_ids || [],
+            teamB: m.team_b_player_ids || [],
+            scoreA: m.score_a || 0,
+            scoreB: m.score_b || 0,
             created_by_user_id: m.created_by_user_id,
             created_by_anonymous_user_id: m.created_by_anonymous_user_id,
           }));
 
           return {
-            id: tournamentRow.id,
-            name: tournamentRow.name,
-            date: tournamentRow.date,
-            leagueId: tournamentRow.league_id,
-            createdAt: tournamentRow.created_at,
+            id: typedRow.id,
+            name: typedRow.name,
+            date: typedRow.date,
+            leagueId: typedRow.league_id,
+            createdAt: typedRow.created_at,
             playerIds,
             matches,
-            isFinished: tournamentRow.is_finished,
-            creator_user_id: tournamentRow.creator_user_id,
-            creator_anonymous_user_id: tournamentRow.creator_anonymous_user_id,
+            isFinished: typedRow.is_finished,
+            creator_user_id: typedRow.creator_user_id,
+            creator_anonymous_user_id: typedRow.creator_anonymous_user_id,
           };
         })
       );
@@ -295,6 +314,7 @@ class DatabaseService {
           id: match.id,
           league_id: league.id,
           tournament_id: null,
+          format: '2v2', // Default format
           team_a_player_ids: match.teamA,
           team_b_player_ids: match.teamB,
           score_a: match.scoreA,
@@ -356,6 +376,7 @@ class DatabaseService {
           id: match.id,
           league_id: tournament.leagueId,
           tournament_id: tournament.id,
+          format: '2v2', // Default format
           team_a_player_ids: match.teamA,
           team_b_player_ids: match.teamB,
           score_a: match.scoreA,

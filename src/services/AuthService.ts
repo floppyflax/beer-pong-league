@@ -113,7 +113,7 @@ class AuthService {
       };
     }
     
-    return supabase.auth.onAuthStateChange((event, session) => {
+    return supabase.auth.onAuthStateChange((_event, session) => {
       callback(session?.user ?? null);
     });
   }
