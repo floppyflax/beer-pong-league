@@ -8,7 +8,7 @@ interface AuthModalProps {
   onSuccess?: () => void;
 }
 
-export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
+export const AuthModal = ({ isOpen, onClose, onSuccess: _onSuccess }: AuthModalProps) => {
   const [email, setEmail] = useState('');
   const [step, setStep] = useState<'email' | 'sent'>('email');
   const [isLoading, setIsLoading] = useState(false);

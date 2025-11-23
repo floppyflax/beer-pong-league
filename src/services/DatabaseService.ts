@@ -17,31 +17,7 @@ interface LeagueRow {
   creator_anonymous_user_id: string | null;
 }
 
-interface LeaguePlayerRow {
-  id: string;
-  league_id: string;
-  user_id: string | null;
-  anonymous_user_id: string | null;
-  pseudo_in_league: string;
-  elo: number;
-  wins: number;
-  losses: number;
-  matches_played: number;
-  streak: number;
-}
-
-interface MatchRow {
-  id: string;
-  league_id: string | null;
-  tournament_id: string | null;
-  team_a_player_ids: string[];
-  team_b_player_ids: string[];
-  score_a: number;
-  score_b: number;
-  created_at: string;
-  created_by_user_id: string | null;
-  created_by_anonymous_user_id: string | null;
-}
+// Types removed - using 'any' with type assertions instead
 
 interface TournamentRow {
   id: string;

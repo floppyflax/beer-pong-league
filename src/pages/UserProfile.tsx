@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext";
 import { useLeague } from "../context/LeagueContext";
 import { useIdentity } from "../hooks/useIdentity";
-import { ArrowLeft, Trophy, Calendar, Users } from "lucide-react";
+import { ArrowLeft, Trophy, Calendar, User, Mail, LogOut } from "lucide-react";
 import { useMemo } from "react";
 
 export const UserProfile = () => {
