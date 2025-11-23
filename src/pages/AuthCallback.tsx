@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useIdentityContext } from '../context/IdentityContext';
-import { useAuthContext } from '../context/AuthContext';
+// import { useAuthContext } from '../context/AuthContext'; // Unused
 import { identityMergeService } from '../services/IdentityMergeService';
 
 /**
@@ -10,15 +10,19 @@ import { identityMergeService } from '../services/IdentityMergeService';
  * Handles the redirect after user clicks magic link
  */
 export const AuthCallback = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { localUser } = useIdentityContext();
-  const { user } = useAuthContext();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      if (!supabase) {
+        setError('Supabase non configuré');
+        setStatus('error');
+        return;
+      }
+
       try {
         // Get the session from URL hash
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -36,7 +40,7 @@ export const AuthCallback = () => {
         }
 
         // If user has a local identity, merge it
-        if (localUser && session.user) {
+        if (localUser && session.user && supabase) {
           const profile = await supabase
             .from('users')
             .select('*')
@@ -62,7 +66,7 @@ export const AuthCallback = () => {
             console.warn('Failed to merge identity:', mergeResult.error);
             // Continue anyway, user is authenticated
           }
-        } else if (session.user) {
+        } else if (session.user && supabase) {
           // No local identity, just create profile
           const profile = await supabase
             .from('users')

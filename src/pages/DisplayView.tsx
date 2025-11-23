@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
-import { Trophy, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { TrendingUp, TrendingDown, Zap } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 export const DisplayView = () => {
@@ -12,7 +12,7 @@ export const DisplayView = () => {
   const league = leagues.find((l) => l.id === id);
   const [scrollPosition, setScrollPosition] = useState<"top" | "scrolling">("top");
   const [highlightedPlayers, setHighlightedPlayers] = useState<Set<string>>(new Set());
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Unused
   const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get sorted players

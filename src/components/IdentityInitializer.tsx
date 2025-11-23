@@ -17,7 +17,7 @@ export const IdentityInitializer = ({
   children,
   onIdentityReady,
 }: IdentityInitializerProps) => {
-  const { localUser, isLoading, createIdentity } = useIdentityContext();
+  const { localUser, isLoading } = useIdentityContext();
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);

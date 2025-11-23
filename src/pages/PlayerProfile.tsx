@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
-import { ArrowLeft, Edit, Trash2, Trophy, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { ArrowLeft, Edit, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { useState, useMemo } from "react";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const { leagues, tournaments, updatePlayer } = useLeague();
+  const { leagues } = useLeague();
   const navigate = useNavigate();
   const [showEditModal, setShowEditModal] = useState(false);
   const [newName, setNewName] = useState("");

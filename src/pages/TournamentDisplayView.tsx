@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
-import { Trophy, TrendingUp, TrendingDown, Zap, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, Zap, Calendar } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 export const TournamentDisplayView = () => {

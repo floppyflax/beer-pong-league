@@ -13,7 +13,7 @@ export const LeagueDashboard = () => {
     recordMatch,
     deleteLeague,
     updateLeague,
-    updatePlayer,
+    // updatePlayer, // Unused
     deletePlayer,
   } = useLeague();
   const navigate = useNavigate();

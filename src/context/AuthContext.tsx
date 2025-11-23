@@ -1,6 +1,6 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { useAuth, type AuthState } from '../hooks/useAuth';
-import type { User } from '@supabase/supabase-js';
+// import type { User } from '@supabase/supabase-js'; // Unused
 
 interface AuthContextType extends AuthState {
   signInWithOTP: (email: string) => Promise<{ error: Error | null }>;

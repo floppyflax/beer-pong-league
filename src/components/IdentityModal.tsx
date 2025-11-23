@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { localUserService, type LocalUser } from '../services/LocalUserService';
-import { getDeviceFingerprint } from '../utils/deviceFingerprint';
+// import { getDeviceFingerprint } from '../utils/deviceFingerprint'; // Unused
 
 interface IdentityModalProps {
   isOpen: boolean;
