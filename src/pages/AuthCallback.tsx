@@ -1,0 +1,140 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { useIdentityContext } from '../context/IdentityContext';
+import { useAuthContext } from '../context/AuthContext';
+import { identityMergeService } from '../services/IdentityMergeService';
+
+/**
+ * Callback page for Supabase Auth OTP
+ * Handles the redirect after user clicks magic link
+ */
+export const AuthCallback = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { localUser } = useIdentityContext();
+  const { user } = useAuthContext();
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleAuthCallback = async () => {
+      try {
+        // Get the session from URL hash
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          setError(sessionError.message);
+          setStatus('error');
+          return;
+        }
+
+        if (!session?.user) {
+          setError('Aucune session trouvée');
+          setStatus('error');
+          return;
+        }
+
+        // If user has a local identity, merge it
+        if (localUser && session.user) {
+          const profile = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          // Create user profile if doesn't exist
+          if (!profile.data) {
+            await supabase.from('users').insert({
+              id: session.user.id,
+              pseudo: localUser.pseudo,
+            });
+          }
+
+          // Merge anonymous identity to authenticated user
+          const mergeResult = await identityMergeService.mergeAnonymousToUser(
+            localUser.anonymousUserId,
+            session.user.id,
+            localUser.pseudo
+          );
+
+          if (!mergeResult.success) {
+            console.warn('Failed to merge identity:', mergeResult.error);
+            // Continue anyway, user is authenticated
+          }
+        } else if (session.user) {
+          // No local identity, just create profile
+          const profile = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (!profile.data) {
+            // Get email username as default pseudo
+            const emailUsername = session.user.email?.split('@')[0] || 'Joueur';
+            await supabase.from('users').insert({
+              id: session.user.id,
+              pseudo: emailUsername,
+            });
+          }
+        }
+
+        setStatus('success');
+        
+        // Redirect to home after a short delay
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      } catch (error) {
+        console.error('Error in auth callback:', error);
+        setError(error instanceof Error ? error.message : 'Erreur inconnue');
+        setStatus('error');
+      }
+    };
+
+    handleAuthCallback();
+  }, [localUser, navigate]);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4 animate-bounce">🍺</div>
+          <div className="text-slate-400">Connexion en cours...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="bg-slate-800 rounded-2xl p-6 border border-red-500/50 max-w-sm w-full text-center">
+          <div className="text-red-500 text-4xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-white mb-2">Erreur de connexion</h2>
+          <p className="text-slate-400 mb-6">{error || 'Une erreur est survenue'}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-xl"
+          >
+            Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-4xl mb-4">✅</div>
+        <div className="text-white font-bold text-xl mb-2">Connexion réussie !</div>
+        <div className="text-slate-400">Redirection en cours...</div>
+      </div>
+    </div>
+  );
+};
+
+
+
