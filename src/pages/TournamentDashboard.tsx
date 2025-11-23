@@ -49,7 +49,6 @@ export const TournamentDashboard = () => {
   const [matchWinner, setMatchWinner] = useState<"A" | "B" | null>(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState("");
-  const [showLinkLeague, setShowLinkLeague] = useState(false);
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>("");
 
   if (isLoadingInitialData) {
@@ -196,7 +195,6 @@ export const TournamentDashboard = () => {
   const handleLinkToLeague = () => {
     if (!selectedLeagueId) return;
     associateTournamentToLeague(tournament.id, selectedLeagueId);
-    setShowLinkLeague(false);
     setSelectedLeagueId("");
   };
 
@@ -753,7 +751,6 @@ export const TournamentDashboard = () => {
                   onClick={() => {
                     setShowAddPlayer(false);
                     setActiveTab("settings");
-                    setShowLinkLeague(true);
                   }}
                   className="w-full bg-primary font-bold py-4 rounded-xl text-white"
                 >

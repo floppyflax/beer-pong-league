@@ -785,7 +785,7 @@ class DatabaseService {
         : '3v3';
 
       // Insert match
-      const { data: matchData, error: matchError } = await supabase!
+      const { error: matchError } = await supabase!
         .from('matches')
         .insert({
           id: match.id,
@@ -799,14 +799,12 @@ class DatabaseService {
           created_at: match.date,
           created_by_user_id: userId || match.created_by_user_id || null,
           created_by_anonymous_user_id: anonymousUserId || match.created_by_anonymous_user_id || null,
-        })
-        .select()
-        .single();
+        });
 
       if (matchError) throw matchError;
 
       // Insert ELO history for each player
-      const eloHistoryEntries = Object.entries(eloChanges).map(([playerId, change]) => ({
+      const eloHistoryEntries = Object.entries(eloChanges).map(([_playerId, change]) => ({
         match_id: match.id,
         league_id: leagueId,
         tournament_id: null,
@@ -835,13 +833,14 @@ class DatabaseService {
           .eq('league_id', leagueId)
           .single();
 
-        if (playerData) {
+        if (playerData && !('code' in playerData)) {
+          const player = playerData as any;
           const isWinner = change.change > 0;
-          const newWins = isWinner ? (playerData.wins || 0) + 1 : (playerData.wins || 0);
-          const newLosses = !isWinner ? (playerData.losses || 0) + 1 : (playerData.losses || 0);
+          const newWins = isWinner ? (player.wins || 0) + 1 : (player.wins || 0);
+          const newLosses = !isWinner ? (player.losses || 0) + 1 : (player.losses || 0);
           const newStreak = isWinner
-            ? (playerData.streak || 0) > 0 ? (playerData.streak || 0) + 1 : 1
-            : (playerData.streak || 0) < 0 ? (playerData.streak || 0) - 1 : -1;
+            ? (player.streak || 0) > 0 ? (player.streak || 0) + 1 : 1
+            : (player.streak || 0) < 0 ? (player.streak || 0) - 1 : -1;
 
           await supabase!
             .from('league_players')
@@ -849,9 +848,9 @@ class DatabaseService {
               elo: change.after,
               wins: newWins,
               losses: newLosses,
-              matches_played: (playerData.matches_played || 0) + 1,
+              matches_played: (player.matches_played || 0) + 1,
               streak: newStreak,
-            })
+            } as any)
             .eq('id', playerId)
             .eq('league_id', leagueId);
         }
@@ -914,7 +913,7 @@ class DatabaseService {
         : '3v3';
 
       // Insert match
-      const { data: matchData, error: matchError } = await supabase!
+      const { error: matchError } = await supabase!
         .from('matches')
         .insert({
           id: match.id,
@@ -928,14 +927,12 @@ class DatabaseService {
           created_at: match.date,
           created_by_user_id: userId || match.created_by_user_id || null,
           created_by_anonymous_user_id: anonymousUserId || match.created_by_anonymous_user_id || null,
-        })
-        .select()
-        .single();
+        });
 
       if (matchError) throw matchError;
 
       // Insert ELO history
-      const eloHistoryEntries = Object.entries(eloChanges).map(([playerId, change]) => ({
+      const eloHistoryEntries = Object.entries(eloChanges).map(([_playerId, change]) => ({
         match_id: match.id,
         league_id: tournamentData.league_id,
         tournament_id: tournamentId,
@@ -964,13 +961,14 @@ class DatabaseService {
             .eq('league_id', tournamentData.league_id)
             .single();
 
-          if (playerData) {
+          if (playerData && !('code' in playerData)) {
+            const player = playerData as any;
             const isWinner = change.change > 0;
-            const newWins = isWinner ? (playerData.wins || 0) + 1 : (playerData.wins || 0);
-            const newLosses = !isWinner ? (playerData.losses || 0) + 1 : (playerData.losses || 0);
+            const newWins = isWinner ? (player.wins || 0) + 1 : (player.wins || 0);
+            const newLosses = !isWinner ? (player.losses || 0) + 1 : (player.losses || 0);
             const newStreak = isWinner
-              ? (playerData.streak || 0) > 0 ? (playerData.streak || 0) + 1 : 1
-              : (playerData.streak || 0) < 0 ? (playerData.streak || 0) - 1 : -1;
+              ? (player.streak || 0) > 0 ? (player.streak || 0) + 1 : 1
+              : (player.streak || 0) < 0 ? (player.streak || 0) - 1 : -1;
 
             await supabase!
               .from('league_players')
@@ -978,9 +976,9 @@ class DatabaseService {
                 elo: change.after,
                 wins: newWins,
                 losses: newLosses,
-                matches_played: (playerData.matches_played || 0) + 1,
+                matches_played: (player.matches_played || 0) + 1,
                 streak: newStreak,
-              })
+              } as any)
               .eq('id', playerId)
               .eq('league_id', tournamentData.league_id);
           }

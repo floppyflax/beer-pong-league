@@ -18,6 +18,7 @@ interface LeagueContextType {
   tournaments: Tournament[];
   currentLeague: League | null;
   currentTournament: Tournament | null;
+  isLoadingInitialData: boolean;
   createLeague: (name: string, type: "event" | "season") => Promise<string>;
   createTournament: (
     name: string,
@@ -330,7 +331,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const deleteTournament = (id: string) => {
+  const deleteTournament = async (id: string) => {
+    // Delete from Supabase
+    try {
+      await databaseService.deleteTournament(id);
+    } catch (error) {
+      console.error('Error deleting tournament from Supabase:', error);
+      toast.error('Erreur lors de la suppression du tournoi');
+      return;
+    }
+
     setTournaments((prev) => {
       const tournament = prev.find((t) => t.id === id);
       if (tournament?.leagueId) {
@@ -352,6 +362,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     if (currentTournamentId === id) {
       setCurrentTournamentId(null);
     }
+    toast.success('Tournoi supprimé avec succès');
   };
 
   const toggleTournamentStatus = async (tournamentId: string) => {
