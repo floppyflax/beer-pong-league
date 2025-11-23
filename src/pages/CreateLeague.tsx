@@ -19,7 +19,7 @@ export const CreateLeague = () => {
     }
   }, [isAuthenticated, isLoading]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     if (!isAuthenticated) {
@@ -27,7 +27,7 @@ export const CreateLeague = () => {
       return;
     }
 
-    const newLeagueId = createLeague(name, type);
+    const newLeagueId = await createLeague(name, type);
     navigate(`/league/${newLeagueId}`);
   };
 

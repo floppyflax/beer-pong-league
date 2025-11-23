@@ -40,7 +40,7 @@ export const CreateTournament = () => {
     }
   }, [selectedLeague]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     if (!isAuthenticated) {
@@ -51,7 +51,7 @@ export const CreateTournament = () => {
     // Si une League est sélectionnée, il faut au moins un joueur
     if (selectedLeagueId && selectedPlayerIds.length === 0) return;
 
-    const tournamentId = createTournament(
+    const tournamentId = await createTournament(
       name,
       date,
       selectedLeagueId,
@@ -68,11 +68,11 @@ export const CreateTournament = () => {
     }
   };
 
-  const handleCreateLeague = (e: React.FormEvent) => {
+  const handleCreateLeague = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLeagueName.trim()) return;
 
-    const newLeagueId = createLeague(newLeagueName, "event");
+    const newLeagueId = await createLeague(newLeagueName, "event");
     setSelectedLeagueId(newLeagueId);
     setShowCreateLeague(false);
     setNewLeagueName("");

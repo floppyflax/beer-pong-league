@@ -11,6 +11,8 @@ import {
   Monitor,
 } from "lucide-react";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
+import { EmptyState } from "../components/EmptyState";
+import { LoadingSpinner } from "../components/LoadingSpinner";
 
 export const TournamentDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +27,8 @@ export const TournamentDashboard = () => {
     getLeagueGlobalRanking,
     addPlayer,
     addPlayerToTournament,
+    associateTournamentToLeague,
+    isLoadingInitialData,
   } = useLeague();
   const navigate = useNavigate();
 
@@ -45,9 +49,35 @@ export const TournamentDashboard = () => {
   const [matchWinner, setMatchWinner] = useState<"A" | "B" | null>(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState("");
+  const [showLinkLeague, setShowLinkLeague] = useState(false);
+  const [selectedLeagueId, setSelectedLeagueId] = useState<string>("");
+
+  if (isLoadingInitialData) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <LoadingSpinner size={48} />
+      </div>
+    );
+  }
 
   if (!tournament) {
-    return <div className="p-4 text-center">Tournoi introuvable.</div>;
+    return (
+      <div className="p-4 text-center">
+        <EmptyState
+          icon={Trophy}
+          title="Tournoi introuvable"
+          description="Ce tournoi n'existe pas ou a été supprimé."
+          action={
+            <button
+              onClick={() => navigate("/")}
+              className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+            >
+              Retour à l'accueil
+            </button>
+          }
+        />
+      </div>
+    );
   }
 
   const league = tournament.leagueId
@@ -96,13 +126,13 @@ export const TournamentDashboard = () => {
     }
   };
 
-  const handleRecordMatch = () => {
+  const handleRecordMatch = async () => {
     if (
       selectedPlayersA.length > 0 &&
       selectedPlayersB.length > 0 &&
       matchWinner
     ) {
-      const eloChanges = recordTournamentMatch(
+      const eloChanges = await recordTournamentMatch(
         tournament.id,
         selectedPlayersA,
         selectedPlayersB,
@@ -146,12 +176,28 @@ export const TournamentDashboard = () => {
 
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPlayerName.trim() || !tournament.leagueId) return;
+    if (!newPlayerName.trim()) return;
 
-    // Add player to League - it will be auto-added to tournament via useEffect
-    addPlayer(tournament.leagueId, newPlayerName);
+    if (tournament.leagueId) {
+      // Add player to League - it will be auto-added to tournament via useEffect
+      addPlayer(tournament.leagueId, newPlayerName);
+    } else {
+      // For autonomous tournaments, we need to create a league first or link to one
+      // For now, show a message to link to a league
+      alert("Pour ajouter des joueurs, associez d'abord ce tournoi à une League dans les paramètres.");
+      setShowAddPlayer(false);
+      setActiveTab("settings");
+      return;
+    }
     setNewPlayerName("");
     setShowAddPlayer(false);
+  };
+
+  const handleLinkToLeague = () => {
+    if (!selectedLeagueId) return;
+    associateTournamentToLeague(tournament.id, selectedLeagueId);
+    setShowLinkLeague(false);
+    setSelectedLeagueId("");
   };
 
   return (
@@ -291,10 +337,29 @@ export const TournamentDashboard = () => {
         {activeTab === "ranking" && (
           <>
             {ranking.length === 0 ? (
-              <div className="text-center py-10 text-slate-500">
-                <Users size={48} className="mx-auto mb-4 opacity-20" />
-                <p>Aucun joueur pour le moment.</p>
-              </div>
+              <EmptyState
+                icon={Users}
+                title="Aucun joueur"
+                description={tournament.leagueId 
+                  ? "Ajoute des joueurs depuis la ligue pour participer au tournoi."
+                  : "Associe ce tournoi à une ligue dans les paramètres pour ajouter des joueurs."}
+                action={tournament.leagueId ? (
+                  <button
+                    onClick={() => setShowAddPlayer(true)}
+                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+                  >
+                    <Plus size={16} className="inline mr-2" />
+                    Ajouter un joueur
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setActiveTab("settings")}
+                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+                  >
+                    Associer à une ligue
+                  </button>
+                )}
+              />
             ) : (
               ranking.map((player, index) => (
                 <div
@@ -349,10 +414,22 @@ export const TournamentDashboard = () => {
         {activeTab === "history" && (
           <>
             {tournament.matches.length === 0 ? (
-              <div className="text-center py-10 text-slate-500">
-                <History size={48} className="mx-auto mb-4 opacity-20" />
-                <p>Aucun match enregistré.</p>
-              </div>
+              <EmptyState
+                icon={History}
+                title="Aucun match"
+                description="Enregistre ton premier match pour voir l'évolution du classement."
+                action={
+                  !tournament.isFinished && (
+                    <button
+                      onClick={() => setShowRecordMatch(true)}
+                      className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+                    >
+                      <Plus size={16} className="inline mr-2" />
+                      Enregistrer un match
+                    </button>
+                  )
+                }
+              />
             ) : (
               tournament.matches.map((match) => {
                 const teamANames = tournamentPlayers
@@ -433,6 +510,62 @@ export const TournamentDashboard = () => {
               </div>
             </div>
 
+            {/* Link to League */}
+            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                <LinkIcon size={18} />
+                Association à une League
+              </h3>
+              {tournament.leagueId ? (
+                <div className="space-y-3">
+                  <div className="text-sm text-slate-400">
+                    Ce tournoi est associé à :
+                  </div>
+                  <div className="bg-slate-700 p-3 rounded-lg">
+                    <div className="font-bold text-white">
+                      {league?.name || "League introuvable"}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (confirm("Voulez-vous dissocier ce tournoi de la League ?")) {
+                        associateTournamentToLeague(tournament.id, "");
+                      }
+                    }}
+                    className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-lg text-sm"
+                  >
+                    Dissocier de la League
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-sm text-slate-400 mb-3">
+                    Associez ce tournoi à une League pour suivre le classement global.
+                  </div>
+                  <select
+                    value={selectedLeagueId}
+                    onChange={(e) => setSelectedLeagueId(e.target.value)}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary outline-none"
+                  >
+                    <option value="">Sélectionner une League</option>
+                    {leagues.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedLeagueId && (
+                    <button
+                      onClick={handleLinkToLeague}
+                      className="w-full bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-lg"
+                    >
+                      Associer à cette League
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
               <h3 className="font-bold text-white mb-4">Actions</h3>
               <div className="space-y-2">
@@ -462,15 +595,13 @@ export const TournamentDashboard = () => {
 
       {/* Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 flex gap-3 max-w-md mx-auto z-30">
-        {tournament.leagueId && (
-          <button
-            onClick={() => setShowAddPlayer(true)}
-            className="bg-slate-800 hover:bg-slate-700 text-white p-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center"
-            title="Ajouter un joueur"
-          >
-            <Users size={24} />
-          </button>
-        )}
+        <button
+          onClick={() => setShowAddPlayer(true)}
+          className="bg-slate-800 hover:bg-slate-700 text-white p-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center"
+          title="Ajouter un joueur"
+        >
+          <Users size={24} />
+        </button>
         {!tournament.isFinished && (
           <button
             onClick={() => setShowRecordMatch(true)}
@@ -587,7 +718,7 @@ export const TournamentDashboard = () => {
       )}
 
       {/* Add Player Modal */}
-      {showAddPlayer && tournament.leagueId && (
+      {showAddPlayer && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
             <div className="flex justify-between items-center mb-6">
@@ -596,22 +727,40 @@ export const TournamentDashboard = () => {
                 <X size={24} />
               </button>
             </div>
-            <form onSubmit={handleAddPlayer}>
-              <input
-                type="text"
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
-                placeholder="Nom du joueur"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 mb-4 text-white focus:ring-2 focus:ring-primary outline-none"
-                autoFocus
-              />
-              <button
-                type="submit"
-                className="w-full bg-primary font-bold py-4 rounded-xl text-white"
-              >
-                AJOUTER
-              </button>
-            </form>
+            {tournament.leagueId ? (
+              <form onSubmit={handleAddPlayer}>
+                <input
+                  type="text"
+                  value={newPlayerName}
+                  onChange={(e) => setNewPlayerName(e.target.value)}
+                  placeholder="Nom du joueur"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 mb-4 text-white focus:ring-2 focus:ring-primary outline-none"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="w-full bg-primary font-bold py-4 rounded-xl text-white"
+                >
+                  AJOUTER
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-slate-400 text-sm">
+                  Pour ajouter des joueurs, ce tournoi doit être associé à une League.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowAddPlayer(false);
+                    setActiveTab("settings");
+                    setShowLinkLeague(true);
+                  }}
+                  className="w-full bg-primary font-bold py-4 rounded-xl text-white"
+                >
+                  Associer à une League
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useState } from "react";
+import { Toaster } from "react-hot-toast";
 import { LeagueProvider, useLeague } from "./context/LeagueContext";
 import { IdentityProvider } from "./context/IdentityContext";
 import { AuthProvider } from "./context/AuthContext";
@@ -23,6 +24,7 @@ import { MenuDrawer } from "./components/layout/MenuDrawer";
 import { IdentityInitializer } from "./components/IdentityInitializer";
 import { useAuthContext } from "./context/AuthContext";
 import { useIdentity } from "./hooks/useIdentity";
+import { LoadingSpinner } from "./components/LoadingSpinner";
 import { Menu, User, LogOut } from "lucide-react";
 
 function App() {
@@ -33,6 +35,30 @@ function App() {
           <Router>
             <AppContent />
           </Router>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: "#1e293b",
+                color: "#fff",
+                border: "1px solid #334155",
+                borderRadius: "0.75rem",
+              },
+              success: {
+                iconTheme: {
+                  primary: "#f59e0b",
+                  secondary: "#fff",
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: "#ef4444",
+                  secondary: "#fff",
+                },
+              },
+            }}
+          />
         </LeagueProvider>
       </IdentityProvider>
     </AuthProvider>
@@ -127,8 +153,16 @@ function AppContent() {
 }
 
 const Home = () => {
-  const { leagues, tournaments } = useLeague();
+  const { leagues, tournaments, isLoadingInitialData } = useLeague();
   const navigate = useNavigate();
+
+  if (isLoadingInitialData) {
+    return (
+      <div className="flex items-center justify-center flex-grow">
+        <LoadingSpinner size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center flex-grow space-y-10 py-12 px-6">

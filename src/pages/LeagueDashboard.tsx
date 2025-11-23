@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { Trophy, Plus, History, Users, X, Trash2, Edit, Monitor } from "lucide-react";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
+import { EmptyState } from "../components/EmptyState";
+import { LoadingSpinner } from "../components/LoadingSpinner";
 
 export const LeagueDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +17,7 @@ export const LeagueDashboard = () => {
     updateLeague,
     // updatePlayer, // Unused
     deletePlayer,
+    isLoadingInitialData,
   } = useLeague();
   const navigate = useNavigate();
 
@@ -37,8 +40,32 @@ export const LeagueDashboard = () => {
     {}
   );
 
+  if (isLoadingInitialData) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <LoadingSpinner size={48} />
+      </div>
+    );
+  }
+
   if (!league) {
-    return <div className="p-4 text-center">Ligue introuvable.</div>;
+    return (
+      <div className="p-4 text-center">
+        <EmptyState
+          icon={Trophy}
+          title="Ligue introuvable"
+          description="Cette ligue n'existe pas ou a été supprimée."
+          action={
+            <button
+              onClick={() => navigate("/")}
+              className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+            >
+              Retour à l'accueil
+            </button>
+          }
+        />
+      </div>
+    );
   }
 
   const sortedPlayers = useMemo(() => {
@@ -78,13 +105,13 @@ export const LeagueDashboard = () => {
     }
   };
 
-  const handleRecordMatch = () => {
+  const handleRecordMatch = async () => {
     if (
       selectedPlayersA.length > 0 &&
       selectedPlayersB.length > 0 &&
       matchWinner
     ) {
-      const eloChanges = recordMatch(
+      const eloChanges = await recordMatch(
         league.id,
         selectedPlayersA,
         selectedPlayersB,
@@ -227,16 +254,20 @@ export const LeagueDashboard = () => {
         {activeTab === "ranking" && (
           <>
             {sortedPlayers.length === 0 ? (
-              <div className="text-center py-10 text-slate-500">
-                <Users size={48} className="mx-auto mb-4 opacity-20" />
-                <p>Aucun joueur pour le moment.</p>
-                <button
-                  onClick={() => setShowAddPlayer(true)}
-                  className="text-primary font-bold mt-2"
-                >
-                  Ajouter un joueur
-                </button>
-              </div>
+              <EmptyState
+                icon={Users}
+                title="Aucun joueur"
+                description="Ajoute des joueurs pour commencer à enregistrer des matchs."
+                action={
+                  <button
+                    onClick={() => setShowAddPlayer(true)}
+                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+                  >
+                    <Plus size={16} className="inline mr-2" />
+                    Ajouter un joueur
+                  </button>
+                }
+              />
             ) : (
               sortedPlayers.map((player, index) => (
                 <div
@@ -291,10 +322,20 @@ export const LeagueDashboard = () => {
         {activeTab === "matches" && (
           <>
             {league.matches.length === 0 ? (
-              <div className="text-center py-10 text-slate-500">
-                <History size={48} className="mx-auto mb-4 opacity-20" />
-                <p>Aucun match enregistré.</p>
-              </div>
+              <EmptyState
+                icon={History}
+                title="Aucun match"
+                description="Enregistre ton premier match pour voir l'évolution des classements."
+                action={
+                  <button
+                    onClick={() => setShowRecordMatch(true)}
+                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+                  >
+                    <Plus size={16} className="inline mr-2" />
+                    Enregistrer un match
+                  </button>
+                }
+              />
             ) : (
               league.matches.map((match) => {
                 const teamANames = league.players
@@ -364,28 +405,42 @@ export const LeagueDashboard = () => {
                   </div>
                 ))
             ) : (
-              <div className="text-center py-10 text-slate-500">
-                <Trophy size={48} className="mx-auto mb-4 opacity-20" />
-                <p>Aucun tournoi pour le moment.</p>
-                <button
-                  onClick={() =>
-                    navigate(`/create-tournament?leagueId=${league.id}`)
-                  }
-                  className="text-primary font-bold mt-2"
-                >
-                  Créer un tournoi
-                </button>
-              </div>
+              <EmptyState
+                icon={Trophy}
+                title="Aucun tournoi"
+                description="Crée un tournoi pour organiser des événements compétitifs."
+                action={
+                  <button
+                    onClick={() =>
+                      navigate(`/create-tournament?leagueId=${league.id}`)
+                    }
+                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+                  >
+                    <Plus size={16} className="inline mr-2" />
+                    Créer un tournoi
+                  </button>
+                }
+              />
             )}
           </>
         )}
         {activeTab === "players" && (
           <>
             {sortedPlayers.length === 0 ? (
-              <div className="text-center py-10 text-slate-500">
-                <Users size={48} className="mx-auto mb-4 opacity-20" />
-                <p>Aucun joueur pour le moment.</p>
-              </div>
+              <EmptyState
+                icon={Users}
+                title="Aucun joueur"
+                description="Ajoute des joueurs à cette ligue pour commencer."
+                action={
+                  <button
+                    onClick={() => setShowAddPlayer(true)}
+                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+                  >
+                    <Plus size={16} className="inline mr-2" />
+                    Ajouter un joueur
+                  </button>
+                }
+              />
             ) : (
               sortedPlayers.map((player) => (
                 <div
