@@ -581,6 +581,35 @@ export const TournamentDashboard = () => {
               )}
             </div>
 
+            {/* Anti-Cheat Mode */}
+            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+              <h3 className="font-bold text-white mb-4">Mode Anti-Triche</h3>
+              <div className="space-y-3">
+                <div className="text-sm text-slate-400 mb-3">
+                  Lorsque activé, chaque match doit être confirmé par l'adversaire
+                  pour éviter la triche.
+                </div>
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="text-white font-medium">
+                    Anti-triche activé
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={tournament.anti_cheat_enabled || false}
+                    onChange={(e) =>
+                      updateTournament(
+                        tournament.id,
+                        tournament.name,
+                        tournament.date,
+                        e.target.checked
+                      )
+                    }
+                    className="w-6 h-6 rounded bg-slate-700 border-slate-600 text-primary focus:ring-2 focus:ring-primary"
+                  />
+                </label>
+              </div>
+            </div>
+
             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
               <h3 className="font-bold text-white mb-4">Actions</h3>
               <div className="space-y-2">

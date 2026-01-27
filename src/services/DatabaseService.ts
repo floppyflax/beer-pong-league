@@ -531,22 +531,35 @@ class DatabaseService {
   /**
    * Met à jour un tournament dans Supabase
    */
-  async updateTournament(tournamentId: string, name: string, date: string): Promise<void> {
+  async updateTournament(
+    tournamentId: string,
+    name: string,
+    date: string,
+    antiCheatEnabled?: boolean
+  ): Promise<void> {
     if (!this.isSupabaseAvailable()) {
       const tournaments = this.loadTournamentsFromLocalStorage();
       const tournament = tournaments.find((t) => t.id === tournamentId);
       if (tournament) {
         tournament.name = name;
         tournament.date = date;
+        if (antiCheatEnabled !== undefined) {
+          tournament.anti_cheat_enabled = antiCheatEnabled;
+        }
         this.saveTournamentToLocalStorage(tournament);
       }
       return;
     }
 
     try {
+      const updates: any = { name, date };
+      if (antiCheatEnabled !== undefined) {
+        updates.anti_cheat_enabled = antiCheatEnabled;
+      }
+      
       const { error } = await supabase!
         .from('tournaments')
-        .update({ name, date })
+        .update(updates)
         .eq('id', tournamentId);
 
       if (error) throw error;
@@ -557,6 +570,9 @@ class DatabaseService {
       if (tournament) {
         tournament.name = name;
         tournament.date = date;
+        if (antiCheatEnabled !== undefined) {
+          tournament.anti_cheat_enabled = antiCheatEnabled;
+        }
         this.saveTournamentToLocalStorage(tournament);
       }
     } catch (error) {
@@ -567,6 +583,9 @@ class DatabaseService {
       if (tournament) {
         tournament.name = name;
         tournament.date = date;
+        if (antiCheatEnabled !== undefined) {
+          tournament.anti_cheat_enabled = antiCheatEnabled;
+        }
         this.saveTournamentToLocalStorage(tournament);
       }
     }
@@ -750,6 +769,18 @@ class DatabaseService {
       const participantsWithStats = await Promise.all(
         data.map(async (tp: any) => {
           // Try to find corresponding league_player
+          if (!tournamentData.league_id) {
+            return {
+              id: tp.id,
+              name: tp.pseudo_in_tournament || tp.user?.pseudo || tp.anonymous_user?.pseudo || 'Anonymous',
+              elo: 1500,
+              matchesPlayed: 0,
+              wins: 0,
+              losses: 0,
+              joinedAt: tp.joined_at || new Date().toISOString(),
+            };
+          }
+
           let statsQuery = supabase!
             .from('league_players')
             .select('elo, matches_played, wins, losses')
@@ -761,15 +792,20 @@ class DatabaseService {
             statsQuery = statsQuery.eq('anonymous_user_id', tp.anonymous_user_id);
           }
 
-          const { data: statsData } = await statsQuery.single();
+          const { data: statsData } = await statsQuery.maybeSingle();
+
+          // Type guard to ensure statsData is valid
+          const stats = (statsData && typeof statsData === 'object' && 'elo' in statsData) 
+            ? statsData as { elo: number; matches_played: number; wins: number; losses: number }
+            : null;
 
           return {
             id: tp.id,
             name: tp.pseudo_in_tournament || tp.user?.pseudo || tp.anonymous_user?.pseudo || 'Anonymous',
-            elo: statsData?.elo || 1500,
-            matchesPlayed: statsData?.matches_played || 0,
-            wins: statsData?.wins || 0,
-            losses: statsData?.losses || 0,
+            elo: stats?.elo || 1500,
+            matchesPlayed: stats?.matches_played || 0,
+            wins: stats?.wins || 0,
+            losses: stats?.losses || 0,
             joinedAt: tp.joined_at || new Date().toISOString(),
           };
         })

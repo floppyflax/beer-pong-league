@@ -84,11 +84,36 @@ export type League = z.infer<typeof leagueSchema>;
 export const tournamentSchema = z.object({
   id: z.string().uuid('Tournament ID must be a valid UUID'),
   name: z.string().min(1, 'Tournament name is required').max(200, 'Tournament name must be 200 characters or less'),
-  date: z.string().datetime('Date must be a valid ISO 8601 datetime'),
+  // Accept both date (YYYY-MM-DD) and datetime formats, convert to datetime
+  date: z.string().refine((val) => {
+    // Accept ISO date (YYYY-MM-DD) or ISO datetime
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const datetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+    return dateRegex.test(val) || datetimeRegex.test(val);
+  }, 'Date must be a valid ISO 8601 date or datetime')
+    .transform((val) => {
+      // If it's just a date, convert to datetime
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        return new Date(val + 'T00:00:00.000Z').toISOString();
+      }
+      // If it's already a datetime, ensure it's ISO format
+      return new Date(val).toISOString();
+    }),
   format: z.enum(['1v1', '2v2', '3v3'], { message: 'Format must be either "1v1", "2v2", or "3v3"' }).default('2v2'),
   location: z.string().max(200, 'Location must be 200 characters or less').optional(),
   leagueId: z.string().uuid('League ID must be a valid UUID').nullable(),
-  createdAt: z.string().datetime('Created at must be a valid ISO 8601 datetime'),
+  // Accept both date and datetime formats for createdAt
+  createdAt: z.string().refine((val) => {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const datetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+    return dateRegex.test(val) || datetimeRegex.test(val);
+  }, 'Created at must be a valid ISO 8601 date or datetime')
+    .transform((val) => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        return new Date(val + 'T00:00:00.000Z').toISOString();
+      }
+      return new Date(val).toISOString();
+    }),
   playerIds: z.array(z.string().uuid('Player ID must be a valid UUID')).default([]),
   matches: z.array(matchSchema).default([]),
   isFinished: z.boolean().default(false),

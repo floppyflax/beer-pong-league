@@ -57,7 +57,7 @@ interface LeagueContextType {
     name: string,
     type: "event" | "season"
   ) => Promise<void>;
-  updateTournament: (tournamentId: string, name: string, date: string) => Promise<void>;
+  updateTournament: (tournamentId: string, name: string, date: string, antiCheatEnabled?: boolean) => Promise<void>;
   updatePlayer: (leagueId: string, playerId: string, name: string) => Promise<void>;
   deletePlayer: (leagueId: string, playerId: string) => Promise<void>;
   getTournamentLocalRanking: (tournamentId: string) => Player[];
@@ -850,18 +850,23 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   const updateTournament = async (
     tournamentId: string,
     name: string,
-    date: string
+    date: string,
+    antiCheatEnabled?: boolean
   ) => {
     setTournaments((prev) =>
       prev.map((tournament) => {
         if (tournament.id !== tournamentId) return tournament;
-        return { ...tournament, name, date };
+        const updates: Partial<Tournament> = { name, date };
+        if (antiCheatEnabled !== undefined) {
+          updates.anti_cheat_enabled = antiCheatEnabled;
+        }
+        return { ...tournament, ...updates };
       })
     );
 
     // Update in Supabase
     try {
-      await databaseService.updateTournament(tournamentId, name, date);
+      await databaseService.updateTournament(tournamentId, name, date, antiCheatEnabled);
       toast.success('Tournoi mis à jour');
     } catch (error) {
       console.error('Error updating tournament:', error);
