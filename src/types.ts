@@ -45,6 +45,8 @@ export interface Tournament {
   id: string;
   name: string;
   date: string;
+  format: '1v1' | '2v2' | '3v3'; // Default format for matches in this tournament
+  location?: string; // Optional location context
   leagueId: string | null; // null if autonomous, otherwise linked to a League
   createdAt: string;
   playerIds: string[]; // Subset of League players (or all if autonomous)

@@ -25,8 +25,11 @@ interface LeagueContextType {
   createTournament: (
     name: string,
     date: string,
+    format: '1v1' | '2v2' | '3v3',
+    location: string | undefined,
     leagueId: string | null,
-    playerIds: string[]
+    playerIds: string[],
+    antiCheatEnabled?: boolean
   ) => Promise<string>;
   selectLeague: (id: string) => void;
   selectTournament: (id: string) => void;
@@ -253,13 +256,18 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   const createTournament = async (
     name: string,
     date: string,
+    format: '1v1' | '2v2' | '3v3',
+    location: string | undefined,
     leagueId: string | null,
-    playerIds: string[]
+    playerIds: string[],
+    antiCheatEnabled: boolean = false
   ) => {
     const newTournament: Tournament = {
       id: crypto.randomUUID(),
       name,
       date,
+      format,
+      location,
       leagueId,
       createdAt: new Date().toISOString(),
       playerIds,
@@ -268,6 +276,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       // Associate creator based on auth state
       creator_user_id: isAuthenticated && user ? user.id : null,
       creator_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
+      anti_cheat_enabled: antiCheatEnabled,
     };
     setTournaments((prev) => [...prev, newTournament]);
 

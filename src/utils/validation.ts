@@ -85,6 +85,8 @@ export const tournamentSchema = z.object({
   id: z.string().uuid('Tournament ID must be a valid UUID'),
   name: z.string().min(1, 'Tournament name is required').max(200, 'Tournament name must be 200 characters or less'),
   date: z.string().datetime('Date must be a valid ISO 8601 datetime'),
+  format: z.enum(['1v1', '2v2', '3v3'], { message: 'Format must be either "1v1", "2v2", or "3v3"' }).default('2v2'),
+  location: z.string().max(200, 'Location must be 200 characters or less').optional(),
   leagueId: z.string().uuid('League ID must be a valid UUID').nullable(),
   createdAt: z.string().datetime('Created at must be a valid ISO 8601 datetime'),
   playerIds: z.array(z.string().uuid('Player ID must be a valid UUID')).default([]),

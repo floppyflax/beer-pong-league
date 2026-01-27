@@ -226,6 +226,8 @@ class DatabaseService {
             id: typedRow.id,
             name: typedRow.name,
             date: typedRow.date,
+            format: tournamentRow.format || '2v2',
+            location: tournamentRow.location,
             leagueId: typedRow.league_id,
             createdAt: typedRow.created_at,
             playerIds,
@@ -369,11 +371,14 @@ class DatabaseService {
           id: tournament.id,
           name: tournament.name,
           date: tournament.date,
+          format: tournament.format,
+          location: tournament.location || null,
           league_id: tournament.leagueId,
           is_finished: tournament.isFinished,
           created_at: tournament.createdAt,
           creator_user_id: tournament.creator_user_id,
           creator_anonymous_user_id: tournament.creator_anonymous_user_id,
+          anti_cheat_enabled: tournament.anti_cheat_enabled || false,
         }, {
           onConflict: 'id'
         });
