@@ -14,6 +14,7 @@ import {
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { QRCodeDisplay } from "../components/QRCodeDisplay";
 
 export const TournamentDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -480,6 +481,12 @@ export const TournamentDashboard = () => {
         )}
         {activeTab === "settings" && (
           <div className="space-y-4">
+            {/* QR Code Section */}
+            <QRCodeDisplay 
+              tournamentId={tournament.id}
+              tournamentName={tournament.name}
+            />
+
             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
               <h3 className="font-bold text-white mb-4">Informations</h3>
               <div className="space-y-3">
