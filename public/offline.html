@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beer Pong League - Hors ligne</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      text-align: center;
+      max-width: 500px;
+    }
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 900;
+      margin-bottom: 16px;
+      color: #f59e0b;
+    }
+    p {
+      font-size: 18px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      margin-bottom: 32px;
+    }
+    .button {
+      display: inline-block;
+      padding: 16px 32px;
+      background: #f59e0b;
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 12px;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .button:hover {
+      background: #d97706;
+      transform: scale(1.05);
+    }
+    .status {
+      margin-top: 24px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>Tu es hors ligne</h1>
+    <p>
+      Pas de connexion internet détectée. Certaines fonctionnalités nécessitent une connexion pour fonctionner.
+    </p>
+    <a href="/" class="button" onclick="window.location.reload(); return false;">
+      Réessayer
+    </a>
+    <div class="status" id="status">
+      Vérification de la connexion...
+    </div>
+  </div>
+
+  <script>
+    // Check connection status
+    function updateStatus() {
+      const status = document.getElementById('status');
+      if (navigator.onLine) {
+        status.textContent = '✓ Connexion rétablie ! Clique sur Réessayer.';
+        status.style.background = 'rgba(34, 197, 94, 0.2)';
+        status.style.color = '#22c55e';
+      } else {
+        status.textContent = '✗ Toujours hors ligne...';
+        status.style.background = 'rgba(239, 68, 68, 0.2)';
+        status.style.color = '#ef4444';
+      }
+    }
+
+    // Update status immediately and on connection change
+    updateStatus();
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+
+    // Auto-reload when connection is restored
+    window.addEventListener('online', () => {
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
