@@ -7,6 +7,7 @@
 
 import { supabase } from '../lib/supabase';
 import type { League, Tournament, Player, Match } from '../types';
+import { safeValidateLeague, safeValidateTournament } from '../utils/validation';
 
 interface LeagueRow {
   id: string;
@@ -248,6 +249,13 @@ class DatabaseService {
    * Sauvegarde une league dans Supabase
    */
   async saveLeague(league: League): Promise<void> {
+    // Validate league data before saving
+    const validationResult = safeValidateLeague(league);
+    if (!validationResult.success) {
+      console.error('League validation failed:', validationResult.error.issues);
+      throw new Error(`Invalid league data: ${validationResult.error.issues.map(i => i.message).join(', ')}`);
+    }
+
     if (!this.isSupabaseAvailable()) {
       this.saveLeagueToLocalStorage(league);
       return;
@@ -341,6 +349,13 @@ class DatabaseService {
    * Sauvegarde un tournament dans Supabase
    */
   async saveTournament(tournament: Tournament): Promise<void> {
+    // Validate tournament data before saving
+    const validationResult = safeValidateTournament(tournament);
+    if (!validationResult.success) {
+      console.error('Tournament validation failed:', validationResult.error.issues);
+      throw new Error(`Invalid tournament data: ${validationResult.error.issues.map(i => i.message).join(', ')}`);
+    }
+
     if (!this.isSupabaseAvailable()) {
       this.saveTournamentToLocalStorage(tournament);
       return;

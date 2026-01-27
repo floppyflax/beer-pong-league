@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -50,8 +51,49 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       }
+    }),
+    visualizer({
+      filename: './dist/stats.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Vendor chunk splitting for better caching
+          if (id.includes('node_modules')) {
+            // React core libraries
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            
+            // Supabase libraries
+            if (id.includes('@supabase')) {
+              return 'supabase-vendor';
+            }
+            
+            // Workbox (PWA)
+            if (id.includes('workbox')) {
+              return 'workbox-vendor';
+            }
+            
+            // Lucide icons
+            if (id.includes('lucide-react')) {
+              return 'icons-vendor';
+            }
+            
+            // Other third-party libraries
+            return 'vendor';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 500, // 500KB limit per chunk
+    sourcemap: false, // Disable sourcemaps in production for smaller bundles
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

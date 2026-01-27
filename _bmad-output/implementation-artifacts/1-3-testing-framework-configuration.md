@@ -1,6 +1,20 @@
 # Story 1.3: Testing Framework Configuration
 
-Status: ready-for-dev
+Status: done
+
+## Change Log
+
+**2026-01-27** - Testing framework fully configured and validated
+- Installed Vitest 4.0.18 with React Testing Library and happy-dom
+- Created complete test directory structure (unit/, integration/, e2e/, __mocks__/, setup/)
+- Configured vitest.config.ts with happy-dom environment (switched from jsdom for compatibility)
+- Created test setup file with jest-dom matchers and automatic cleanup
+- Created custom test utilities with BrowserRouter wrapper
+- Created Supabase client mock for testing
+- Added 4 test scripts to package.json (test, test:ui, test:coverage, test:watch)
+- Created and validated sample ELO tests (4/4 passing)
+- Installed @vitest/ui for interactive test debugging
+- All acceptance criteria satisfied and tests passing
 
 ## Story
 
@@ -23,52 +37,52 @@ So that I can write and run tests to ensure code quality and prevent regressions
 
 ## Tasks / Subtasks
 
-- [ ] Install testing dependencies (AC: Installation)
-  - [ ] Run: `npm install -D vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom`
-  - [ ] Verify installations in package.json
+- [x] Install testing dependencies (AC: Installation)
+  - [x] Run: `npm install -D vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom`
+  - [x] Verify installations in package.json
 
-- [ ] Create vitest.config.ts (AC: Configuration)
-  - [ ] Configure test environment (jsdom)
-  - [ ] Set up path aliases (@/*)
-  - [ ] Configure coverage settings
-  - [ ] Define globals for test functions
+- [x] Create vitest.config.ts (AC: Configuration)
+  - [x] Configure test environment (happy-dom - switched from jsdom for better compatibility)
+  - [x] Set up path aliases (@/*)
+  - [x] Configure coverage settings
+  - [x] Define globals for test functions
 
-- [ ] Create tests directory structure (AC: Structure)
-  - [ ] Create tests/unit/ directory
-  - [ ] Create tests/integration/ directory
-  - [ ] Create tests/e2e/ directory
-  - [ ] Create tests/__mocks__/ directory
-  - [ ] Create tests/setup/ directory
+- [x] Create tests directory structure (AC: Structure)
+  - [x] Create tests/unit/ directory
+  - [x] Create tests/integration/ directory
+  - [x] Create tests/e2e/ directory
+  - [x] Create tests/__mocks__/ directory
+  - [x] Create tests/setup/ directory
 
-- [ ] Create test setup file (AC: Setup)
-  - [ ] Create tests/setup/vitest.setup.ts
-  - [ ] Import @testing-library/jest-dom
-  - [ ] Configure global test utilities
-  - [ ] Set up cleanup after each test
+- [x] Create test setup file (AC: Setup)
+  - [x] Create tests/setup/vitest.setup.ts
+  - [x] Import @testing-library/jest-dom
+  - [x] Configure global test utilities
+  - [x] Set up cleanup after each test
 
-- [ ] Create test utilities (AC: Utilities)
-  - [ ] Create tests/setup/test-utils.tsx
-  - [ ] Create custom render function with providers
-  - [ ] Export all testing-library utilities
-  - [ ] Add helper functions for common test scenarios
+- [x] Create test utilities (AC: Utilities)
+  - [x] Create tests/setup/test-utils.tsx
+  - [x] Create custom render function with providers
+  - [x] Export all testing-library utilities
+  - [x] Add helper functions for common test scenarios
 
-- [ ] Create Supabase mock (AC: Mocks)
-  - [ ] Create tests/__mocks__/supabase.ts
-  - [ ] Mock Supabase client methods
-  - [ ] Mock auth methods
-  - [ ] Mock database methods (select, insert, update, delete)
+- [x] Create Supabase mock (AC: Mocks)
+  - [x] Create tests/__mocks__/supabase.ts
+  - [x] Mock Supabase client methods
+  - [x] Mock auth methods
+  - [x] Mock database methods (select, insert, update, delete)
 
-- [ ] Add test scripts to package.json (AC: Scripts)
-  - [ ] Add "test" script
-  - [ ] Add "test:ui" script for UI mode
-  - [ ] Add "test:coverage" script
-  - [ ] Add "test:watch" script
+- [x] Add test scripts to package.json (AC: Scripts)
+  - [x] Add "test" script
+  - [x] Add "test:ui" script for UI mode
+  - [x] Add "test:coverage" script
+  - [x] Add "test:watch" script
 
-- [ ] Create sample test (AC: Sample)
-  - [ ] Create tests/unit/utils/elo.test.ts
-  - [ ] Write tests for ELO calculation
-  - [ ] Run tests to verify setup works
-  - [ ] Verify coverage report generation
+- [x] Create sample test (AC: Sample)
+  - [x] Create tests/unit/utils/elo.test.ts
+  - [x] Write tests for ELO calculation
+  - [x] Run tests to verify setup works
+  - [x] Verify coverage report generation
 
 ## Dev Notes
 
@@ -254,24 +268,46 @@ tests/
 
 ### Agent Model Used
 
-(To be filled by implementing agent)
+Claude Sonnet 4.5 (via Cursor)
 
 ### Debug Log References
 
-(To be filled during implementation)
+- **jsdom compatibility issue**: Initial setup with jsdom failed due to parse5 ES Module import error. Resolved by switching to `happy-dom` which provides better compatibility with Vitest 4.x
+- **Test signature correction**: Initial ELO tests used incorrect function signature (passing numbers instead of Player arrays). Corrected to match actual `calculateEloChange` implementation
 
 ### Completion Notes List
 
-(To be filled during implementation)
+- ✅ **Testing framework fully configured** with Vitest 4.0.18 and React Testing Library
+- ✅ **Test environment**: Using `happy-dom` for DOM testing (faster and more compatible than jsdom)
+- ✅ **Directory structure** created: `tests/{unit,integration,e2e,__mocks__,setup}`
+- ✅ **Test utilities** created with custom render function including BrowserRouter wrapper
+- ✅ **Supabase mock** configured with vitest mocks for all database and auth methods
+- ✅ **Test scripts** added: `test`, `test:ui`, `test:coverage`, `test:watch`
+- ✅ **Sample ELO tests** created and passing (4/4 tests)
+- ✅ **Coverage configuration** set up with v8 provider and HTML/JSON/text reporters
+- ✅ **Path aliases** configured (`@/*` resolves to `src/*`)
+- ✅ **Vitest UI** installed for interactive test debugging
+
+**Additional packages installed:**
+- `@vitest/ui` - Interactive test UI for better debugging experience
+- `happy-dom` - Fast and compatible DOM implementation for testing
 
 ### File List
 
-**Files to Create:**
-- vitest.config.ts
-- tests/setup/vitest.setup.ts
-- tests/setup/test-utils.tsx
-- tests/__mocks__/supabase.ts
-- tests/unit/utils/elo.test.ts (sample test)
+**Files Created:**
+- `vitest.config.ts` - Vitest configuration with happy-dom environment, coverage settings, and path aliases
+- `tests/setup/vitest.setup.ts` - Global test setup with jest-dom matchers and cleanup
+- `tests/setup/test-utils.tsx` - Custom render function with BrowserRouter provider
+- `tests/__mocks__/supabase.ts` - Supabase client mock with auth and database methods
+- `tests/unit/utils/elo.test.ts` - Sample ELO calculation tests (4 tests, all passing)
 
-**Files to Modify:**
-- package.json (add test scripts and dependencies)
+**Directories Created:**
+- `tests/unit/` - Unit tests directory
+- `tests/unit/utils/` - Utils unit tests
+- `tests/integration/` - Integration tests directory
+- `tests/e2e/` - End-to-end tests directory
+- `tests/__mocks__/` - Mock files directory
+- `tests/setup/` - Test setup files directory
+
+**Files Modified:**
+- `package.json` - Added test scripts (test, test:ui, test:coverage, test:watch) and dev dependencies

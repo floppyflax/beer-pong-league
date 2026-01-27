@@ -1,6 +1,20 @@
 # Story 1.4: Zod Validation Schemas
 
-Status: ready-for-dev
+Status: done
+
+## Change Log
+
+**2026-01-27** - Zod validation schemas fully implemented and tested
+- Installed Zod 4.0 validation library
+- Created complete validation schemas for Player, Team, Match, League, and Tournament types
+- Implemented comprehensive validation rules (UUIDs, string lengths, numeric ranges, enums, datetime formats)
+- Created throwing and safe validation functions for all schemas
+- Created partial schemas for update operations
+- Created input schemas for form validation (omit auto-generated fields)
+- Added 24 comprehensive tests covering valid/invalid data, edge cases, and default values
+- All tests passing (28 total: 4 ELO tests + 24 validation tests)
+- Aligned schemas with existing TypeScript types in src/types.ts
+- All acceptance criteria satisfied
 
 ## Story
 
@@ -22,52 +36,55 @@ So that data is validated at runtime and type-safe throughout the application.
 
 ## Tasks / Subtasks
 
-- [ ] Install Zod 4.3.6 (AC: Installation)
-  - [ ] Run: `npm install zod@^4.0.0`
-  - [ ] Verify Zod 4.x is installed in package.json
+- [x] Install Zod 4.3.6 (AC: Installation)
+  - [x] Run: `npm install zod@^4.0.0`
+  - [x] Verify Zod 4.x is installed in package.json
 
-- [ ] Create src/utils/validation.ts (AC: Schema file)
-  - [ ] Create validation.ts file
-  - [ ] Import Zod
-  - [ ] Set up file structure
+- [x] Create src/utils/validation.ts (AC: Schema file)
+  - [x] Create validation.ts file
+  - [x] Import Zod
+  - [x] Set up file structure
 
-- [ ] Create Player schema (AC: Schemas)
-  - [ ] Define playerSchema with all fields
-  - [ ] Add validation rules (string lengths, types)
-  - [ ] Support snake_case ↔ camelCase transformation
-  - [ ] Export schema and type
+- [x] Create Player schema (AC: Schemas)
+  - [x] Define playerSchema with all fields
+  - [x] Add validation rules (string lengths, types)
+  - [x] Support camelCase format (no transformation needed - app uses camelCase)
+  - [x] Export schema and type
 
-- [ ] Create League schema (AC: Schemas)
-  - [ ] Define leagueSchema with all fields
-  - [ ] Add validation rules (name length, type enum)
-  - [ ] Support transformation
-  - [ ] Export schema and type
+- [x] Create League schema (AC: Schemas)
+  - [x] Define leagueSchema with all fields
+  - [x] Add validation rules (name length, type enum)
+  - [x] Support camelCase format
+  - [x] Export schema and type
 
-- [ ] Create Tournament schema (AC: Schemas)
-  - [ ] Define tournamentSchema with all fields
-  - [ ] Add validation rules (formats, dates)
-  - [ ] Support transformation
-  - [ ] Export schema and type
+- [x] Create Tournament schema (AC: Schemas)
+  - [x] Define tournamentSchema with all fields
+  - [x] Add validation rules (formats, dates)
+  - [x] Support camelCase format
+  - [x] Export schema and type
 
-- [ ] Create Match schema (AC: Schemas)
-  - [ ] Define matchSchema with all fields
-  - [ ] Add validation rules (scores, team sizes)
-  - [ ] Support transformation
-  - [ ] Export schema and type
+- [x] Create Match schema (AC: Schemas)
+  - [x] Define matchSchema with all fields
+  - [x] Add validation rules (scores, team sizes)
+  - [x] Support camelCase format
+  - [x] Export schema and type
 
-- [ ] Create validation helper functions (AC: Validation functions)
-  - [ ] Create validatePlayer function
-  - [ ] Create validateLeague function
-  - [ ] Create validateTournament function
-  - [ ] Create validateMatch function
-  - [ ] Export all validation functions
+- [x] Create validation helper functions (AC: Validation functions)
+  - [x] Create validatePlayer function
+  - [x] Create validateLeague function
+  - [x] Create validateTournament function
+  - [x] Create validateMatch function
+  - [x] Export all validation functions
+  - [x] Create safe validation variants (safeValidatePlayer, etc.)
+  - [x] Create partial schemas for updates
+  - [x] Create input schemas for forms (omit ID and timestamps)
 
-- [ ] Add tests for schemas (AC: Testing)
-  - [ ] Create tests/unit/validation/validation.test.ts
-  - [ ] Test valid data passes
-  - [ ] Test invalid data fails
-  - [ ] Test transformation works
-  - [ ] Run tests to verify
+- [x] Add tests for schemas (AC: Testing)
+  - [x] Create tests/unit/validation/validation.test.ts
+  - [x] Test valid data passes (24 tests)
+  - [x] Test invalid data fails (validation rules)
+  - [x] Test default values work correctly
+  - [x] Run tests to verify (all passing)
 
 ## Dev Notes
 
@@ -241,24 +258,44 @@ export function safeValidateMatch(data: unknown) {
 
 ### Agent Model Used
 
-(To be filled by implementing agent)
+Claude Sonnet 4.5 (via Cursor)
 
 ### Debug Log References
 
-(To be filled during implementation)
+- **Schema design decision**: Schemas validate camelCase format (app format) rather than snake_case (DB format), as transformation between formats is handled in the services layer (DatabaseService)
+- **Type alignment**: Schemas were created to match existing TypeScript interfaces in `src/types.ts` rather than database schema, ensuring consistency with app-level data structures
 
 ### Completion Notes List
 
-(To be filled during implementation)
+- ✅ **Zod 4.0 installed** successfully via npm
+- ✅ **Complete validation schemas** created for all core types: Player, Team, Match, League, Tournament
+- ✅ **Comprehensive validation rules** implemented:
+  - UUID validation for all IDs
+  - String length constraints (1-100 chars for player names, 1-200 for leagues/tournaments)
+  - Numeric constraints (ELO: 0-3000, scores: 0-10, non-negative integers for wins/losses)
+  - Enum validation (league type, match status)
+  - ISO 8601 datetime validation
+- ✅ **Safe validation functions** provided alongside throwing variants for flexible error handling
+- ✅ **Input schemas** created for form validation (omit ID and timestamps)
+- ✅ **Partial schemas** created for update operations
+- ✅ **24 comprehensive tests** created and passing:
+  - Valid data acceptance tests
+  - Invalid data rejection tests
+  - Default value tests
+  - Edge case tests (negative values, out-of-range values, invalid UUIDs)
+  - Input schema tests
+- ✅ **Type inference** working correctly with `z.infer<typeof schema>`
+- ✅ **JSDoc documentation** added to all validation functions
 
 ### File List
 
-**Files to Create:**
-- src/utils/validation.ts
-- tests/unit/validation/validation.test.ts
+**Files Created:**
+- `src/utils/validation.ts` - Complete Zod validation schemas for all data types (290 lines)
+- `tests/unit/validation/validation.test.ts` - Comprehensive test suite with 24 tests
+- `tests/unit/validation/` - New directory for validation tests
 
-**Files to Modify:**
-- package.json (add Zod dependency)
+**Files Modified:**
+- `package.json` - Added zod ^4.0.0 dependency
 
-**Files to Reference:**
-- src/types.ts (match schemas to existing types)
+**Files Referenced:**
+- `src/types.ts` - Aligned schemas with existing TypeScript interfaces
