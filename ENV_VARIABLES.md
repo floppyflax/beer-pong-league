@@ -8,8 +8,10 @@ Créez un fichier `.env.local` à la racine du projet avec ces valeurs :
 
 ```env
 VITE_SUPABASE_URL=https://zsazjkhhqtmyvjsumgcq.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYXpqa2hocXRteXZqc3VtZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2ODYzOTUsImV4cCI6MjA3OTI2MjM5NX0.RiUs9I4al4k0wfI8Ql_k2ak5TSg-ca3ZNbh7ouXr2uE
+VITE_SUPABASE_PUBLIC_KEY=<your-publishable-key-sb_publishable_xxx>
 ```
+
+> **Note**: Supabase a migré vers un nouveau système de clés API. La nouvelle **publishable key** (format `sb_publishable_xxx`) remplace l'ancienne `anon key` qui est maintenant deprecated. Obtenez votre publishable key depuis le dashboard Supabase → Project Settings → API → Publishable key.
 
 ### Pour Vercel (Production)
 
@@ -27,8 +29,8 @@ Ajoutez ces mêmes variables dans les **Settings > Environment Variables** de vo
 
 **Variable 2:**
 
-- Name: `VITE_SUPABASE_ANON_KEY`
-- Value: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYXpqa2hocXRteXZqc3VtZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2ODYzOTUsImV4cCI6MjA3OTI2MjM5NX0.RiUs9I4al4k0wfI8Ql_k2ak5TSg-ca3ZNbh7ouXr2uE`
+- Name: `VITE_SUPABASE_PUBLIC_KEY`
+- Value: `<your-publishable-key-sb_publishable_xxx>`
 - Environment: All (Production, Preview, Development)
 
 ## Commandes pour créer .env.local
@@ -37,7 +39,7 @@ Ajoutez ces mêmes variables dans les **Settings > Environment Variables** de vo
 # Créer le fichier .env.local
 cat > .env.local << 'EOF'
 VITE_SUPABASE_URL=https://zsazjkhhqtmyvjsumgcq.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYXpqa2hocXRteXZqc3VtZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2ODYzOTUsImV4cCI6MjA3OTI2MjM5NX0.RiUs9I4al4k0wfI8Ql_k2ak5TSg-ca3ZNbh7ouXr2uE
+VITE_SUPABASE_PUBLIC_KEY=<your-publishable-key-sb_publishable_xxx>
 EOF
 ```
 
@@ -50,3 +52,4 @@ npm run dev
 ```
 
 L'application devrait maintenant se connecter à Supabase sans warning dans la console.
+

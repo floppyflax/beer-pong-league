@@ -16,9 +16,9 @@ export const TournamentInvite = () => {
     ? leagues.find((l) => l.id === tournament.leagueId)
     : null;
 
-  // Generate invite URL
+  // Generate invite URL (points to join page)
   const inviteUrl = tournament
-    ? `${window.location.origin}/tournament/${tournament.id}`
+    ? `${window.location.origin}/tournament/${tournament.id}/join`
     : "";
 
   const handleCopyLink = async () => {

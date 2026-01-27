@@ -12,7 +12,6 @@ export const DisplayView = () => {
   const league = leagues.find((l) => l.id === id);
   const [scrollPosition, setScrollPosition] = useState<"top" | "scrolling">("top");
   const [highlightedPlayers, setHighlightedPlayers] = useState<Set<string>>(new Set());
-  // const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Unused
   const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get sorted players

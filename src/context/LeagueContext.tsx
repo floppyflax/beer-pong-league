@@ -12,6 +12,8 @@ import { useAuth } from "../hooks/useAuth";
 import { useIdentity } from "../hooks/useIdentity";
 import { databaseService } from "../services/DatabaseService";
 import { migrationService } from "../services/MigrationService";
+import { localUserService } from "../services/LocalUserService";
+import { getDeviceFingerprint } from "../utils/deviceFingerprint";
 
 interface LeagueContextType {
   leagues: League[];
@@ -31,6 +33,7 @@ interface LeagueContextType {
   associateTournamentToLeague: (tournamentId: string, leagueId: string) => void;
   addPlayer: (leagueId: string, name: string) => Promise<void>;
   addPlayerToTournament: (tournamentId: string, playerId: string) => void;
+  addAnonymousPlayerToTournament: (tournamentId: string, playerName: string) => Promise<string>;
   recordMatch: (
     leagueId: string,
     teamAIds: string[],
@@ -481,6 +484,30 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const addAnonymousPlayerToTournament = async (
+    tournamentId: string,
+    playerName: string
+  ): Promise<string> => {
+    // Get or create local user identity
+    let localUser = localUserService.getLocalUser();
+    if (!localUser) {
+      const deviceFingerprint = getDeviceFingerprint();
+      localUser = localUserService.createLocalUser(playerName, deviceFingerprint);
+    }
+
+    // Add anonymous player to tournament via database service
+    const playerId = await databaseService.addAnonymousPlayerToTournament(
+      tournamentId,
+      playerName,
+      localUser.anonymousUserId
+    );
+
+    // Update tournament in context
+    addPlayerToTournament(tournamentId, playerId);
+
+    return playerId;
+  };
+
   const recordMatch = async (
     leagueId: string,
     teamAIds: string[],
@@ -903,6 +930,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         associateTournamentToLeague,
         addPlayer,
         addPlayerToTournament,
+        addAnonymousPlayerToTournament,
         recordMatch,
         recordTournamentMatch,
         deleteLeague,

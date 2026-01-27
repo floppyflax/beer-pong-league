@@ -11,7 +11,7 @@ Application de gestion de tournois et ligues de beer pong avec système ELO.
 3. Importez le repo GitHub `floppyflax/beer-pong-league`
 4. Configurez les variables d'environnement :
    - `VITE_SUPABASE_URL` : URL de votre projet Supabase
-   - `VITE_SUPABASE_ANON_KEY` : Clé anonyme de votre projet Supabase
+   - `VITE_SUPABASE_PUBLIC_KEY` : Publishable key de votre projet Supabase (format `sb_publishable_xxx`)
 5. Cliquez sur "Deploy"
 
 ### Option 2 : Via Vercel CLI
@@ -41,8 +41,10 @@ Créez un fichier `.env.local` à la racine du projet :
 
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_PUBLIC_KEY=sb_publishable_xxx
 ```
+
+> **Note**: Utilisez la nouvelle **publishable key** (format `sb_publishable_xxx`) depuis le dashboard Supabase → Project Settings → API. L'ancienne `anon key` est deprecated.
 
 ### Build
 

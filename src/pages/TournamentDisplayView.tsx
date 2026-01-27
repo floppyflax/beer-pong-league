@@ -32,10 +32,10 @@ export const TournamentDisplayView = () => {
       .slice(0, 5);
   }, [tournament]);
 
-  // Generate join URL
+  // Generate join URL (points to join page)
   const joinUrl = useMemo(() => {
     if (!tournament) return "";
-    return `${window.location.origin}/tournament/${tournament.id}`;
+    return `${window.location.origin}/tournament/${tournament.id}/join`;
   }, [tournament]);
 
   // Auto-scroll logic

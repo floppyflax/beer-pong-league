@@ -460,7 +460,8 @@ export const LeagueDashboard = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // TODO: Edit player modal
+                        // FUTURE WORK: Implement edit player modal
+                        // This modal should allow updating player name and optionally merging with another player
                       }}
                       className="p-2 hover:bg-slate-700 rounded-lg"
                     >

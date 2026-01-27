@@ -35,7 +35,9 @@ git push -u origin main
 Ajoutez ces variables dans les settings du projet Vercel :
 
 - `VITE_SUPABASE_URL` : URL de votre projet Supabase
-- `VITE_SUPABASE_ANON_KEY` : Clé anonyme de votre projet Supabase
+- `VITE_SUPABASE_PUBLIC_KEY` : Publishable key de votre projet Supabase (format `sb_publishable_xxx`)
+
+> **Note**: Utilisez la nouvelle publishable key depuis le dashboard Supabase. L'ancienne `anon key` est deprecated.
 
 ### Déploiement automatique
 
@@ -61,4 +63,5 @@ vercel list
 # Ouvrir le dashboard
 vercel dashboard
 ```
+
 

@@ -276,8 +276,12 @@ class DatabaseService {
         const playersToInsert = league.players.map((player) => ({
           id: player.id,
           league_id: league.id,
-          user_id: null, // TODO: mapper depuis player si nécessaire
-          anonymous_user_id: null, // TODO: mapper depuis player si nécessaire
+          // FUTURE WORK: Map player identity (user_id or anonymous_user_id) from Player object
+          // Currently, the Player type doesn't contain identity fields. This requires:
+          // 1. Extending the Player interface to include identity information
+          // 2. Or maintaining a separate identity mapping service
+          user_id: null,
+          anonymous_user_id: null,
           pseudo_in_league: player.name,
           elo: player.elo,
           wins: player.wins,
@@ -646,6 +650,75 @@ class DatabaseService {
   }
 
   /**
+   * Ajoute un joueur anonyme directement à un tournoi
+   */
+  async addAnonymousPlayerToTournament(
+    tournamentId: string,
+    playerName: string,
+    anonymousUserId: string
+  ): Promise<string> {
+    if (!this.isSupabaseAvailable()) {
+      // For localStorage, generate an ID and add to tournament
+      const tournaments = this.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find((t) => t.id === tournamentId);
+      if (tournament) {
+        const newPlayerId = crypto.randomUUID();
+        tournament.playerIds.push(newPlayerId);
+        this.saveTournamentToLocalStorage(tournament);
+        return newPlayerId;
+      }
+      throw new Error('Tournament not found');
+    }
+
+    try {
+      // First, ensure anonymous_user exists
+      const { data: existingAnonymousUser } = await supabase!
+        .from('anonymous_users')
+        .select('id')
+        .eq('id', anonymousUserId)
+        .single();
+
+      if (!existingAnonymousUser) {
+        // Create anonymous user
+        const { error: createError } = await supabase!
+          .from('anonymous_users')
+          .insert({
+            id: anonymousUserId,
+            pseudo: playerName,
+          });
+
+        if (createError) throw createError;
+      }
+
+      // Create tournament_player entry
+      const playerId = crypto.randomUUID();
+      const { error: insertError } = await supabase!
+        .from('tournament_players')
+        .insert({
+          id: playerId,
+          tournament_id: tournamentId,
+          anonymous_user_id: anonymousUserId,
+          pseudo_in_tournament: playerName,
+        });
+
+      if (insertError) throw insertError;
+
+      // Update localStorage cache
+      const tournaments = this.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find((t) => t.id === tournamentId);
+      if (tournament && !tournament.playerIds.includes(playerId)) {
+        tournament.playerIds.push(playerId);
+        this.saveTournamentToLocalStorage(tournament);
+      }
+
+      return playerId;
+    } catch (error) {
+      console.error('Error adding anonymous player to tournament:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Met à jour un joueur dans une league
    */
   async updatePlayer(leagueId: string, playerId: string, updates: Partial<Player>): Promise<void> {
@@ -827,8 +900,10 @@ class DatabaseService {
         match_id: match.id,
         league_id: leagueId,
         tournament_id: null,
-        user_id: null, // TODO: Map from player if needed
-        anonymous_user_id: null, // TODO: Map from player if needed
+        // FUTURE WORK: Map player identity for ELO history tracking
+        // This would allow filtering ELO history by user or anonymous user
+        user_id: null,
+        anonymous_user_id: null,
         elo_before: change.before,
         elo_after: change.after,
         elo_change: change.change,
@@ -955,8 +1030,10 @@ class DatabaseService {
         match_id: match.id,
         league_id: tournamentData.league_id,
         tournament_id: tournamentId,
-        user_id: null, // TODO: Map from player if needed
-        anonymous_user_id: null, // TODO: Map from player if needed
+        // FUTURE WORK: Map player identity for ELO history tracking in tournaments
+        // This would allow filtering ELO history by user or anonymous user
+        user_id: null,
+        anonymous_user_id: null,
         elo_before: change.before,
         elo_after: change.after,
         elo_change: change.change,

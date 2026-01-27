@@ -36,3 +36,4 @@ CREATE INDEX IF NOT EXISTS idx_matches_status ON public.matches(status) WHERE st
 CREATE INDEX IF NOT EXISTS idx_leagues_anti_cheat ON public.leagues(anti_cheat_enabled) WHERE anti_cheat_enabled = TRUE;
 CREATE INDEX IF NOT EXISTS idx_tournaments_anti_cheat ON public.tournaments(anti_cheat_enabled) WHERE anti_cheat_enabled = TRUE;
 
+

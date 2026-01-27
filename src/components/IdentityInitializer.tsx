@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useIdentityContext } from '../context/IdentityContext';
 import { IdentityModal } from './IdentityModal';
 import { CreateIdentityModal } from './CreateIdentityModal';
@@ -18,9 +19,14 @@ export const IdentityInitializer = ({
   onIdentityReady,
 }: IdentityInitializerProps) => {
   const { localUser, isLoading } = useIdentityContext();
+  const location = useLocation();
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Routes that don't require identity (tournament join, display views, invite)
+  const publicRoutes = ['/tournament/', '/league/', '/auth/callback'];
+  const isPublicRoute = publicRoutes.some(route => location.pathname.includes(route));
 
   useEffect(() => {
     if (isLoading) return;
@@ -34,12 +40,20 @@ export const IdentityInitializer = ({
       return;
     }
 
-    // No identity found, show modal to create or resume
+    // If on a public route (tournament join, display, etc.), don't require identity
+    if (isPublicRoute) {
+      if (!hasInitialized) {
+        setHasInitialized(true);
+      }
+      return;
+    }
+
+    // No identity found and not on public route, show modal to create or resume
     if (!hasInitialized) {
       setShowIdentityModal(true);
       setHasInitialized(true);
     }
-  }, [localUser, isLoading, hasInitialized, onIdentityReady]);
+  }, [localUser, isLoading, hasInitialized, onIdentityReady, isPublicRoute, location.pathname]);
 
   const handleSelectIdentity = (user: LocalUser) => {
     setShowIdentityModal(false);
