@@ -670,6 +670,119 @@ class DatabaseService {
   }
 
   /**
+   * Charge les participants d'un tournament depuis tournament_players
+   */
+  async loadTournamentParticipants(tournamentId: string): Promise<{
+    id: string;
+    name: string;
+    elo: number;
+    matchesPlayed: number;
+    wins: number;
+    losses: number;
+    joinedAt: string;
+  }[]> {
+    if (!this.isSupabaseAvailable()) {
+      // Fallback to localStorage - get tournament and league data
+      const tournaments = this.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find(t => t.id === tournamentId);
+      if (!tournament || !tournament.leagueId) return [];
+
+      const leagues = this.loadLeaguesFromLocalStorage();
+      const league = leagues.find(l => l.id === tournament.leagueId);
+      if (!league) return [];
+
+      return league.players
+        .filter(p => tournament.playerIds.includes(p.id))
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          elo: p.elo,
+          matchesPlayed: p.matchesPlayed,
+          wins: p.wins,
+          losses: p.losses,
+          joinedAt: new Date().toISOString(),
+        }));
+    }
+
+    try {
+      const { data, error } = await supabase!
+        .from('tournament_players')
+        .select(`
+          id,
+          joined_at,
+          pseudo_in_tournament,
+          user:users (
+            id,
+            pseudo
+          ),
+          anonymous_user:anonymous_users (
+            id,
+            pseudo
+          )
+        `)
+        .eq('tournament_id', tournamentId)
+        .order('joined_at', { ascending: true });
+
+      if (error) throw error;
+      if (!data) return [];
+
+      // Get tournament to find league_id
+      const { data: tournamentData } = await supabase!
+        .from('tournaments')
+        .select('league_id')
+        .eq('id', tournamentId)
+        .single();
+
+      if (!tournamentData || !tournamentData.league_id) {
+        // Autonomous tournament - return basic participant info without stats
+        return data.map((tp: any) => ({
+          id: tp.id,
+          name: tp.pseudo_in_tournament || tp.user?.pseudo || tp.anonymous_user?.pseudo || 'Anonymous',
+          elo: 1500, // Default ELO for autonomous tournaments
+          matchesPlayed: 0,
+          wins: 0,
+          losses: 0,
+          joinedAt: tp.joined_at || new Date().toISOString(),
+        }));
+      }
+
+      // Load league_player stats for each participant
+      const participantsWithStats = await Promise.all(
+        data.map(async (tp: any) => {
+          // Try to find corresponding league_player
+          let statsQuery = supabase!
+            .from('league_players')
+            .select('elo, matches_played, wins, losses')
+            .eq('league_id', tournamentData.league_id);
+
+          if (tp.user_id) {
+            statsQuery = statsQuery.eq('user_id', tp.user_id);
+          } else if (tp.anonymous_user_id) {
+            statsQuery = statsQuery.eq('anonymous_user_id', tp.anonymous_user_id);
+          }
+
+          const { data: statsData } = await statsQuery.single();
+
+          return {
+            id: tp.id,
+            name: tp.pseudo_in_tournament || tp.user?.pseudo || tp.anonymous_user?.pseudo || 'Anonymous',
+            elo: statsData?.elo || 1500,
+            matchesPlayed: statsData?.matches_played || 0,
+            wins: statsData?.wins || 0,
+            losses: statsData?.losses || 0,
+            joinedAt: tp.joined_at || new Date().toISOString(),
+          };
+        })
+      );
+
+      return participantsWithStats;
+    } catch (error) {
+      console.error('Error loading tournament participants:', error);
+      return [];
+    }
+  }
+
+  /**
    * Ajoute un joueur anonyme directement à un tournoi
    */
   async addAnonymousPlayerToTournament(
