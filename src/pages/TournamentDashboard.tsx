@@ -522,6 +522,27 @@ export const TournamentDashboard = () => {
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-primary outline-none"
                   />
                 </div>
+                <div>
+                  <label className="text-sm text-slate-400">Format</label>
+                  <select
+                    value={tournament.format}
+                    onChange={(e) =>
+                      updateTournament(
+                        tournament.id,
+                        tournament.name,
+                        tournament.date,
+                        undefined,
+                        e.target.value as '1v1' | '2v2' | '3v3' | 'libre'
+                      )
+                    }
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-primary outline-none"
+                  >
+                    <option value="1v1">1v1 (Solo)</option>
+                    <option value="2v2">2v2 (Équipes de 2)</option>
+                    <option value="3v3">3v3 (Équipes de 3)</option>
+                    <option value="libre">Libre (Équipes flexibles)</option>
+                  </select>
+                </div>
               </div>
             </div>
 

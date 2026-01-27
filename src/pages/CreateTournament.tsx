@@ -16,7 +16,7 @@ export const CreateTournament = () => {
   // Form state (3-5 fields max as per AC)
   const [name, setName] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [format, setFormat] = useState<'1v1' | '2v2' | '3v3'>('2v2');
+  const [format, setFormat] = useState<'1v1' | '2v2' | '3v3' | 'libre'>('2v2');
   const [location, setLocation] = useState("");
   const [antiCheatEnabled, setAntiCheatEnabled] = useState(false);
 
@@ -101,7 +101,7 @@ export const CreateTournament = () => {
       tournaments.push(localTournament);
       localStorage.setItem('bpl_tournaments', JSON.stringify(tournaments));
 
-      // Create tournament (syncs to Supabase)
+      // Create tournament (syncs to Supabase and shows success toast)
       const tournamentId = await createTournament(
         name,
         date,
@@ -111,9 +111,6 @@ export const CreateTournament = () => {
         [], // playerIds - will be added when participants join
         antiCheatEnabled
       );
-
-      // Show success message
-      toast.success('Tournament créé avec succès !');
 
       // Redirect to tournament dashboard
       navigate(`/tournament/${tournamentId}`);
@@ -186,13 +183,14 @@ export const CreateTournament = () => {
           <select
             id="format"
             value={format}
-            onChange={(e) => setFormat(e.target.value as '1v1' | '2v2' | '3v3')}
+            onChange={(e) => setFormat(e.target.value as '1v1' | '2v2' | '3v3' | 'libre')}
             className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-primary outline-none"
             aria-label="Format"
           >
             <option value="1v1">1v1 (Solo)</option>
             <option value="2v2">2v2 (Équipes de 2)</option>
             <option value="3v3">3v3 (Équipes de 3)</option>
+            <option value="libre">Libre (Équipes flexibles)</option>
           </select>
         </div>
 

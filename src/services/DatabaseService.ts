@@ -535,7 +535,8 @@ class DatabaseService {
     tournamentId: string,
     name: string,
     date: string,
-    antiCheatEnabled?: boolean
+    antiCheatEnabled?: boolean,
+    format?: '1v1' | '2v2' | '3v3' | 'libre'
   ): Promise<void> {
     if (!this.isSupabaseAvailable()) {
       const tournaments = this.loadTournamentsFromLocalStorage();
@@ -546,6 +547,9 @@ class DatabaseService {
         if (antiCheatEnabled !== undefined) {
           tournament.anti_cheat_enabled = antiCheatEnabled;
         }
+        if (format !== undefined) {
+          tournament.format = format;
+        }
         this.saveTournamentToLocalStorage(tournament);
       }
       return;
@@ -555,6 +559,9 @@ class DatabaseService {
       const updates: any = { name, date };
       if (antiCheatEnabled !== undefined) {
         updates.anti_cheat_enabled = antiCheatEnabled;
+      }
+      if (format !== undefined) {
+        updates.format = format;
       }
       
       const { error } = await supabase!
@@ -573,6 +580,9 @@ class DatabaseService {
         if (antiCheatEnabled !== undefined) {
           tournament.anti_cheat_enabled = antiCheatEnabled;
         }
+        if (format !== undefined) {
+          tournament.format = format;
+        }
         this.saveTournamentToLocalStorage(tournament);
       }
     } catch (error) {
@@ -585,6 +595,9 @@ class DatabaseService {
         tournament.date = date;
         if (antiCheatEnabled !== undefined) {
           tournament.anti_cheat_enabled = antiCheatEnabled;
+        }
+        if (format !== undefined) {
+          tournament.format = format;
         }
         this.saveTournamentToLocalStorage(tournament);
       }

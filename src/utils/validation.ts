@@ -99,7 +99,7 @@ export const tournamentSchema = z.object({
       // If it's already a datetime, ensure it's ISO format
       return new Date(val).toISOString();
     }),
-  format: z.enum(['1v1', '2v2', '3v3'], { message: 'Format must be either "1v1", "2v2", or "3v3"' }).default('2v2'),
+  format: z.enum(['1v1', '2v2', '3v3', 'libre'], { message: 'Format must be "1v1", "2v2", "3v3", or "libre"' }).default('2v2'),
   location: z.string().max(200, 'Location must be 200 characters or less').optional(),
   leagueId: z.string().uuid('League ID must be a valid UUID').nullable(),
   // Accept both date and datetime formats for createdAt

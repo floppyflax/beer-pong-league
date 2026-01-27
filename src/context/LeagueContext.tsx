@@ -25,7 +25,7 @@ interface LeagueContextType {
   createTournament: (
     name: string,
     date: string,
-    format: '1v1' | '2v2' | '3v3',
+    format: '1v1' | '2v2' | '3v3' | 'libre',
     location: string | undefined,
     leagueId: string | null,
     playerIds: string[],
@@ -57,7 +57,13 @@ interface LeagueContextType {
     name: string,
     type: "event" | "season"
   ) => Promise<void>;
-  updateTournament: (tournamentId: string, name: string, date: string, antiCheatEnabled?: boolean) => Promise<void>;
+  updateTournament: (
+    tournamentId: string, 
+    name: string, 
+    date: string, 
+    antiCheatEnabled?: boolean,
+    format?: '1v1' | '2v2' | '3v3' | 'libre'
+  ) => Promise<void>;
   updatePlayer: (leagueId: string, playerId: string, name: string) => Promise<void>;
   deletePlayer: (leagueId: string, playerId: string) => Promise<void>;
   getTournamentLocalRanking: (tournamentId: string) => Player[];
@@ -256,7 +262,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   const createTournament = async (
     name: string,
     date: string,
-    format: '1v1' | '2v2' | '3v3',
+    format: '1v1' | '2v2' | '3v3' | 'libre',
     location: string | undefined,
     leagueId: string | null,
     playerIds: string[],
@@ -851,7 +857,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     tournamentId: string,
     name: string,
     date: string,
-    antiCheatEnabled?: boolean
+    antiCheatEnabled?: boolean,
+    format?: '1v1' | '2v2' | '3v3' | 'libre'
   ) => {
     setTournaments((prev) =>
       prev.map((tournament) => {
@@ -860,13 +867,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         if (antiCheatEnabled !== undefined) {
           updates.anti_cheat_enabled = antiCheatEnabled;
         }
+        if (format !== undefined) {
+          updates.format = format;
+        }
         return { ...tournament, ...updates };
       })
     );
 
     // Update in Supabase
     try {
-      await databaseService.updateTournament(tournamentId, name, date, antiCheatEnabled);
+      await databaseService.updateTournament(tournamentId, name, date, antiCheatEnabled, format);
       toast.success('Tournoi mis à jour');
     } catch (error) {
       console.error('Error updating tournament:', error);
