@@ -316,3 +316,17 @@ Claude Sonnet 4.5 (via Cursor IDE)
 
 **Existing Files (Already Implement Requirements):**
 - src/pages/TournamentDashboard.tsx (participant display in ranking tab)
+
+## Change Log
+
+- **2026-01-27**: Story validated and completed
+  - Verified TournamentDashboard already implements all requirements
+  - Added loadTournamentParticipants() method to DatabaseService
+  - Created comprehensive test suite (4/4 tests passing)
+  - Participant list displays name, ELO, matches, wins, losses
+  - Participant count shown in stats summary
+  - Auto-updates when new participants join
+  - Excellent readability with large text and high contrast
+  - All acceptance criteria met by existing implementation
+  - Commit: 1903079
+  - Status: ready-for-dev → review

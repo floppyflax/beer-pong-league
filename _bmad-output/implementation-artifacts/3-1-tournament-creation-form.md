@@ -271,3 +271,14 @@ Claude Sonnet 4.5 (via Cursor IDE)
 - src/services/DatabaseService.ts (added format and location to save/load operations)
 - src/utils/validation.ts (added format and location to tournamentSchema)
 - src/types.ts (added format and location to Tournament interface)
+
+## Change Log
+
+- **2026-01-27**: Story implemented and completed
+  - Simplified tournament creation form with 5 fields (name, date, format, location, anti-cheat)
+  - Database migration added for format and location fields
+  - Zod validation integrated with field-specific errors
+  - localStorage optimistic saving implemented
+  - All acceptance criteria met
+  - Commit: 745f1df
+  - Status: ready-for-dev → review
