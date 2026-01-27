@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
-import { useAuthContext } from "../context/AuthContext";
-import { AuthModal } from "../components/AuthModal";
+import { useRequireIdentity } from "../hooks/useRequireIdentity";
+import { CreateIdentityModal } from "../components/CreateIdentityModal";
 import toast from "react-hot-toast";
 import { createTournamentInputSchema } from "../utils/validation";
 import { z } from "zod";
 
 export const CreateTournament = () => {
   const { createTournament } = useLeague();
-  const { isAuthenticated, isLoading } = useAuthContext();
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { ensureIdentity, showModal, handleIdentityCreated, handleCancel } = useRequireIdentity();
   const navigate = useNavigate();
 
   // Form state (3-5 fields max as per AC)
@@ -23,12 +22,6 @@ export const CreateTournament = () => {
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      setShowAuthModal(true);
-    }
-  }, [isAuthenticated, isLoading]);
 
   const validateForm = (): boolean => {
     try {
@@ -54,12 +47,8 @@ export const CreateTournament = () => {
           }
         });
         setErrors(newErrors);
-        
-        // Display first error as toast
-        const firstError = error.issues[0];
-        if (firstError) {
-          toast.error(firstError.message);
-        }
+        // Note: Toast removed - inline errors are sufficient
+        // Toast only shown on submit failure (see handleSubmit)
       }
       return false;
     }
@@ -68,14 +57,16 @@ export const CreateTournament = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check authentication
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
+    // Validate form first
+    if (!validateForm()) {
+      toast.error('Veuillez corriger les erreurs dans le formulaire');
       return;
     }
 
-    // Validate form
-    if (!validateForm()) {
+    // Ensure user has an identity (just-in-time)
+    const identity = await ensureIdentity();
+    if (!identity) {
+      // User cancelled identity creation
       return;
     }
 
@@ -229,29 +220,18 @@ export const CreateTournament = () => {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={!name.trim() || !isAuthenticated || isSubmitting}
+          disabled={!name.trim() || isSubmitting}
           className="w-full bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-xl shadow-lg mt-auto"
         >
-          {isSubmitting
-            ? "CRÉATION..."
-            : !isAuthenticated
-            ? "CONNEXION REQUISE"
-            : "CRÉER LE TOURNOI"}
+          {isSubmitting ? "CRÉATION..." : "CRÉER LE TOURNOI"}
         </button>
       </form>
 
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => {
-          if (isAuthenticated) {
-            setShowAuthModal(false);
-          } else {
-            navigate("/");
-          }
-        }}
-        onSuccess={() => {
-          setShowAuthModal(false);
-        }}
+      {/* Just-in-time identity creation modal */}
+      <CreateIdentityModal
+        isOpen={showModal}
+        onClose={handleCancel}
+        onIdentityCreated={handleIdentityCreated}
       />
     </div>
   );
