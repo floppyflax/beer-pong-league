@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useIdentity } from '../hooks/useIdentity';
 import { useAuthContext } from '../context/AuthContext';
 import { premiumService } from '../services/PremiumService';
+import { stripeService } from '../services/StripeService';
 import { supabase } from '../lib/supabase';
 
 interface PaymentModalProps {
@@ -115,30 +116,83 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess }: PaymentModalProps) 
         throw new Error('Database connection not available');
       }
 
-      // FIX #8: Generate transaction ID for tracking
-      // In production (Story 7.3), this will be used to verify webhook events
+      // Story 7.3: Check if Stripe is configured
+      const isStripeConfigured = stripeService.isStripeConfigured();
+
+      if (isStripeConfigured) {
+        // PRODUCTION MODE: Use real Stripe Checkout
+        console.log('🔐 Stripe Mode: Redirecting to Stripe Checkout...');
+        
+        // Create Stripe Checkout session
+        const session = await stripeService.createCheckoutSession(userId, anonymousUserId);
+        
+        if (!session) {
+          setError('Impossible de créer la session de paiement. Veuillez réessayer.');
+          setPaymentState('error');
+          setIsProcessing(false);
+          return;
+        }
+
+        // Log transaction for tracking
+        console.log('Payment transaction started:', session.sessionId);
+
+        // Redirect to Stripe Checkout (user will be redirected back after payment)
+        window.location.href = session.url;
+        // Note: Component will be unmounted during redirect, cleanup handlers will run
+        return;
+      }
+
+      // DEVELOPMENT MODE: Simulation fallback (if Stripe not configured)
+      console.log('🧪 Simulation Mode: Stripe not configured, using simulation');
+      
+      // Generate simulated transaction ID
       const transactionId = `sim_${Date.now()}_${userId || anonymousUserId}`;
-      console.log('Payment transaction started:', transactionId);
+      console.log('Simulated payment transaction started:', transactionId);
 
-      // TODO: Intégrer Stripe Checkout ici (Story 7.3)
-      // Pour l'instant, simulation d'un paiement réussi
-      // Future: const session = await stripeService.createCheckoutSession(userId, anonymousUserId);
-      // Future: window.location.href = session.url; // Redirect to Stripe Checkout
-
-      // Simulation d'un délai de paiement (Stripe Checkout processing)
+      // Simulate payment delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // FIX #2: In production, webhook (Story 7.4) will update is_premium, not the client
-      // For simulation, we update it here to mimic webhook behavior
-      // FIX #5: Extract update logic to reduce duplication
-      const tableName = userId ? 'users' : 'anonymous_users';
-      const idField = 'id';
-      const idValue = (userId || anonymousUserId) as string; // Safe: already checked above
-
-      const { error: updateError } = await supabase
-        .from(tableName)
-        .update({ is_premium: true })
-        .eq(idField, idValue);
+      // FIX #2: In simulation, we update is_premium directly to mimic webhook
+      // In production, webhook (Story 7.4) will do this server-side
+      let updateError;
+      
+      console.log('💳 Payment simulation - User info:', { userId, anonymousUserId, localUser });
+      
+      if (userId) {
+        // Authenticated user: UPSERT (create if doesn't exist, update otherwise)
+        console.log('💳 Upserting authenticated user:', userId);
+        const { error, data } = await supabase
+          .from('users')
+          .upsert({ 
+            id: userId, 
+            is_premium: true,
+            // Minimal data - the user should already exist from auth
+            pseudo: user?.email?.split('@')[0] || 'User'
+          }, { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          })
+          .select();
+        console.log('💳 Upsert result:', { error, data });
+        updateError = error;
+      } else if (anonymousUserId) {
+        // Anonymous user: UPSERT (create if doesn't exist)
+        console.log('💳 Upserting anonymous user:', anonymousUserId);
+        const { error, data } = await supabase
+          .from('anonymous_users')
+          .upsert({ 
+            id: anonymousUserId, 
+            is_premium: true,
+            pseudo: localUser?.pseudo || 'Anonymous',
+            device_fingerprint: localUser?.deviceFingerprint || null
+          }, { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          })
+          .select();
+        console.log('💳 Upsert result:', { error, data });
+        updateError = error;
+      }
 
       if (updateError) {
         console.error('Error updating premium status:', updateError);

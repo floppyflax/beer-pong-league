@@ -12,7 +12,7 @@ import { LeagueProvider } from "./context/LeagueContext";
 import { IdentityProvider } from "./context/IdentityContext";
 import { AuthProvider } from "./context/AuthContext";
 import { MenuDrawer } from "./components/layout/MenuDrawer";
-import { IdentityInitializer } from "./components/IdentityInitializer";
+import { DevPanel } from "./components/DevPanel";
 import { useAuthContext } from "./context/AuthContext";
 import { useIdentity } from "./hooks/useIdentity";
 import { LoadingSpinner } from "./components/LoadingSpinner";
@@ -33,6 +33,8 @@ const TournamentDisplayView = lazy(() => import("./pages/TournamentDisplayView")
 const TournamentInvite = lazy(() => import("./pages/TournamentInvite").then(m => ({ default: m.TournamentInvite })));
 const TournamentJoin = lazy(() => import("./pages/TournamentJoin").then(m => ({ default: m.TournamentJoin })));
 const AuthCallback = lazy(() => import("./pages/AuthCallback").then(m => ({ default: m.AuthCallback })));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess").then(m => ({ default: m.PaymentSuccess })));
+const PaymentCancel = lazy(() => import("./pages/PaymentCancel").then(m => ({ default: m.PaymentCancel })));
 
 function App() {
   return (
@@ -122,12 +124,35 @@ function AppContent() {
         <>
           <MenuDrawer isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
           <header className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
+            {/* Hamburger menu - hidden on desktop (lg and above) */}
             <button
               onClick={() => setMenuOpen(true)}
-              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-700 rounded-lg transition-colors lg:hidden"
+              aria-label="Open menu"
             >
               <Menu size={24} />
             </button>
+            {/* Desktop navigation placeholder - shown on lg and above */}
+            <nav className="hidden lg:flex items-center gap-6">
+              <Link
+                to="/"
+                className="text-slate-300 hover:text-primary transition-colors"
+              >
+                Accueil
+              </Link>
+              <Link
+                to="/create-league"
+                className="text-slate-300 hover:text-primary transition-colors"
+              >
+                Nouvelle League
+              </Link>
+              <Link
+                to="/create-tournament"
+                className="text-slate-300 hover:text-primary transition-colors"
+              >
+                Nouveau Tournoi
+              </Link>
+            </nav>
             <Link
               to="/"
               className="text-xl font-bold text-primary flex items-center gap-2"
@@ -139,48 +164,55 @@ function AppContent() {
         </>
       )}
 
-      <IdentityInitializer>
-        <main className={`flex-grow flex flex-col ${isDisplayView ? "w-full max-w-none mx-0" : "max-w-md mx-auto w-full"}`}>
-          <ErrorBoundary>
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center flex-grow">
-                  <LoadingSpinner size={48} />
-                </div>
-              }
-            >
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/create-league" element={<CreateLeague />} />
-                <Route path="/create-tournament" element={<CreateTournament />} />
-                <Route 
-                  path="/league/:id" 
-                  element={
-                    <ErrorBoundary>
-                      <LeagueDashboard />
-                    </ErrorBoundary>
-                  } 
-                />
-                <Route path="/league/:id/display" element={<DisplayView />} />
-                <Route 
-                  path="/tournament/:id" 
-                  element={
-                    <ErrorBoundary>
-                      <TournamentDashboard />
-                    </ErrorBoundary>
-                  } 
-                />
-                <Route path="/tournament/:id/display" element={<TournamentDisplayView />} />
-                <Route path="/tournament/:id/invite" element={<TournamentInvite />} />
-                <Route path="/tournament/:id/join" element={<TournamentJoin />} />
-                <Route path="/player/:playerId" element={<PlayerProfile />} />
-                <Route path="/user/profile" element={<UserProfile />} />
-              </Routes>
-            </Suspense>
-          </ErrorBoundary>
-        </main>
-      </IdentityInitializer>
+      <main className={`flex-grow flex flex-col ${
+        isDisplayView 
+          ? "w-full max-w-none mx-0" 
+          : "w-full max-w-md mx-auto lg:max-w-4xl xl:max-w-6xl px-4 md:px-6 lg:px-8"
+      }`}>
+        <ErrorBoundary>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center flex-grow">
+                <LoadingSpinner size={48} />
+              </div>
+            }
+          >
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/payment-cancel" element={<PaymentCancel />} />
+              <Route path="/create-league" element={<CreateLeague />} />
+              <Route path="/create-tournament" element={<CreateTournament />} />
+              <Route 
+                path="/league/:id" 
+                element={
+                  <ErrorBoundary>
+                    <LeagueDashboard />
+                  </ErrorBoundary>
+                } 
+              />
+              <Route path="/league/:id/display" element={<DisplayView />} />
+              <Route 
+                path="/tournament/:id" 
+                element={
+                  <ErrorBoundary>
+                    <TournamentDashboard />
+                  </ErrorBoundary>
+                } 
+              />
+              <Route path="/tournament/:id/display" element={<TournamentDisplayView />} />
+              <Route path="/tournament/:id/invite" element={<TournamentInvite />} />
+              <Route path="/tournament/:id/join" element={<TournamentJoin />} />
+              <Route path="/player/:playerId" element={<PlayerProfile />} />
+              <Route path="/user/profile" element={<UserProfile />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
+      </main>
+
+      {/* Dev Panel - only visible in dev mode */}
+      <DevPanel />
     </div>
   );
 }

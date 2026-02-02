@@ -22,6 +22,7 @@
     "analyze": "vite build && open dist/stats.html"
   },
   "dependencies": {
+    "@stripe/stripe-js": "^8.7.0",
     "@supabase/supabase-js": "^2.39.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.344.0",

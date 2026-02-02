@@ -1,0 +1,94 @@
+# generated: 2026-01-30
+# project: beer-pong-league
+# project_key: beer-pong-league
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Mark epic as 'in-progress' when starting work on its first story
+# - SM typically creates next story ONLY after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then Dev runs code-review (fresh context, ideally different LLM)
+
+generated: 2026-01-30
+project: beer-pong-league
+project_key: beer-pong-league
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  epic-1: in-progress
+  1-1-code-cleanup-and-architecture-alignment: in-progress
+  1-2-pwa-support-setup: done
+  1-3-testing-framework-configuration: done
+  1-4-zod-validation-schemas: done
+  1-5-error-boundaries-implementation: done
+  1-6-code-splitting-performance-optimization: done
+  epic-1-retrospective: optional
+
+  epic-2: done
+  2-1-email-otp-authentication-flow: done
+  2-2-anonymous-user-support: done
+  2-3-identity-merge-service: done
+  2-4-dual-identity-state-management: done
+  epic-2-retrospective: optional
+
+  epic-3: done
+  3-1-tournament-creation-form: done
+  3-2-qr-code-generation-and-display: done
+  3-3-participant-management: done
+  epic-3-retrospective: optional
+
+  epic-4: done
+  4-1-qr-code-scanning-and-tournament-join: done
+  4-2-alcohol-friendly-ui-design: done
+  4-3-responsive-design-implementation: done
+  epic-4-retrospective: optional
+
+  epic-5: done
+  5-1-match-recording-form: done
+  5-2-automatic-elo-calculation: done
+  5-3-real-time-leaderboard-display: done
+  5-4-personal-statistics-display: done
+  5-5-optional-anti-cheat-confirmation: done
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-sentry-error-monitoring-integration: ready-for-dev
+  6-2-ci-cd-pipeline-setup: ready-for-dev
+  6-3-comprehensive-error-handling-patterns: in-progress
+  epic-6-retrospective: optional
+
+  epic-7: in-progress
+  7-1-premium-status-database-schema: done
+  7-2-premium-service-implementation: done
+  7-3-stripe-payment-integration: done
+  7-4-payment-webhook-handler: ready-for-dev
+  7-5-home-page-ux-single-create-button: superseded  # Replaced by Story 7.13
+  7-6-create-menu-modal-component: deprecated  # No longer needed (modal approach abandoned)
+  7-7-tournament-creation-limit-enforcement: ready-for-dev
+  7-8-tournament-player-limit-enforcement: ready-for-dev
+  7-9-league-creation-premium-requirement: ready-for-dev
+  7-10-premium-status-display-profile: ready-for-dev
+  7-11-payment-modal-component: done
+  7-12-premium-status-context-integration: ready-for-dev
+  7-13-adaptive-home-page-with-three-actions: done  # NEW: Replaces 7.5 and 7.6
+  epic-7-retrospective: optional
