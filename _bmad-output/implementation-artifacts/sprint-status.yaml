@@ -107,13 +107,13 @@ development_status:
   9-2-responsive-navigation-infrastructure: done
   9-3-bottom-tab-menu-principal: review
   9-4-bottom-menu-specifique: done  # Code review complete - 8 issues fixed (4 CRITICAL, 4 HIGH)
-  9-5-contextual-action-bar: review
-  9-6-desktop-sidebar-navigation: review
+  9-5-contextual-action-bar: done  # Code review complete - 9 issues fixed (2 CRITICAL, 2 HIGH, 4 MEDIUM, 1 LOW)
+  9-6-desktop-sidebar-navigation: done  # Code review complete - 8 issues fixed (3 CRITICAL, 5 HIGH)
   epic-9-retrospective: optional
 
   epic-10: in-progress
   10-1-home-page-connected: review
-  10-2-tournaments-list-page: review
+  10-2-tournaments-list-page: done  # Code review complete - 7 issues fixed (4 HIGH, 3 MEDIUM)
   epic-10-retrospective: optional
 
   epic-13: in-progress

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomMenuSpecific } from '../components/navigation/BottomMenuSpecific';
 import { Plus, Search } from 'lucide-react';
@@ -32,9 +32,19 @@ export const Tournaments: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   
   const { canCreateTournament, isAtTournamentLimit } = usePremiumLimits();
   const { tournaments, isLoading } = useTournamentsList();
+
+  // Story 10.2 Code Review Fix: Add 300ms debounce to search for performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Handle create tournament action
   const handleCreate = () => {
@@ -45,7 +55,7 @@ export const Tournaments: React.FC = () => {
     }
   };
 
-  // Filter and search tournaments
+  // Filter and search tournaments (using debounced search query)
   const filteredTournaments = useMemo(() => {
     let result = tournaments || [];
 
@@ -56,16 +66,16 @@ export const Tournaments: React.FC = () => {
       result = result.filter(t => t.isFinished);
     }
 
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    // Filter by search query (debounced for performance)
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase();
       result = result.filter(t => 
         t.name.toLowerCase().includes(query)
       );
     }
 
     return result;
-  }, [tournaments, filter, searchQuery]);
+  }, [tournaments, filter, debouncedSearchQuery]);
 
   // Show loading state
   if (isLoading) {
@@ -93,13 +103,8 @@ export const Tournaments: React.FC = () => {
             <p className="text-slate-400 max-w-md mx-auto">
               Rejoignez votre premier tournoi ou créez-en un
             </p>
+            {/* Story 10.2 Code Review Fix: Créer as primary action (consistent with page) */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
-              <button
-                onClick={() => navigate('/join')}
-                className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-all active:scale-95"
-              >
-                Rejoindre un tournoi
-              </button>
               <button
                 onClick={handleCreate}
                 className="bg-primary hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -107,6 +112,12 @@ export const Tournaments: React.FC = () => {
                 <Plus size={20} />
                 Créer un tournoi
                 {isAtTournamentLimit && <span>🔒</span>}
+              </button>
+              <button
+                onClick={() => navigate('/join')}
+                className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-all active:scale-95"
+              >
+                Rejoindre un tournoi
               </button>
             </div>
           </div>

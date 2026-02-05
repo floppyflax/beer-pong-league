@@ -307,6 +307,7 @@ class DatabaseService {
           location: tournamentRow.location,
           leagueId: tournamentRow.league_id,
           createdAt: tournamentRow.created_at || new Date().toISOString(),
+          updatedAt: tournamentRow.updated_at || tournamentRow.created_at, // Story 10.2: Last activity time
           playerIds,
           matches,
           isFinished: tournamentRow.is_finished || false,

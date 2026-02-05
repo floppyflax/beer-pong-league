@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, Users, Calendar } from 'lucide-react';
 import type { Tournament } from '../../types';
 import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import fr from 'date-fns/locale/fr'; // Story 10.2 Code Review Fix: Use tree-shakeable import
 
 interface TournamentCardProps {
   tournament: Tournament;
@@ -31,18 +31,20 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) =>
   // Calculate player count from playerIds array
   const playerCount = tournament.playerIds?.length || 0;
 
-  // Format last activity time (using createdAt for now, can be updated_at when available)
-  const lastActivity = formatDistanceToNow(new Date(tournament.createdAt), {
+  // Story 10.2 Code Review Fix: Use updatedAt for last activity (falls back to createdAt)
+  const lastActivity = formatDistanceToNow(new Date(tournament.updatedAt || tournament.createdAt), {
     addSuffix: true,
     locale: fr,
   });
 
-  // Format tournament date
-  const tournamentDate = new Date(tournament.date).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  // Story 10.2 Code Review Fix: Add null check for tournament date
+  const tournamentDate = tournament.date 
+    ? new Date(tournament.date).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : 'Date non définie';
 
   return (
     <div

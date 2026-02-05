@@ -49,6 +49,7 @@ export interface Tournament {
   location?: string; // Optional location context
   leagueId: string | null; // null if autonomous, otherwise linked to a League
   createdAt: string;
+  updatedAt?: string; // Last activity timestamp (match recorded, player joined, etc.) - Story 10.2
   playerIds: string[]; // Subset of League players (or all if autonomous)
   matches: Match[];
   isFinished: boolean; // true if tournament is finished
