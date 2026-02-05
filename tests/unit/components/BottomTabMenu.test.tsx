@@ -123,6 +123,15 @@ describe('BottomTabMenu', () => {
   });
 
   describe('Tab Navigation (AC3)', () => {
+    it('should have 200ms transition duration for smooth navigation', () => {
+      render(<BottomTabMenu />);
+      
+      const buttons = screen.getAllByRole('button');
+      buttons.forEach(button => {
+        expect(button).toHaveClass('duration-200');
+      });
+    });
+
     it('should navigate to home when home tab clicked', () => {
       render(<BottomTabMenu />);
       
