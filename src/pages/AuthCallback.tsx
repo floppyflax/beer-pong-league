@@ -86,9 +86,15 @@ export const AuthCallback = () => {
 
         setStatus('success');
         
-        // Redirect to home after a short delay
+        // Check for returnTo in sessionStorage
+        const returnTo = sessionStorage.getItem('authReturnTo');
+        if (returnTo) {
+          sessionStorage.removeItem('authReturnTo'); // Clean up
+        }
+        
+        // Redirect after a short delay
         setTimeout(() => {
-          navigate('/');
+          navigate(returnTo || '/');
         }, 1500);
       } catch (error) {
         console.error('Error in auth callback:', error);
