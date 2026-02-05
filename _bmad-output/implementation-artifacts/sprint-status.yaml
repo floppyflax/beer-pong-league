@@ -104,9 +104,9 @@ development_status:
 
   epic-9: in-progress
   9-1-landing-page-non-connected: done
-  9-2-responsive-navigation-infrastructure: review
+  9-2-responsive-navigation-infrastructure: done
   9-3-bottom-tab-menu-principal: review
-  9-4-bottom-menu-specifique: review
+  9-4-bottom-menu-specifique: done  # Code review complete - 8 issues fixed (4 CRITICAL, 4 HIGH)
   9-5-contextual-action-bar: review
   9-6-desktop-sidebar-navigation: review
   epic-9-retrospective: optional

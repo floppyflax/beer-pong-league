@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { ResponsiveLayout } from '../../../src/components/layout/ResponsiveLayout';
 
 // Mock the useBreakpoint hook
@@ -7,7 +8,22 @@ vi.mock('../../../src/hooks/useBreakpoint', () => ({
   useBreakpoint: vi.fn(),
 }));
 
+// Mock navigationHelpers
+vi.mock('../../../src/utils/navigationHelpers', () => ({
+  shouldShowSidebar: vi.fn(() => true),
+}));
+
+// Mock Sidebar component
+vi.mock('../../../src/components/navigation/Sidebar', () => ({
+  Sidebar: () => <aside role="complementary" className="w-60 bg-slate-800">Mocked Sidebar</aside>,
+}));
+
 import { useBreakpoint } from '../../../src/hooks/useBreakpoint';
+
+// Helper to wrap component with Router
+const renderWithRouter = (ui: React.ReactElement) => {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+};
 
 describe('ResponsiveLayout', () => {
   beforeEach(() => {
@@ -18,7 +34,7 @@ describe('ResponsiveLayout', () => {
     it('should render mobile layout when breakpoint is mobile', () => {
       vi.mocked(useBreakpoint).mockReturnValue('mobile');
 
-      render(
+      renderWithRouter(
         <ResponsiveLayout>
           <div data-testid="content">Test Content</div>
         </ResponsiveLayout>
@@ -38,7 +54,7 @@ describe('ResponsiveLayout', () => {
     it('should not render sidebar in mobile layout', () => {
       vi.mocked(useBreakpoint).mockReturnValue('mobile');
 
-      render(
+      renderWithRouter(
         <ResponsiveLayout>
           <div data-testid="content">Test Content</div>
         </ResponsiveLayout>
@@ -53,7 +69,7 @@ describe('ResponsiveLayout', () => {
     it('should render tablet layout with centered content', () => {
       vi.mocked(useBreakpoint).mockReturnValue('tablet');
 
-      render(
+      renderWithRouter(
         <ResponsiveLayout>
           <div data-testid="content">Test Content</div>
         </ResponsiveLayout>
@@ -72,7 +88,7 @@ describe('ResponsiveLayout', () => {
     it('should render desktop layout with flex container', () => {
       vi.mocked(useBreakpoint).mockReturnValue('desktop');
 
-      const { container } = render(
+      const { container } = renderWithRouter(
         <ResponsiveLayout>
           <div data-testid="content">Test Content</div>
         </ResponsiveLayout>
@@ -92,7 +108,7 @@ describe('ResponsiveLayout', () => {
     it('should render sidebar placeholder in desktop layout by default', () => {
       vi.mocked(useBreakpoint).mockReturnValue('desktop');
 
-      render(
+      renderWithRouter(
         <ResponsiveLayout>
           <div data-testid="content">Test Content</div>
         </ResponsiveLayout>
@@ -108,7 +124,7 @@ describe('ResponsiveLayout', () => {
     it('should hide sidebar when showSidebar is false', () => {
       vi.mocked(useBreakpoint).mockReturnValue('desktop');
 
-      render(
+      renderWithRouter(
         <ResponsiveLayout showSidebar={false}>
           <div data-testid="content">Test Content</div>
         </ResponsiveLayout>
@@ -123,7 +139,7 @@ describe('ResponsiveLayout', () => {
     it('should render desktop-large layout with sidebar', () => {
       vi.mocked(useBreakpoint).mockReturnValue('desktop-large');
 
-      render(
+      renderWithRouter(
         <ResponsiveLayout>
           <div data-testid="content">Test Content</div>
         </ResponsiveLayout>
@@ -141,7 +157,7 @@ describe('ResponsiveLayout', () => {
     it('should accept and render children', () => {
       vi.mocked(useBreakpoint).mockReturnValue('mobile');
 
-      render(
+      renderWithRouter(
         <ResponsiveLayout>
           <div>Child 1</div>
           <div>Child 2</div>
@@ -155,7 +171,7 @@ describe('ResponsiveLayout', () => {
     it('should respect showSidebar prop', () => {
       vi.mocked(useBreakpoint).mockReturnValue('desktop');
 
-      const { rerender } = render(
+      const { rerender } = renderWithRouter(
         <ResponsiveLayout showSidebar={true}>
           <div data-testid="content">Test Content</div>
         </ResponsiveLayout>
@@ -164,9 +180,11 @@ describe('ResponsiveLayout', () => {
       expect(screen.getByRole('complementary')).toBeInTheDocument();
 
       rerender(
-        <ResponsiveLayout showSidebar={false}>
-          <div data-testid="content">Test Content</div>
-        </ResponsiveLayout>
+        <MemoryRouter>
+          <ResponsiveLayout showSidebar={false}>
+            <div data-testid="content">Test Content</div>
+          </ResponsiveLayout>
+        </MemoryRouter>
       );
 
       expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
@@ -177,7 +195,7 @@ describe('ResponsiveLayout', () => {
     it('should change layout when breakpoint changes from mobile to desktop', () => {
       vi.mocked(useBreakpoint).mockReturnValue('mobile');
 
-      const { rerender } = render(
+      const { rerender } = renderWithRouter(
         <ResponsiveLayout>
           <div data-testid="content">Test Content</div>
         </ResponsiveLayout>
@@ -189,9 +207,11 @@ describe('ResponsiveLayout', () => {
       // Change to desktop
       vi.mocked(useBreakpoint).mockReturnValue('desktop');
       rerender(
-        <ResponsiveLayout>
-          <div data-testid="content">Test Content</div>
-        </ResponsiveLayout>
+        <MemoryRouter>
+          <ResponsiveLayout>
+            <div data-testid="content">Test Content</div>
+          </ResponsiveLayout>
+        </MemoryRouter>
       );
 
       // Desktop: sidebar exists

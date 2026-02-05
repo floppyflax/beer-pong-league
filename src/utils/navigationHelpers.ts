@@ -55,6 +55,11 @@ export function shouldShowBottomMenu(pathname: string): boolean {
  * @returns true if back button should be visible, false otherwise
  */
 export function shouldShowBackButton(pathname: string): boolean {
+  // Hide on display routes (full-screen)
+  if (pathname.includes('/display')) {
+    return false;
+  }
+  
   // Show on pages with specific menu (they don't have bottom tab menu)
   const specificMenuRoutes = ['/join', '/tournaments', '/leagues'];
   if (specificMenuRoutes.includes(pathname)) {

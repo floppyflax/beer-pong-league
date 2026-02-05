@@ -15,7 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'join', label: 'Rejoindre', icon: Target, route: '/join' },
   { id: 'tournaments', label: 'Tournois', icon: Trophy, route: '/tournaments' },
   { id: 'leagues', label: 'Leagues', icon: Award, route: '/leagues' },
-  { id: 'profile', label: 'Profil', icon: User, route: '/profile' },
+  { id: 'profile', label: 'Profil', icon: User, route: '/user/profile' },
 ];
 
 export const Sidebar = () => {
@@ -30,7 +30,7 @@ export const Sidebar = () => {
     if (pathname.startsWith('/join')) return 'join';
     if (pathname.startsWith('/tournaments')) return 'tournaments';
     if (pathname.startsWith('/leagues')) return 'leagues';
-    if (pathname.startsWith('/profile')) return 'profile';
+    if (pathname.startsWith('/user/profile')) return 'profile';
     
     // Detail pages - no active item in sidebar
     return '';
@@ -43,7 +43,7 @@ export const Sidebar = () => {
   const displayName = isAuthenticated && user?.email
     ? user.email.split('@')[0]
     : localUser?.displayName || 'Utilisateur';
-  const isPremium = user?.isPremium || false;
+  const isPremium = user?.user_metadata?.isPremium || false;
   
   return (
     <aside className="hidden lg:flex lg:flex-col w-60 h-screen bg-slate-800 border-r border-slate-700 fixed left-0 top-0">
@@ -81,7 +81,7 @@ export const Sidebar = () => {
       {hasIdentity && (
         <div 
           className="p-4 border-t border-slate-700 cursor-pointer hover:bg-slate-700/50 transition-colors"
-          onClick={() => navigate('/profile')}
+          onClick={() => navigate('/user/profile')}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">

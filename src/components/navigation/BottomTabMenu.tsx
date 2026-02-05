@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, QrCode, Trophy, Users, User } from 'lucide-react';
 
@@ -29,7 +28,7 @@ const tabs: Tab[] = [
   { id: 'join', label: 'REJOINDRE', icon: QrCode, route: '/join', ariaLabel: 'Join' },
   { id: 'tournaments', label: 'TOURNOIS', icon: Trophy, route: '/tournaments', ariaLabel: 'Tournaments' },
   { id: 'leagues', label: 'LEAGUES', icon: Users, route: '/leagues', ariaLabel: 'Leagues' },
-  { id: 'profile', label: 'PROFIL', icon: User, route: '/profile', ariaLabel: 'Profile' },
+  { id: 'profile', label: 'PROFIL', icon: User, route: '/user/profile', ariaLabel: 'Profile' },
 ];
 
 export const BottomTabMenu: React.FC = () => {
@@ -68,8 +67,8 @@ export const BottomTabMenu: React.FC = () => {
               aria-label={tab.ariaLabel}
               aria-current={isActive ? 'page' : undefined}
             >
-              <Icon className={isActive ? 'text-primary' : 'text-slate-400'} size={20} />
-              <span className="text-xs font-medium">{tab.label}</span>
+              <Icon className={isActive ? 'text-primary' : 'text-slate-400'} size={24} />
+              <span className="text-[10px] font-medium">{tab.label}</span>
             </button>
           );
         })}

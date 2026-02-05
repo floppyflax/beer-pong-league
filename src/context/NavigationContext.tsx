@@ -16,6 +16,8 @@ export interface NavigationContextType {
   isDesktop: boolean;
   /** Whether to show back button */
   showBackButton: boolean;
+  /** Set back button visibility */
+  setShowBackButton: (show: boolean) => void;
   /** Back button handler */
   onBack: () => void;
 }
@@ -46,7 +48,7 @@ interface NavigationProviderProps {
  */
 export const NavigationProvider = ({ children }: NavigationProviderProps) => {
   const [activeTab, setActiveTab] = useState<string>('home');
-  const [showBackButton] = useState(false);
+  const [showBackButton, setShowBackButton] = useState(false);
   const navigate = useNavigate();
   
   // Track breakpoint state
@@ -68,6 +70,7 @@ export const NavigationProvider = ({ children }: NavigationProviderProps) => {
     isMobile,
     isDesktop,
     showBackButton,
+    setShowBackButton,
     onBack,
   };
 

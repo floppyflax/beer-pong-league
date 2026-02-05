@@ -135,6 +135,38 @@ describe('NavigationContext', () => {
       expect(result.current.showBackButton).toBe(false);
     });
 
+    it('should allow changing showBackButton state', () => {
+      const { result } = renderHook(() => useNavigation(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <NavigationProvider>{children}</NavigationProvider>
+        ),
+      });
+
+      expect(result.current.showBackButton).toBe(false);
+
+      act(() => {
+        result.current.setShowBackButton(true);
+      });
+
+      expect(result.current.showBackButton).toBe(true);
+
+      act(() => {
+        result.current.setShowBackButton(false);
+      });
+
+      expect(result.current.showBackButton).toBe(false);
+    });
+
+    it('should provide setShowBackButton function', () => {
+      const { result } = renderHook(() => useNavigation(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <NavigationProvider>{children}</NavigationProvider>
+        ),
+      });
+
+      expect(typeof result.current.setShowBackButton).toBe('function');
+    });
+
     it('should provide onBack callback', () => {
       const { result } = renderHook(() => useNavigation(), {
         wrapper: ({ children }: { children: ReactNode }) => (
