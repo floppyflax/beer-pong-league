@@ -19,6 +19,7 @@ export type Database = {
           created_at: string | null
           device_fingerprint: string | null
           id: string
+          is_premium: boolean | null
           merged_at: string | null
           merged_to_user_id: string | null
           pseudo: string
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string | null
           device_fingerprint?: string | null
           id?: string
+          is_premium?: boolean | null
           merged_at?: string | null
           merged_to_user_id?: string | null
           pseudo: string
@@ -35,6 +37,7 @@ export type Database = {
           created_at?: string | null
           device_fingerprint?: string | null
           id?: string
+          is_premium?: boolean | null
           merged_at?: string | null
           merged_to_user_id?: string | null
           pseudo?: string
@@ -443,6 +446,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           id: string
+          is_premium: boolean | null
           pseudo: string
           updated_at: string | null
         }
@@ -450,6 +454,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           id: string
+          is_premium?: boolean | null
           pseudo: string
           updated_at?: string | null
         }
@@ -457,6 +462,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           id?: string
+          is_premium?: boolean | null
           pseudo?: string
           updated_at?: string | null
         }

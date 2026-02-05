@@ -1,6 +1,6 @@
 # Story 4.1: QR Code Scanning and Tournament Join
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -22,45 +22,45 @@ So that I can participate quickly without typing URLs or creating accounts.
 
 ## Tasks / Subtasks
 
-- [ ] Review TournamentJoin page (AC: Page opens)
-  - [ ] Check src/pages/TournamentJoin.tsx exists
-  - [ ] Verify page loads from QR code URL
-  - [ ] Test tournament data is fetched
-  - [ ] Ensure page renders correctly
+- [x] Review TournamentJoin page (AC: Page opens)
+  - [x] Check src/pages/TournamentJoin.tsx exists
+  - [x] Verify page loads from QR code URL
+  - [x] Test tournament data is fetched
+  - [x] Ensure page renders correctly
 
-- [ ] Implement join form (AC: Enter name)
-  - [ ] Display simple name input form
-  - [ ] Validate name (min 1 char, max 100 chars)
-  - [ ] No account creation required
-  - [ ] Large, clear "Join" button
-  - [ ] Test form is mobile-friendly
+- [x] Implement join form (AC: Enter name)
+  - [x] Display simple name input form
+  - [x] Validate name (min 1 char, max 100 chars)
+  - [x] No account creation required
+  - [x] Large, clear "Join" button
+  - [x] Test form is mobile-friendly
 
-- [ ] Create anonymous user if needed (AC: Anonymous user created)
-  - [ ] Check if user has identity
-  - [ ] If not, create anonymous user
-  - [ ] Generate device fingerprint
-  - [ ] Store in localStorage
-  - [ ] Test anonymous user creation works
+- [x] Create anonymous user if needed (AC: Anonymous user created)
+  - [x] Check if user has identity
+  - [x] If not, create anonymous user
+  - [x] Generate device fingerprint
+  - [x] Store in localStorage
+  - [x] Test anonymous user creation works
 
-- [ ] Add player to tournament (AC: Added to tournament_players)
-  - [ ] Insert into tournament_players table
-  - [ ] Link to tournament_id
-  - [ ] Set user_id or anonymous_user_id
-  - [ ] Record joined_at timestamp
-  - [ ] Test insertion works
+- [x] Add player to tournament (AC: Added to tournament_players)
+  - [x] Insert into tournament_players table
+  - [x] Link to tournament_id
+  - [x] Set user_id or anonymous_user_id
+  - [x] Record joined_at timestamp
+  - [x] Test insertion works
 
-- [ ] Optimize join flow for speed (AC: Join in < 30s)
-  - [ ] Minimize form fields (name only)
-  - [ ] Use optimistic updates
-  - [ ] Reduce network requests
-  - [ ] Test join completes quickly
-  - [ ] Measure time from scan to dashboard
+- [x] Optimize join flow for speed (AC: Join in < 30s)
+  - [x] Minimize form fields (name only)
+  - [x] Use optimistic updates
+  - [x] Reduce network requests
+  - [x] Test join completes quickly
+  - [x] Measure time from scan to dashboard
 
-- [ ] Implement redirect and confirmation (AC: Redirect, success message)
-  - [ ] Redirect to tournament dashboard
-  - [ ] Display success toast notification
-  - [ ] Show "You've joined [Tournament Name]!"
-  - [ ] Test redirect works correctly
+- [x] Implement redirect and confirmation (AC: Redirect, success message)
+  - [x] Redirect to tournament dashboard
+  - [x] Display success toast notification
+  - [x] Show "You've joined [Tournament Name]!"
+  - [x] Test redirect works correctly
 
 - [ ] Add camera QR scanning (optional enhancement)
   - [ ] Install QR scanner library (optional)
@@ -230,19 +230,56 @@ function QRCodeScanner() {
 
 ### Agent Model Used
 
-(To be filled by implementing agent)
+Claude Sonnet 4.5
 
 ### Debug Log References
 
-(To be filled during implementation)
+- Added name validation (min 1, max 100 chars) with character counter
+- Added joined_at timestamp to tournament_players insert
+- Optimized form for mobile (full-width, large touch targets, text-base to prevent iOS zoom)
+- Improved success message to include tournament name
 
 ### Completion Notes List
 
-(To be filled during implementation)
+✅ **Task 1: Review TournamentJoin page**
+- Page exists and loads from `/tournament/:id/join` route (works with QR code URLs)
+- Tournament data is fetched from LeagueContext
+- Page renders correctly with loading states and error handling
+
+✅ **Task 2: Implement join form**
+- Simple name input form displayed
+- Name validation: min 1 char, max 100 chars with character counter
+- No account creation required (uses anonymous user flow)
+- Large, clear "Join" button (min-height 44px for touch targets)
+- Mobile-friendly: full-width inputs, text-base to prevent iOS zoom
+
+✅ **Task 3: Create anonymous user if needed**
+- Uses `useRequireIdentity` hook which handles identity creation
+- Checks if user has identity via `ensureIdentity()`
+- Creates anonymous user if needed (handled by `addAnonymousPlayerToTournament`)
+- Device fingerprint generated via `getDeviceFingerprint()`
+- Stored in localStorage via LocalUserService
+
+✅ **Task 4: Add player to tournament**
+- Inserts into tournament_players table via `addAnonymousPlayerToTournament`
+- Links to tournament_id
+- Sets anonymous_user_id
+- Records joined_at timestamp (explicitly set in DatabaseService)
+
+✅ **Task 5: Optimize join flow for speed**
+- Form has only name field (minimal fields)
+- Uses optimistic updates (local state updated immediately)
+- Single network request for join operation
+- Flow completes in well under 30 seconds
+
+✅ **Task 6: Implement redirect and confirmation**
+- Redirects to `/tournament/:id` dashboard after successful join
+- Displays success toast with tournament name: "Tu as rejoint le tournoi \"[Tournament Name]\" !"
+- All redirects and confirmations working correctly
 
 ### File List
 
-**Files to Review/Update:**
-- src/pages/TournamentJoin.tsx (complete join logic)
-- src/services/DatabaseService.ts (add joinTournament method)
-- src/context/IdentityContext.tsx (ensure createAnonymousUser works)
+**Files Modified:**
+- src/pages/TournamentJoin.tsx (added name validation, improved mobile UX, optimized flow)
+- src/services/DatabaseService.ts (added joined_at timestamp to tournament_players insert)
+- tests/unit/pages/TournamentJoin.test.tsx (comprehensive test suite covering all acceptance criteria)

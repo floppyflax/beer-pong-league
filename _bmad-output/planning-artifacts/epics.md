@@ -194,15 +194,23 @@ This document provides the complete epic and story breakdown for beer-pong-leagu
 - FR6.1: QR Code d'Invitation → Epic 3
 - FR6.2: Découverte de Championnats → Post-MVP (not in MVP epics)
 
-**FR7-FR16: Post-MVP Requirements** → Future epics (not in MVP scope)
+**FR12: Ligues (Post-MVP)** → Epic 7 (Freemium Payment Model)
+- FR12.1: Création de Ligue → Epic 7 (Premium feature)
+- FR12.2: Gestion de Ligue → Epic 7 (Premium feature)
+- FR12.3: Rejoindre une Ligue → Epic 7 (Premium feature)
+
+**FR14: Monétisation (Post-MVP)** → Epic 7 (Freemium Payment Model)
+- FR14.1: Paiement One-Time → Epic 7
+
+**FR7-FR11, FR13, FR15-FR16: Post-MVP Requirements** → Future epics (not in current scope)
 
 **NFR Coverage:**
 - NFR1 (Usability) → Epic 4, Epic 5
 - NFR2 (Reliability) → Epic 6 (Error Handling & Monitoring)
 - NFR3 (Performance) → Epic 1 (Foundation), Epic 5
-- NFR4 (Security) → Epic 2 (User Identity & Authentication)
+- NFR4 (Security) → Epic 2 (User Identity & Authentication), Epic 7 (Payment Security)
 - NFR5 (Maintainability) → Epic 1 (Foundation & Code Quality)
-- NFR6 (Integration) → Epic 2, Epic 5
+- NFR6 (Integration) → Epic 2, Epic 5, Epic 7 (Stripe Integration)
 - NFR7-NFR8 (Post-MVP) → Future epics
 
 ## Epic List
@@ -970,26 +978,28 @@ So that I understand what happened and what to do next.
 
 ## Final Validation Summary
 
-**Date:** 2026-01-23  
-**Status:** ✅ **COMPLETE AND VALIDATED**
+**Date:** 2026-01-27  
+**Status:** ✅ **COMPLETE AND VALIDATED** (Updated with Epic 7: Freemium Payment Model)
 
 ### Validation Results
 
-**FR Coverage:** ✅ 100% (All MVP FRs covered)
+**FR Coverage:** ✅ 100% (All MVP FRs + Freemium FRs covered)
 - FR1.1-FR1.3 → Epic 3, Epic 4
 - FR2.1-FR2.3 → Epic 5
 - FR3.1-FR3.2 → Epic 5
 - FR4.1-FR4.2 → Epic 2
 - FR5.1-FR5.2 → Epic 4
 - FR6.1 → Epic 3, Epic 4
+- FR12.1-FR12.3 → Epic 7 (Premium feature)
+- FR14.1 → Epic 7
 
-**NFR Coverage:** ✅ 100% (All MVP NFRs addressed)
+**NFR Coverage:** ✅ 100% (All MVP NFRs + Freemium NFRs addressed)
 - NFR1 (Usability) → Epic 4, Epic 5
 - NFR2 (Reliability) → Epic 6
 - NFR3 (Performance) → Epic 1, Epic 5
-- NFR4 (Security) → Epic 2
+- NFR4 (Security) → Epic 2, Epic 7
 - NFR5 (Maintainability) → Epic 1
-- NFR6 (Integration) → Epic 2, Epic 5
+- NFR6 (Integration) → Epic 2, Epic 5, Epic 7
 
 **Architecture Requirements:** ✅ 100% (All requirements covered)
 - PWA Support → Epic 1 Story 1.2
@@ -1000,9 +1010,10 @@ So that I understand what happened and what to do next.
 - Sentry Integration → Epic 6 Story 6.1
 - CI/CD Pipeline → Epic 6 Story 6.2
 - Error Handling → Epic 6 Story 6.3
+- Payment Integration → Epic 7 Story 7.3, 7.4
 
 **Story Quality:** ✅ Validated
-- All 24 stories are completable by a single dev agent
+- All 36 stories are completable by a single dev agent
 - All stories have clear acceptance criteria (Given/When/Then)
 - All stories reference specific FRs
 - All stories include technical notes
@@ -1019,10 +1030,361 @@ So that I understand what happened and what to do next.
 - File cleanup tasks in Story 1.1
 - Architecture alignment in Story 1.1
 
+### Epic 7: Freemium Payment Model & Premium Features
+
+**Goal:** Implement a freemium payment model with one-time premium purchase (3€) that unlocks unlimited tournaments, leagues, and removes player limits, while free users have limited access (max 2 tournaments, max 6 players per tournament, no leagues).
+
+**User Outcome:** Free users can try the app with limitations (2 tournaments max, 6 players per tournament), and can upgrade to premium (3€ one-time) to unlock all features. Premium users have unlimited tournaments, unlimited leagues, and unlimited players per tournament.
+
+**FRs covered:** FR14.1 (Paiement One-Time), FR12 (Ligues - premium feature), NFR4.3 (Sécurité Paiements)
+
+**Implementation Notes:**
+- Premium status stored in `users.is_premium` and `anonymous_users.is_premium`
+- Premium only available for authenticated users (not anonymous)
+- Stripe integration for payment processing
+- PremiumService for centralized limit checking
+- UX with single "Create Tournament/League" button that opens context menu
+- Visual indicators for limits and premium status
+- Payment webhook to update premium status after successful purchase
+
+**Dependencies:** Epic 2 (User Identity) - needs authentication for premium purchase, Epic 3 (Tournament Creation) - needs to enforce limits
+
+### Story 7.1: Premium Status Database Schema
+
+As a developer,
+I want premium status stored in the database,
+So that user premium access can be tracked and verified.
+
+**Acceptance Criteria:**
+
+**Given** the need to track premium status
+**When** I create the database migration
+**Then** `users` table has `is_premium` boolean column (default false)
+**And** `anonymous_users` table has `is_premium` boolean column (default false)
+**And** indexes are created for efficient premium status queries
+**And** migration is created in `supabase/migrations/005_add_premium_status.sql`
+**And** migration can be rolled back safely
+
+**Technical Notes:**
+- Add `is_premium BOOLEAN DEFAULT false` to both tables
+- Create index: `CREATE INDEX idx_users_premium ON users(is_premium) WHERE is_premium = true`
+- Test migration up and down
+- Ensure backward compatibility with existing data
+
+### Story 7.2: PremiumService Implementation
+
+As a developer,
+I want a centralized service to check premium status and limits,
+So that all features can consistently enforce freemium restrictions.
+
+**Acceptance Criteria:**
+
+**Given** the need for premium limit checking
+**When** I implement PremiumService
+**Then** `src/services/PremiumService.ts` is created
+**And** service has `isPremium(userId, isAnonymous)` method
+**And** service has `canCreateTournament(userId, isAnonymous)` method that returns `{ allowed: boolean, remaining?: number, reason?: string, message?: string }`
+**And** service has `canCreateLeague(userId, isAnonymous)` method that returns boolean
+**And** service has `getTournamentPlayerLimit(userId, isAnonymous)` method that returns `number | null` (6 for free, null for premium)
+**And** service has `getTournamentCount(userId, isAnonymous)` method to count user's tournaments
+**And** service checks database for premium status
+**And** service enforces limit of 2 tournaments for free users
+**And** service enforces limit of 6 players per tournament for free users
+**And** service blocks league creation for free users
+**And** all methods handle both authenticated and anonymous users
+
+**Technical Notes:**
+- Query tournaments by `creator_user_id` or `creator_anonymous_user_id`
+- Count tournaments created by user
+- Return clear error messages for limit violations
+- Cache premium status if needed for performance
+- Handle offline scenarios with localStorage fallback
+
+### Story 7.3: Stripe Payment Integration
+
+As a user,
+I want to purchase premium with a secure payment,
+So that I can unlock all features with a one-time payment of 3€.
+
+**Acceptance Criteria:**
+
+**Given** a user wants to purchase premium
+**When** they click upgrade button
+**Then** PaymentModal component is displayed
+**And** Stripe Checkout is integrated
+**And** payment amount is 3€ (EUR)
+**And** payment flow uses Stripe's secure checkout
+**And** after successful payment, webhook updates `is_premium` to true
+**And** user sees success message
+**And** user is redirected to create league/tournament after purchase
+**And** payment errors are handled gracefully
+**And** payment status is verified server-side via webhook
+
+**Technical Notes:**
+- Install: `npm install @stripe/stripe-js`
+- Create Stripe account and get publishable key
+- Set up Stripe webhook endpoint (Supabase Edge Function or separate API)
+- Store Stripe customer ID or payment intent ID for tracking
+- Handle payment success/failure/cancellation states
+- Verify webhook signature for security
+- Update `is_premium` flag after successful payment
+
+### Story 7.4: Payment Webhook Handler
+
+As a developer,
+I want a webhook to process Stripe payment confirmations,
+So that premium status is automatically updated after successful payment.
+
+**Acceptance Criteria:**
+
+**Given** Stripe sends payment webhook
+**When** payment is confirmed
+**Then** webhook handler verifies Stripe signature
+**And** webhook handler extracts user ID from metadata
+**And** webhook handler updates `users.is_premium` to true
+**And** webhook handler logs payment transaction
+**And** webhook handler returns 200 status to Stripe
+**And** webhook handler handles errors gracefully
+**And** webhook handler is idempotent (handles duplicate events)
+
+**Technical Notes:**
+- Create Supabase Edge Function for webhook: `supabase/functions/stripe-webhook/index.ts`
+- Verify webhook signature using Stripe secret
+- Extract `user_id` from payment metadata
+- Update database transactionally
+- Log to `purchases` table if created (optional)
+- Handle webhook retries from Stripe
+
+### Story 7.5: Home Page UX with Single Create Button
+
+As a user,
+I want a single "Create Tournament/League" button on the home page,
+So that the interface is simpler and I can choose what to create after clicking.
+
+**Acceptance Criteria:**
+
+**Given** the home page
+**When** user is not authenticated
+**Then** "REJOINDRE UN TOURNOI" button is visible
+**And** "CRÉER NOUVEAU TOURNOI/LIGUE" button is visible
+**And** clicking "CRÉER NOUVEAU TOURNOI/LIGUE" opens AuthModal
+**And** after authentication, user is redirected to create menu
+**When** user is authenticated (free)
+**Then** "REJOINDRE UN TOURNOI" button is visible
+**And** "CRÉER NOUVEAU TOURNOI/LIGUE" button is visible
+**And** clicking opens CreateMenuModal with two options
+**And** menu shows "NOUVEAU TOURNOI (X/2 restants) 🆓"
+**And** menu shows "NOUVELLE LIGUE 🔒 Premium - 3€"
+**And** menu displays limitations clearly
+**When** user is authenticated (premium)
+**Then** clicking opens CreateMenuModal
+**And** menu shows "NOUVEAU TOURNOI ✨ Illimité"
+**And** menu shows "NOUVELLE LIGUE ✨ Premium"
+**And** no limitations are displayed
+
+**Technical Notes:**
+- Modify `Home.tsx` to have single create button
+- Create `CreateMenuModal.tsx` component
+- Integrate with PremiumService to check status
+- Show appropriate limitations based on premium status
+- Handle authentication flow if not logged in
+
+### Story 7.6: CreateMenuModal Component
+
+As a user,
+I want a menu to choose between creating a tournament or league,
+So that I can easily access the creation flow for either feature.
+
+**Acceptance Criteria:**
+
+**Given** a user clicks "CRÉER NOUVEAU TOURNOI/LIGUE"
+**When** CreateMenuModal opens
+**Then** modal displays two options: Tournament and League
+**And** tournament option shows remaining count if free (X/2)
+**And** tournament option shows "Illimité" if premium
+**And** league option shows "🔒 Premium - 3€" if free
+**And** league option shows "✨ Premium" if premium
+**And** clicking tournament option navigates to create tournament page
+**And** clicking league option navigates to create league page (if premium) or opens payment modal (if free)
+**And** modal can be closed with X button or backdrop click
+**And** modal is responsive and mobile-friendly
+
+**Technical Notes:**
+- Create `src/components/CreateMenuModal.tsx`
+- Use PremiumService to check status and limits
+- Display appropriate badges and messages
+- Handle navigation to create pages
+- Integrate with PaymentModal for upgrade flow
+- Style consistently with app design system
+
+### Story 7.7: Tournament Creation Limit Enforcement
+
+As a free user,
+I want to see my tournament creation limit,
+So that I understand when I need to upgrade to create more tournaments.
+
+**Acceptance Criteria:**
+
+**Given** a free user wants to create a tournament
+**When** they have created less than 2 tournaments
+**Then** they can create a tournament normally
+**And** tournament count is displayed (e.g., "1/2 tournois créés")
+**And** limit indicator is visible in create menu
+**When** they have created 2 tournaments
+**Then** tournament creation is blocked
+**And** message displays: "Limite de 2 tournois atteinte. Passez Premium pour plus !"
+**And** upgrade button is shown
+**And** clicking upgrade opens PaymentModal
+**And** after premium purchase, they can create unlimited tournaments
+
+**Technical Notes:**
+- Modify `CreateTournament.tsx` to check `canCreateTournament()`
+- Display tournament count in CreateMenuModal
+- Show upgrade prompt when limit reached
+- Block form submission if limit exceeded
+- Update UI after premium purchase
+
+### Story 7.8: Tournament Player Limit Enforcement
+
+As a free user,
+I want to see the player limit for my tournaments,
+So that I understand the restriction and can upgrade if needed.
+
+**Acceptance Criteria:**
+
+**Given** a free user creates a tournament
+**When** they add players to the tournament
+**Then** player count is displayed (e.g., "3/6 joueurs")
+**And** when they try to add a 7th player
+**Then** upgrade modal is shown: "Limite de 6 joueurs atteinte. Passez Premium pour plus !"
+**And** upgrade button is available
+**And** they cannot add more than 6 players
+**And** limit is clearly communicated
+**When** a premium user creates a tournament
+**Then** no player limit is displayed
+**And** they can add unlimited players
+
+**Technical Notes:**
+- Modify tournament player management to check `getTournamentPlayerLimit()`
+- Display player count with limit indicator
+- Show upgrade prompt when limit reached
+- Block player addition if limit exceeded
+- Update UI after premium purchase
+
+### Story 7.9: League Creation Premium Requirement
+
+As a free user,
+I want to understand that leagues are a premium feature,
+So that I know I need to upgrade to create leagues.
+
+**Acceptance Criteria:**
+
+**Given** a free user wants to create a league
+**When** they click "NOUVELLE LIGUE" in CreateMenuModal
+**Then** PaymentModal opens with upgrade offer
+**And** modal explains: "Les ligues sont une fonctionnalité premium. Débloquez-les pour 3€ !"
+**And** upgrade button is prominent
+**And** they can complete payment to unlock
+**And** after payment, they can create leagues
+**When** a premium user clicks "NOUVELLE LIGUE"
+**Then** they navigate directly to create league page
+**And** no payment modal is shown
+
+**Technical Notes:**
+- Modify `CreateLeague.tsx` to check `canCreateLeague()`
+- Integrate with PaymentModal for upgrade flow
+- Show premium badge in CreateMenuModal
+- Redirect to league creation after premium purchase
+- Ensure league creation works for premium users
+
+### Story 7.10: Premium Status Display in Profile
+
+As a premium user,
+I want to see my premium status in my profile,
+So that I can confirm my premium access.
+
+**Acceptance Criteria:**
+
+**Given** a user views their profile
+**When** they are a premium user
+**Then** premium badge is displayed (e.g., "✨ Premium")
+**And** purchase date is shown (if tracked)
+**And** premium features are highlighted
+**When** they are a free user
+**Then** upgrade prompt is shown
+**And** upgrade button links to payment flow
+**And** benefits of premium are explained
+
+**Technical Notes:**
+- Modify `UserProfile.tsx` to display premium status
+- Query premium status from PremiumService
+- Show premium badge if `is_premium = true`
+- Display upgrade CTA if free
+- Style consistently with app design
+
+### Story 7.11: PaymentModal Component
+
+As a user,
+I want a secure payment interface,
+So that I can purchase premium safely and easily.
+
+**Acceptance Criteria:**
+
+**Given** a user wants to purchase premium
+**When** PaymentModal opens
+**Then** modal displays premium benefits clearly
+**And** price (3€) is prominently displayed
+**And** Stripe Checkout is integrated
+**And** payment form is secure and PCI-compliant
+**And** loading state is shown during payment processing
+**And** success message is displayed after payment
+**And** error messages are clear and actionable
+**And** modal can be closed (with confirmation if payment in progress)
+**And** after successful payment, premium status is updated
+**And** user is redirected appropriately
+
+**Technical Notes:**
+- Create `src/components/PaymentModal.tsx`
+- Integrate Stripe Checkout or Stripe Elements
+- Handle payment states: idle, processing, success, error
+- Show premium benefits list
+- Integrate with webhook for status update
+- Handle payment cancellation gracefully
+
+### Story 7.12: Premium Status Context Integration
+
+As a developer,
+I want premium status available throughout the app via context,
+So that all components can check premium status consistently.
+
+**Acceptance Criteria:**
+
+**Given** the need for premium status access
+**When** I implement premium context
+**Then** `PremiumContext` is created in `src/context/PremiumContext.tsx`
+**And** context provides `isPremium` boolean
+**And** context provides `canCreateTournament` function
+**And** context provides `canCreateLeague` function
+**And** context provides `getTournamentPlayerLimit` function
+**And** context provides `refreshPremiumStatus` function
+**And** context is integrated with PremiumService
+**And** context updates after premium purchase
+**And** context is available to all components via `usePremium` hook
+
+**Technical Notes:**
+- Create PremiumContext with React Context API
+- Wrap app with PremiumProvider
+- Use PremiumService internally
+- Refresh status after payment webhook
+- Cache status to avoid excessive queries
+- Handle offline scenarios
+
+---
+
 ### Epic Summary
 
-**Total Epics:** 6 MVP epics
-**Total Stories:** 24 stories
+**Total Epics:** 7 epics (6 MVP + 1 Freemium)
+**Total Stories:** 36 stories (24 MVP + 12 Freemium)
 **Epic Breakdown:**
 - Epic 1: Foundation & Code Quality (6 stories)
 - Epic 2: User Identity & Authentication (4 stories)
@@ -1030,6 +1392,7 @@ So that I understand what happened and what to do next.
 - Epic 4: Tournament Participation (3 stories)
 - Epic 5: Match Recording & ELO System (5 stories)
 - Epic 6: Error Handling & Monitoring (3 stories)
+- Epic 7: Freemium Payment Model & Premium Features (12 stories)
 
 ### Implementation Readiness
 

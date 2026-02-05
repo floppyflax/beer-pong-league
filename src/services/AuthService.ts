@@ -7,14 +7,100 @@ import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 class AuthService {
+  // Test account configuration (dev mode only)
+  private readonly TEST_ACCOUNTS = [
+    { email: 'admin@admin.com', password: 'admin123' },
+    { email: 'test@test.com', password: 'test123' },
+    { email: 'devadmin@test.com', password: 'admin123' },
+    { email: 'devtest@test.com', password: 'test123' },
+  ];
+
   /**
-   * Send OTP to email (magic link)
+   * Check if email is a test account (dev mode only)
    */
-  async signInWithOTP(email: string): Promise<{ error: Error | null }> {
+  private isTestAccount(email: string): boolean {
+    if (!import.meta.env.DEV) return false;
+    return this.TEST_ACCOUNTS.some(acc => acc.email === email);
+  }
+
+  /**
+   * Get test account password (dev mode only)
+   */
+  private getTestAccountPassword(email: string): string | null {
+    if (!import.meta.env.DEV) return null;
+    const account = this.TEST_ACCOUNTS.find(acc => acc.email === email);
+    return account?.password ?? null;
+  }
+
+  /**
+   * Sign in with test account using password (dev mode only)
+   * This bypasses the OTP email for testing purposes
+   * If password auth fails, falls back to OTP
+   */
+  private async signInWithTestAccount(email: string): Promise<{ error: Error | null; usedOTP?: boolean }> {
     if (!supabase) {
       return { error: new Error('Supabase not configured') };
     }
+
+    const password = this.getTestAccountPassword(email);
+    if (!password) {
+      return { error: new Error('Test account password not found') };
+    }
+
+    try {
+      // Try password authentication first
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.warn('⚠️ Password auth failed for test account:', error.message);
+        console.log('🔄 Falling back to OTP for test account...');
+        
+        // Fall back to OTP if password auth is not enabled
+        const otpResult = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+
+        if (otpResult.error) {
+          console.error('❌ OTP fallback also failed:', otpResult.error.message);
+          return { 
+            error: new Error('Password auth not enabled. Please check your email for OTP link.'),
+            usedOTP: true
+          };
+        }
+
+        console.log('✉️ OTP sent to test account email');
+        return { error: null, usedOTP: true };
+      }
+
+      console.log('🧪 Test account logged in successfully with password:', email);
+      return { error: null, usedOTP: false };
+    } catch (error) {
+      return { error: error as Error, usedOTP: false };
+    }
+  }
+
+  /**
+   * Send OTP to email (magic link)
+   * In dev mode, test accounts try password auth first, then fall back to OTP
+   */
+  async signInWithOTP(email: string): Promise<{ error: Error | null; usedOTP?: boolean }> {
+    if (!supabase) {
+      return { error: new Error('Supabase not configured') };
+    }
+
+    // Dev mode: Check if this is a test account
+    if (this.isTestAccount(email)) {
+      console.log('🧪 Dev mode: Using test account login for', email);
+      return this.signInWithTestAccount(email);
+    }
     
+    // Production flow: Send OTP
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -27,7 +113,7 @@ class AuthService {
         return { error };
       }
 
-      return { error: null };
+      return { error: null, usedOTP: true };
     } catch (error) {
       return { error: error as Error };
     }

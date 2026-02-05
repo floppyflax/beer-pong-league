@@ -55,5 +55,13 @@ export interface Tournament {
   creator_user_id?: string | null; // User ID if created by authenticated user
   creator_anonymous_user_id?: string | null; // Anonymous user ID if created by local user
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
+  // Story 8.2 fields
+  joinCode?: string; // Unique 6-character alphanumeric code for joining
+  formatType?: 'fixed' | 'free'; // fixed = fixed team sizes (1v1, 2v2), free = flexible
+  team1Size?: number | null; // Team 1 size (null for free format)
+  team2Size?: number | null; // Team 2 size (null for free format)
+  maxPlayers?: number; // Maximum number of players (999 = unlimited for free users)
+  isPrivate?: boolean; // Private tournament (not listed publicly)
+  status?: 'active' | 'finished' | 'cancelled'; // Tournament status
   // Local ranking is calculated on-the-fly from matches, starting from base ELO
 }

@@ -29,6 +29,16 @@ interface TournamentRow {
   created_at: string;
   creator_user_id: string | null;
   creator_anonymous_user_id: string | null;
+  // Story 8.2 fields
+  join_code?: string;
+  format_type?: 'fixed' | 'free';
+  team1_size?: number | null;
+  team2_size?: number | null;
+  max_players?: number;
+  is_private?: boolean;
+  status?: string;
+  anti_cheat_enabled?: boolean;
+  format?: string;
 }
 
 class DatabaseService {
@@ -41,14 +51,21 @@ class DatabaseService {
 
   /**
    * Charge toutes les leagues depuis Supabase
+   * OPTIMIZED: Uses batch queries instead of N+1 pattern
    */
   async loadLeagues(userId?: string, anonymousUserId?: string): Promise<League[]> {
     if (!this.isSupabaseAvailable()) {
       return this.loadLeaguesFromLocalStorage();
     }
 
+    // SECURITY: If no user identity, return empty array (RLS will block anyway)
+    if (!userId && !anonymousUserId) {
+      console.log('🔒 No user identity - returning empty leagues list');
+      return [];
+    }
+
     try {
-      // Charger les leagues
+      // Step 1: Charger les leagues
       let query = supabase!.from('leagues').select('*');
       
       // Filtrer par créateur si fourni
@@ -61,87 +78,103 @@ class DatabaseService {
       const { data: leaguesData, error: leaguesError } = await query;
 
       if (leaguesError) throw leaguesError;
-      if (!leaguesData) return [];
+      if (!leaguesData || leaguesData.length === 0) return [];
 
-      // Pour chaque league, charger les players et matches
-      const leagues: League[] = await Promise.all(
-        leaguesData.map(async (leagueRow: any) => {
-          // Type assertion pour correspondre à la structure DB
-          const typedRow: LeagueRow = {
-            id: leagueRow.id,
-            name: leagueRow.name,
-            type: leagueRow.type as 'event' | 'season',
-            created_at: leagueRow.created_at || new Date().toISOString(),
-            creator_user_id: leagueRow.creator_user_id,
-            creator_anonymous_user_id: leagueRow.creator_anonymous_user_id,
-          };
-          // Charger les players
-          const { data: playersData, error: playersError } = await supabase!
-            .from('league_players')
-            .select('*')
-            .eq('league_id', typedRow.id);
+      // Extract all league IDs for batch queries
+      const leagueIds = leaguesData.map((l: any) => l.id);
 
-          if (playersError) throw playersError;
+      // Step 2: Batch load ALL players in one query
+      const { data: allPlayersData, error: playersError } = await supabase!
+        .from('league_players')
+        .select('*')
+        .in('league_id', leagueIds);
 
-          const players: Player[] = (playersData || []).map((p: any) => ({
-            id: p.id,
-            name: p.pseudo_in_league,
-            elo: p.elo || 1000,
-            wins: p.wins || 0,
-            losses: p.losses || 0,
-            matchesPlayed: p.matches_played || 0,
-            streak: p.streak || 0,
-          }));
+      if (playersError) throw playersError;
 
-          // Charger les matches
-          const { data: matchesData, error: matchesError } = await supabase!
-            .from('matches')
-            .select('*')
-            .eq('league_id', typedRow.id)
-            .order('created_at', { ascending: false });
+      // Step 3: Batch load ALL matches in one query
+      const { data: allMatchesData, error: matchesError } = await supabase!
+        .from('matches')
+        .select('*')
+        .in('league_id', leagueIds)
+        .order('created_at', { ascending: false });
 
-          if (matchesError) throw matchesError;
+      if (matchesError) throw matchesError;
 
-          const matches: Match[] = (matchesData || []).map((m: any) => ({
-            id: m.id,
-            date: m.created_at || new Date().toISOString(),
-            teamA: m.team_a_player_ids || [],
-            teamB: m.team_b_player_ids || [],
-            scoreA: m.score_a || 0,
-            scoreB: m.score_b || 0,
-            created_by_user_id: m.created_by_user_id,
-            created_by_anonymous_user_id: m.created_by_anonymous_user_id,
-            status: m.status || 'confirmed',
-            confirmed_by_user_id: m.confirmed_by_user_id,
-            confirmed_by_anonymous_user_id: m.confirmed_by_anonymous_user_id,
-            confirmed_at: m.confirmed_at,
-          }));
+      // Step 4: Batch load ALL tournaments in one query
+      const { data: allTournamentsData, error: tournamentsError } = await supabase!
+        .from('tournaments')
+        .select('id, league_id')
+        .in('league_id', leagueIds);
 
-          // Charger les tournaments associés
-          const { data: tournamentsData, error: tournamentsError } = await supabase!
-            .from('tournaments')
-            .select('id')
-            .eq('league_id', typedRow.id);
+      if (tournamentsError) throw tournamentsError;
 
-          if (tournamentsError) throw tournamentsError;
+      // Step 5: Group data by league_id
+      const playersByLeague = new Map<string, Player[]>();
+      const matchesByLeague = new Map<string, Match[]>();
+      const tournamentsByLeague = new Map<string, string[]>();
 
-          const tournaments = (tournamentsData || []).map((t: { id: string }) => t.id);
+      // Group players
+      (allPlayersData || []).forEach((p: any) => {
+        if (!playersByLeague.has(p.league_id)) {
+          playersByLeague.set(p.league_id, []);
+        }
+        playersByLeague.get(p.league_id)!.push({
+          id: p.id,
+          name: p.pseudo_in_league,
+          elo: p.elo || 1000,
+          wins: p.wins || 0,
+          losses: p.losses || 0,
+          matchesPlayed: p.matches_played || 0,
+          streak: p.streak || 0,
+        });
+      });
 
-          return {
-            id: typedRow.id,
-            name: typedRow.name,
-            type: typedRow.type,
-            createdAt: typedRow.created_at,
-            players,
-            matches,
-            tournaments,
-            creator_user_id: leagueRow.creator_user_id,
-            creator_anonymous_user_id: leagueRow.creator_anonymous_user_id,
-            anti_cheat_enabled: leagueRow.anti_cheat_enabled || false,
-          };
-        })
-      );
+      // Group matches
+      (allMatchesData || []).forEach((m: any) => {
+        if (!matchesByLeague.has(m.league_id)) {
+          matchesByLeague.set(m.league_id, []);
+        }
+        matchesByLeague.get(m.league_id)!.push({
+          id: m.id,
+          date: m.created_at || new Date().toISOString(),
+          teamA: m.team_a_player_ids || [],
+          teamB: m.team_b_player_ids || [],
+          scoreA: m.score_a || 0,
+          scoreB: m.score_b || 0,
+          created_by_user_id: m.created_by_user_id,
+          created_by_anonymous_user_id: m.created_by_anonymous_user_id,
+          status: m.status || 'confirmed',
+          confirmed_by_user_id: m.confirmed_by_user_id,
+          confirmed_by_anonymous_user_id: m.confirmed_by_anonymous_user_id,
+          confirmed_at: m.confirmed_at,
+        });
+      });
 
+      // Group tournaments
+      (allTournamentsData || []).forEach((t: any) => {
+        if (!tournamentsByLeague.has(t.league_id)) {
+          tournamentsByLeague.set(t.league_id, []);
+        }
+        tournamentsByLeague.get(t.league_id)!.push(t.id);
+      });
+
+      // Step 6: Build leagues with grouped data
+      const leagues: League[] = leaguesData.map((leagueRow: any) => {
+        return {
+          id: leagueRow.id,
+          name: leagueRow.name,
+          type: leagueRow.type as 'event' | 'season',
+          createdAt: leagueRow.created_at || new Date().toISOString(),
+          players: playersByLeague.get(leagueRow.id) || [],
+          matches: matchesByLeague.get(leagueRow.id) || [],
+          tournaments: tournamentsByLeague.get(leagueRow.id) || [],
+          creator_user_id: leagueRow.creator_user_id,
+          creator_anonymous_user_id: leagueRow.creator_anonymous_user_id,
+          anti_cheat_enabled: leagueRow.anti_cheat_enabled || false,
+        };
+      });
+
+      console.log(`⚡ Loaded ${leagues.length} leagues with optimized batch queries`);
       return leagues;
     } catch (error) {
       console.error('Error loading leagues from Supabase:', error);
@@ -151,95 +184,148 @@ class DatabaseService {
 
   /**
    * Charge toutes les tournaments depuis Supabase
+   * OPTIMIZED: Uses batch queries instead of N+1 pattern
+   * 
+   * Loads tournaments where the user is EITHER:
+   * 1. The creator (creator_user_id or creator_anonymous_user_id)
+   * 2. A participant (via tournament_players table)
    */
   async loadTournaments(userId?: string, anonymousUserId?: string): Promise<Tournament[]> {
     if (!this.isSupabaseAvailable()) {
       return this.loadTournamentsFromLocalStorage();
     }
 
+    // SECURITY: If no user identity, return empty array (RLS will block anyway)
+    if (!userId && !anonymousUserId) {
+      console.log('🔒 No user identity - returning empty tournaments list');
+      return [];
+    }
+
     try {
-      // Charger les tournaments
-      let query = supabase!.from('tournaments').select('*');
-      
-      // Filtrer par créateur si fourni
+      // Step 1: Get tournament IDs where user is creator OR participant
+      let tournamentIds: string[] = [];
+
+      // Get tournaments where user is creator
+      let creatorQuery = supabase!.from('tournaments').select('id');
       if (userId) {
-        query = query.eq('creator_user_id', userId);
+        creatorQuery = creatorQuery.eq('creator_user_id', userId);
       } else if (anonymousUserId) {
-        query = query.eq('creator_anonymous_user_id', anonymousUserId);
+        creatorQuery = creatorQuery.eq('creator_anonymous_user_id', anonymousUserId);
+      }
+      const { data: creatorTournaments, error: creatorError } = await creatorQuery;
+      if (creatorError) throw creatorError;
+
+      // Get tournaments where user is participant
+      let participantQuery = supabase!.from('tournament_players').select('tournament_id');
+      if (userId) {
+        participantQuery = participantQuery.eq('user_id', userId);
+      } else if (anonymousUserId) {
+        participantQuery = participantQuery.eq('anonymous_user_id', anonymousUserId);
+      }
+      const { data: participantTournaments, error: participantError } = await participantQuery;
+      if (participantError) throw participantError;
+
+      // Combine and deduplicate tournament IDs
+      const creatorIds = (creatorTournaments || []).map(t => t.id);
+      const participantIds = (participantTournaments || []).map(t => t.tournament_id);
+      tournamentIds = [...new Set([...creatorIds, ...participantIds])];
+
+      if (tournamentIds.length === 0) {
+        console.log('🏆 No tournaments found for user (neither creator nor participant)');
+        return [];
       }
 
-      const { data: tournamentsData, error: tournamentsError } = await query;
+      // Step 2: Load full tournament data for all relevant tournaments
+      const { data: tournamentsData, error: tournamentsError } = await supabase!
+        .from('tournaments')
+        .select('*')
+        .in('id', tournamentIds);
 
       if (tournamentsError) throw tournamentsError;
-      if (!tournamentsData) return [];
+      if (!tournamentsData || tournamentsData.length === 0) return [];
 
-      // Pour chaque tournament, charger les matches
-      const tournaments: Tournament[] = await Promise.all(
-        tournamentsData.map(async (tournamentRow: any) => {
-          const typedRow: TournamentRow = {
-            id: tournamentRow.id,
-            name: tournamentRow.name,
-            date: tournamentRow.date,
-            league_id: tournamentRow.league_id,
-            is_finished: tournamentRow.is_finished || false,
-            created_at: tournamentRow.created_at || new Date().toISOString(),
-            creator_user_id: tournamentRow.creator_user_id,
-            creator_anonymous_user_id: tournamentRow.creator_anonymous_user_id,
-          };
-          // Charger les player IDs
-          const { data: playersData, error: playersError } = await supabase!
-            .from('tournament_players')
-            .select('id, user_id, anonymous_user_id')
-            .eq('tournament_id', typedRow.id);
+      // Step 3: Batch load ALL tournament players in one query
+      const { data: allPlayersData, error: playersError } = await supabase!
+        .from('tournament_players')
+        .select('id, user_id, anonymous_user_id, tournament_id')
+        .in('tournament_id', tournamentIds);
 
-          if (playersError) throw playersError;
+      if (playersError) throw playersError;
 
-          // Pour les tournaments, on utilise les IDs des league_players ou tournament_players
-          // On récupère les IDs depuis tournament_players
-          const playerIds: string[] = (playersData || []).map((p: any) => p.id);
+      // Step 4: Batch load ALL matches in one query
+      const { data: allMatchesData, error: matchesError } = await supabase!
+        .from('matches')
+        .select('*')
+        .in('tournament_id', tournamentIds)
+        .order('created_at', { ascending: false });
 
-          // Charger les matches
-          const { data: matchesData, error: matchesError } = await supabase!
-            .from('matches')
-            .select('*')
-            .eq('tournament_id', typedRow.id)
-            .order('created_at', { ascending: false });
+      if (matchesError) throw matchesError;
 
-          if (matchesError) throw matchesError;
+      // Step 5: Group data by tournament_id
+      const playersByTournament = new Map<string, string[]>();
+      const matchesByTournament = new Map<string, Match[]>();
 
-          const matches: Match[] = (matchesData || []).map((m: any) => ({
-            id: m.id,
-            date: m.created_at || new Date().toISOString(),
-            teamA: m.team_a_player_ids || [],
-            teamB: m.team_b_player_ids || [],
-            scoreA: m.score_a || 0,
-            scoreB: m.score_b || 0,
-            created_by_user_id: m.created_by_user_id,
-            created_by_anonymous_user_id: m.created_by_anonymous_user_id,
-            status: m.status || 'confirmed',
-            confirmed_by_user_id: m.confirmed_by_user_id,
-            confirmed_by_anonymous_user_id: m.confirmed_by_anonymous_user_id,
-            confirmed_at: m.confirmed_at,
-          }));
+      // Group players
+      (allPlayersData || []).forEach((p: any) => {
+        if (!playersByTournament.has(p.tournament_id)) {
+          playersByTournament.set(p.tournament_id, []);
+        }
+        playersByTournament.get(p.tournament_id)!.push(p.id);
+      });
 
-          return {
-            id: typedRow.id,
-            name: typedRow.name,
-            date: typedRow.date,
-            format: tournamentRow.format || '2v2',
-            location: tournamentRow.location,
-            leagueId: typedRow.league_id,
-            createdAt: typedRow.created_at,
-            playerIds,
-            matches,
-            isFinished: typedRow.is_finished,
-            creator_user_id: typedRow.creator_user_id,
-            creator_anonymous_user_id: typedRow.creator_anonymous_user_id,
-            anti_cheat_enabled: tournamentRow.anti_cheat_enabled || false,
-          };
-        })
-      );
+      // Group matches
+      (allMatchesData || []).forEach((m: any) => {
+        if (!matchesByTournament.has(m.tournament_id)) {
+          matchesByTournament.set(m.tournament_id, []);
+        }
+        matchesByTournament.get(m.tournament_id)!.push({
+          id: m.id,
+          date: m.created_at || new Date().toISOString(),
+          teamA: m.team_a_player_ids || [],
+          teamB: m.team_b_player_ids || [],
+          scoreA: m.score_a || 0,
+          scoreB: m.score_b || 0,
+          created_by_user_id: m.created_by_user_id,
+          created_by_anonymous_user_id: m.created_by_anonymous_user_id,
+          status: m.status || 'confirmed',
+          confirmed_by_user_id: m.confirmed_by_user_id,
+          confirmed_by_anonymous_user_id: m.confirmed_by_anonymous_user_id,
+          confirmed_at: m.confirmed_at,
+        });
+      });
 
+      // Step 6: Build tournaments with grouped data
+      const tournaments: Tournament[] = tournamentsData.map((tournamentRow: any) => {
+        const playerIds = playersByTournament.get(tournamentRow.id) || [];
+        const matches = matchesByTournament.get(tournamentRow.id) || [];
+
+        return {
+          id: tournamentRow.id,
+          name: tournamentRow.name,
+          date: tournamentRow.date,
+          format: tournamentRow.format || '2v2',
+          location: tournamentRow.location,
+          leagueId: tournamentRow.league_id,
+          createdAt: tournamentRow.created_at || new Date().toISOString(),
+          playerIds,
+          matches,
+          isFinished: tournamentRow.is_finished || false,
+          creator_user_id: tournamentRow.creator_user_id,
+          creator_anonymous_user_id: tournamentRow.creator_anonymous_user_id,
+          anti_cheat_enabled: tournamentRow.anti_cheat_enabled || false,
+          // Story 8.2 fields
+          joinCode: tournamentRow.join_code,
+          formatType: tournamentRow.format_type,
+          team1Size: tournamentRow.team1_size,
+          team2Size: tournamentRow.team2_size,
+          maxPlayers: tournamentRow.max_players,
+          isPrivate: tournamentRow.is_private,
+          status: tournamentRow.status as 'active' | 'finished' | 'cancelled' | undefined,
+        };
+      });
+
+      console.log(`⚡ Loaded ${tournaments.length} tournaments with optimized batch queries`);
+      
       return tournaments;
     } catch (error) {
       console.error('Error loading tournaments from Supabase:', error);
@@ -874,6 +960,7 @@ class DatabaseService {
 
       // Create tournament_player entry
       const playerId = crypto.randomUUID();
+      const joinedAt = new Date().toISOString();
       const { error: insertError } = await supabase!
         .from('tournament_players')
         .insert({
@@ -881,6 +968,7 @@ class DatabaseService {
           tournament_id: tournamentId,
           anonymous_user_id: anonymousUserId,
           pseudo_in_tournament: playerName,
+          joined_at: joinedAt,
         });
 
       if (insertError) throw insertError;
@@ -1326,6 +1414,191 @@ class DatabaseService {
     const tournaments = this.loadTournamentsFromLocalStorage();
     const filtered = tournaments.filter((t) => t.id !== tournamentId);
     localStorage.setItem('bpl_tournaments', JSON.stringify(filtered));
+  }
+
+  /**
+   * Create a new tournament (Story 8.2)
+   * 
+   * @param data - Tournament creation data
+   * @returns Tournament ID
+   */
+  async createTournament(data: {
+    name: string;
+    joinCode: string;
+    formatType: 'fixed' | 'free';
+    team1Size: number | null;
+    team2Size: number | null;
+    maxPlayers: number;
+    isPrivate: boolean;
+    creatorUserId: string | null;
+    creatorAnonymousUserId: string | null;
+  }): Promise<string> {
+    if (!this.isSupabaseAvailable()) {
+      // Fallback to localStorage
+      const tournamentId = crypto.randomUUID();
+      
+      // Get creator's pseudo for localStorage mode
+      let creatorPseudo = 'Créateur';
+      if (data.creatorUserId) {
+        const localUser = localStorage.getItem('bpl_local_user');
+        if (localUser) {
+          const userData = JSON.parse(localUser);
+          creatorPseudo = userData.pseudo || 'Créateur';
+        }
+      } else if (data.creatorAnonymousUserId) {
+        const anonUser = localStorage.getItem('bpl_anonymous_user');
+        if (anonUser) {
+          const anonData = JSON.parse(anonUser);
+          creatorPseudo = anonData.pseudo || 'Créateur';
+        }
+      }
+      
+      const tournament: Tournament = {
+        id: tournamentId,
+        name: data.name,
+        date: new Date().toISOString(),
+        format: data.formatType === 'fixed' ? '2v2' : 'libre',
+        leagueId: null,
+        playerIds: [data.creatorUserId || data.creatorAnonymousUserId || ''], // Add creator as first player
+        matches: [],
+        isFinished: false,
+        createdAt: new Date().toISOString(),
+      };
+      this.saveTournamentToLocalStorage(tournament);
+      return tournamentId;
+    }
+
+    try {
+      const { data: tournament, error } = await supabase!
+        .from('tournaments')
+        .insert({
+          name: data.name,
+          date: new Date().toISOString().split('T')[0], // Date only
+          join_code: data.joinCode,
+          format_type: data.formatType,
+          team1_size: data.team1Size,
+          team2_size: data.team2Size,
+          max_players: data.maxPlayers,
+          is_private: data.isPrivate,
+          status: 'active',
+          creator_user_id: data.creatorUserId,
+          creator_anonymous_user_id: data.creatorAnonymousUserId,
+          is_finished: false,
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating tournament:', error);
+        throw new Error(`Failed to create tournament: ${error.message}`);
+      }
+
+      return tournament.id;
+    } catch (error) {
+      console.error('Error in createTournament:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a tournament join code already exists (Story 8.2)
+   * 
+   * @param joinCode - Code to check
+   * @returns true if code exists, false otherwise
+   */
+  async tournamentCodeExists(joinCode: string): Promise<boolean> {
+    if (!this.isSupabaseAvailable()) {
+      return false; // Optimistic: assume code is unique if offline
+    }
+
+    try {
+      const { data, error } = await supabase!
+        .from('tournaments')
+        .select('id')
+        .eq('join_code', joinCode)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking tournament code:', error);
+        return false;
+      }
+
+      return data !== null;
+    } catch (error) {
+      console.error('Error in tournamentCodeExists:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Remove a user from a tournament (Story 8.3 - Task 7, 8)
+   * 
+   * @param tournamentId - Tournament ID to leave
+   * @param userId - User ID (authenticated user)
+   * @param anonymousUserId - Anonymous user ID (if not authenticated)
+   * @throws Error if user is the tournament creator (not allowed to leave)
+   */
+  async leaveTournament(
+    tournamentId: string,
+    userId?: string,
+    anonymousUserId?: string
+  ): Promise<void> {
+    // Check user identity first
+    if (!userId && !anonymousUserId) {
+      throw new Error('User ID or Anonymous User ID required');
+    }
+
+    if (!this.isSupabaseAvailable()) {
+      // For offline mode, tournaments are managed via context/localStorage
+      // This operation requires online access to modify tournament_players
+      throw new Error('Cannot leave tournament in offline mode');
+    }
+
+    try {
+      // Check if user is the tournament creator (creators cannot leave)
+      const { data: tournament, error: tournamentError } = await supabase!
+        .from('tournaments')
+        .select('creator_user_id, creator_anonymous_user_id')
+        .eq('id', tournamentId)
+        .single();
+
+      if (tournamentError) {
+        console.error('Error fetching tournament:', tournamentError);
+        throw new Error('Failed to fetch tournament information');
+      }
+
+      // Verify user is not the creator
+      if (
+        (userId && tournament.creator_user_id === userId) ||
+        (anonymousUserId && tournament.creator_anonymous_user_id === anonymousUserId)
+      ) {
+        throw new Error('Le créateur du tournoi ne peut pas quitter');
+      }
+
+      // Remove user from tournament_players
+      let query = supabase!
+        .from('tournament_players')
+        .delete()
+        .eq('tournament_id', tournamentId);
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      } else if (anonymousUserId) {
+        query = query.eq('anonymous_user_id', anonymousUserId);
+      }
+
+      const { error: deleteError } = await query;
+
+      if (deleteError) {
+        console.error('Error leaving tournament:', deleteError);
+        throw new Error(`Failed to leave tournament: ${deleteError.message}`);
+      }
+
+      console.log('✅ Successfully left tournament:', tournamentId);
+    } catch (error) {
+      console.error('Error in leaveTournament:', error);
+      throw error;
+    }
   }
 }
 

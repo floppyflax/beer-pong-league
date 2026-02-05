@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
-import { Trophy, Plus, History, Users, X, Trash2, Edit, Monitor } from "lucide-react";
+import { Trophy, Plus, History, Users, X, Trash2, Edit, Monitor, Zap, UserPlus } from "lucide-react";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { ContextualBar } from "../components/navigation/ContextualBar";
+import { useDetailPagePermissions } from "../hooks/useDetailPagePermissions";
 
 export const LeagueDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -71,6 +73,12 @@ export const LeagueDashboard = () => {
   const sortedPlayers = useMemo(() => {
     return [...league.players].sort((a, b) => b.elo - a.elo);
   }, [league.players]);
+
+  // Story 9-5 - Get permissions for contextual actions
+  const { isAdmin, canInvite } = useDetailPagePermissions(
+    id || '',
+    'league'
+  );
 
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -739,6 +747,26 @@ export const LeagueDashboard = () => {
           onClose={() => setShowEloChanges(false)}
         />
       )}
+
+      {/* Story 9-5 - Contextual Action Bar */}
+      <ContextualBar
+        actions={[
+          {
+            id: 'match',
+            label: 'NOUVEAU MATCH',
+            icon: <Zap size={20} />,
+            onClick: () => setShowRecordMatch(true),
+            visible: true,
+          },
+          {
+            id: 'invite',
+            label: 'INVITER',
+            icon: <UserPlus size={20} />,
+            onClick: () => setShowAddPlayer(true),
+            visible: isAdmin || canInvite,
+          },
+        ]}
+      />
     </div>
   );
 };

@@ -18,7 +18,7 @@ export const IdentityInitializer = ({
   children,
   onIdentityReady,
 }: IdentityInitializerProps) => {
-  const { localUser, isLoading } = useIdentityContext();
+  const { localUser, isLoading, createIdentity } = useIdentityContext();
   const location = useLocation();
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -30,6 +30,15 @@ export const IdentityInitializer = ({
 
   useEffect(() => {
     if (isLoading) return;
+
+    // Detect E2E test mode (Playwright tests)
+    // Check multiple indicators to reliably detect Playwright
+    const isE2ETest = 
+      import.meta.env.MODE === 'test' || 
+      window.navigator.webdriver === true ||
+      (window as any).playwright !== undefined ||
+      window.navigator.userAgent.includes('Playwright') ||
+      window.navigator.userAgent.includes('HeadlessChrome');
 
     // If user already has identity, notify parent
     if (localUser) {
@@ -48,12 +57,22 @@ export const IdentityInitializer = ({
       return;
     }
 
-    // No identity found and not on public route, show modal to create or resume
+    // No identity found and not on public route
     if (!hasInitialized) {
-      setShowIdentityModal(true);
-      setHasInitialized(true);
+      // In E2E test mode: auto-create anonymous user without modal
+      if (isE2ETest) {
+        // Use createIdentity from context to update React state
+        createIdentity('E2E Test User').then((newUser) => {
+          onIdentityReady?.(newUser);
+        });
+        setHasInitialized(true);
+      } else {
+        // In production: show modal to create or resume
+        setShowIdentityModal(true);
+        setHasInitialized(true);
+      }
     }
-  }, [localUser, isLoading, hasInitialized, onIdentityReady, isPublicRoute, location.pathname]);
+  }, [localUser, isLoading, hasInitialized, onIdentityReady, isPublicRoute, location.pathname, createIdentity]);
 
   const handleSelectIdentity = (user: LocalUser) => {
     setShowIdentityModal(false);

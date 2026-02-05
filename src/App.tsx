@@ -11,17 +11,26 @@ import { Toaster } from "react-hot-toast";
 import { LeagueProvider } from "./context/LeagueContext";
 import { IdentityProvider } from "./context/IdentityContext";
 import { AuthProvider } from "./context/AuthContext";
+import { NavigationProvider } from "./context/NavigationContext";
+import { ResponsiveLayout } from "./components/layout/ResponsiveLayout";
 import { MenuDrawer } from "./components/layout/MenuDrawer";
+import { BottomTabMenu } from "./components/navigation/BottomTabMenu";
+import { BackButton } from "./components/navigation/BackButton";
 import { DevPanel } from "./components/DevPanel";
 import { useAuthContext } from "./context/AuthContext";
 import { useIdentity } from "./hooks/useIdentity";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { shouldShowBottomMenu, shouldShowBackButton } from "./utils/navigationHelpers";
 import { Menu, User, LogOut } from "lucide-react";
 
 // Lazy-loaded page components for code splitting
 // Note: Using named imports with .then() to convert to default exports for React.lazy()
+const LandingPage = lazy(() => import("./pages/LandingPage").then(m => ({ default: m.LandingPage })));
 const Home = lazy(() => import("./pages/Home").then(m => ({ default: m.Home })));
+const Join = lazy(() => import("./pages/Join").then(m => ({ default: m.Join })));
+const Tournaments = lazy(() => import("./pages/Tournaments").then(m => ({ default: m.Tournaments })));
+const Leagues = lazy(() => import("./pages/Leagues").then(m => ({ default: m.Leagues })));
 const CreateLeague = lazy(() => import("./pages/CreateLeague").then(m => ({ default: m.CreateLeague })));
 const LeagueDashboard = lazy(() => import("./pages/LeagueDashboard").then(m => ({ default: m.LeagueDashboard })));
 const CreateTournament = lazy(() => import("./pages/CreateTournament").then(m => ({ default: m.CreateTournament })));
@@ -42,7 +51,10 @@ function App() {
       <IdentityProvider>
         <LeagueProvider>
           <Router>
-            <AppContent />
+            {/* NavigationProvider must be inside Router since it uses useNavigate() */}
+            <NavigationProvider>
+              <AppContent />
+            </NavigationProvider>
           </Router>
           <Toaster
             position="top-center"
@@ -114,24 +126,44 @@ function HeaderUserInfo() {
 function AppContent() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated } = useAuthContext();
+  const { localUser } = useIdentity();
   
   // Check if we're on a display view route
   const isDisplayView = location.pathname.includes("/display");
+  
+  // Check if we're on landing page (root with no identity)
+  const hasIdentity = isAuthenticated || localUser;
+  const isLandingPage = location.pathname === "/" && !hasIdentity;
+  
+  // Hide header on display views and landing page
+  // Hide header on display views, landing page, and home page (Home has its own header)
+  const isHomePage = location.pathname === '/' && hasIdentity;
+  const showHeader = !isDisplayView && !isLandingPage && !isHomePage;
+  
+  // Determine if back button should be shown instead of hamburger menu
+  const showBackBtn = shouldShowBackButton(location.pathname);
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-      {!isDisplayView && (
+      {showHeader && (
         <>
           <MenuDrawer isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
           <header className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
-            {/* Hamburger menu - hidden on desktop (lg and above) */}
-            <button
-              onClick={() => setMenuOpen(true)}
-              className="p-2 hover:bg-slate-700 rounded-lg transition-colors lg:hidden"
-              aria-label="Open menu"
-            >
-              <Menu size={24} />
-            </button>
+            {/* Left navigation: Back button OR Hamburger menu - hidden on desktop (lg and above) */}
+            <div className="lg:hidden">
+              {showBackBtn ? (
+                <BackButton />
+              ) : (
+                <button
+                  onClick={() => setMenuOpen(true)}
+                  className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                  aria-label="Open menu"
+                >
+                  <Menu size={24} />
+                </button>
+              )}
+            </div>
             {/* Desktop navigation placeholder - shown on lg and above */}
             <nav className="hidden lg:flex items-center gap-6">
               <Link
@@ -164,11 +196,7 @@ function AppContent() {
         </>
       )}
 
-      <main className={`flex-grow flex flex-col ${
-        isDisplayView 
-          ? "w-full max-w-none mx-0" 
-          : "w-full max-w-md mx-auto lg:max-w-4xl xl:max-w-6xl px-4 md:px-6 lg:px-8"
-      }`}>
+      <main className="flex-grow flex flex-col">
         <ErrorBoundary>
           <Suspense
             fallback={
@@ -177,39 +205,61 @@ function AppContent() {
               </div>
             }
           >
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/payment-success" element={<PaymentSuccess />} />
-              <Route path="/payment-cancel" element={<PaymentCancel />} />
-              <Route path="/create-league" element={<CreateLeague />} />
-              <Route path="/create-tournament" element={<CreateTournament />} />
-              <Route 
-                path="/league/:id" 
-                element={
-                  <ErrorBoundary>
-                    <LeagueDashboard />
-                  </ErrorBoundary>
-                } 
-              />
-              <Route path="/league/:id/display" element={<DisplayView />} />
-              <Route 
-                path="/tournament/:id" 
-                element={
-                  <ErrorBoundary>
-                    <TournamentDashboard />
-                  </ErrorBoundary>
-                } 
-              />
-              <Route path="/tournament/:id/display" element={<TournamentDisplayView />} />
-              <Route path="/tournament/:id/invite" element={<TournamentInvite />} />
-              <Route path="/tournament/:id/join" element={<TournamentJoin />} />
-              <Route path="/player/:playerId" element={<PlayerProfile />} />
-              <Route path="/user/profile" element={<UserProfile />} />
-            </Routes>
+            {/* Display views and Landing page bypass ResponsiveLayout wrapper */}
+            {isDisplayView ? (
+              <div className="w-full max-w-none mx-0">
+                <Routes>
+                  <Route path="/league/:id/display" element={<DisplayView />} />
+                  <Route path="/tournament/:id/display" element={<TournamentDisplayView />} />
+                </Routes>
+              </div>
+            ) : isLandingPage ? (
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+              </Routes>
+            ) : (
+              <ResponsiveLayout showSidebar={false}>
+                <div className="py-4">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/join" element={<Join />} />
+                    <Route path="/tournaments" element={<Tournaments />} />
+                    <Route path="/leagues" element={<Leagues />} />
+                    <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/payment-success" element={<PaymentSuccess />} />
+                    <Route path="/payment-cancel" element={<PaymentCancel />} />
+                    <Route path="/create-league" element={<CreateLeague />} />
+                    <Route path="/create-tournament" element={<CreateTournament />} />
+                    <Route 
+                      path="/league/:id" 
+                      element={
+                        <ErrorBoundary>
+                          <LeagueDashboard />
+                        </ErrorBoundary>
+                      } 
+                    />
+                    <Route 
+                      path="/tournament/:id" 
+                      element={
+                        <ErrorBoundary>
+                          <TournamentDashboard />
+                        </ErrorBoundary>
+                      } 
+                    />
+                    <Route path="/tournament/:id/invite" element={<TournamentInvite />} />
+                    <Route path="/tournament/:id/join" element={<TournamentJoin />} />
+                    <Route path="/player/:playerId" element={<PlayerProfile />} />
+                    <Route path="/user/profile" element={<UserProfile />} />
+                  </Routes>
+                </div>
+              </ResponsiveLayout>
+            )}
           </Suspense>
         </ErrorBoundary>
       </main>
+
+      {/* Bottom Tab Menu - visible on mobile for main routes, only when user has identity (AC4) */}
+      {shouldShowBottomMenu(location.pathname) && hasIdentity && <BottomTabMenu />}
 
       {/* Dev Panel - only visible in dev mode */}
       <DevPanel />

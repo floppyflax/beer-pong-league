@@ -11,12 +11,14 @@ class IdentityMergeService {
   /**
    * Merge anonymous user identity to authenticated user
    * This is called when a user claims their account
+   * 
+   * Uses atomic PostgreSQL function to ensure transactional integrity
    */
   async mergeAnonymousToUser(
     anonymousUserId: string,
     userId: string,
     pseudo: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; error?: string; stats?: { leagues: number; tournaments: number; matches: number } }> {
     if (!supabase) {
       return { success: false, error: 'Supabase not configured' };
     }
@@ -31,44 +33,26 @@ class IdentityMergeService {
         }
       }
 
-      // 2. Update anonymous_user to mark as merged
-      const { error: updateError } = await supabase
-        .from('anonymous_users')
-        .update({
-          merged_to_user_id: userId,
-          merged_at: new Date().toISOString(),
-        })
-        .eq('id', anonymousUserId);
-
-      if (updateError) {
-        console.error('Error updating anonymous_user:', updateError);
-        return { success: false, error: updateError.message };
-      }
-
-      // 3. Migrate league_players
-      await this.migrateLeaguePlayers(anonymousUserId, userId);
-
-      // 4. Migrate tournament_players
-      await this.migrateTournamentPlayers(anonymousUserId, userId);
-
-      // 5. Migrate matches (update player IDs in arrays)
-      await this.migrateMatches(anonymousUserId, userId);
-
-      // 6. Migrate elo_history
-      await this.migrateEloHistory(anonymousUserId, userId);
-
-      // 7. Update leagues/tournaments creators
-      await this.migrateCreators(anonymousUserId, userId);
-
-      // 8. Create merge record
-      if (!supabase) return { success: false, error: 'Supabase not available' };
-      await supabase.from('user_identity_merges').insert({
-        anonymous_user_id: anonymousUserId,
-        user_id: userId,
-        stats_migrated: true,
+      // 2. Call atomic merge function (all-or-nothing transaction)
+      const { data, error: rpcError } = await supabase.rpc('merge_anonymous_identity', {
+        p_anonymous_user_id: anonymousUserId,
+        p_user_id: userId,
       });
 
-      return { success: true };
+      if (rpcError) {
+        console.error('Error merging identity:', rpcError);
+        return { success: false, error: rpcError.message };
+      }
+
+      // 3. Return success with stats
+      return {
+        success: true,
+        stats: {
+          leagues: data.leagues_migrated || 0,
+          tournaments: data.tournaments_migrated || 0,
+          matches: data.matches_migrated || 0,
+        },
+      };
     } catch (error) {
       console.error('Error merging identity:', error);
       return {

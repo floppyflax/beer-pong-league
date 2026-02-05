@@ -1,8 +1,22 @@
+/**
+ * LeagueContext - Global Application Data Context
+ * 
+ * ⚠️ NAMING NOTE: Despite the name "LeagueContext", this context manages ALL application data:
+ * - Leagues (ligues): Season-long or event-based player groups
+ * - Tournaments (tournois): Individual competitions with matches
+ * - Players: Participants in leagues and tournaments
+ * - Matches: Game results and ELO calculations
+ * 
+ * The name is historical (from when only leagues existed) but kept for backward compatibility.
+ * Consider this as "AppDataContext" or "GameContext" conceptually.
+ */
+
 import {
   createContext,
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 import toast from "react-hot-toast";
@@ -15,12 +29,18 @@ import { migrationService } from "../services/MigrationService";
 import { localUserService } from "../services/LocalUserService";
 import { getDeviceFingerprint } from "../utils/deviceFingerprint";
 
+/**
+ * Global context interface for managing leagues, tournaments, players, and matches.
+ * 
+ * Note: Despite being called "LeagueContext", this manages both leagues AND tournaments.
+ */
 interface LeagueContextType {
   leagues: League[];
   tournaments: Tournament[];
   currentLeague: League | null;
   currentTournament: Tournament | null;
   isLoadingInitialData: boolean;
+  reloadData: () => Promise<void>;
   createLeague: (name: string, type: "event" | "season") => Promise<string>;
   createTournament: (
     name: string,
@@ -47,7 +67,8 @@ interface LeagueContextType {
     tournamentId: string,
     teamAIds: string[],
     teamBIds: string[],
-    winner: "A" | "B"
+    winner: "A" | "B",
+    scores?: { scoreA: number; scoreB: number }
   ) => Promise<Record<string, number> | null>;
   deleteLeague: (id: string) => Promise<void>;
   deleteTournament: (id: string) => Promise<void>;
@@ -72,6 +93,15 @@ interface LeagueContextType {
 
 const LeagueContext = createContext<LeagueContextType | undefined>(undefined);
 
+/**
+ * Hook to access global application data (leagues, tournaments, players, matches).
+ * 
+ * Despite the name "useLeague", this hook provides access to ALL app data,
+ * including both leagues and tournaments.
+ * 
+ * @example
+ * const { leagues, tournaments, reloadData } = useLeague();
+ */
 export const useLeague = () => {
   const context = useContext(LeagueContext);
   if (!context) {
@@ -80,6 +110,17 @@ export const useLeague = () => {
   return context;
 };
 
+/**
+ * Global data provider for the application.
+ * 
+ * Manages state and operations for:
+ * - Leagues: Long-term player groups with rankings
+ * - Tournaments: Individual competitions 
+ * - Players: Participants with ELO ratings
+ * - Matches: Game results and history
+ * 
+ * Synchronizes data between localStorage (cache) and Supabase (backend).
+ */
 export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   // Get auth and identity info
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -103,100 +144,113 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   // Loading state for initial data fetch
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
 
-  // Load data from Supabase on mount and when auth/identity changes
-  useEffect(() => {
-    const loadDataFromSupabase = async () => {
-      // Wait for auth and identity to be ready
-      if (authLoading || identityLoading) {
+  // Extract primitive values to avoid unnecessary re-renders
+  const userId = isAuthenticated && user ? user.id : undefined;
+  const anonymousUserId = !isAuthenticated && localUser ? localUser.anonymousUserId : undefined;
+
+  // Extracted function to load data from Supabase (reusable) - memoized to prevent re-creation
+  const loadDataFromSupabase = useCallback(async () => {
+    // Wait for auth and identity to be ready
+    if (authLoading || identityLoading) {
+      return;
+    }
+
+    setIsLoadingInitialData(true);
+
+    try {
+      // SECURITY: If user has no identity, clear all data and return empty
+      if (!userId && !anonymousUserId) {
+        console.log('🔒 No user identity - clearing all data for security');
+        setLeagues([]);
+        setTournaments([]);
+        localStorage.removeItem("bpl_leagues");
+        localStorage.removeItem("bpl_tournaments");
+        setIsLoadingInitialData(false);
         return;
       }
 
-      setIsLoadingInitialData(true);
-
-      try {
-        // Determine user IDs for filtering
-        const userId = isAuthenticated && user ? user.id : undefined;
-        const anonymousUserId = !isAuthenticated && localUser ? localUser.anonymousUserId : undefined;
-
-        // Step 1: Migrate localStorage data to Supabase if not already done
-        if (!migrationService.isMigrationDone()) {
-          const migrationToast = toast.loading('Migration des données en cours...');
-          const migrationResult = await migrationService.migrateLocalStorageToSupabase();
-          
-          if (migrationResult.error) {
-            toast.error('Erreur lors de la migration', { id: migrationToast });
-            console.error('Migration error:', migrationResult.error);
-          } else if (migrationResult.leaguesMigrated > 0 || migrationResult.tournamentsMigrated > 0) {
-            toast.success(
-              `${migrationResult.leaguesMigrated} ligues et ${migrationResult.tournamentsMigrated} tournois migrés`,
-              { id: migrationToast }
-            );
-          } else {
-            toast.dismiss(migrationToast);
-          }
-        }
-
-        // Step 2: Load data from Supabase
-        const [loadedLeagues, loadedTournaments] = await Promise.all([
-          databaseService.loadLeagues(userId, anonymousUserId),
-          databaseService.loadTournaments(userId, anonymousUserId),
-        ]);
-
-        // Step 3: Filter localStorage data by current user before merging
-        // This ensures we don't mix data from different users
-        const localStorageLeagues = JSON.parse(localStorage.getItem("bpl_leagues") || "[]") as League[];
-        const localStorageTournaments = JSON.parse(localStorage.getItem("bpl_tournaments") || "[]") as Tournament[];
-
-        // Filter localStorage data by current user
-        const filteredLocalStorageLeagues = localStorageLeagues.filter((league) => {
-          if (userId) {
-            return league.creator_user_id === userId;
-          } else if (anonymousUserId) {
-            return league.creator_anonymous_user_id === anonymousUserId;
-          }
-          return false; // If no user ID, don't include localStorage data
-        });
-
-        const filteredLocalStorageTournaments = localStorageTournaments.filter((tournament) => {
-          if (userId) {
-            return tournament.creator_user_id === userId;
-          } else if (anonymousUserId) {
-            return tournament.creator_anonymous_user_id === anonymousUserId;
-          }
-          return false; // If no user ID, don't include localStorage data
-        });
-
-        // Merge strategy: Use Supabase data if available, otherwise use filtered localStorage
-        const mergedLeagues = loadedLeagues.length > 0 
-          ? loadedLeagues 
-          : filteredLocalStorageLeagues;
+      // Step 1: Migrate localStorage data to Supabase if not already done
+      if (!migrationService.isMigrationDone()) {
+        const migrationToast = toast.loading('Migration des données en cours...');
+        const migrationResult = await migrationService.migrateLocalStorageToSupabase();
         
-        const mergedTournaments = loadedTournaments.length > 0 
-          ? loadedTournaments 
-          : filteredLocalStorageTournaments;
-
-        // Update state
-        setLeagues(mergedLeagues);
-        setTournaments(mergedTournaments);
-
-        // Update localStorage cache
-        localStorage.setItem("bpl_leagues", JSON.stringify(mergedLeagues));
-        localStorage.setItem("bpl_tournaments", JSON.stringify(mergedTournaments));
-
-        if (mergedLeagues.length > 0 || mergedTournaments.length > 0) {
-          console.log(`✅ Loaded ${mergedLeagues.length} leagues and ${mergedTournaments.length} tournaments from Supabase`);
+        if (migrationResult.error) {
+          toast.error('Erreur lors de la migration', { id: migrationToast });
+          console.error('Migration error:', migrationResult.error);
+        } else if (migrationResult.leaguesMigrated > 0 || migrationResult.tournamentsMigrated > 0) {
+          toast.success(
+            `${migrationResult.leaguesMigrated} ligues et ${migrationResult.tournamentsMigrated} tournois migrés`,
+            { id: migrationToast }
+          );
+        } else {
+          toast.dismiss(migrationToast);
         }
-      } catch (error) {
-        console.error('Error loading data from Supabase:', error);
-        // On error, keep localStorage data (already loaded in initial state)
-        console.log('⚠️ Using localStorage data as fallback');
-      } finally {
-        setIsLoadingInitialData(false);
       }
-    };
 
+      // Step 2: Load data from Supabase
+      const [loadedLeagues, loadedTournaments] = await Promise.all([
+        databaseService.loadLeagues(userId, anonymousUserId),
+        databaseService.loadTournaments(userId, anonymousUserId),
+      ]);
+
+      // Step 3: Filter localStorage data by current user before merging
+      // This ensures we don't mix data from different users
+      const localStorageLeagues = JSON.parse(localStorage.getItem("bpl_leagues") || "[]") as League[];
+      const localStorageTournaments = JSON.parse(localStorage.getItem("bpl_tournaments") || "[]") as Tournament[];
+
+      // Filter localStorage data by current user
+      const filteredLocalStorageLeagues = localStorageLeagues.filter((league) => {
+        if (userId) {
+          return league.creator_user_id === userId;
+        } else if (anonymousUserId) {
+          return league.creator_anonymous_user_id === anonymousUserId;
+        }
+        return false; // If no user ID, don't include localStorage data
+      });
+
+      const filteredLocalStorageTournaments = localStorageTournaments.filter((tournament) => {
+        if (userId) {
+          return tournament.creator_user_id === userId;
+        } else if (anonymousUserId) {
+          return tournament.creator_anonymous_user_id === anonymousUserId;
+        }
+        return false; // If no user ID, don't include localStorage data
+      });
+
+      // Merge strategy: Use Supabase data if available, otherwise use filtered localStorage
+      const mergedLeagues = loadedLeagues.length > 0 
+        ? loadedLeagues 
+        : filteredLocalStorageLeagues;
+      
+      const mergedTournaments = loadedTournaments.length > 0 
+        ? loadedTournaments 
+        : filteredLocalStorageTournaments;
+
+      // Update state
+      setLeagues(mergedLeagues);
+      setTournaments(mergedTournaments);
+
+      // Update localStorage cache
+      localStorage.setItem("bpl_leagues", JSON.stringify(mergedLeagues));
+      localStorage.setItem("bpl_tournaments", JSON.stringify(mergedTournaments));
+
+      if (mergedLeagues.length > 0 || mergedTournaments.length > 0) {
+        console.log(`✅ Loaded ${mergedLeagues.length} leagues and ${mergedTournaments.length} tournaments from Supabase`);
+      }
+    } catch (error) {
+      console.error('Error loading data from Supabase:', error);
+      // On error, keep localStorage data (already loaded in initial state)
+      console.log('⚠️ Using localStorage data as fallback');
+    } finally {
+      setIsLoadingInitialData(false);
+    }
+  }, [userId, anonymousUserId, authLoading, identityLoading]);
+
+  // Load data from Supabase on mount and when auth/identity changes
+  // Using primitive values (userId, anonymousUserId) instead of objects (user, localUser)
+  useEffect(() => {
     loadDataFromSupabase();
-  }, [user, isAuthenticated, localUser, authLoading, identityLoading]);
+  }, [loadDataFromSupabase]);
 
   // Keep localStorage in sync with state (as cache)
   useEffect(() => {
@@ -631,7 +685,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     tournamentId: string,
     teamAIds: string[],
     teamBIds: string[],
-    winner: "A" | "B"
+    winner: "A" | "B",
+    scores?: { scoreA: number; scoreB: number }
   ): Promise<Record<string, number> | null> => {
     const tournament = tournaments.find((t) => t.id === tournamentId);
     if (!tournament) return null;
@@ -665,14 +720,18 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       };
     });
 
+    // Use provided scores or calculate from winner
+    const scoreA = scores?.scoreA ?? (winner === "A" ? 10 : 0);
+    const scoreB = scores?.scoreB ?? (winner === "B" ? 10 : 0);
+
     // Add match to Tournament
     const newMatch: Match = {
       id: crypto.randomUUID(),
       date: new Date().toISOString(),
       teamA: teamAIds,
       teamB: teamBIds,
-      scoreA: winner === "A" ? 10 : 0,
-      scoreB: winner === "B" ? 10 : 0,
+      scoreA: scoreA,
+      scoreB: scoreB,
       eloChanges: eloChanges,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
@@ -947,6 +1006,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         currentLeague,
         currentTournament,
         isLoadingInitialData,
+        reloadData: loadDataFromSupabase,
         createLeague,
         createTournament,
         selectLeague,

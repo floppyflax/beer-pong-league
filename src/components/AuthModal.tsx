@@ -8,13 +8,25 @@ interface AuthModalProps {
   onSuccess?: () => void;
 }
 
-export const AuthModal = ({ isOpen, onClose, onSuccess: _onSuccess }: AuthModalProps) => {
+export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
   const [email, setEmail] = useState('');
   const [step, setStep] = useState<'email' | 'sent'>('email');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  // Check if email is a test account
+  const isTestAccount = (email: string): boolean => {
+    if (!import.meta.env.DEV) return false;
+    const testAccounts = [
+      'admin@admin.com', 
+      'test@test.com',
+      'devadmin@test.com',
+      'devtest@test.com'
+    ];
+    return testAccounts.includes(email.toLowerCase());
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -35,7 +47,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess: _onSuccess }: AuthModalP
     setError(null);
 
     try {
-      const { error: authError } = await authService.signInWithOTP(email);
+      const { error: authError, usedOTP } = await authService.signInWithOTP(email);
 
       if (authError) {
         setError(authError.message || 'Erreur lors de l\'envoi de l\'email');
@@ -43,6 +55,20 @@ export const AuthModal = ({ isOpen, onClose, onSuccess: _onSuccess }: AuthModalP
         return;
       }
 
+      // Si c'est un compte test ET password auth a réussi (usedOTP === false)
+      if (isTestAccount(email) && usedOTP === false) {
+        console.log('🧪 Test account logged in with password, closing modal');
+        setIsLoading(false);
+        handleClose();
+        
+        // Wait a bit for auth state to propagate, then call onSuccess
+        setTimeout(() => {
+          onSuccess?.();
+        }, 500);
+        return;
+      }
+
+      // Sinon (OTP envoyé), afficher l'étape "email envoyé"
       setStep('sent');
       setIsLoading(false);
     } catch (error) {
@@ -102,17 +128,44 @@ export const AuthModal = ({ isOpen, onClose, onSuccess: _onSuccess }: AuthModalP
               {error && (
                 <p className="text-red-500 text-sm mt-2">{error}</p>
               )}
-              <p className="text-xs text-slate-500 mt-2">
-                Un lien magique sera envoyé à cette adresse
-              </p>
+              {isTestAccount(email) ? (
+                <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-2 mt-2">
+                  <p className="text-xs text-green-500 font-semibold">
+                    🧪 Compte test détecté - Connexion directe
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 mt-2">
+                  Un lien magique sera envoyé à cette adresse
+                </p>
+              )}
             </div>
+
+            {/* Dev mode hint */}
+            {import.meta.env.DEV && !email && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                <p className="text-xs text-blue-400 mb-1 font-semibold">
+                  🧪 Mode développement
+                </p>
+                <p className="text-xs text-slate-400">
+                  Comptes test disponibles :<br />
+                  • <span className="text-white">devadmin@test.com</span><br />
+                  • <span className="text-white">devtest@test.com</span><br />
+                  <span className="text-slate-500">(connexion instantanée)</span>
+                </p>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={!email.trim() || isLoading}
               className="w-full bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-xl transition-colors"
             >
-              {isLoading ? 'Envoi...' : 'Envoyer le lien magique'}
+              {isLoading ? (
+                isTestAccount(email) ? 'Connexion...' : 'Envoi...'
+              ) : (
+                isTestAccount(email) ? 'Se connecter' : 'Envoyer le lien magique'
+              )}
             </button>
           </form>
         ) : (

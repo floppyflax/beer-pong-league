@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
-import { useAuthContext } from "../context/AuthContext";
+import { useRequireIdentity } from "../hooks/useRequireIdentity";
+import { CreateIdentityModal } from "../components/CreateIdentityModal";
 import { ArrowLeft, UserPlus, Users, Shield, LogIn } from "lucide-react";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import toast from "react-hot-toast";
@@ -10,7 +11,7 @@ export const TournamentJoin = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { tournaments, leagues, addPlayerToTournament, addAnonymousPlayerToTournament, isLoadingInitialData } = useLeague();
-  const { isAuthenticated } = useAuthContext();
+  const { ensureIdentity, showModal, handleIdentityCreated, handleCancel } = useRequireIdentity();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [showCreatePlayer, setShowCreatePlayer] = useState(false);
@@ -58,15 +59,10 @@ export const TournamentJoin = () => {
   const handleJoinAsExistingPlayer = async () => {
     if (!selectedPlayerId || !tournament) return;
 
-    // FUTURE WORK: Implement player account verification
-    // This should query the league_players table to check user_id/anonymous_user_id fields
-    // and verify if the selected player is linked to an authenticated account
-    const playerHasAccount = false; // Placeholder
-
-    if (playerHasAccount && !isAuthenticated) {
-      toast.error("Ce joueur a un compte. Connecte-toi pour continuer.");
-      // FUTURE WORK: Store the join intent in localStorage and redirect to auth modal
-      // After successful authentication, resume the join flow automatically
+    // Ensure user has an identity before joining
+    const identity = await ensureIdentity();
+    if (!identity) {
+      // User cancelled identity creation
       return;
     }
 
@@ -83,16 +79,42 @@ export const TournamentJoin = () => {
     }
   };
 
+  // Validate player name: min 1 char, max 100 chars
+  const validatePlayerName = (name: string): string | null => {
+    const trimmed = name.trim();
+    if (trimmed.length === 0) {
+      return "Le nom ne peut pas être vide";
+    }
+    if (trimmed.length > 100) {
+      return "Le nom ne peut pas dépasser 100 caractères";
+    }
+    return null;
+  };
+
   const handleCreateNewPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPlayerName.trim() || !tournament) return;
+    if (!tournament) return;
+
+    // Validate name
+    const validationError = validatePlayerName(newPlayerName);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    // Ensure user has an identity before creating player
+    const identity = await ensureIdentity();
+    if (!identity) {
+      // User cancelled identity creation
+      return;
+    }
 
     setIsJoining(true);
     try {
       // Add anonymous player to tournament (function handles identity creation)
-      await addAnonymousPlayerToTournament(tournament.id, newPlayerName);
+      await addAnonymousPlayerToTournament(tournament.id, newPlayerName.trim());
       
-      toast.success(`Joueur "${newPlayerName}" créé et ajouté au tournoi !`);
+      toast.success(`Tu as rejoint le tournoi "${tournament.name}" !`);
       navigate(`/tournament/${tournament.id}`);
     } catch (error) {
       console.error("Error creating player:", error);
@@ -252,10 +274,18 @@ export const TournamentJoin = () => {
                     value={newPlayerName}
                     onChange={(e) => setNewPlayerName(e.target.value)}
                     placeholder="Ton pseudo"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary text-base"
                     required
                     autoFocus
+                    minLength={1}
+                    maxLength={100}
+                    autoComplete="name"
                   />
+                  {newPlayerName.length > 0 && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      {newPlayerName.trim().length}/100 caractères
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -270,10 +300,10 @@ export const TournamentJoin = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={isJoining || !newPlayerName.trim()}
-                    className="flex-1 bg-accent hover:bg-accent/80 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isJoining || !newPlayerName.trim() || newPlayerName.trim().length > 100}
+                    className="flex-1 bg-accent hover:bg-accent/80 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg min-h-[44px]"
                   >
-                    {isJoining ? "Création..." : "Créer et rejoindre"}
+                    {isJoining ? "Rejoindre..." : "Rejoindre"}
                   </button>
                 </div>
               </form>
@@ -281,6 +311,13 @@ export const TournamentJoin = () => {
           )}
         </div>
       </div>
+
+      {/* Just-in-time identity creation modal */}
+      <CreateIdentityModal
+        isOpen={showModal}
+        onClose={handleCancel}
+        onIdentityCreated={handleIdentityCreated}
+      />
     </div>
   );
 };

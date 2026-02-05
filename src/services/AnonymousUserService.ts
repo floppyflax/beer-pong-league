@@ -29,7 +29,10 @@ class AnonymousUserService {
 
       const { data, error } = await supabase
         .from('anonymous_users')
-        .insert(insert)
+        .upsert(insert, { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        })
         .select()
         .single();
 

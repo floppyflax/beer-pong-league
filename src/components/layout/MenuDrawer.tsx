@@ -51,14 +51,14 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay - hidden on desktop */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={onClose} />
       )}
 
-      {/* Drawer */}
+      {/* Drawer - hidden on desktop (lg and above) */}
       <div
-        className={`fixed top-0 left-0 h-full w-80 bg-slate-900 border-r border-slate-700 z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 h-full w-80 bg-slate-900 border-r border-slate-700 z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
