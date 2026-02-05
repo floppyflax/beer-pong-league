@@ -1,12 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Join } from '../../src/pages/Join';
 import { Tournaments } from '../../src/pages/Tournaments';
 import { Leagues } from '../../src/pages/Leagues';
 import { AuthProvider } from '../../src/context/AuthContext';
 import { IdentityProvider } from '../../src/context/IdentityContext';
 import { LeagueProvider } from '../../src/context/LeagueContext';
+
+// Mock navigate to track navigation calls
+const mockNavigate = vi.fn();
+
+// Mock useNavigate hook
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 // Wrapper component with all required providers
 function TestApp({ initialRoute = '/' }: { initialRoute?: string }) {
@@ -19,6 +31,8 @@ function TestApp({ initialRoute = '/' }: { initialRoute?: string }) {
               <Route path="/join" element={<Join />} />
               <Route path="/tournaments" element={<Tournaments />} />
               <Route path="/leagues" element={<Leagues />} />
+              <Route path="/create-tournament" element={<div>Create Tournament Page</div>} />
+              <Route path="/create-league" element={<div>Create League Page</div>} />
             </Routes>
           </MemoryRouter>
         </LeagueProvider>
@@ -30,6 +44,7 @@ function TestApp({ initialRoute = '/' }: { initialRoute?: string }) {
 describe('BottomMenuSpecific Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockNavigate.mockClear();
   });
 
   describe('Join Page (AC2)', () => {
@@ -100,6 +115,18 @@ describe('BottomMenuSpecific Integration', () => {
       
       expect(screen.getByText('Aucun tournoi')).toBeInTheDocument();
     });
+
+    it('should navigate to create-tournament when Créer button is clicked (free user)', async () => {
+      render(<TestApp initialRoute="/tournaments" />);
+      
+      const createButton = screen.getAllByText('CRÉER')[0];
+      fireEvent.click(createButton);
+      
+      // Should navigate to create-tournament page (no premium limit for 0 tournaments)
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/create-tournament');
+      });
+    });
   });
 
   describe('Leagues Page (AC4)', () => {
@@ -122,6 +149,18 @@ describe('BottomMenuSpecific Integration', () => {
       render(<TestApp initialRoute="/leagues" />);
       
       expect(screen.getByText('Aucune league')).toBeInTheDocument();
+    });
+
+    it('should navigate to create-league when Créer button is clicked (free user)', async () => {
+      render(<TestApp initialRoute="/leagues" />);
+      
+      const createButton = screen.getAllByText('CRÉER')[0];
+      fireEvent.click(createButton);
+      
+      // Should navigate to create-league page (no premium limit for 0 leagues)
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/create-league');
+      });
     });
   });
 
