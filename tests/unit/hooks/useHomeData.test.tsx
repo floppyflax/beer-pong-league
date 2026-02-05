@@ -4,6 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useHomeData } from '../../../src/hooks/useHomeData';
 
+// Type-safe mock interfaces
+interface MockSupabaseQuery {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  or: ReturnType<typeof vi.fn>;
+}
+
 // Mock supabase
 vi.mock('../../../src/lib/supabase', () => ({
   supabase: {
@@ -42,18 +51,15 @@ describe('useHomeData', () => {
 
   describe('Loading State', () => {
     it('should return loading state initially', () => {
-      // Mock empty responses
+      // Create type-safe mock chain
+      const mockLimit = vi.fn().mockResolvedValue({ data: [], error: null });
+      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+      const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      
       vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: null, error: null }),
-              }),
-            }),
-          }),
-        }),
-      } as any);
+        select: mockSelect,
+      } as MockSupabaseQuery);
 
       const { result } = renderHook(() => useHomeData('user-123'), {
         wrapper: createWrapper(),
@@ -65,19 +71,15 @@ describe('useHomeData', () => {
 
   describe('Data Fetching', () => {
     it('should complete data fetching without error', async () => {
-      // Mock empty responses
+      // Create type-safe mock chain
+      const mockLimit = vi.fn().mockResolvedValue({ data: [], error: null });
+      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+      const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      
       vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: null, error: null }),
-              }),
-            }),
-          }),
-          or: vi.fn().mockResolvedValue({ data: [], error: null }),
-        }),
-      } as any);
+        select: mockSelect,
+      } as MockSupabaseQuery);
 
       const { result } = renderHook(() => useHomeData('user-123'), {
         wrapper: createWrapper(),
@@ -91,19 +93,15 @@ describe('useHomeData', () => {
     });
 
     it('should handle zero matches correctly in stats', async () => {
-      // Mock empty responses
+      // Create type-safe mock chain
+      const mockLimit = vi.fn().mockResolvedValue({ data: [], error: null });
+      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+      const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      
       vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: null, error: null }),
-              }),
-            }),
-          }),
-          or: vi.fn().mockResolvedValue({ data: [], error: null }),
-        }),
-      } as any);
+        select: mockSelect,
+      } as MockSupabaseQuery);
 
       const { result } = renderHook(() => useHomeData('user-123'), {
         wrapper: createWrapper(),
@@ -131,18 +129,15 @@ describe('useHomeData', () => {
     });
 
     it('should fetch when userId is provided', () => {
+      // Create type-safe mock chain
+      const mockLimit = vi.fn().mockResolvedValue({ data: [], error: null });
+      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+      const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+      
       vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: null, error: null }),
-              }),
-            }),
-          }),
-          or: vi.fn().mockResolvedValue({ data: [], error: null }),
-        }),
-      } as any);
+        select: mockSelect,
+      } as MockSupabaseQuery);
 
       const { result } = renderHook(() => useHomeData('user-123'), {
         wrapper: createWrapper(),

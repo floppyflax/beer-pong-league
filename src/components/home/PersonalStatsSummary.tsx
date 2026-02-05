@@ -51,60 +51,82 @@ export const PersonalStatsSummary = ({
     return <EmptyState />;
   }
 
+  // Premium teaser - show full paywall for non-premium users (as per AC4)
+  if (!isPremium) {
+    return (
+      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 text-center">
+        <div className="mb-6">
+          <span className="text-4xl mb-4 block">🔒</span>
+          <h2 className="text-xl font-bold text-white mb-2">Fonctionnalité Premium</h2>
+          <p className="text-slate-400 text-sm">
+            Débloquez vos statistiques personnelles pour suivre votre progression
+            à travers tous vos tournois et leagues.
+          </p>
+        </div>
+
+        <div className="bg-slate-700/30 rounded-lg p-4 mb-6 text-left">
+          <div className="space-y-2 text-sm text-slate-300">
+            <div className="flex items-center gap-2">
+              <span className="text-primary">✓</span>
+              <span>Évolution ELO globale</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-primary">✓</span>
+              <span>Taux de victoire détaillé</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-primary">✓</span>
+              <span>Statistiques par adversaire</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-primary">✓</span>
+              <span>Graphiques de performance</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={onUpgradeClick}
+          className="w-full bg-gradient-to-r from-primary to-accent hover:from-amber-600 hover:to-red-600 text-white font-bold py-3 rounded-lg transition-all shadow-lg"
+        >
+          ⬆️ PASSER AU PREMIUM
+        </button>
+      </div>
+    );
+  }
+
+  // Premium users see full stats
   return (
     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
       <h2 className="text-xl font-bold text-white mb-6">Mes Stats</h2>
 
       <div className="space-y-4">
-        {/* Total Matches - Always visible */}
+        {/* Total Matches */}
         <div className="bg-slate-700/50 rounded-lg p-4">
           <p className="text-sm text-slate-400">Matchs joués</p>
           <p className="text-2xl font-bold text-white">{stats.totalMatches}</p>
         </div>
 
-        {/* Win Rate - Premium locked */}
-        <div className="bg-slate-700/50 rounded-lg p-4 relative">
+        {/* Win Rate */}
+        <div className="bg-slate-700/50 rounded-lg p-4">
           <p className="text-sm text-slate-400">Taux de victoire</p>
-          {isPremium ? (
-            <p className="text-2xl font-bold text-primary">{stats.winRate}%</p>
-          ) : (
-            <div className="flex items-center gap-2">
-              <p className="text-2xl font-bold text-slate-600 blur-sm">65.0%</p>
-              <span className="text-xl">🔒</span>
-            </div>
-          )}
+          <p className="text-2xl font-bold text-primary">{stats.winRate}%</p>
         </div>
 
-        {/* Average ELO - Premium locked */}
-        <div className="bg-slate-700/50 rounded-lg p-4 relative">
+        {/* Average ELO */}
+        <div className="bg-slate-700/50 rounded-lg p-4">
           <p className="text-sm text-slate-400">ELO moyen</p>
-          {isPremium ? (
-            <p className="text-2xl font-bold text-accent">{stats.averageElo}</p>
-          ) : (
-            <div className="flex items-center gap-2">
-              <p className="text-2xl font-bold text-slate-600 blur-sm">1200</p>
-              <span className="text-xl">🔒</span>
-            </div>
-          )}
+          <p className="text-2xl font-bold text-accent">{stats.averageElo}</p>
         </div>
       </div>
 
-      {/* CTA */}
-      {isPremium ? (
-        <button
-          onClick={() => navigate('/profile?tab=stats')}
-          className="w-full mt-6 text-primary hover:text-amber-600 font-bold text-sm transition-colors"
-        >
-          Voir toutes mes stats →
-        </button>
-      ) : (
-        <button
-          onClick={onUpgradeClick}
-          className="w-full mt-6 bg-gradient-to-r from-primary to-accent hover:from-amber-600 hover:to-red-600 text-white font-bold py-3 rounded-lg transition-all shadow-lg"
-        >
-          ✨ Passer Premium
-        </button>
-      )}
+      {/* CTA for premium users */}
+      <button
+        onClick={() => navigate('/profile?tab=stats')}
+        className="w-full mt-6 text-primary hover:text-amber-600 font-bold text-sm transition-colors"
+      >
+        Voir toutes mes stats →
+      </button>
     </div>
   );
 };

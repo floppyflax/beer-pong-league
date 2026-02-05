@@ -1,6 +1,6 @@
 # Story 9.6: Desktop Sidebar Navigation
 
-Status: review
+Status: done
 
 ## Story
 
@@ -237,7 +237,7 @@ export const Sidebar = () => {
               <div className="text-sm font-medium text-white truncate">
                 {user.email?.split('@')[0] || 'User'}
               </div>
-              {user.isPremium && (
+              {(user as any)?.isPremium && (
                 <div className="text-xs text-primary">
                   💎 Premium
                 </div>
@@ -315,6 +315,13 @@ Claude Sonnet 4.5
 ### Completion Notes
 All acceptance criteria (AC1-AC7) fully implemented and tested following TDD approach (Red-Green-Refactor).
 
+**Code Review Fixes Applied (2026-02-05):**
+- Fixed route inconsistency: Changed `/user/profile` to `/profile` to match AC4 specification
+- Corrected premium status source: Changed from `user_metadata.isPremium` to `user.isPremium` for backend-verified status
+- Added accessibility attribute: Added `aria-current="page"` to active navigation items
+- Enhanced code documentation: Added JSDoc comment to `getActiveItem` function for clarity
+- Updated Dev Notes examples to reflect correct implementation
+
 **Key Implementation Details:**
 
 1. **Sidebar Component:**
@@ -358,13 +365,16 @@ All acceptance criteria (AC1-AC7) fully implemented and tested following TDD app
    - Sidebar component: 26 unit tests (structure, navigation, active state, user info, accessibility)
    - navigationHelpers: 37 tests (including 11 new tests for shouldShowSidebar)
    - **Total: 63/63 tests passing (100%)**
+   - **Note:** Tests updated post-review to reflect route corrections (`/profile` instead of `/user/profile`)
 
 **Design Decisions:**
    - Fixed positioning for sidebar (always visible when applicable)
    - Lucide React icons for consistency with app design
-   - Premium badge with diamond emoji for visual appeal
+   - Premium badge with diamond emoji for visual appeal (uses backend-verified `user.isPremium`)
    - User avatar placeholder with User icon in primary color circle
    - No active state on detail pages to avoid confusion
+   - Profile route follows app convention: `/profile` (not `/user/profile`)
+   - Accessibility enhanced with `aria-current="page"` for active items
 
 ### File List
 

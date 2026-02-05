@@ -1,34 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useIdentity } from '../hooks/useIdentity';
 import { useHomeData } from '../hooks/useHomeData';
+import { usePremium } from '../hooks/usePremium';
 import { LastTournamentCard } from '../components/home/LastTournamentCard';
 import { LastLeagueCard } from '../components/home/LastLeagueCard';
 import { PersonalStatsSummary } from '../components/home/PersonalStatsSummary';
 import { NewUserWelcome } from '../components/home/NewUserWelcome';
 import { PaymentModal } from '../components/PaymentModal';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { premiumService } from '../services/PremiumService';
 
 export const Home = () => {
   const { user } = useAuth();
   const { userId } = useIdentity();
-  const [isPremium, setIsPremium] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   
   // Fetch home data - only if userId exists
   const { lastTournament, lastLeague, personalStats, isLoading, error } = useHomeData(userId);
 
-  // Fetch premium status
-  useEffect(() => {
-    const checkPremium = async () => {
-      if (userId) {
-        const premium = await premiumService.isPremium(userId, null);
-        setIsPremium(premium);
-      }
-    };
-    checkPremium();
-  }, [userId]);
+  // Fetch premium status via hook (follows architecture pattern)
+  const { isPremium } = usePremium(userId);
 
   // Determine if user is new (no data) - only check when not loading
   const isNewUser = !isLoading && !lastTournament && !lastLeague && (!personalStats || personalStats.totalMatches === 0);
@@ -38,8 +28,9 @@ export const Home = () => {
   };
 
   const handlePaymentSuccess = () => {
-    setIsPremium(true);
     setShowPaymentModal(false);
+    // Premium status will be updated automatically by usePremium hook
+    window.location.reload(); // Force reload to refresh premium status
   };
 
   if (error) {
@@ -65,10 +56,10 @@ export const Home = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-              Tableau de bord
+              👋 Salut {user?.email?.split('@')[0] || 'Champion'}
             </h1>
             <p className="text-slate-400">
-              {user?.email || 'Bienvenue'}
+              Voici ton activité récente
             </p>
           </div>
 
@@ -79,9 +70,9 @@ export const Home = () => {
 
           {/* Returning User Dashboard or Loading State */}
           {(isLoading || !isNewUser) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column */}
-              <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column - 2/3 width on desktop */}
+              <div className="lg:col-span-2 space-y-6">
                 {/* Last Tournament */}
                 <div>
                   <h2 className="text-xl font-bold text-white mb-4">Mon dernier tournoi</h2>
@@ -95,14 +86,16 @@ export const Home = () => {
                 </div>
               </div>
 
-              {/* Right Column */}
-              <div>
-                <PersonalStatsSummary 
-                  stats={personalStats} 
-                  isLoading={isLoading} 
-                  isPremium={isPremium}
-                  onUpgradeClick={handleUpgradeClick}
-                />
+              {/* Right Column - 1/3 width on desktop with sticky positioning */}
+              <div className="lg:col-span-1">
+                <div className="lg:sticky lg:top-6">
+                  <PersonalStatsSummary 
+                    stats={personalStats} 
+                    isLoading={isLoading} 
+                    isPremium={isPremium}
+                    onUpgradeClick={handleUpgradeClick}
+                  />
+                </div>
               </div>
             </div>
           )}

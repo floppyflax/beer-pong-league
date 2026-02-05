@@ -35,29 +35,30 @@ async function fetchHomeData(userId: string) {
   try {
     // Fetch last tournament (either created by user OR participated in)
     // First, get tournaments created by the user
-    const { data: createdTournaments, error: createdError } = await supabase
+    const { data: createdTournament, error: createdError } = await supabase
       .from('tournaments')
       .select('id, name, is_finished, updated_at')
       .eq('creator_user_id', userId)
       .order('updated_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
     // Also get tournaments where user is a participant
-    const { data: tournamentParticipations, error: participationError } = await supabase
+    const { data: participatedTournament, error: participationError } = await supabase
       .from('tournament_players')
       .select('tournament:tournaments(id, name, is_finished, updated_at)')
       .eq('user_id', userId)
       .order('joined_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
     let lastTournament: Tournament | undefined;
     
     // Get the most recent tournament (created or participated)
-    const createdTournament = createdTournaments && createdTournaments.length > 0 ? createdTournaments[0] : null;
-    const participatedTournamentData = tournamentParticipations && tournamentParticipations.length > 0 
-      ? (Array.isArray(tournamentParticipations[0].tournament) 
-          ? tournamentParticipations[0].tournament[0] 
-          : tournamentParticipations[0].tournament)
+    const participatedTournamentData = participatedTournament
+      ? (Array.isArray(participatedTournament.tournament) 
+          ? participatedTournament.tournament[0] 
+          : participatedTournament.tournament)
       : null;
 
     // Choose the most recent one
@@ -90,29 +91,30 @@ async function fetchHomeData(userId: string) {
 
     // Fetch last league (either created by user OR participated in)
     // First, get leagues created by the user
-    const { data: createdLeagues, error: leagueCreatedError } = await supabase
+    const { data: createdLeague, error: leagueCreatedError } = await supabase
       .from('leagues')
       .select('id, name, updated_at')
       .eq('creator_user_id', userId)
       .order('updated_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
     // Also get leagues where user is a member
-    const { data: leagueMemberships, error: leagueMemberError } = await supabase
+    const { data: joinedLeague, error: leagueMemberError } = await supabase
       .from('league_players')
       .select('league:leagues(id, name, updated_at)')
       .eq('user_id', userId)
       .order('joined_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
     let lastLeague: League | undefined;
     
     // Get the most recent league (created or joined)
-    const createdLeague = createdLeagues && createdLeagues.length > 0 ? createdLeagues[0] : null;
-    const joinedLeagueData = leagueMemberships && leagueMemberships.length > 0
-      ? (Array.isArray(leagueMemberships[0].league)
-          ? leagueMemberships[0].league[0]
-          : leagueMemberships[0].league)
+    const joinedLeagueData = joinedLeague
+      ? (Array.isArray(joinedLeague.league)
+          ? joinedLeague.league[0]
+          : joinedLeague.league)
       : null;
 
     // Choose the most recent one
@@ -181,6 +183,15 @@ async function fetchHomeData(userId: string) {
     };
   } catch (error) {
     console.error('Error fetching home data:', error);
+    
+    // TODO: Add Sentry integration when implemented (Architecture Decision 5.3)
+    // if (import.meta.env.PROD && window.Sentry) {
+    //   window.Sentry.captureException(error, {
+    //     tags: { feature: 'home-data', userId },
+    //     level: 'error',
+    //   });
+    // }
+    
     // Return empty data instead of throwing
     return {
       lastTournament: undefined,

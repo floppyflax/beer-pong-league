@@ -93,12 +93,6 @@ export const TournamentDashboard = () => {
     ? league.players.filter((p) => tournament.playerIds.includes(p.id))
     : [];
 
-  // Task 7 - Check if current user is the tournament creator (AC7)
-  const isUserCreator = tournament && (
-    (isAuthenticated && user?.id === tournament.creator_user_id) ||
-    (!isAuthenticated && localUser?.anonymousUserId === tournament.creator_anonymous_user_id)
-  );
-
   // Story 9-5 - Get permissions for contextual actions
   const { isAdmin, canInvite } = useDetailPagePermissions(
     id || '',
@@ -793,8 +787,8 @@ export const TournamentDashboard = () => {
                     : "Clôturer le tournoi"}
                 </button>
                 
-                {/* Task 7 - Leave tournament button (AC7 - only for non-creators) */}
-                {!isUserCreator && (
+                {/* Task 7 - Leave tournament button (AC7 - only for non-admins) */}
+                {!isAdmin && (
                   <button
                     onClick={handleLeaveTournament}
                     className="w-full bg-orange-500/20 hover:bg-orange-500/30 text-orange-500 font-bold py-3 rounded-lg border border-orange-500/50 flex items-center justify-center gap-2"
@@ -816,30 +810,7 @@ export const TournamentDashboard = () => {
         )}
       </div>
 
-      {/* Bottom Action Bar - Contextual per tab */}
-      {activeTab === "classement" && (
-        <div className="fixed bottom-6 right-6 z-30">
-          <button
-            onClick={() => setShowAddPlayer(true)}
-            className="bg-primary hover:bg-amber-600 text-white p-4 rounded-full shadow-lg transition-transform active:scale-95 flex items-center justify-center"
-            title="Ajouter un joueur"
-          >
-            <UserPlus size={24} />
-          </button>
-        </div>
-      )}
-      
-      {activeTab === "matchs" && !tournament.isFinished && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 max-w-md mx-auto z-30">
-          <button
-            onClick={() => setShowRecordMatch(true)}
-            className="w-full bg-primary hover:bg-amber-600 text-white p-4 rounded-xl shadow-lg transition-transform active:scale-95 font-bold flex items-center justify-center gap-2"
-          >
-            <span className="text-xl">⚡</span>
-            <span>NOUVEAU MATCH</span>
-          </button>
-        </div>
-      )}
+      {/* Old bottom bars removed - replaced by ContextualBar (Story 9.5) */}
 
       {/* Record Match Modal - Using new MatchRecordingForm */}
       {showRecordMatch && (

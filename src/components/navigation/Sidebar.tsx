@@ -15,7 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'join', label: 'Rejoindre', icon: Target, route: '/join' },
   { id: 'tournaments', label: 'Tournois', icon: Trophy, route: '/tournaments' },
   { id: 'leagues', label: 'Leagues', icon: Award, route: '/leagues' },
-  { id: 'profile', label: 'Profil', icon: User, route: '/user/profile' },
+  { id: 'profile', label: 'Profil', icon: User, route: '/profile' },
 ];
 
 export const Sidebar = () => {
@@ -24,15 +24,19 @@ export const Sidebar = () => {
   const { user, isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
   
+  /**
+   * Determines which navigation item should be highlighted based on current route
+   * Returns empty string for detail pages where no nav item should be active
+   */
   const getActiveItem = (pathname: string): string => {
-    // Main pages
+    // Main pages - exact or prefix match
     if (pathname === '/') return 'home';
     if (pathname.startsWith('/join')) return 'join';
     if (pathname.startsWith('/tournaments')) return 'tournaments';
     if (pathname.startsWith('/leagues')) return 'leagues';
-    if (pathname.startsWith('/user/profile')) return 'profile';
+    if (pathname.startsWith('/profile')) return 'profile';
     
-    // Detail pages - no active item in sidebar
+    // Detail pages (e.g., /tournament/:id) - no active nav item
     return '';
   };
   
@@ -43,7 +47,8 @@ export const Sidebar = () => {
   const displayName = isAuthenticated && user?.email
     ? user.email.split('@')[0]
     : localUser?.displayName || 'Utilisateur';
-  const isPremium = user?.user_metadata?.isPremium || false;
+  // Premium status from user object (verified by backend)
+  const isPremium = (user as any)?.isPremium || false;
   
   return (
     <aside className="hidden lg:flex lg:flex-col w-60 h-screen bg-slate-800 border-r border-slate-700 fixed left-0 top-0">
@@ -64,6 +69,7 @@ export const Sidebar = () => {
             <button
               key={item.id}
               onClick={() => navigate(item.route)}
+              aria-current={isActive ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 isActive
                   ? 'bg-slate-700 text-primary border-l-4 border-primary font-bold'
@@ -81,7 +87,7 @@ export const Sidebar = () => {
       {hasIdentity && (
         <div 
           className="p-4 border-t border-slate-700 cursor-pointer hover:bg-slate-700/50 transition-colors"
-          onClick={() => navigate('/user/profile')}
+          onClick={() => navigate('/profile')}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">

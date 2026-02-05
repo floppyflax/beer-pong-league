@@ -577,30 +577,7 @@ export const LeagueDashboard = () => {
         )}
       </div>
 
-      {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 flex gap-3 max-w-md mx-auto z-30">
-        <button
-          onClick={() => navigate(`/create-tournament?leagueId=${league.id}`)}
-          className="bg-slate-800 hover:bg-slate-700 text-white p-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center"
-          title="Créer un Tournoi"
-        >
-          <Trophy size={24} />
-        </button>
-        <button
-          onClick={() => setShowAddPlayer(true)}
-          className="bg-slate-800 hover:bg-slate-700 text-white p-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center"
-          title="Ajouter un joueur"
-        >
-          <Users size={24} />
-        </button>
-        <button
-          onClick={() => setShowRecordMatch(true)}
-          className="flex-1 bg-primary hover:bg-amber-600 text-white p-4 rounded-xl shadow-lg transition-transform active:scale-95 font-bold flex items-center justify-center gap-2"
-        >
-          <Plus size={24} />
-          <span>NOUVEAU MATCH</span>
-        </button>
-      </div>
+      {/* Old bottom bar removed - replaced by ContextualBar (Story 9.5) */}
 
       {/* Add Player Modal */}
       {showAddPlayer && (

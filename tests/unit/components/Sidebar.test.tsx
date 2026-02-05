@@ -352,7 +352,7 @@ describe('Sidebar', () => {
 
     it('should show premium badge when user is premium', () => {
       vi.mocked(useAuthContext).mockReturnValue({
-        user: { id: 'user-1', email: 'test@example.com', isPremium: true },
+        user: { id: 'user-1', email: 'test@example.com', isPremium: true } as any,
         isAuthenticated: true,
       } as any);
 

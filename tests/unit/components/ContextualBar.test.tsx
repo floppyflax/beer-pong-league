@@ -330,12 +330,16 @@ describe('ContextualBar', () => {
         },
       ];
 
-      render(<ContextualBar actions={actions} />);
+      const { container } = render(<ContextualBar actions={actions} />);
 
       const button = screen.getByText('NOUVEAU MATCH').closest('button');
+      const toolbar = container.querySelector('[role="toolbar"]');
       
       expect(button).toBeInstanceOf(HTMLButtonElement);
       expect(button).toHaveAttribute('type', 'button');
+      expect(button).toHaveAttribute('aria-label', 'NOUVEAU MATCH');
+      expect(toolbar).toBeInTheDocument();
+      expect(toolbar).toHaveAttribute('aria-label', 'Actions contextuelles');
     });
 
     it('should render disabled buttons with proper ARIA attributes', () => {
@@ -358,6 +362,48 @@ describe('ContextualBar', () => {
       
       expect(button).toBeDisabled();
       expect(button).toHaveAttribute('disabled');
+      expect(button).toHaveAttribute('aria-label', 'NOUVEAU MATCH');
+    });
+
+    it('should render toolbar with proper ARIA role on desktop', () => {
+      vi.mocked(useIsDesktop).mockReturnValue(true);
+      
+      const actions = [
+        {
+          id: 'match',
+          label: 'NOUVEAU MATCH',
+          icon: <Zap size={20} />,
+          onClick: vi.fn(),
+          visible: true,
+        },
+      ];
+
+      const { container } = render(<ContextualBar actions={actions} />);
+      const toolbar = container.querySelector('[role="toolbar"]');
+      
+      expect(toolbar).toBeInTheDocument();
+      expect(toolbar).toHaveAttribute('aria-label', 'Actions contextuelles');
+    });
+  });
+
+  describe('Z-Index', () => {
+    it('should use z-40 on mobile to avoid conflicts', () => {
+      vi.mocked(useIsDesktop).mockReturnValue(false);
+      
+      const actions = [
+        {
+          id: 'match',
+          label: 'NOUVEAU MATCH',
+          icon: <Zap size={20} />,
+          onClick: vi.fn(),
+          visible: true,
+        },
+      ];
+
+      const { container } = render(<ContextualBar actions={actions} />);
+      const wrapper = container.firstChild as HTMLElement;
+
+      expect(wrapper).toHaveClass('z-40');
     });
   });
 });
