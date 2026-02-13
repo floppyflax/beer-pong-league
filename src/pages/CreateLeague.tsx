@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { useAuthContext } from "../context/AuthContext";
 import { AuthModal } from "../components/AuthModal";
+import { ContextualHeader } from "../components/navigation/ContextualHeader";
 import { Trophy, Calendar } from "lucide-react";
 
 export const CreateLeague = () => {
@@ -32,8 +33,15 @@ export const CreateLeague = () => {
   };
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      <h2 className="text-2xl font-bold mb-8">Nouvelle Ligue</h2>
+    <div className="h-full flex flex-col">
+      {/* Contextual Header (Story 13.2) */}
+      <ContextualHeader 
+        title="Nouvelle League"
+        showBackButton={true}
+        onBack={() => navigate('/')}
+      />
+      
+      <div className="p-6 flex flex-col flex-grow">
 
       <form onSubmit={handleSubmit} className="space-y-6 flex-grow">
         <div className="space-y-2">
@@ -126,6 +134,7 @@ export const CreateLeague = () => {
           setShowAuthModal(false);
         }}
       />
+      </div>
     </div>
   );
 };

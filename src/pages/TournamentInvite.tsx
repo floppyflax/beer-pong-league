@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { QRCodeSVG } from "qrcode.react";
-import { ArrowLeft, Copy, Check, Share2, Calendar, Users } from "lucide-react";
+import { Copy, Check, Share2, Calendar, Users } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { ContextualHeader } from "../components/navigation/ContextualHeader";
 
 export const TournamentInvite = () => {
   const { id } = useParams<{ id: string }>();
@@ -83,24 +84,17 @@ export const TournamentInvite = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <div className="p-4 md:p-6">
-        <button
-          onClick={() => navigate(`/tournament/${tournament.id}`)}
-          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4"
-        >
-          <ArrowLeft size={20} />
-          <span className="text-sm font-medium">Retour au tournoi</span>
-        </button>
+      {/* Contextual Header (Story 13.2) */}
+      <ContextualHeader 
+        title="Inviter des joueurs"
+        showBackButton={true}
+        onBack={() => navigate(`/tournament/${tournament.id}`)}
+      />
 
-        <div className="text-center mb-6">
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-2">
-            Inviter des joueurs
-          </h1>
-          <p className="text-slate-400 text-sm md:text-base">
-            Partage ce lien pour que d'autres rejoignent le tournoi
-          </p>
-        </div>
+      <div className="p-4 md:p-6">
+        <p className="text-slate-400 text-sm md:text-base text-center mb-6">
+          Partage ce lien pour que d'autres rejoignent le tournoi
+        </p>
       </div>
 
       {/* Tournament Info Card */}

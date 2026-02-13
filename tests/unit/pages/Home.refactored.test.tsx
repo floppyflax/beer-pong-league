@@ -20,6 +20,18 @@ vi.mock('../../../src/hooks/usePremium', () => ({
   usePremium: vi.fn(),
 }));
 
+vi.mock('../../../src/hooks/usePremiumLimits', () => ({
+  usePremiumLimits: vi.fn(),
+}));
+
+vi.mock('@tanstack/react-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-query')>();
+  return {
+    ...actual,
+    useQueryClient: vi.fn(() => ({ invalidateQueries: vi.fn() })),
+  };
+});
+
 // Mock child components
 vi.mock('../../../src/components/home/LastTournamentCard', () => ({
   LastTournamentCard: ({ tournament, isLoading }: any) => (
@@ -61,16 +73,25 @@ import { useAuth } from '../../../src/hooks/useAuth';
 import { useIdentity } from '../../../src/hooks/useIdentity';
 import { useHomeData } from '../../../src/hooks/useHomeData';
 import { usePremium } from '../../../src/hooks/usePremium';
+import { usePremiumLimits } from '../../../src/hooks/usePremiumLimits';
 
 describe('Home (Refactored)', () => {
   const mockUseAuth = vi.mocked(useAuth);
   const mockUseIdentity = vi.mocked(useIdentity);
   const mockUseHomeData = vi.mocked(useHomeData);
   const mockUsePremium = vi.mocked(usePremium);
+  const mockUsePremiumLimits = vi.mocked(usePremiumLimits);
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
+    mockUsePremiumLimits.mockReturnValue({
+      canCreateLeague: true,
+      isAtLeagueLimit: false,
+      canCreateTournament: true,
+      isAtTournamentLimit: false,
+    } as any);
+
     // Default mocks
     mockUseAuth.mockReturnValue({
       user: { id: 'user-123', email: 'test@example.com' },
@@ -78,6 +99,7 @@ describe('Home (Refactored)', () => {
     } as any);
 
     mockUseIdentity.mockReturnValue({
+      localUser: null,
       hasIdentity: true,
       anonymousId: null,
       userId: 'user-123',
@@ -87,6 +109,7 @@ describe('Home (Refactored)', () => {
       isPremium: false,
       isLoading: false,
       error: null,
+      refetch: vi.fn(),
     });
   });
 
@@ -206,6 +229,7 @@ describe('Home (Refactored)', () => {
         isPremium: true,
         isLoading: false,
         error: null,
+        refetch: vi.fn(),
       });
       
       mockUseHomeData.mockReturnValue({
@@ -230,6 +254,7 @@ describe('Home (Refactored)', () => {
         isPremium: false,
         isLoading: false,
         error: null,
+        refetch: vi.fn(),
       });
       
       mockUseHomeData.mockReturnValue({
@@ -266,9 +291,9 @@ describe('Home (Refactored)', () => {
         </BrowserRouter>
       );
 
-      // Check for responsive container classes
-      const mainContainer = container.querySelector('.max-w-7xl');
-      expect(mainContainer).toBeInTheDocument();
+      // Check for responsive layout: grid with lg:grid-cols-3 (desktop 2-col + sidebar)
+      const gridContainer = container.querySelector('[class*="grid"]');
+      expect(gridContainer).toBeInTheDocument();
     });
   });
 

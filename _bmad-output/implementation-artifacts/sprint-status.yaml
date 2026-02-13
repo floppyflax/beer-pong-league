@@ -125,12 +125,13 @@ development_status:
 
   epic-14: in-progress
   # Phase 1 — Fondations
-  14-1-design-tokens-dans-tailwind-theme: ready-for-dev
-  14-2-composant-statcard: ready-for-dev
-  14-3-composant-segmentedtabs: ready-for-dev
-  14-4-composant-listrow: ready-for-dev
-  14-5-composant-infocard: ready-for-dev
-  14-6-composant-fab: ready-for-dev
+  14-1-design-tokens-dans-tailwind-theme: done
+  14-1b-page-design-system-showcase: review
+  14-2-composant-statcard: review
+  14-3-composant-segmentedtabs: review
+  14-4-composant-listrow: review
+  14-5-composant-infocard: review
+  14-6-composant-fab: review
   14-7-composant-banner: ready-for-dev
   14-8-composant-searchbar: ready-for-dev
   14-9-icone-identitaire-beerpongmatchicon: done

@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { useRequireIdentity } from "../hooks/useRequireIdentity";
 import { CreateIdentityModal } from "../components/CreateIdentityModal";
-import { ArrowLeft, UserPlus, Users, Shield, LogIn } from "lucide-react";
+import { ContextualHeader } from "../components/navigation/ContextualHeader";
+import { UserPlus, Users, Shield, LogIn } from "lucide-react";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import toast from "react-hot-toast";
 
@@ -145,25 +146,12 @@ export const TournamentJoin = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <div className="p-4 md:p-6">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4"
-        >
-          <ArrowLeft size={20} />
-          <span className="text-sm font-medium">Retour</span>
-        </button>
-
-        <div className="text-center mb-6">
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-2">
-            Rejoindre le tournoi
-          </h1>
-          <p className="text-slate-400 text-sm md:text-base">
-            {tournament.name}
-          </p>
-        </div>
-      </div>
+      {/* Contextual Header (Story 13.2) */}
+      <ContextualHeader 
+        title={tournament.name}
+        showBackButton={true}
+        onBack={() => navigate("/")}
+      />
 
       {/* Content */}
       <div className="px-4 md:px-6 pb-8">

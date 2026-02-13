@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomMenuSpecific } from '../components/navigation/BottomMenuSpecific';
+import { ContextualHeader } from '../components/navigation/ContextualHeader';
 import { Plus, Search } from 'lucide-react';
 import { EmptyState } from '../components/EmptyState';
 import { PaymentModal } from '../components/PaymentModal';
@@ -136,20 +137,19 @@ export const Tournaments: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 pb-20 lg:pb-8">
-      {/* Header */}
-      <header className="p-6 border-b border-slate-800 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Mes Tournois</h1>
-        
-        {/* Desktop Create Button */}
-        <button
-          onClick={handleCreate}
-          className="hidden lg:flex items-center gap-2 px-4 py-2 bg-primary hover:bg-amber-600 text-white font-bold rounded-lg transition-all active:scale-95"
-        >
-          <Plus size={20} />
-          Créer un tournoi
-          {isAtTournamentLimit && <span className="ml-1">🔒</span>}
-        </button>
-      </header>
+      {/* Contextual Header (Story 13.2) */}
+      <ContextualHeader 
+        title="Mes Tournois"
+        actions={[
+          {
+            label: 'CRÉER TOURNOI',
+            icon: <Plus size={20} />,
+            onClick: handleCreate,
+            variant: 'primary',
+            premium: isAtTournamentLimit,
+          },
+        ]}
+      />
 
       {/* Search Bar */}
       <div className="p-6 pb-0">
@@ -194,7 +194,7 @@ export const Tournaments: React.FC = () => {
             <p className="text-slate-400 text-lg">Aucun résultat</p>
           </div>
         ) : (
-          <div className="lg:max-w-6xl lg:mx-auto lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
+          <div className="lg:max-w-[1200px] lg:mx-auto lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
             {filteredTournaments.map(tournament => (
               <TournamentCard key={tournament.id} tournament={tournament} />
             ))}

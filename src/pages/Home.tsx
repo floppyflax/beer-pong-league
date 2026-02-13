@@ -1,8 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { useIdentity } from '../hooks/useIdentity';
 import { useHomeData } from '../hooks/useHomeData';
 import { usePremium } from '../hooks/usePremium';
+import { usePremiumLimits } from '../hooks/usePremiumLimits';
+import { ContextualHeader } from '../components/navigation/ContextualHeader';
 import { LastTournamentCard } from '../components/home/LastTournamentCard';
 import { LastLeagueCard } from '../components/home/LastLeagueCard';
 import { PersonalStatsSummary } from '../components/home/PersonalStatsSummary';
@@ -10,15 +14,21 @@ import { NewUserWelcome } from '../components/home/NewUserWelcome';
 import { PaymentModal } from '../components/PaymentModal';
 
 export const Home = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { userId } = useIdentity();
+  const { localUser } = useIdentity();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  
+
+  // userId: authenticated user.id OR anonymous user's anonymousUserId (LeagueContext pattern)
+  const userId = user?.id ?? localUser?.anonymousUserId ?? null;
+
   // Fetch home data - only if userId exists
   const { lastTournament, lastLeague, personalStats, isLoading, error } = useHomeData(userId);
 
   // Fetch premium status via hook (follows architecture pattern)
-  const { isPremium } = usePremium(userId);
+  const { isPremium, refetch: refetchPremium } = usePremium(userId);
+  const { canCreateLeague, isAtLeagueLimit } = usePremiumLimits();
 
   // Determine if user is new (no data) - only check when not loading
   const isNewUser = !isLoading && !lastTournament && !lastLeague && (!personalStats || personalStats.totalMatches === 0);
@@ -27,10 +37,20 @@ export const Home = () => {
     setShowPaymentModal(true);
   };
 
+  const handleCreateLeague = () => {
+    if (canCreateLeague) {
+      navigate('/create-league');
+    } else {
+      setShowPaymentModal(true);
+    }
+  };
+
   const handlePaymentSuccess = () => {
     setShowPaymentModal(false);
-    // Premium status will be updated automatically by usePremium hook
-    window.location.reload(); // Force reload to refresh premium status
+    refetchPremium();
+    if (userId) {
+      queryClient.invalidateQueries({ queryKey: ['homeData', userId] });
+    }
   };
 
   if (error) {
@@ -52,12 +72,15 @@ export const Home = () => {
   return (
     <>
       <div className="min-h-screen bg-slate-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
+        {/* Contextual Header (Story 13.2) */}
+        <ContextualHeader title="🍺 BPL" />
+        
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Welcome Message */}
           <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
               👋 Salut {user?.email?.split('@')[0] || 'Champion'}
-            </h1>
+            </h2>
             <p className="text-slate-400">
               Voici ton activité récente
             </p>
@@ -82,7 +105,12 @@ export const Home = () => {
                 {/* Last League */}
                 <div>
                   <h2 className="text-xl font-bold text-white mb-4">Ma dernière league</h2>
-                  <LastLeagueCard league={lastLeague} isLoading={isLoading} />
+                  <LastLeagueCard
+                    league={lastLeague}
+                    isLoading={isLoading}
+                    onEmptyAction={handleCreateLeague}
+                    emptyActionLocked={isAtLeagueLimit}
+                  />
                 </div>
               </div>
 

@@ -51,8 +51,8 @@ describe('BottomMenuSpecific Integration', () => {
     it('should display two action buttons: Scanner QR and Code', () => {
       render(<TestApp initialRoute="/join" />);
       
-      const scannerButtons = screen.getAllByText('SCANNER QR');
-      const codeButtons = screen.getAllByText('CODE');
+      const scannerButtons = screen.getAllByText(/SCANNER QR/i);
+      const codeButtons = screen.getAllByText(/CODE/i);
       
       // Should have buttons (mobile and/or desktop)
       expect(scannerButtons.length).toBeGreaterThanOrEqual(1);
@@ -62,7 +62,7 @@ describe('BottomMenuSpecific Integration', () => {
     it('should open scanner modal when Scanner QR is clicked', () => {
       render(<TestApp initialRoute="/join" />);
       
-      const scannerButton = screen.getAllByText('SCANNER QR')[0]; // Mobile or desktop
+      const scannerButton = screen.getAllByText(/SCANNER QR/i)[0]; // Mobile or desktop
       fireEvent.click(scannerButton);
       
       expect(screen.getByText('Scanner QR')).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe('BottomMenuSpecific Integration', () => {
     it('should open code input modal when Code is clicked', () => {
       render(<TestApp initialRoute="/join" />);
       
-      const codeButton = screen.getAllByText('CODE')[0]; // Mobile or desktop
+      const codeButton = screen.getAllByText(/CODE/i)[0]; // Mobile or desktop
       fireEvent.click(codeButton);
       
       expect(screen.getByText('Entrer le Code')).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('BottomMenuSpecific Integration', () => {
     it('should close scanner modal when Fermer is clicked', () => {
       render(<TestApp initialRoute="/join" />);
       
-      const scannerButton = screen.getAllByText('SCANNER QR')[0];
+      const scannerButton = screen.getAllByText(/SCANNER QR/i)[0];
       fireEvent.click(scannerButton);
       
       expect(screen.getByText('Scanner QR')).toBeInTheDocument();

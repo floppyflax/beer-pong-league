@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext";
 import { useLeague } from "../context/LeagueContext";
 import { useIdentity } from "../hooks/useIdentity";
-import { ArrowLeft, Trophy, Calendar, User, Mail, LogOut } from "lucide-react";
+import { ContextualHeader } from "../components/navigation/ContextualHeader";
+import { Trophy, Calendar, User, Mail, LogOut } from "lucide-react";
 import { useMemo } from "react";
 
 export const UserProfile = () => {
@@ -45,19 +46,17 @@ export const UserProfile = () => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="p-4 bg-slate-800/50 flex items-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold">Mon Profil</h2>
-          <div className="text-xs text-slate-400">
-            {isAuthenticated ? "Compte authentifié" : "Mode local"}
-          </div>
+      {/* Contextual Header (Story 13.2) */}
+      <ContextualHeader 
+        title="Mon Profil"
+        showBackButton={true}
+        onBack={() => navigate(-1)}
+      />
+
+      {/* User status badge */}
+      <div className="px-4 pt-4">
+        <div className="text-xs text-slate-400 text-center">
+          {isAuthenticated ? "Compte authentifié" : "Mode local"}
         </div>
       </div>
 

@@ -52,6 +52,10 @@ class DatabaseService {
   /**
    * Charge toutes les leagues depuis Supabase
    * OPTIMIZED: Uses batch queries instead of N+1 pattern
+   * 
+   * Loads leagues where the user is EITHER:
+   * 1. The creator (creator_user_id or creator_anonymous_user_id)
+   * 2. A member (via league_players table)
    */
   async loadLeagues(userId?: string, anonymousUserId?: string): Promise<League[]> {
     if (!this.isSupabaseAvailable()) {
@@ -65,50 +69,76 @@ class DatabaseService {
     }
 
     try {
-      // Step 1: Charger les leagues
-      let query = supabase!.from('leagues').select('*');
-      
-      // Filtrer par créateur si fourni
+      // Step 1: Get all league IDs where user is creator OR member
+      const leagueIds = new Set<string>();
+
+      // Get leagues where user is creator
+      let creatorQuery = supabase!.from('leagues').select('id');
       if (userId) {
-        query = query.eq('creator_user_id', userId);
+        creatorQuery = creatorQuery.eq('creator_user_id', userId);
       } else if (anonymousUserId) {
-        query = query.eq('creator_anonymous_user_id', anonymousUserId);
+        creatorQuery = creatorQuery.eq('creator_anonymous_user_id', anonymousUserId);
       }
 
-      const { data: leaguesData, error: leaguesError } = await query;
+      const { data: creatorLeagues, error: creatorError } = await creatorQuery;
+      if (creatorError) throw creatorError;
+      
+      (creatorLeagues || []).forEach((l: any) => leagueIds.add(l.id));
+
+      // Get leagues where user is a member
+      let memberQuery = supabase!.from('league_players').select('league_id');
+      if (userId) {
+        memberQuery = memberQuery.eq('user_id', userId);
+      } else if (anonymousUserId) {
+        memberQuery = memberQuery.eq('anonymous_user_id', anonymousUserId);
+      }
+
+      const { data: memberLeagues, error: memberError } = await memberQuery;
+      if (memberError) throw memberError;
+      
+      (memberLeagues || []).forEach((l: any) => leagueIds.add(l.league_id));
+
+      // If no leagues found, return empty array
+      if (leagueIds.size === 0) return [];
+
+      // Step 2: Load full league data for all league IDs
+      const { data: leaguesData, error: leaguesError } = await supabase!
+        .from('leagues')
+        .select('*')
+        .in('id', Array.from(leagueIds));
 
       if (leaguesError) throw leaguesError;
       if (!leaguesData || leaguesData.length === 0) return [];
 
-      // Extract all league IDs for batch queries
-      const leagueIds = leaguesData.map((l: any) => l.id);
+      // Convert Set to Array for batch queries
+      const batchLeagueIds = leaguesData.map((l: any) => l.id);
 
-      // Step 2: Batch load ALL players in one query
+      // Step 3: Batch load ALL players in one query
       const { data: allPlayersData, error: playersError } = await supabase!
         .from('league_players')
         .select('*')
-        .in('league_id', leagueIds);
+        .in('league_id', batchLeagueIds);
 
       if (playersError) throw playersError;
 
-      // Step 3: Batch load ALL matches in one query
+      // Step 4: Batch load ALL matches in one query
       const { data: allMatchesData, error: matchesError } = await supabase!
         .from('matches')
         .select('*')
-        .in('league_id', leagueIds)
+        .in('league_id', batchLeagueIds)
         .order('created_at', { ascending: false });
 
       if (matchesError) throw matchesError;
 
-      // Step 4: Batch load ALL tournaments in one query
-      const { data: allTournamentsData, error: tournamentsError } = await supabase!
+      // Step 5: Batch load ALL tournaments in one query
+      const { data: allTournamentsData, error: tournamentsError} = await supabase!
         .from('tournaments')
         .select('id, league_id')
-        .in('league_id', leagueIds);
+        .in('league_id', batchLeagueIds);
 
       if (tournamentsError) throw tournamentsError;
 
-      // Step 5: Group data by league_id
+      // Step 6: Group data by league_id
       const playersByLeague = new Map<string, Player[]>();
       const matchesByLeague = new Map<string, Match[]>();
       const tournamentsByLeague = new Map<string, string[]>();
@@ -158,7 +188,7 @@ class DatabaseService {
         tournamentsByLeague.get(t.league_id)!.push(t.id);
       });
 
-      // Step 6: Build leagues with grouped data
+      // Step 7: Build leagues with grouped data
       const leagues: League[] = leaguesData.map((leagueRow: any) => {
         return {
           id: leagueRow.id,

@@ -1,11 +1,22 @@
 import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
-import { Trophy, Plus, History, Users, X, Trash2, Edit, Monitor, Zap, UserPlus } from "lucide-react";
+import {
+  Trophy,
+  Plus,
+  History,
+  Users,
+  X,
+  Trash2,
+  Edit,
+  Monitor,
+  UserPlus,
+} from "lucide-react";
+import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import { ContextualBar } from "../components/navigation/ContextualBar";
+import { ContextualHeader } from "../components/navigation/ContextualHeader";
 import { useDetailPagePermissions } from "../hooks/useDetailPagePermissions";
 
 export const LeagueDashboard = () => {
@@ -39,7 +50,7 @@ export const LeagueDashboard = () => {
   const [matchWinner, setMatchWinner] = useState<"A" | "B" | null>(null);
   const [showEloChanges, setShowEloChanges] = useState(false);
   const [lastEloChanges, setLastEloChanges] = useState<Record<string, number>>(
-    {}
+    {},
   );
 
   if (isLoadingInitialData) {
@@ -75,10 +86,7 @@ export const LeagueDashboard = () => {
   }, [league.players]);
 
   // Story 9-5 - Get permissions for contextual actions
-  const { isAdmin, canInvite } = useDetailPagePermissions(
-    id || '',
-    'league'
-  );
+  const { isAdmin, canInvite } = useDetailPagePermissions(id || "", "league");
 
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,7 +131,7 @@ export const LeagueDashboard = () => {
         league.id,
         selectedPlayersA,
         selectedPlayersB,
-        matchWinner
+        matchWinner,
       );
       setShowRecordMatch(false);
       setSelectedPlayersA([]);
@@ -147,28 +155,66 @@ export const LeagueDashboard = () => {
 
   return (
     <div className="h-full flex flex-col relative">
-      {/* Header */}
-      <div className="p-4 flex justify-between items-center bg-slate-800/50">
-        <div>
-          <h2 className="text-2xl font-bold leading-none">{league.name}</h2>
+      {/* Story 13.2 - Contextual Header with back button and actions */}
+      <ContextualHeader
+        title={league.name}
+        showBackButton={true}
+        onBack={() => navigate("/leagues")}
+        actions={[
+          {
+            label: "NOUVEAU MATCH",
+            icon: <BeerPongMatchIcon size={20} />,
+            onClick: () => setShowRecordMatch(true),
+            variant: "primary",
+          },
+          ...(isAdmin || canInvite
+            ? [
+                {
+                  label: "INVITER",
+                  icon: <UserPlus size={20} />,
+                  onClick: () => setShowAddPlayer(true),
+                  variant: "secondary" as const,
+                },
+              ]
+            : []),
+        ]}
+        menuItems={[
+          ...(isAdmin
+            ? [
+                {
+                  label: "Mode Diffusion",
+                  icon: <Monitor size={20} />,
+                  onClick: () => navigate(`/league/${league.id}/display`),
+                },
+              ]
+            : []),
+          ...(isAdmin
+            ? [
+                {
+                  label: "Supprimer",
+                  icon: <Trash2 size={20} />,
+                  onClick: handleDeleteLeague,
+                  destructive: true,
+                },
+              ]
+            : []),
+        ]}
+      />
+
+      {/* League Info (below header) */}
+      <div className="px-4 py-3 bg-slate-800/30 border-b border-slate-700">
+        <div className="flex items-center gap-3">
           <span className="text-xs text-slate-400 uppercase tracking-wider font-bold">
             {league.type === "season" ? "Saison" : "Ligue"}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/league/${league.id}/display`)}
-            className="p-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg transition-colors"
-            title="Vue Display (plein écran)"
-          >
-            <Monitor size={20} />
-          </button>
-          <button
-            onClick={handleDeleteLeague}
-            className="text-slate-600 hover:text-red-500 transition-colors"
-          >
-            <Trash2 size={20} />
-          </button>
+          <span className="text-xs text-slate-400">•</span>
+          <span className="text-xs text-slate-400">
+            {league.players.length} joueurs
+          </span>
+          <span className="text-xs text-slate-400">•</span>
+          <span className="text-xs text-slate-400">
+            {league.matches.length} matchs
+          </span>
         </div>
       </div>
 
@@ -289,10 +335,10 @@ export const LeagueDashboard = () => {
                         index === 0
                           ? "text-yellow-400"
                           : index === 1
-                          ? "text-slate-300"
-                          : index === 2
-                          ? "text-amber-700"
-                          : "text-slate-500"
+                            ? "text-slate-300"
+                            : index === 2
+                              ? "text-amber-700"
+                              : "text-slate-500"
                       }`}
                     >
                       {index + 1}
@@ -302,7 +348,7 @@ export const LeagueDashboard = () => {
                       <div className="text-xs text-slate-400">
                         {player.wins}V - {player.losses}D •{" "}
                         {Math.round(
-                          (player.wins / (player.matchesPlayed || 1)) * 100
+                          (player.wins / (player.matchesPlayed || 1)) * 100,
                         )}
                         %
                       </div>
@@ -480,7 +526,7 @@ export const LeagueDashboard = () => {
                         e.stopPropagation();
                         if (
                           confirm(
-                            `Supprimer ${player.name} ? Tous ses matchs seront également supprimés.`
+                            `Supprimer ${player.name} ? Tous ses matchs seront également supprimés.`,
                           )
                         ) {
                           deletePlayer(league.id, player.id);
@@ -725,25 +771,7 @@ export const LeagueDashboard = () => {
         />
       )}
 
-      {/* Story 9-5 - Contextual Action Bar */}
-      <ContextualBar
-        actions={[
-          {
-            id: 'match',
-            label: 'NOUVEAU MATCH',
-            icon: <Zap size={20} />,
-            onClick: () => setShowRecordMatch(true),
-            visible: true,
-          },
-          {
-            id: 'invite',
-            label: 'INVITER',
-            icon: <UserPlus size={20} />,
-            onClick: () => setShowAddPlayer(true),
-            visible: isAdmin || canInvite,
-          },
-        ]}
-      />
+      {/* Story 13.2 - Actions moved to ContextualHeader (removed ContextualBar) */}
     </div>
   );
 };

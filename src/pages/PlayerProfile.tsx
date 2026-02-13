@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
-import { ArrowLeft, Edit, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { ContextualHeader } from "../components/navigation/ContextualHeader";
+import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { useState, useMemo } from "react";
 
 export const PlayerProfile = () => {
@@ -150,30 +151,12 @@ export const PlayerProfile = () => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="p-4 bg-slate-800/50 flex items-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold">{player.name}</h2>
-          <div className="text-xs text-slate-400">
-            {playerLeague?.name || "Joueur"}
-          </div>
-        </div>
-        <button
-          onClick={() => {
-            setNewName(player.name);
-            setShowEditModal(true);
-          }}
-          className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-        >
-          <Edit size={20} />
-        </button>
-      </div>
+      {/* Contextual Header (Story 13.2) */}
+      <ContextualHeader 
+        title={player.name}
+        showBackButton={true}
+        onBack={() => navigate(-1)}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-2 p-4">

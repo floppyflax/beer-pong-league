@@ -1,7 +1,7 @@
 ---
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 lastStep: 14
-inputDocuments: 
+inputDocuments:
   - _bmad-output/planning-artifacts/product-brief-beer-pong-league-2026-01-23.md
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/research/market-applications-gestion-ligues-sportives-bars-2026-01-23.md
@@ -33,6 +33,7 @@ project_name: beer-pong-league
 Beer Pong League transforms tournament management from a functional tool into an engaging social experience. The platform combines intelligent tournament management with gamification, real-time engagement, and community building to create memorable moments that keep players and bars coming back.
 
 **Core Innovation:**
+
 - **ELO Professional System for Amateur Events**: Applying a professional ELO ranking system (used in esports and competitive sports) to very casual, amateur events (beer pong between friends), creating continuity and visible progression between isolated tournaments.
 - **Display Screen as Central Experience**: A real-time projection screen becomes the "beating heart" that creates collective excitement and memorable moments, making tournaments engaging for the entire crowd, not just individual players.
 
@@ -44,6 +45,7 @@ Transform from a functional tournament management tool into the most engaging so
 #### Primary Users
 
 **1. Event Organizers (Thomas - Main Persona)**
+
 - **Profile:** 32 years old, organizes social events (barbecues, birthdays, parties) with beer pong tournaments
 - **Context:** Regularly organizes events with beer pong tournaments
 - **Motivation:** Create memorable moments, simplify organization, enjoy their event rather than managing scores
@@ -51,6 +53,7 @@ Transform from a functional tournament management tool into the most engaging so
 - **Success Vision:** Create a championship in a few clicks, generate QR code automatically, configure projection screen, participants record matches themselves, ranking updates automatically with animations
 
 **2. Regular Players (Lucas - Casual Player Who Becomes Addicted)**
+
 - **Profile:** 28 years old, friend participating in events, loves competition and stats
 - **Context:** Participates in beer pong tournaments at social events
 - **Motivation:** Prove they're better, fun competition between friends, track their progression
@@ -58,6 +61,7 @@ Transform from a functional tournament management tool into the most engaging so
 - **Success Vision:** Join championship via QR code with zero-friction, record matches easily, see ranking evolve in real-time, discover detailed personal stats, share ranking on social media, create own event
 
 **3. Bar Owners/Managers (Sophie)**
+
 - **Profile:** 35 years old, bar owner/manager or bar chain
 - **Context:** Seeks to create unique experiences to differentiate their establishment
 - **Motivation:** Increase attendance, create customer loyalty, generate recurring revenue
@@ -67,26 +71,31 @@ Transform from a functional tournament management tool into the most engaging so
 ### Key Design Challenges
 
 **1. "Alcohol-Friendly" Interface**
+
 - **Challenge:** Interface must be usable even in evening settings with potential cognitive constraints (alcohol, noise, distractions)
 - **Requirements:** Large buttons (minimum 44x44px), minimal flow (2-3 clicks max for main actions), optimized readability (strong contrasts, large font sizes), intuitive navigation
 - **Impact:** Critical for user adoption and satisfaction in bar environments
 
 **2. Zero-Friction Onboarding**
+
 - **Challenge:** Users must be able to join a championship via QR code in < 30 seconds without creating an account
 - **Requirements:** QR code scanning works on mobile, quick name entry (no account required), guest mode functional, seamless transition from anonymous to authenticated user
 - **Impact:** Reduces barriers to entry and maximizes participation in events
 
 **3. Dual Identity Management**
+
 - **Challenge:** Seamless handling of both authenticated users and anonymous players with optional merge
 - **Requirements:** Clear distinction between modes, smooth promotion from guest to account, automatic data merge, no data loss during transition
 - **Impact:** Enables casual participation while supporting long-term engagement
 
 **4. Immediate Feedback & Real-Time Updates**
+
 - **Challenge:** Ranking must update in < 500ms after match recording to create "wow moments"
 - **Requirements:** Optimistic updates, efficient state management, real-time synchronization, visual feedback (animations, confetti)
 - **Impact:** Creates engaging experience and validates the value proposition
 
 **5. Collective Experience (Post-MVP)**
+
 - **Challenge:** Display screen must engage entire crowd, not just individual players
 - **Requirements:** Real-time updates (< 200ms latency), animations and visual effects, optimized readability from distance, creates collective excitement
 - **Impact:** Differentiates the platform and creates memorable moments
@@ -94,26 +103,31 @@ Transform from a functional tournament management tool into the most engaging so
 ### Design Opportunities
 
 **1. Visual Gamification**
+
 - **Opportunity:** Create "wow moments" through animations, confetti, and celebrations when players progress
 - **Implementation:** Visual feedback on ELO changes, position changes in ranking, achievement celebrations, streak indicators
 - **Value:** Transforms functional tracking into exciting engagement, increases motivation and social sharing
 
 **2. Social-First Approach**
+
 - **Opportunity:** Superior community features compared to enterprise-focused competitors
 - **Implementation:** Social leaderboards, friend connections, rivalry tracking, social sharing (Instagram, Facebook), comparison with friends
 - **Value:** Builds community, increases retention, creates viral growth through social sharing
 
 **3. Mobile-First Experience**
+
 - **Opportunity:** 73% of sports fans use mobile apps, but competitors are desktop-first
 - **Implementation:** Native mobile apps (post-MVP), optimized mobile web experience, location-based features, seamless mobile payment integration
 - **Value:** Matches user behavior patterns, creates competitive advantage, enables bar environment usage
 
 **4. Visible Progression**
+
 - **Opportunity:** Make ELO evolution tangible and motivating through visual design
 - **Implementation:** Clear visual representation of ELO changes, position changes highlighted, progression charts, personal stats dashboard
 - **Value:** Creates motivation for continued participation, validates the ELO system value, increases engagement
 
 **5. Bar Environment Optimization**
+
 - **Opportunity:** Deep understanding of bar culture and tournament dynamics
 - **Implementation:** Display view optimized for projection, venue branding (white-label), multi-venue support, future POS integration
 - **Value:** Differentiates from generic solutions, creates value for bar owners, enables B2B revenue stream
@@ -132,12 +146,14 @@ This core loop transforms functional score tracking into engaging competition th
 
 **Critical Interaction:**
 Match score validation must be **perfect** - this is the make-or-break moment. The score entry process must be:
+
 - **Effortless** - Minimum clicks possible
 - **Simple** - No cognitive load, even in bar environment
 - **Fast** - Complete in < 1 minute
 - **Reliable** - Zero ambiguity, clear confirmation
 
 **Core Experience Loop:**
+
 1. User finishes a beer pong match
 2. Opens app → Selects tournament → Records match (scores, teams)
 3. Submits → Sees immediate ranking update with animations
@@ -151,8 +167,9 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 **Multi-Platform Approach:**
 
 **1. Web Application (MVP)**
+
 - **Primary Platform:** Responsive web app optimized for mobile
-- **Use Cases:** 
+- **Use Cases:**
   - Tournament management (organizers)
   - Match recording (players on mobile)
   - Leaderboard viewing (all users)
@@ -160,6 +177,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Deployment:** Vercel (static SPA)
 
 **2. Display/Projection View (Post-MVP)**
+
 - **Platform:** Web application (dedicated view mode)
 - **Use Cases:**
   - Real-time leaderboard projection in bars
@@ -169,6 +187,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Access:** Dedicated URL for projection screen
 
 **3. Mobile Application (Post-MVP - V1.5)**
+
 - **Platform:** Native iOS + Android apps
 - **Use Cases:**
   - Primary interface for players in bar environment
@@ -179,15 +198,18 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Synchronization:** Same Supabase backend, real-time sync
 
 **Platform Priorities:**
+
 - **MVP:** Web responsive (mobile-optimized)
 - **V1.5:** Native mobile apps + display view
 - **Future:** Enhanced mobile features (geolocation, advanced notifications)
 
 **Offline Functionality:**
+
 - **Web:** Full offline support via localStorage, automatic sync on reconnect
 - **Mobile:** Online-first (bar environment has internet), local cache for frequently accessed data
 
 **Device Capabilities:**
+
 - **Camera:** QR code scanning (mobile apps)
 - **Push Notifications:** Engagement and retention (mobile apps)
 - **Geolocation:** Event discovery (future, V2+)
@@ -198,6 +220,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 **Zero-Thought Interactions:**
 
 **1. Match Score Validation**
+
 - **Requirement:** Completely effortless, minimum clicks, maximum simplicity
 - **Implementation:**
   - Large, clear buttons for score entry
@@ -208,6 +231,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Target:** Complete match recording in < 30 seconds, < 3 clicks
 
 **2. Leaderboard Consultation**
+
 - **Requirement:** Instant access, zero friction
 - **Implementation:**
   - Always accessible from main navigation
@@ -218,6 +242,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Target:** View ranking in < 1 second, understand position immediately
 
 **3. Automatic Ranking Updates**
+
 - **Requirement:** Happens automatically without user intervention
 - **Implementation:**
   - ELO calculation happens server-side automatically
@@ -228,6 +253,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Target:** User sees ranking change immediately after match submission
 
 **4. Tournament Joining (QR Code)**
+
 - **Requirement:** Join tournament in < 30 seconds, zero account required
 - **Implementation:**
   - Scan QR code → Opens tournament page
@@ -237,6 +263,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Target:** From QR scan to ready to play in < 30 seconds
 
 **Eliminated Friction Points:**
+
 - No account required for initial participation
 - No manual bracket management
 - No score calculation (automatic ELO)
@@ -246,36 +273,42 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 ### Critical Success Moments
 
 **1. First Match Recorded Successfully**
+
 - **Moment:** User records their first match without help or confusion
 - **Success Criteria:** 90% of users complete first match recording without assistance
 - **Design Focus:** Clear visual guidance, large touch targets, minimal steps
 - **Impact:** Validates "alcohol-friendly" interface design
 
 **2. Ranking Update "Wow Moment"**
+
 - **Moment:** User sees their ranking update with animations after match submission
 - **Success Criteria:** 80% of users view leaderboard after recording a match
 - **Design Focus:** Immediate visual feedback, clear position changes, celebration animations
 - **Impact:** Transforms functional tracking into exciting engagement
 
 **3. Tournament Join via QR Code**
+
 - **Moment:** User scans QR code and joins tournament seamlessly
 - **Success Criteria:** 70% of QR scans result in tournament join
 - **Design Focus:** Zero-friction onboarding, clear next steps, immediate value
 - **Impact:** Reduces barriers to entry, maximizes participation
 
 **4. Display Screen Engagement (Post-MVP)**
+
 - **Moment:** Entire crowd reacts to ranking update on projection screen
 - **Success Criteria:** 60% of events use display screen, 70% of participants watch it
 - **Design Focus:** Large, readable design, engaging animations, collective excitement
 - **Impact:** Creates memorable moments, differentiates platform
 
 **5. Guest to Account Conversion**
+
 - **Moment:** Guest player creates account to preserve their stats
 - **Success Criteria:** 20% of guest players convert to accounts
 - **Design Focus:** Clear value proposition, seamless merge, no data loss
 - **Impact:** Builds long-term engagement and retention
 
 **Make-or-Break Flows:**
+
 - Match score entry (if this fails, entire value proposition fails)
 - Ranking visibility (if users can't see progression, engagement drops)
 - Tournament joining (if friction too high, participation decreases)
@@ -284,12 +317,14 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 ### Experience Principles
 
 **1. Effortless First, Powerful Second**
+
 - Every interaction must feel natural and require zero thought
 - Complexity is hidden behind simple interfaces
 - Power users can access advanced features, but core actions are always simple
 - **Example:** ELO calculation is complex, but user only sees "win = go up, lose = go down"
 
 **2. Immediate Visual Feedback**
+
 - Every action has immediate visual response
 - Ranking updates happen in < 500ms with animations
 - Progress is always visible and tangible
@@ -297,6 +332,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Example:** Match submission triggers confetti and position change animation
 
 **3. Zero-Friction Participation**
+
 - Join tournament in < 30 seconds, no account required
 - Record match in < 1 minute, minimum clicks
 - View ranking instantly, always accessible
@@ -304,6 +340,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Example:** QR code scan → name entry → ready to play
 
 **4. Context-Aware Design**
+
 - Interface adapts to bar environment (large buttons, high contrast)
 - Works offline when internet is spotty
 - Mobile-first for primary use case
@@ -311,6 +348,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Example:** "Alcohol-friendly" design with 44px+ touch targets
 
 **5. Social-First Engagement**
+
 - Leaderboard is always visible and engaging
 - Progression is shareable and comparable
 - Collective experience via display screen
@@ -318,6 +356,7 @@ This loop creates the "wow moment" when ranking updates with visual feedback, ma
 - **Example:** Ranking updates create excitement for entire crowd, not just individual
 
 **6. Automatic Intelligence**
+
 - ELO calculation happens automatically
 - Ranking updates without user action
 - Smart defaults reduce decision fatigue
@@ -363,6 +402,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 ### Emotional Journey Mapping
 
 **1. Discovery Phase (QR Code Scan / First Encounter)**
+
 - **Emotional State:** Surprised, intrigued, interested
 - **User Feeling:** "This looks interesting, I want to try it"
 - **Design Approach:**
@@ -373,6 +413,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Key Moment:** User scans QR code and immediately understands what they can do
 
 **2. Core Action Phase (Recording a Match)**
+
 - **Emotional State:** Excited, anticipatory
 - **User Feeling:** "I'm excited to see how my ranking will change"
 - **Design Approach:**
@@ -383,8 +424,9 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Key Moment:** User submits match and waits for ranking update
 
 **3. Result Phase (Viewing Updated Ranking)**
+
 - **Emotional State:** Content (if ranking up) OR Disappointed but motivated (if ranking down)
-- **User Feeling:** 
+- **User Feeling:**
   - "Yes! I moved up!" (celebration, pride)
   - "I dropped, but I can play again to improve" (determination, motivation)
 - **Design Approach:**
@@ -395,6 +437,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Key Moment:** User sees ranking update with visual feedback
 
 **4. Engagement Phase (Between Matches)**
+
 - **Emotional State:** Excited, engaged, belonging
 - **User Feeling:** "I'm excited to play more matches to progress in the ranking"
 - **Design Approach:**
@@ -405,6 +448,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Key Moment:** User feels part of the tournament community
 
 **5. Error/Problem Phase (If Something Goes Wrong)**
+
 - **Emotional State:** Supported, confident (not frustrated)
 - **User Feeling:** "I know what to do, the system will help me"
 - **Design Approach:**
@@ -415,6 +459,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Key Moment:** User understands the issue and knows how to resolve it
 
 **6. Return/Repeat Phase (Coming Back to Use Again)**
+
 - **Emotional State:** Familiar, confident, excited
 - **User Feeling:** "I know how this works, I'm excited to see my progress"
 - **Design Approach:**
@@ -429,6 +474,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **Critical Micro-Emotions to Achieve:**
 
 **1. Confidence (vs. Confusion)**
+
 - **Goal:** Users feel confident they understand how to use the platform
 - **Achievement:** 90% complete first match recording without help
 - **Design Approach:**
@@ -439,6 +485,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Progressive disclosure (show what's needed, hide complexity)
 
 **2. Excitement (vs. Anxiety)**
+
 - **Goal:** Users feel excited about competition, not anxious about complexity
 - **Achievement:** 80% view leaderboard after recording match (shows engagement)
 - **Design Approach:**
@@ -449,6 +496,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Reduce uncertainty (show what happens next)
 
 **3. Accomplishment (vs. Frustration)**
+
 - **Goal:** Users feel accomplished when progressing, not frustrated when declining
 - **Achievement:** Users motivated to play again even after ranking drop
 - **Design Approach:**
@@ -459,6 +507,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Maintain positive tone throughout
 
 **4. Satisfaction (vs. Disappointment)**
+
 - **Goal:** Users feel satisfied with the experience, even when outcomes aren't ideal
 - **Achievement:** High return rate (10% retention at 30 days)
 - **Design Approach:**
@@ -469,6 +518,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Consistent experience quality
 
 **5. Belonging (vs. Isolation)**
+
 - **Goal:** Users feel part of a community, not isolated
 - **Achievement:** 20% conversion from guest to account (shows engagement)
 - **Design Approach:**
@@ -479,6 +529,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Shared celebrations
 
 **Emotions to Avoid:**
+
 - **Confusion:** Complex interfaces, unclear actions
 - **Anxiety:** Uncertainty about what happens next, fear of making mistakes
 - **Frustration:** Slow performance, unclear errors, difficult interactions
@@ -490,6 +541,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **Emotion-Design Connections:**
 
 **1. Fun & Amusement → Playful Design Elements**
+
 - **UX Choices:**
   - Gamification: Animations, confetti, celebrations
   - Playful micro-interactions (button presses, transitions)
@@ -503,6 +555,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Fun illustrations or icons
 
 **2. Excitement → Anticipation-Building Interactions**
+
 - **UX Choices:**
   - Real-time updates with visual feedback
   - Progress indicators during match submission
@@ -516,6 +569,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Highlighted position changes
 
 **3. Pride & Accomplishment → Achievement Celebration**
+
 - **UX Choices:**
   - Prominent display of achievements
   - Shareable ranking screens
@@ -529,6 +583,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Progress charts showing improvement
 
 **4. Motivation → Positive Framing & Opportunity**
+
 - **UX Choices:**
   - Always show path to improvement
   - Frame setbacks positively
@@ -542,6 +597,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Clear call-to-action for next match
 
 **5. Confidence → Clarity & Simplicity**
+
 - **UX Choices:**
   - Large, clear buttons (44px+)
   - Minimal steps for core actions
@@ -555,6 +611,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Helpful tooltips for first-time users
 
 **6. Belonging → Social & Collective Features**
+
 - **UX Choices:**
   - Visible leaderboards
   - Display screen for collective experience
@@ -568,6 +625,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Friend comparison features (post-MVP)
 
 **Negative Emotion Prevention:**
+
 - **Prevent Confusion:** Clear labels, obvious actions, helpful guidance
 - **Prevent Anxiety:** Show what happens next, reduce uncertainty, provide reassurance
 - **Prevent Frustration:** Fast performance, clear errors, easy recovery
@@ -577,12 +635,14 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 ### Emotional Design Principles
 
 **1. Fun First, Function Second**
+
 - Every interaction should feel enjoyable, not just functional
 - Gamification and playfulness enhance rather than distract
 - Even serious actions (score entry) should feel engaging
 - **Example:** Match submission feels like a celebration, not just data entry
 
 **2. Celebrate Progress, Frame Setbacks Positively**
+
 - Always highlight achievements and progress
 - Frame ranking drops as opportunities, not failures
 - Show clear path to improvement
@@ -590,6 +650,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Example:** "You dropped 2 positions, but you're only 1 win away from climbing back!"
 
 **3. Build Anticipation, Deliver Excitement**
+
 - Create moments of anticipation (waiting for ranking update)
 - Deliver exciting reveals (animated ranking changes)
 - Build suspense before showing results
@@ -597,6 +658,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Example:** Animated progress indicator during match processing, then exciting reveal
 
 **4. Immediate Emotional Feedback**
+
 - Every action should have immediate emotional response
 - Visual feedback creates instant connection
 - Celebrations happen in real-time
@@ -604,6 +666,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Example:** Confetti and animation immediately after match submission
 
 **5. Social Connection & Belonging**
+
 - Make users feel part of a community
 - Collective experiences create shared excitement
 - Social features enhance individual experience
@@ -611,6 +674,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Example:** Display screen creates collective "wow moment" for entire crowd
 
 **6. Confidence Through Clarity**
+
 - Users should always know what to do
 - Interface should feel familiar and intuitive
 - Errors should be clear and recoverable
@@ -618,6 +682,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Example:** Large, obvious buttons make users confident they can use the app even in bar environment
 
 **7. Maintain Excitement Across Journey**
+
 - Excitement shouldn't fade after first use
 - New opportunities create continued engagement
 - Progress visualization maintains motivation
@@ -629,6 +694,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 ### Inspiring Products Analysis
 
 **1. Mon Petit Gazon (Sports Prediction App)**
+
 - **Core Problem Solved:** Makes sports predictions fun and social through competition with friends
 - **UX Strengths:**
   - **Simple onboarding:** Quick setup, join leagues via invitation
@@ -648,6 +714,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Easy to participate (low time commitment)
 
 **2. Dart/Fléchettes Apps (Bar Game Apps)**
+
 - **Core Problem Solved:** Quick score tracking in bar environment
 - **UX Strengths:**
   - **Large touch targets:** Designed for bar environment (fingers, potential distractions)
@@ -666,6 +733,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - Consistent, familiar interface
 
 **3. ELO-Based Gaming Apps (Chess.com, Lichess, etc.)**
+
 - **Core Problem Solved:** Make competitive ranking visible and motivating
 - **UX Strengths:**
   - **Progression visualization:** Clear ELO display, history charts
@@ -685,6 +753,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
   - System feels fair and rewarding
 
 **4. Social Competition Apps (Strava, Duolingo)**
+
 - **Core Problem Solved:** Make individual activities social and competitive
 - **UX Strengths:**
   - **Gamification:** Streaks, achievements, levels
@@ -708,6 +777,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **Navigation Patterns:**
 
 **1. Bottom Navigation Bar (Mobile Apps)**
+
 - **Pattern:** Primary actions always accessible at bottom of screen
 - **Application for Beer Pong League:**
   - Quick access to: Record Match, Leaderboard, Profile
@@ -716,6 +786,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Reduces cognitive load, always accessible, familiar pattern
 
 **2. Tab-Based Navigation (Leaderboard Views)**
+
 - **Pattern:** Tabs for different views (Overall, Friends, Recent)
 - **Application for Beer Pong League:**
   - Tournament leaderboard with tabs: All Players, My Position, Recent Matches
@@ -724,6 +795,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Organizes information, reduces scrolling, familiar pattern
 
 **3. Floating Action Button (FAB) for Primary Action**
+
 - **Pattern:** Prominent floating button for most common action
 - **Application for Beer Pong League:**
   - FAB for "Record Match" always visible
@@ -734,6 +806,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **Interaction Patterns:**
 
 **1. One-Tap Score Entry (Dart Apps Pattern)**
+
 - **Pattern:** Large +/- buttons for quick score adjustment
 - **Application for Beer Pong League:**
   - Large increment/decrement buttons for scores
@@ -742,6 +815,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Minimal taps, works in bar environment, reduces errors
 
 **2. Swipe Actions (List Interactions)**
+
 - **Pattern:** Swipe left/right for quick actions on list items
 - **Application for Beer Pong League:**
   - Swipe to view match details
@@ -750,6 +824,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Fast interactions, discoverable, reduces taps
 
 **3. Pull-to-Refresh (Data Updates)**
+
 - **Pattern:** Pull down to refresh leaderboard/data
 - **Application for Beer Pong League:**
   - Refresh leaderboard by pulling down
@@ -758,6 +833,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Intuitive, gives user control, familiar pattern
 
 **4. Progressive Disclosure (Complex Information)**
+
 - **Pattern:** Show essential info first, details on demand
 - **Application for Beer Pong League:**
   - Leaderboard shows rank + name + ELO
@@ -768,6 +844,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **Visual Patterns:**
 
 **1. Podium Design (Top 3 Highlighting)**
+
 - **Pattern:** Special visual treatment for top 3 positions
 - **Application for Beer Pong League:**
   - Top 3 on podium with medals/icons
@@ -776,6 +853,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Creates aspiration, celebrates achievement, visual hierarchy
 
 **2. Progress Bars & Charts (ELO Visualization)**
+
 - **Pattern:** Visual representation of progress over time
 - **Application for Beer Pong League:**
   - ELO history chart showing progression
@@ -784,6 +862,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Makes progress tangible, motivates continued play, shows trajectory
 
 **3. Color-Coded Status (Quick Visual Feedback)**
+
 - **Pattern:** Colors indicate status/state quickly
 - **Application for Beer Pong League:**
   - Green for ranking up, red for ranking down
@@ -792,6 +871,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Instant understanding, reduces reading, works in low-light
 
 **4. Confetti & Celebration Animations (Achievement Feedback)**
+
 - **Pattern:** Animated celebrations for achievements
 - **Application for Beer Pong League:**
   - Confetti when ranking improves significantly
@@ -800,6 +880,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Creates emotional connection, makes achievements memorable, fun factor
 
 **5. Large Touch Targets (Bar Environment)**
+
 - **Pattern:** Buttons and interactive elements are large (44px+)
 - **Application for Beer Pong League:**
   - All buttons minimum 44x44px
@@ -810,6 +891,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **Feedback Patterns:**
 
 **1. Optimistic Updates (Immediate Feedback)**
+
 - **Pattern:** Show expected result immediately, sync in background
 - **Application for Beer Pong League:**
   - Show ranking change immediately after match submission
@@ -818,6 +900,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Creates "wow moment", feels responsive, reduces perceived wait time
 
 **2. Skeleton Screens (Loading States)**
+
 - **Pattern:** Show content structure while loading
 - **Application for Beer Pong League:**
   - Leaderboard skeleton while loading
@@ -826,6 +909,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Reduces perceived load time, maintains context, professional feel
 
 **3. Toast Notifications (Non-Blocking Feedback)**
+
 - **Pattern:** Small notifications for actions/updates
 - **Application for Beer Pong League:**
   - "Match recorded successfully"
@@ -836,6 +920,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **Social Patterns:**
 
 **1. Social Leaderboards (Comparison)**
+
 - **Pattern:** Show ranking among friends/community
 - **Application for Beer Pong League:**
   - "Your position among friends"
@@ -844,6 +929,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Creates competition, social engagement, motivation
 
 **2. Shareable Achievements (Social Sharing)**
+
 - **Pattern:** Easy sharing of achievements/rankings
 - **Application for Beer Pong League:**
   - Share ranking screenshot
@@ -852,6 +938,7 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 - **Why It Works:** Creates viral growth, celebrates achievements, social proof
 
 **3. Activity Feed (Community Engagement)**
+
 - **Pattern:** Show recent activity from community
 - **Application for Beer Pong League:**
   - Recent matches played
@@ -862,41 +949,49 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 ### Anti-Patterns to Avoid
 
 **1. Complex Onboarding Flows**
+
 - **Anti-Pattern:** Multi-step tutorials, account creation required, lengthy setup
 - **Why to Avoid:** Creates friction, reduces participation, doesn't fit bar environment
 - **Better Approach:** QR code → name entry → ready (30 seconds max)
 
 **2. Hidden Primary Actions**
+
 - **Anti-Pattern:** Core actions buried in menus or hard to find
 - **Why to Avoid:** Users can't find what they need, increases cognitive load
 - **Better Approach:** Primary actions always visible (FAB, bottom nav, prominent buttons)
 
 **3. Small Touch Targets**
+
 - **Anti-Pattern:** Buttons smaller than 44px, close together, hard to tap
 - **Why to Avoid:** Errors in bar environment, frustration, accessibility issues
 - **Better Approach:** Large buttons (44px+), adequate spacing, clear targets
 
 **4. Slow Feedback**
+
 - **Anti-Pattern:** Long waits for actions, no loading indicators, delayed updates
 - **Why to Avoid:** Loses "wow moment", feels unresponsive, creates anxiety
 - **Better Approach:** Optimistic updates, immediate feedback, progress indicators
 
 **5. Complex Score Entry**
+
 - **Anti-Pattern:** Multiple screens, many fields, unclear process
 - **Why to Avoid:** Errors, frustration, time-consuming
 - **Better Approach:** Single screen, large buttons, minimal taps, clear confirmation
 
 **6. Unclear Ranking System**
+
 - **Anti-Pattern:** Complex ELO explanation, no visual representation, confusing numbers
 - **Why to Avoid:** Users don't understand progression, reduces motivation
 - **Better Approach:** Simple explanation ("win = up, lose = down"), visual charts, clear milestones
 
 **7. Desktop-First Design**
+
 - **Anti-Pattern:** Designed for desktop, mobile as afterthought
 - **Why to Avoid:** Doesn't match usage patterns (73% use mobile), poor mobile experience
 - **Better Approach:** Mobile-first design, responsive for all devices
 
 **8. No Offline Support**
+
 - **Anti-Pattern:** Requires constant internet connection
 - **Why to Avoid:** Bar environments have spotty internet, breaks experience
 - **Better Approach:** Offline-first with localStorage, sync when online
@@ -906,26 +1001,31 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **What to Adopt:**
 
 **1. Simple, Fast Score Entry (from Dart Apps)**
+
 - **Pattern:** Large buttons, minimal taps, quick entry
 - **Why:** Supports "alcohol-friendly" interface, reduces errors, fast completion
 - **Implementation:** Large +/- buttons, pre-filled values, one-screen entry
 
 **2. Visible Progression (from ELO Apps)**
+
 - **Pattern:** Clear ELO display, progress charts, milestone indicators
 - **Why:** Creates motivation, makes progression tangible, supports emotional goals
 - **Implementation:** ELO prominently displayed, history chart, next milestone visible
 
 **3. Social Leaderboards (from Mon Petit Gazon)**
+
 - **Pattern:** Always-visible leaderboard, social comparison, friend rankings
 - **Why:** Creates engagement, social competition, supports belonging emotion
 - **Implementation:** Leaderboard always accessible, friend comparison, community view
 
 **4. Celebration Animations (from Social Apps)**
+
 - **Pattern:** Confetti, animations, celebrations for achievements
 - **Why:** Creates "wow moments", supports fun/excitement emotions, memorable
 - **Implementation:** Confetti on ranking up, achievement celebrations, milestone animations
 
 **5. Bottom Navigation (from Mobile Apps)**
+
 - **Pattern:** Primary actions in bottom navigation bar
 - **Why:** Always accessible, one-thumb reachable, familiar pattern
 - **Implementation:** Record Match, Leaderboard, Profile in bottom nav
@@ -933,16 +1033,19 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **What to Adapt:**
 
 **1. ELO System Simplicity (from Chess Apps)**
+
 - **Pattern:** Complex ELO calculation, but simple user-facing explanation
 - **Adaptation:** Keep ELO calculation professional, but user sees "win = up, lose = down"
 - **Why:** Maintains system integrity while ensuring user understanding
 
 **2. Gamification Balance (from Duolingo)**
+
 - **Pattern:** Heavy gamification with streaks, levels, badges
 - **Adaptation:** Lighter gamification focused on achievements and celebrations
 - **Why:** Fun without overwhelming, fits casual bar environment
 
 **3. Social Features (from Strava)**
+
 - **Pattern:** Extensive social network, activity feed, detailed profiles
 - **Adaptation:** Simpler social features, focus on leaderboard and sharing
 - **Why:** Reduces complexity, focuses on core value, easier onboarding
@@ -950,26 +1053,31 @@ Unlike enterprise tournament management tools that feel functional and serious, 
 **What to Avoid:**
 
 **1. Complex Onboarding (from Enterprise Apps)**
+
 - **Anti-Pattern:** Multi-step setup, account required, lengthy tutorials
 - **Why Avoid:** Conflicts with zero-friction goal, reduces participation
 - **Alternative:** QR code → name → ready (30 seconds)
 
 **2. Desktop-First Design (from Legacy Sports Apps)**
+
 - **Anti-Pattern:** Designed for desktop, mobile secondary
 - **Why Avoid:** Doesn't match usage (mobile in bars), poor mobile experience
 - **Alternative:** Mobile-first, responsive design
 
 **3. Hidden Primary Actions (from Complex Apps)**
+
 - **Anti-Pattern:** Core actions in menus, hard to discover
 - **Why Avoid:** Increases cognitive load, reduces usability in bar environment
 - **Alternative:** Primary actions always visible, prominent placement
 
 **4. Slow Performance (from Heavy Apps)**
+
 - **Anti-Pattern:** Slow loading, delayed updates, laggy interactions
 - **Why Avoid:** Loses "wow moment", feels unresponsive, creates frustration
 - **Alternative:** Optimistic updates, < 500ms feedback, fast performance
 
 **5. Unclear Progress (from Generic Apps)**
+
 - **Anti-Pattern:** No clear indication of progress, confusing metrics
 - **Why Avoid:** Reduces motivation, users don't understand value
 - **Alternative:** Clear ELO display, progress charts, milestone indicators
@@ -984,6 +1092,7 @@ Adopt patterns that support effortless interactions, visible progression, and fu
 **Selected Approach: Tailwind CSS + Modular Components + Design Tokens**
 
 **Foundation:**
+
 - **Base Framework:** Tailwind CSS (already configured and in use)
 - **Component Strategy:** Modular, reusable components built with Tailwind
 - **Design Tokens:** Structured token system for easy customization
@@ -1066,6 +1175,7 @@ colors: {
    - Staggered animations: Using `transitionDelay` for sequential reveals
 
 **Existing Component Library:**
+
 - Modals: AuthModal, IdentityModal, CreateIdentityModal
 - Layout: MenuDrawer (slide-in navigation)
 - Display: EloChangeDisplay (with animations)
@@ -1104,12 +1214,14 @@ colors: {
 ### Implementation Approach
 
 **Phase 1: Document & Structure Current System (Now)**
+
 - Document existing design tokens
 - Create component pattern library
 - Establish naming conventions
 - Set up design token structure for evolution
 
 **Phase 2: Enhance with UX Pilot (Future)**
+
 - Refine color palette and typography
 - Improve spacing and sizing scales
 - Enhance component variants
@@ -1117,6 +1229,7 @@ colors: {
 - Optimize for "alcohol-friendly" requirements
 
 **Phase 3: Polish & Optimize (Post-MVP)**
+
 - Add micro-interactions
 - Enhance animations
 - Refine visual hierarchy
@@ -1171,12 +1284,14 @@ theme: {
 ### Customization Strategy
 
 **For Current MVP:**
+
 - Use existing design tokens as-is
 - Build new components following established patterns
 - Maintain consistency with current visual style
 - Focus on functionality over visual refinement
 
 **For UX Pilot Collaboration:**
+
 - Export design tokens to shareable format
 - Document component patterns and usage
 - Create style guide showing current state
@@ -1184,6 +1299,7 @@ theme: {
 - Plan component enhancement roadmap
 
 **Evolution Path:**
+
 1. **Current State → Documented:** All existing patterns documented
 2. **UX Pilot → Refined Tokens:** New design tokens defined
 3. **Implementation → Updated:** Tokens updated in Tailwind config
@@ -1192,6 +1308,7 @@ theme: {
 6. **Polish → Finalized:** Animations and micro-interactions added
 
 **Key Principles for Evolution:**
+
 - Maintain backward compatibility where possible
 - Update tokens systematically (not piecemeal)
 - Test in bar environment after changes
@@ -1200,6 +1317,7 @@ theme: {
 - Keep dark theme (works well in bars)
 
 **Design System Goals:**
+
 - **Consistency:** All components follow same patterns
 - **Accessibility:** Large touch targets, high contrast, clear hierarchy
 - **Flexibility:** Easy to update tokens and evolve design
@@ -1215,9 +1333,10 @@ theme: {
 The core interaction that defines Beer Pong League is the seamless flow from recording a match result to seeing the ranking update with immediate visual feedback. This is the "magic moment" that transforms functional score tracking into exciting engagement.
 
 **User Description:**
-Users will describe this to friends as: *"I just recorded my match and saw my ranking update instantly with animations - it's so satisfying to see your position change in real-time!"*
+Users will describe this to friends as: _"I just recorded my match and saw my ranking update instantly with animations - it's so satisfying to see your position change in real-time!"_
 
 **The Defining Loop:**
+
 1. User finishes a beer pong match
 2. Opens app → Taps "Record Match" (always visible, prominent)
 3. Selects teams/players → Enters scores (large buttons, minimal taps)
@@ -1226,6 +1345,7 @@ Users will describe this to friends as: *"I just recorded my match and saw my ra
 6. Feels accomplished/excited → Wants to play again
 
 **Why This Is The Defining Experience:**
+
 - **Most Frequent Action:** Users will do this repeatedly during tournaments
 - **Emotional Peak:** Creates the "wow moment" that generates excitement
 - **Value Proposition:** Makes ELO progression tangible and motivating
@@ -1234,6 +1354,7 @@ Users will describe this to friends as: *"I just recorded my match and saw my ra
 
 **If We Nail This One Thing:**
 Everything else follows. If match recording is effortless and ranking updates are exciting, users will:
+
 - Return to tournaments regularly
 - Share their achievements
 - Invite friends to join
@@ -1244,6 +1365,7 @@ Everything else follows. If match recording is effortless and ranking updates ar
 
 **Current Problem-Solving Approach:**
 Users currently solve tournament management with:
+
 - **Manual Methods:** Whiteboard and markers, paper brackets, hat draws
 - **Mental Model:** "I need to write down who played, who won, and calculate rankings"
 - **Pain Points:** Unclear scores, disputes, time-consuming, no continuity
@@ -1251,6 +1373,7 @@ Users currently solve tournament management with:
 
 **User's Mental Model for Digital Solution:**
 Users expect:
+
 - **Familiar Pattern:** Similar to other score-tracking apps (darts, games)
 - **Simple Input:** Select players, enter scores, submit
 - **Automatic Calculation:** System handles ELO and ranking automatically
@@ -1258,23 +1381,27 @@ Users expect:
 - **Visual Confirmation:** Clear indication that action succeeded
 
 **Expectations:**
+
 - **Speed:** Should be faster than manual method (< 1 minute)
 - **Clarity:** Should be clearer than whiteboard (no ambiguity)
 - **Reliability:** Should be more reliable than paper (no loss)
 - **Fun:** Should be more engaging than manual tracking
 
 **Potential Confusion Points:**
+
 - **ELO System:** Users may not understand how ELO works (mitigation: simple explanation "win = up, lose = down")
 - **Team Selection:** May be confused about selecting teams vs. individual players (mitigation: clear format selection 1v1, 2v2, 3v3)
 - **Score Entry:** May enter wrong scores (mitigation: large buttons, clear confirmation, anti-cheat option)
 - **Ranking Display:** May not understand position changes (mitigation: visual animations, clear indicators)
 
 **What Users Love About Existing Solutions:**
+
 - **Simplicity:** Easy to understand and use
 - **Speed:** Quick to record results
 - **Visual Feedback:** See changes immediately
 
 **What Users Hate About Existing Solutions:**
+
 - **Complexity:** Too many steps, confusing interfaces
 - **Slowness:** Delayed updates, laggy interactions
 - **Lack of Engagement:** Functional but boring, no excitement
@@ -1282,6 +1409,7 @@ Users expect:
 ### 2.3 Success Criteria
 
 **What Makes Users Say "This Just Works":**
+
 - **Effortless:** Complete match recording in < 30 seconds, < 3 clicks
 - **Clear:** No ambiguity about what to do next
 - **Fast:** Ranking updates in < 500ms after submission
@@ -1289,24 +1417,28 @@ Users expect:
 - **Intuitive:** No explanation needed, self-explanatory interface
 
 **When Users Feel Smart or Accomplished:**
+
 - **First Match Recorded:** User completes first match without help (90% success rate target)
 - **Ranking Improvement:** User sees position go up with celebration
 - **Quick Entry:** User records match faster than manual method
 - **Understanding Progress:** User understands their ELO and ranking without confusion
 
 **Feedback That Tells Users They're Doing It Right:**
+
 - **Visual Confirmation:** Button states, loading indicators, success animations
 - **Immediate Response:** System responds instantly to every action
 - **Clear Status:** Always know what's happening (recording, processing, complete)
 - **Positive Reinforcement:** Celebrations for achievements, progress indicators
 
 **Speed Requirements:**
+
 - **Match Recording:** < 30 seconds from start to finish
 - **Ranking Update:** < 500ms from submission to visible update
 - **Leaderboard Load:** < 1 second to view ranking
 - **Overall Feel:** Feels instant, no perceived waiting
 
 **What Should Happen Automatically:**
+
 - **ELO Calculation:** Automatic, no user input needed
 - **Ranking Update:** Automatic after match submission
 - **Position Changes:** Automatic highlighting and animation
@@ -1314,6 +1446,7 @@ Users expect:
 - **Progress Tracking:** Automatic stats updates (wins, losses, matches played)
 
 **Success Indicators:**
+
 1. **90% of users** complete first match recording without assistance
 2. **80% of users** view leaderboard after recording a match
 3. **< 30 seconds** average time to record a match
@@ -1326,35 +1459,41 @@ Users expect:
 The core experience combines **established patterns** with **innovative application**:
 
 **Established Patterns We Use:**
+
 - **Form Input:** Selecting players, entering scores (familiar to all users)
 - **Button Submission:** Submit button to complete action (universal pattern)
 - **List Display:** Leaderboard as ranked list (familiar from games, sports)
 - **Progress Feedback:** Loading states, success indicators (standard UX)
 
 **Innovative Combination:**
+
 - **ELO for Casual Events:** Professional ranking system applied to fun, amateur tournaments
 - **Instant Celebrations:** Real-time animations and confetti for ranking changes
 - **Zero-Friction Onboarding:** Join tournament in < 30 seconds without account
 - **Collective Display Screen:** Real-time projection for entire crowd (post-MVP)
 
 **What Makes This Different:**
+
 - **Speed:** Faster than competitors (optimistic updates, < 500ms feedback)
 - **Engagement:** More exciting than functional tools (animations, celebrations)
 - **Simplicity:** Easier than enterprise solutions (minimal steps, large buttons)
 - **Context-Aware:** Designed for bar environment (alcohol-friendly, offline support)
 
 **User Education Needs:**
+
 - **ELO System:** Simple explanation "win = up, lose = down" (no technical details)
 - **Format Selection:** Clear 1v1, 2v2, 3v3 options with visual indicators
 - **Anti-Cheat:** Optional confirmation system (explained when enabled)
 
 **Familiar Metaphors We Use:**
+
 - **Leaderboard:** Like video game rankings (familiar to target audience)
 - **Score Entry:** Like calculator or game score input (universal understanding)
 - **Tournament:** Like bracket competitions (familiar concept)
 - **Ranking:** Like sports standings (intuitive)
 
 **Unique Twist on Established Patterns:**
+
 - **Form Input:** But with large, bar-friendly buttons instead of small inputs
 - **Leaderboard:** But with instant updates and celebrations instead of static display
 - **Tournament Management:** But with zero-friction participation instead of complex setup
@@ -1367,22 +1506,26 @@ The core experience combines **established patterns** with **innovative applicat
 **1. Initiation: How User Starts**
 
 **Trigger:**
+
 - User finishes a beer pong match
 - Wants to record the result
 - Opens app (or app already open)
 
 **Entry Points:**
+
 - **Primary:** Floating Action Button (FAB) "Record Match" always visible
 - **Secondary:** Bottom navigation "Record" tab
 - **Contextual:** "Record Match" button on tournament dashboard
 
 **Invitation to Begin:**
+
 - **Visual Prominence:** FAB is large, colorful, always visible
 - **Clear Labeling:** "Record Match" or icon + text
 - **Accessibility:** One-thumb reachable on mobile
 - **Context Awareness:** Button appears on tournament pages
 
 **User State:**
+
 - May be in bar environment (noise, distractions, potential alcohol)
 - Wants quick action (not lengthy process)
 - May have spotty internet connection
@@ -1393,32 +1536,37 @@ The core experience combines **established patterns** with **innovative applicat
 **Step-by-Step Flow:**
 
 **Step 1: Select Match Format**
+
 - **Display:** Large buttons for 1v1, 2v2, 3v3
 - **Interaction:** Single tap to select format
 - **Feedback:** Selected format highlighted, other options dimmed
 - **Time:** < 2 seconds
 
 **Step 2: Select Teams/Players**
+
 - **Display:** List of tournament participants
 - **Interaction:** Tap to select players for Team A and Team B
 - **Feedback:** Selected players highlighted, team assignment clear
 - **Smart Defaults:** Pre-select based on recent matches or favorites
 - **Time:** < 10 seconds
 
-**Step 3: Enter Scores**
-- **Display:** Large +/- buttons for each team's score
-- **Interaction:** Tap to increment/decrement scores
-- **Feedback:** Score updates immediately, visual confirmation
-- **Validation:** Prevent impossible scores (e.g., both teams can't win)
+**Step 3: Choose Winner (et options)**
+
+- **Display:** Choix Équipe 1 / Équipe 2 (obligatoire)
+- **Optionnel :** Gobelets restants (équipe gagnante, 1–10), photo de l’équipe gagnante (souvenir)
+- **Interaction:** Tap pour sélectionner le gagnant, puis options si souhaité
+- **Feedback:** Gagnant mis en évidence, options clairement optionnelles
 - **Time:** < 10 seconds
 
 **Step 4: Review & Confirm**
+
 - **Display:** Summary of match (teams, scores, format)
 - **Interaction:** Review details, tap "Confirm" or "Edit"
 - **Feedback:** Clear summary, edit option available
 - **Time:** < 5 seconds
 
 **Step 5: Submit**
+
 - **Display:** Large "Submit Match" button
 - **Interaction:** Single tap to submit
 - **Feedback:** Button shows loading state, then success
@@ -1427,6 +1575,7 @@ The core experience combines **established patterns** with **innovative applicat
 **Total Interaction Time:** < 30 seconds, < 3-5 taps
 
 **System Response During Interaction:**
+
 - **Optimistic Updates:** Show expected result immediately
 - **Visual Feedback:** Button states, loading indicators, progress
 - **Error Prevention:** Validate inputs, prevent mistakes
@@ -1435,17 +1584,20 @@ The core experience combines **established patterns** with **innovative applicat
 **3. Feedback: How User Knows It's Working**
 
 **Immediate Feedback (< 500ms):**
+
 - **Visual Confirmation:** Button press feedback, loading state
 - **Optimistic Update:** Ranking change shown immediately (before server confirmation)
 - **Animation Start:** Celebration animation begins
 - **Toast Notification:** "Match recorded successfully"
 
 **Processing Feedback (500ms - 2s):**
+
 - **Loading Indicator:** Subtle progress indicator during ELO calculation
 - **Status Message:** "Updating rankings..."
 - **Skeleton Screen:** Leaderboard structure visible while loading
 
 **Completion Feedback (< 2s total):**
+
 - **Ranking Update:** Leaderboard updates with new positions
 - **Position Change Animation:** User's position animates to new rank
 - **ELO Change Display:** Shows ELO delta (+/- points)
@@ -1453,6 +1605,7 @@ The core experience combines **established patterns** with **innovative applicat
 - **Success Message:** "Ranking updated! You moved up 2 positions!"
 
 **Error Feedback:**
+
 - **Clear Error Messages:** "Unable to record match. Please try again."
 - **Recovery Options:** "Retry" button, edit option
 - **Offline Handling:** "Saved offline, will sync when connected"
@@ -1461,29 +1614,34 @@ The core experience combines **established patterns** with **innovative applicat
 **4. Completion: How User Knows They're Done**
 
 **Successful Outcome:**
+
 - **Visual Confirmation:** Match appears in match history
 - **Ranking Updated:** Leaderboard shows new position
 - **Stats Updated:** Personal stats reflect new match
 - **Celebration:** Animations and confetti (if improvement)
 
 **Completion Indicators:**
+
 - **Leaderboard Refresh:** Automatically shows updated ranking
 - **Position Highlight:** User's position highlighted in leaderboard
 - **ELO Display:** New ELO shown prominently
 - **Next Action Suggestion:** "Record another match?" or "View full leaderboard"
 
 **What Happens Next:**
+
 - **Automatic:** Leaderboard updates, stats refresh, display screen updates (post-MVP)
 - **User Choice:** Can record another match, view leaderboard, check stats, share achievement
 - **Smooth Transition:** Easy to continue using app, no dead ends
 
 **Completion States:**
+
 - **Success:** Match recorded, ranking updated, celebration shown
 - **Partial Success:** Match saved offline, will sync later (with indicator)
 - **Error:** Clear error message, retry option, no data loss
 
 **The "Wow Moment":**
 The completion moment is the emotional peak:
+
 - User sees ranking update with animation
 - Position change is visually highlighted
 - Celebration (confetti, animations) if improvement
@@ -1491,6 +1649,7 @@ The completion moment is the emotional peak:
 - Excitement to play again or share achievement
 
 **Success Metrics for Core Experience:**
+
 - **90%** of users complete first match recording without help
 - **< 30 seconds** average time to record match
 - **< 500ms** average time for ranking update
@@ -1506,6 +1665,7 @@ The completion moment is the emotional peak:
 The current color system uses a dark theme optimized for bar environments with thematic beer pong colors:
 
 **Primary Colors:**
+
 - **Primary:** `#f59e0b` (Amber 500) - "Beer color"
   - Used for: Primary actions, buttons, highlights, brand elements
   - Emotional association: Warm, energetic, fun (beer/amber theme)
@@ -1522,6 +1682,7 @@ The current color system uses a dark theme optimized for bar environments with t
   - Accessibility: High visibility, attention-grabbing
 
 **Dark Theme Foundation:**
+
 - **Background:** `slate-900` (#0f172a) - Main app background
 - **Surface:** `slate-800` (#1e293b) - Cards, modals, elevated surfaces
 - **Border:** `slate-700` (#334155) - Borders, dividers
@@ -1530,18 +1691,21 @@ The current color system uses a dark theme optimized for bar environments with t
 - **Text Tertiary:** `slate-500` (#64748b) - Hints, disabled text
 
 **Semantic Colors (Status & Feedback):**
+
 - **Success/Positive:** Green (`green-500` #22c55e) - Ranking up, wins, positive changes
 - **Error/Negative:** Red (`red-500` #ef4444) - Ranking down, losses, errors
 - **Warning:** Amber/Yellow - Important notices, pending states
 - **Info:** Blue - Informational messages, neutral states
 
 **Color Usage Patterns:**
+
 - **Primary Actions:** `bg-primary` with `hover:bg-amber-600` for interactive states
 - **Status Indicators:** Green for gains, Red for losses (ELO changes, match results)
 - **Background Hierarchy:** Darker backgrounds for depth, lighter for emphasis
 - **Contrast Requirements:** All text meets WCAG AA contrast ratios on dark backgrounds
 
 **Color Strategy:**
+
 - **Current State:** Functional and thematically appropriate (beer/amber, red cups)
 - **Evolution with UX Pilot:** Will refine palette for better brand identity while maintaining:
   - Dark theme (works well in bars)
@@ -1550,6 +1714,7 @@ The current color system uses a dark theme optimized for bar environments with t
   - Emotional alignment (fun, excitement, energy)
 
 **Accessibility Considerations:**
+
 - **Contrast Ratios:** All text meets WCAG AA standards (4.5:1 for normal text, 3:1 for large text)
 - **Color Blindness:** Status indicators use both color AND icons/shapes
 - **Low Light:** Dark theme with bright accents works well in bar environments
@@ -1560,8 +1725,9 @@ The current color system uses a dark theme optimized for bar environments with t
 **Current Typography (from `index.css` and component patterns):**
 
 **Font Family:**
+
 - **Primary:** Inter, system-ui, Avenir, Helvetica, Arial, sans-serif
-- **Rationale:** 
+- **Rationale:**
   - Inter: Modern, highly readable, excellent for UI
   - System-ui fallback: Native OS fonts for performance
   - Sans-serif stack: Clean, modern, accessible
@@ -1569,10 +1735,10 @@ The current color system uses a dark theme optimized for bar environments with t
 **Type Scale (Current Usage):**
 
 **Headings:**
+
 - **H1 / Page Title:** `text-2xl font-bold` (24px, bold)
   - Used for: Main page titles, major headings
   - Line height: Default (1.5)
-  
 - **H2 / Section Title:** `text-xl font-bold` (20px, bold)
   - Used for: Modal titles, section headers
   - Line height: Default (1.5)
@@ -1582,6 +1748,7 @@ The current color system uses a dark theme optimized for bar environments with t
   - Line height: Default (1.5)
 
 **Body Text:**
+
 - **Body / Primary:** Default (16px, regular weight 400)
   - Used for: Main content, descriptions
   - Line height: 1.5
@@ -1600,24 +1767,28 @@ The current color system uses a dark theme optimized for bar environments with t
 **Typography Strategy:**
 
 **Tone & Personality:**
+
 - **Friendly & Modern:** Sans-serif conveys approachability
 - **Readable:** Large enough sizes for bar environment
 - **Clear Hierarchy:** Bold headings, regular body, subtle hints
 - **Accessible:** Meets WCAG guidelines for readability
 
 **Content Strategy:**
+
 - **Minimal Text:** Interface is action-focused, not text-heavy
 - **Clear Labels:** Short, descriptive labels (e.g., "Record Match", "View Leaderboard")
 - **Helpful Hints:** Small text for guidance without overwhelming
 - **Action-Oriented:** Button text is clear and action-focused
 
 **Typography for Bar Environment:**
+
 - **Large Sizes:** Minimum 16px for body text (readable in dim lighting)
 - **Bold Headings:** Clear hierarchy even with potential distractions
 - **High Contrast:** White text on dark backgrounds for maximum readability
 - **Simple Fonts:** Sans-serif easier to read quickly than serif
 
 **Evolution with UX Pilot:**
+
 - May refine font choices for better brand personality
 - May adjust type scale for better hierarchy
 - Will maintain readability and accessibility requirements
@@ -1628,6 +1799,7 @@ The current color system uses a dark theme optimized for bar environments with t
 **Current Spacing Patterns (from component analysis):**
 
 **Spacing Scale:**
+
 - **Base Unit:** 4px (Tailwind's default)
 - **Common Spacing Values:**
   - `p-2` (8px) - Tight spacing, icon padding
@@ -1638,6 +1810,7 @@ The current color system uses a dark theme optimized for bar environments with t
   - `gap-4` (16px) - Standard gaps
 
 **Component Spacing:**
+
 - **Modals:** `p-6` (24px) padding, `space-y-4` (16px) between form elements
 - **Cards:** `p-4` (16px) padding, consistent margins
 - **Buttons:** `py-4` (16px vertical), `px-6` (24px horizontal) for primary actions
@@ -1647,24 +1820,28 @@ The current color system uses a dark theme optimized for bar environments with t
 **Layout Principles:**
 
 **1. Mobile-First Approach:**
+
 - Design for mobile screens first (primary use case)
 - Responsive breakpoints for tablet/desktop
 - Single column layout on mobile
 - Multi-column on larger screens when appropriate
 
 **2. Generous Spacing:**
+
 - **Rationale:** "Alcohol-friendly" interface needs breathing room
 - **Touch Targets:** Minimum 44x44px (11 Tailwind units)
 - **Element Spacing:** Adequate gaps prevent mis-taps
 - **Visual Breathing Room:** Prevents feeling cramped or cluttered
 
 **3. Content Density:**
+
 - **Balanced:** Not too dense (hard to use in bar), not too sparse (inefficient)
 - **Focus Areas:** More spacing around primary actions
 - **Information Hierarchy:** Spacing creates visual hierarchy
 - **Scanability:** Easy to scan and find what you need
 
 **4. Grid System:**
+
 - **Flexible:** Uses Flexbox and CSS Grid as needed
 - **No Fixed Grid:** Tailwind's utility classes provide flexibility
 - **Responsive:** Adapts to screen size automatically
@@ -1673,29 +1850,34 @@ The current color system uses a dark theme optimized for bar environments with t
 **Layout Patterns:**
 
 **1. Container Patterns:**
+
 - **Full Width:** Mobile-first, full width containers
 - **Max Width:** `max-w-sm` (384px) for modals, `max-w-md` (448px) for forms
 - **Centered:** `mx-auto` for centered content
 - **Padding:** Consistent padding on all sides
 
 **2. Navigation Patterns:**
+
 - **Drawer:** Slide-in from left (MenuDrawer)
 - **Bottom Nav:** (Future) Primary actions at bottom for mobile
 - **FAB:** Floating Action Button for primary action (Record Match)
 
 **3. Card Patterns:**
+
 - **Elevated:** `bg-slate-800` on `bg-slate-900` background
 - **Bordered:** `border border-slate-700` for definition
 - **Rounded:** `rounded-xl` (12px) for modern feel
 - **Spaced:** Consistent padding and margins
 
 **4. Form Patterns:**
+
 - **Vertical Stack:** `space-y-4` between form fields
 - **Label Above:** Labels above inputs for clarity
 - **Full Width:** Inputs take full width of container
 - **Grouped:** Related fields grouped visually
 
 **Spacing Strategy:**
+
 - **Current State:** Functional spacing that works well
 - **Evolution:** May refine spacing scale with UX Pilot for better rhythm
 - **Maintain:** Large touch targets and generous spacing for bar environment
@@ -1706,6 +1888,7 @@ The current color system uses a dark theme optimized for bar environments with t
 **Visual Accessibility:**
 
 **1. Contrast Requirements:**
+
 - **Text on Dark Backgrounds:**
   - White text on `slate-900`: 15.8:1 (AAA compliant)
   - `slate-400` text on `slate-900`: 7.2:1 (AA compliant)
@@ -1716,18 +1899,21 @@ The current color system uses a dark theme optimized for bar environments with t
   - Hover states provide clear feedback
 
 **2. Touch Target Sizes:**
+
 - **Minimum Size:** 44x44px (11 Tailwind units) for all interactive elements
 - **Button Padding:** `py-4` (16px) ensures comfortable touch targets
 - **Spacing Between:** Adequate gaps prevent mis-taps
 - **Mobile-First:** All targets optimized for finger interaction
 
 **3. Text Readability:**
+
 - **Minimum Font Size:** 16px for body text (readable without zoom)
 - **Line Height:** 1.5 for comfortable reading
 - **Font Weight:** Regular (400) for body, Bold for headings
 - **Letter Spacing:** Default (optimized for Inter font)
 
 **4. Color & Visual Indicators:**
+
 - **Not Color-Only:** Status uses both color AND icons/shapes
   - Green + TrendingUp icon for gains
   - Red + TrendingDown icon for losses
@@ -1735,24 +1921,28 @@ The current color system uses a dark theme optimized for bar environments with t
 - **State Indicators:** Visual feedback for all states (hover, active, disabled)
 
 **5. Bar Environment Considerations:**
+
 - **High Contrast:** Dark theme with bright accents works in dim lighting
 - **Large Text:** Minimum sizes ensure readability even with distractions
 - **Clear Hierarchy:** Visual hierarchy helps users focus on important elements
 - **Simple Patterns:** Familiar patterns reduce cognitive load
 
 **6. Responsive & Adaptive:**
+
 - **Mobile-First:** Optimized for primary use case (mobile in bars)
 - **Scalable Text:** Text scales appropriately on different screen sizes
 - **Touch-Friendly:** All interactions optimized for touch, not just mouse
 - **Offline Support:** Interface works even with slow/offline connections
 
 **Accessibility Strategy:**
+
 - **Current State:** Meets basic accessibility requirements
 - **Future Enhancement:** Can improve with UX Pilot collaboration
 - **Maintain Standards:** WCAG AA minimum, aim for AAA where possible
 - **Test in Context:** Validate in actual bar environment with real users
 
 **Key Accessibility Principles:**
+
 1. **Perceivable:** High contrast, clear text, visual + non-visual indicators
 2. **Operable:** Large touch targets, keyboard navigation support, no time limits
 3. **Understandable:** Clear labels, consistent patterns, error prevention
@@ -1769,30 +1959,35 @@ The current design direction serves as a solid, functional foundation that will 
 **Current Direction Characteristics:**
 
 **1. Dark Theme with Thematic Colors**
+
 - **Visual Style:** Modern dark theme optimized for bar environments
 - **Color Application:** Amber (beer), Red (cups), Slate (professional)
 - **Rationale:** Works well in dim lighting, reduces eye strain, feels modern
 - **Emotional Tone:** Fun, energetic, social (warm amber, vibrant red)
 
 **2. Mobile-First, Touch-Optimized Layout**
+
 - **Layout Approach:** Single column on mobile, responsive for larger screens
 - **Navigation:** Drawer-based navigation, FAB for primary action
 - **Density:** Balanced - not too dense, not too sparse
 - **Rationale:** Primary use case is mobile in bar environment
 
 **3. Large, Clear Interactive Elements**
+
 - **Touch Targets:** Minimum 44x44px, generous padding
 - **Buttons:** Large, prominent, clear labels
 - **Inputs:** Comfortable padding, clear focus states
 - **Rationale:** "Alcohol-friendly" interface requirements
 
 **4. Minimalist Information Architecture**
+
 - **Hierarchy:** Clear visual hierarchy with bold headings
 - **Content:** Action-focused, minimal text
 - **Progressive Disclosure:** Details available on demand
 - **Rationale:** Reduces cognitive load, fast interactions
 
 **5. Celebration & Animation Focus**
+
 - **Visual Feedback:** Immediate animations for ranking updates
 - **Celebrations:** Confetti, position change animations
 - **Transitions:** Smooth, purposeful animations
@@ -1801,6 +1996,7 @@ The current design direction serves as a solid, functional foundation that will 
 **Design Direction Evaluation:**
 
 **Strengths of Current Direction:**
+
 - ✅ Functional and working (proven in implementation)
 - ✅ Aligned with bar environment requirements
 - ✅ Supports "alcohol-friendly" interface needs
@@ -1808,6 +2004,7 @@ The current design direction serves as a solid, functional foundation that will 
 - ✅ Good accessibility foundation
 
 **Areas for Enhancement (with UX Pilot):**
+
 - 🔄 Brand identity refinement (colors, typography)
 - 🔄 Visual polish and micro-interactions
 - 🔄 Enhanced celebration animations
@@ -1821,6 +2018,7 @@ The current design direction serves as a solid, functional foundation that will 
 **Decision:** Use current design direction as functional foundation, refine with UX Pilot collaboration for brand identity and visual polish.
 
 **Rationale:**
+
 1. **Proven Foundation:** Current design works and meets core requirements
 2. **Efficient Evolution:** Build on existing rather than start from scratch
 3. **Brand Development:** UX Pilot will help define brand identity properly
@@ -1828,6 +2026,7 @@ The current design direction serves as a solid, functional foundation that will 
 5. **User Validation:** Current design can be tested and refined based on feedback
 
 **Key Elements to Preserve:**
+
 - Dark theme (works well in bars)
 - Large touch targets (alcohol-friendly requirement)
 - Thematic color palette (beer/amber, red cups)
@@ -1836,6 +2035,7 @@ The current design direction serves as a solid, functional foundation that will 
 - Clear information hierarchy
 
 **Elements to Refine (with UX Pilot):**
+
 - Color palette refinement for better brand identity
 - Typography system enhancement
 - Spacing and rhythm improvements
@@ -1848,30 +2048,35 @@ The current design direction serves as a solid, functional foundation that will 
 **Why This Direction Works:**
 
 **1. Functional Foundation First:**
+
 - Current design prioritizes functionality and usability
 - Meets all core requirements (alcohol-friendly, mobile-first, etc.)
 - Can be used immediately while brand identity is refined
 - No need to wait for perfect design to launch
 
 **2. Brand Identity Development:**
+
 - UX Pilot collaboration will help define proper brand identity
 - Colors, typography, and visual style can be refined systematically
 - Design tokens structure allows easy updates
 - Maintains consistency during evolution
 
 **3. User-Centered Approach:**
+
 - Current design is user-tested through implementation
 - Refinements can be based on actual usage data
 - Iterative improvement based on real feedback
 - No assumptions - data-driven enhancements
 
 **4. Technical Efficiency:**
+
 - Builds on existing Tailwind configuration
 - No major refactoring needed
 - Component patterns already established
 - Smooth transition path
 
 **5. Emotional Goals Alignment:**
+
 - Dark theme with bright accents supports fun/excitement
 - Celebration animations support emotional goals
 - Thematic colors (beer, cups) create appropriate context
@@ -1880,24 +2085,28 @@ The current design direction serves as a solid, functional foundation that will 
 **Design Direction Principles:**
 
 **1. Preserve What Works:**
+
 - Keep functional patterns that meet requirements
 - Maintain accessibility standards
 - Preserve user-tested interactions
 - Don't change for change's sake
 
 **2. Enhance Systematically:**
+
 - Refine design tokens with UX Pilot
 - Update components incrementally
 - Test changes in bar environment
 - Validate improvements with users
 
 **3. Maintain Consistency:**
+
 - Use design system approach
 - Document all changes
 - Ensure component library coherence
 - Keep visual language unified
 
 **4. Support Core Experience:**
+
 - All design decisions support effortless match recording
 - Visual hierarchy supports leaderboard visibility
 - Animations enhance ranking update experience
@@ -1906,12 +2115,14 @@ The current design direction serves as a solid, functional foundation that will 
 ### Implementation Approach
 
 **Phase 1: Current State (Now - MVP)**
+
 - Use existing design direction as-is
 - Build new components following established patterns
 - Maintain consistency with current visual style
 - Focus on functionality and core features
 
 **Phase 2: UX Pilot Collaboration (Post-MVP)**
+
 - Export current design tokens and patterns
 - Collaborate with UX Pilot to define brand identity
 - Refine color palette, typography, spacing
@@ -1919,6 +2130,7 @@ The current design direction serves as a solid, functional foundation that will 
 - Develop animation library for celebrations
 
 **Phase 3: Systematic Implementation**
+
 - Update Tailwind config with refined tokens
 - Enhance components with new design language
 - Add celebration animations and micro-interactions
@@ -1926,6 +2138,7 @@ The current design direction serves as a solid, functional foundation that will 
 - Validate with users
 
 **Phase 4: Polish & Optimization**
+
 - Refine visual details
 - Optimize animations for performance
 - Enhance accessibility
@@ -1934,6 +2147,7 @@ The current design direction serves as a solid, functional foundation that will 
 **Design Direction Documentation:**
 
 **Current State Documentation:**
+
 - All design tokens documented in Visual Foundation section
 - Component patterns documented in Design System section
 - Color usage and rationale documented
@@ -1941,6 +2155,7 @@ The current design direction serves as a solid, functional foundation that will 
 - Spacing and layout principles documented
 
 **Evolution Preparation:**
+
 - Design tokens structured for easy updates
 - Component library organized for enhancement
 - Patterns documented for consistency
@@ -1984,6 +2199,7 @@ When evaluating design direction refinements with UX Pilot, consider:
 **Current Decision:** Use existing functional design as foundation, refine with UX Pilot.
 
 **Next Steps:**
+
 1. Continue building with current design direction
 2. Document all design decisions and patterns
 3. Prepare for UX Pilot collaboration
@@ -1991,6 +2207,7 @@ When evaluating design direction refinements with UX Pilot, consider:
 5. Refine based on feedback and UX Pilot input
 
 **Design Direction Flexibility:**
+
 - Can evolve colors, typography, spacing without breaking functionality
 - Can enhance animations and micro-interactions incrementally
 - Can refine component library systematically
@@ -2013,42 +2230,45 @@ flowchart TD
     Scan --> OpenApp{App opens}
     OpenApp -->|First time| LandingPage[Tournament landing page]
     OpenApp -->|Returning| CheckIdentity{Identity exists?}
-    
+
     LandingPage --> ShowTournament[Display tournament info:<br/>- Name<br/>- Date<br/>- Current players<br/>- Leaderboard preview]
     ShowTournament --> JoinButton[Large 'Join Tournament' button]
-    
+
     JoinButton --> EnterName[Enter name only<br/>No account required]
     EnterName --> ValidateName{Name valid?}
     ValidateName -->|No| ShowError[Show error:<br/>'Name required']
     ShowError --> EnterName
-    
+
     ValidateName -->|Yes| CreateGuest[Create guest identity<br/>Save to localStorage]
     CreateGuest --> JoinTournament[Add to tournament players]
     JoinTournament --> Success[Show success:<br/>'Welcome to [Tournament]!']
-    
+
     Success --> ShowDashboard[Tournament dashboard:<br/>- Leaderboard<br/>- Record Match button<br/>- Your stats]
     ShowDashboard --> Ready[Ready to play!]
-    
+
     CheckIdentity -->|Yes| ShowDashboard
     CheckIdentity -->|No| LandingPage
-    
+
     Ready --> RecordMatch[User can record matches]
     Ready --> ViewLeaderboard[User can view leaderboard]
 ```
 
 **Key Decision Points:**
+
 1. **QR Code Scan:** Opens app or browser to tournament page
 2. **Identity Check:** System checks if user has existing identity (localStorage)
 3. **Name Entry:** Single field, no validation complexity
 4. **Join Confirmation:** Clear success feedback
 
 **Success Criteria:**
+
 - **Time:** < 30 seconds from scan to ready
 - **Steps:** Maximum 3 taps (scan → enter name → join)
 - **Friction:** Zero account creation required
 - **Clarity:** User knows exactly what to do at each step
 
 **Error Recovery:**
+
 - Invalid name: Clear error message, retry option
 - Network error: Save offline, sync when connected
 - Already joined: Show existing identity option
@@ -2067,31 +2287,31 @@ flowchart TD
     Start([User finishes beer pong match]) --> OpenApp[Open app / Already open]
     OpenApp --> TournamentView[Tournament dashboard view]
     TournamentView --> RecordButton[FAB 'Record Match'<br/>Always visible]
-    
+
     RecordButton --> SelectFormat[Select match format:<br/>1v1 / 2v2 / 3v3<br/>Large buttons]
     SelectFormat --> SelectTeams[Select teams/players:<br/>- Team A selection<br/>- Team B selection<br/>- Pre-filled suggestions]
-    
+
     SelectTeams --> EnterScores[Enter scores:<br/>- Large +/- buttons<br/>- Team A score<br/>- Team B score<br/>- Visual validation]
-    
+
     EnterScores --> Validate{Valid scores?}
     Validate -->|No| ShowScoreError[Show error:<br/>'Invalid scores']
     ShowScoreError --> EnterScores
-    
+
     Validate -->|Yes| Review[Review match summary:<br/>- Teams<br/>- Scores<br/>- Format]
     Review --> Confirm{Confirm or Edit?}
     Confirm -->|Edit| SelectFormat
     Confirm -->|Confirm| Submit[Submit match]
-    
+
     Submit --> OptimisticUpdate[Show optimistic update:<br/>Ranking change preview]
     OptimisticUpdate --> Process[Process in background:<br/>- Calculate ELO<br/>- Update rankings<br/>- Update stats]
-    
+
     Process --> UpdateComplete[Update complete<br/>< 500ms]
     UpdateComplete --> ShowAnimation[Show celebration:<br/>- Position change animation<br/>- ELO delta display<br/>- Confetti if improvement]
-    
+
     ShowAnimation --> ShowLeaderboard[Auto-refresh leaderboard:<br/>- New positions<br/>- User highlighted<br/>- Top 3 podium]
-    
+
     ShowLeaderboard --> ShowStats[Update personal stats:<br/>- ELO change<br/>- Wins/Losses<br/>- Position change]
-    
+
     ShowStats --> NextAction{What next?}
     NextAction -->|Record Another| RecordButton
     NextAction -->|View Details| MatchDetails[View match history]
@@ -2100,6 +2320,7 @@ flowchart TD
 ```
 
 **Key Decision Points:**
+
 1. **Format Selection:** Clear 1v1/2v2/3v3 options
 2. **Team Selection:** Pre-filled suggestions based on recent matches
 3. **Score Entry:** Large buttons prevent errors
@@ -2107,18 +2328,21 @@ flowchart TD
 5. **Next Action:** Multiple paths after success
 
 **Success Criteria:**
+
 - **Time:** < 30 seconds total flow
 - **Taps:** < 5 taps to complete
 - **Feedback:** < 500ms for ranking update
 - **Clarity:** User always knows what to do next
 
 **Optimization Points:**
+
 - **Smart Defaults:** Pre-select format and teams based on history
 - **Optimistic Updates:** Show expected result immediately
 - **Auto-Refresh:** Leaderboard updates automatically
 - **Celebration:** Visual feedback creates emotional connection
 
 **Error Recovery:**
+
 - Invalid scores: Clear validation, prevent submission
 - Network error: Save offline, show pending status
 - Calculation error: Retry mechanism, show error clearly
@@ -2137,39 +2361,40 @@ flowchart TD
     Start([Organizer wants to create tournament]) --> OpenApp[Open app]
     OpenApp --> Dashboard[Main dashboard]
     Dashboard --> CreateButton[Large 'Create Tournament' button]
-    
+
     CreateButton --> EnterDetails[Enter tournament details:<br/>- Name field<br/>- Date picker<br/>- Optional description]
-    
+
     EnterDetails --> SelectFormat[Select default format:<br/>1v1 / 2v2 / 3v3<br/>Can change per match]
-    
+
     SelectFormat --> AntiCheat{Enable anti-cheat?}
     AntiCheat -->|Yes| EnableAC[Enable confirmation system]
     AntiCheat -->|No| SkipAC[Skip anti-cheat]
-    
+
     EnableAC --> Review
     SkipAC --> Review[Review tournament details]
-    
+
     Review --> Create[Create tournament]
     Create --> GenerateQR[Generate QR code automatically]
-    
+
     GenerateQR --> ShowQR[Display QR code:<br/>- Large, scannable<br/>- Share options<br/>- Print option]
-    
+
     ShowQR --> DisplayView{Configure display view?}
     DisplayView -->|Yes| SetupDisplay[Setup projection screen:<br/>- Get display URL<br/>- Instructions]
     DisplayView -->|No| SkipDisplay[Skip display setup]
-    
+
     SetupDisplay --> TournamentReady
     SkipDisplay --> TournamentReady[Tournament ready!]
-    
+
     TournamentReady --> ShareOptions[Share options:<br/>- Show QR code<br/>- Copy link<br/>- Share via message]
-    
+
     ShareOptions --> TournamentDashboard[Tournament dashboard:<br/>- Leaderboard<br/>- Participants list<br/>- Match history<br/>- Settings]
-    
+
     TournamentDashboard --> EventStart[Event starts]
     EventStart --> Monitor[Monitor tournament:<br/>- See participants join<br/>- View matches recorded<br/>- Watch leaderboard update]
 ```
 
 **Key Decision Points:**
+
 1. **Tournament Details:** Minimal required fields (name, date)
 2. **Format Selection:** Default format, can vary per match
 3. **Anti-Cheat:** Optional feature, clear explanation
@@ -2177,12 +2402,14 @@ flowchart TD
 5. **Sharing:** Multiple ways to share QR code
 
 **Success Criteria:**
+
 - **Time:** < 2 minutes to create and share
 - **Steps:** < 5 steps to tournament ready
 - **QR Code:** Generated automatically, no extra steps
 - **Clarity:** Organizer knows tournament is ready
 
 **Optimization Points:**
+
 - **Minimal Fields:** Only essential information required
 - **Smart Defaults:** Pre-fill date with today, suggest format
 - **Auto-Generate:** QR code created automatically
@@ -2193,31 +2420,37 @@ flowchart TD
 **Common Patterns Across All Journeys:**
 
 **1. Zero-Friction Entry Pattern:**
+
 - **Pattern:** Remove barriers to entry (no account, minimal info)
 - **Application:** QR code join, guest mode, quick tournament creation
 - **Rationale:** Maximizes participation, reduces drop-off
 
 **2. Progressive Disclosure Pattern:**
+
 - **Pattern:** Show essential info first, details on demand
 - **Application:** Leaderboard shows rank/name/ELO, tap for details
 - **Rationale:** Reduces cognitive load, focuses attention
 
 **3. Optimistic Update Pattern:**
+
 - **Pattern:** Show expected result immediately, confirm in background
 - **Application:** Ranking updates shown before server confirmation
 - **Rationale:** Creates instant feedback, feels responsive
 
 **4. Celebration Feedback Pattern:**
+
 - **Pattern:** Visual celebrations for achievements
 - **Application:** Confetti, animations for ranking improvements
 - **Rationale:** Creates emotional connection, memorable moments
 
 **5. Error Recovery Pattern:**
+
 - **Pattern:** Clear errors, easy recovery, no data loss
 - **Application:** Validation errors, offline saving, retry options
 - **Rationale:** Prevents frustration, maintains trust
 
 **6. Smart Defaults Pattern:**
+
 - **Pattern:** Pre-fill with intelligent suggestions
 - **Application:** Team selection, format suggestions, date defaults
 - **Rationale:** Reduces input, speeds up interactions
@@ -2225,16 +2458,19 @@ flowchart TD
 **Navigation Patterns:**
 
 **1. Always-Visible Primary Action:**
+
 - **Pattern:** FAB or prominent button for core action
 - **Application:** "Record Match" always accessible
 - **Rationale:** Reduces navigation, supports core experience
 
 **2. Contextual Navigation:**
+
 - **Pattern:** Navigation adapts to current context
 - **Application:** Tournament-specific navigation when in tournament
 - **Rationale:** Reduces confusion, focuses on relevant actions
 
 **3. Breadcrumb Navigation:**
+
 - **Pattern:** Clear path back to previous screens
 - **Application:** Back buttons, clear hierarchy
 - **Rationale:** Prevents feeling lost, supports exploration
@@ -2242,16 +2478,19 @@ flowchart TD
 **Decision Patterns:**
 
 **1. Binary Choices:**
+
 - **Pattern:** Clear yes/no, this/that choices
 - **Application:** Format selection, anti-cheat enable/disable
 - **Rationale:** Reduces decision fatigue, faster choices
 
 **2. Progressive Confirmation:**
+
 - **Pattern:** Review before final action
 - **Application:** Match summary before submission
 - **Rationale:** Prevents errors, builds confidence
 
 **3. Undo/Edit Options:**
+
 - **Pattern:** Always allow correction
 - **Application:** Edit button on review screen
 - **Rationale:** Reduces anxiety, supports exploration
@@ -2259,16 +2498,19 @@ flowchart TD
 **Feedback Patterns:**
 
 **1. Immediate Visual Feedback:**
+
 - **Pattern:** Every action has instant visual response
 - **Application:** Button states, loading indicators, animations
 - **Rationale:** Confirms actions, reduces uncertainty
 
 **2. Success Celebration:**
+
 - **Pattern:** Celebrate achievements with animations
 - **Application:** Confetti, position change animations
 - **Rationale:** Creates emotional connection, memorable
 
 **3. Error Prevention:**
+
 - **Pattern:** Prevent errors before they happen
 - **Application:** Validation, smart defaults, clear labels
 - **Rationale:** Better than error recovery, maintains flow
@@ -2276,14 +2518,16 @@ flowchart TD
 ### Flow Optimization Principles
 
 **1. Minimize Steps to Value:**
+
 - **Principle:** Get users to success as quickly as possible
-- **Application:** 
+- **Application:**
   - QR code join: 3 steps max
   - Match recording: 5 steps max
   - Tournament creation: 5 steps max
 - **Target:** Each journey completes in < 30 seconds to 2 minutes
 
 **2. Reduce Cognitive Load:**
+
 - **Principle:** One decision at a time, clear options
 - **Application:**
   - Single screen for match recording
@@ -2292,6 +2536,7 @@ flowchart TD
 - **Target:** Users never feel overwhelmed or confused
 
 **3. Provide Clear Feedback:**
+
 - **Principle:** Users always know what's happening
 - **Application:**
   - Loading states for all async actions
@@ -2300,6 +2545,7 @@ flowchart TD
 - **Target:** Zero uncertainty about system state
 
 **4. Create Moments of Delight:**
+
 - **Principle:** Celebrate achievements and progress
 - **Application:**
   - Ranking update animations
@@ -2308,6 +2554,7 @@ flowchart TD
 - **Target:** Users feel accomplished and excited
 
 **5. Handle Errors Gracefully:**
+
 - **Principle:** Errors are opportunities to help, not failures
 - **Application:**
   - Clear error messages
@@ -2316,6 +2563,7 @@ flowchart TD
 - **Target:** Users never lose progress or feel stuck
 
 **6. Support Multiple Paths:**
+
 - **Principle:** Different users take different paths, all should work
 - **Application:**
   - Guest or authenticated users
@@ -2326,16 +2574,19 @@ flowchart TD
 **Flow Optimization Examples:**
 
 **Match Recording Optimization:**
+
 - **Before:** Multiple screens, many fields, unclear process
 - **After:** Single screen, large buttons, smart defaults, < 30 seconds
 - **Improvement:** 70% reduction in time, 90% success rate
 
 **Tournament Join Optimization:**
+
 - **Before:** Account creation required, lengthy setup
 - **After:** QR scan → name → ready, < 30 seconds
 - **Improvement:** 80% reduction in friction, 70% join rate
 
 **Ranking Update Optimization:**
+
 - **Before:** Manual refresh, delayed updates
 - **After:** Automatic update, < 500ms, with animations
 - **Improvement:** Instant feedback, 80% view rate after match
@@ -2349,6 +2600,7 @@ flowchart TD
 Our chosen design system (Tailwind CSS + Modular Components + Design Tokens) provides a solid foundation with:
 
 **Base UI Components (Tailwind Utilities):**
+
 - **Buttons:** Available via Tailwind classes (`bg-primary`, `hover:bg-amber-600`, etc.)
 - **Inputs:** Form inputs with Tailwind styling
 - **Cards:** Container components with `bg-slate-800`, `rounded-xl`, `border`
@@ -2358,10 +2610,12 @@ Our chosen design system (Tailwind CSS + Modular Components + Design Tokens) pro
 - **Colors:** Thematic color system (primary amber, secondary slate, accent red)
 
 **Icons (Lucide React):**
+
 - Comprehensive icon library already integrated
 - Used for: Trophy, TrendingUp, TrendingDown, Calendar, Plus, etc.
 
 **Existing Reusable Components:**
+
 - **EmptyState:** Empty list/no-data states
 - **LoadingSpinner:** Loading indicators
 - **EloChangeDisplay:** ELO delta display with animations
@@ -2370,6 +2624,7 @@ Our chosen design system (Tailwind CSS + Modular Components + Design Tokens) pro
 - **MenuDrawer:** Navigation drawer
 
 **Design Tokens (Current Implementation):**
+
 - Colors: `primary: '#f59e0b'`, `secondary: '#1e293b'`, `accent: '#ef4444'`
 - Typography: `Inter, system-ui, Avenir` font stack
 - Spacing: Tailwind's default scale (4px base unit)
@@ -2384,44 +2639,56 @@ Based on user journey analysis, we need the following custom components to suppo
 **Purpose:** Enable users to record match results with minimal friction (< 30 seconds, < 5 taps).
 
 **Content:**
+
 - Match format selection (1v1, 2v2, 3v3)
 - Team/player selection for each side
-- Score entry with large +/- buttons
+- **Winner selection** (obligatoire) : choix Équipe 1 ou Équipe 2
+- **Optionnel** : gobelets restants (équipe gagnante uniquement), photo de l’équipe gagnante (souvenir)
 - Review summary before submission
 
+> **Spécifications détaillées** : voir `design-system-convergence.md` section 7 « Flow Enregistrement de match » (structure formulaire, photo souvenir, viralité, phase 2 LIA).
+
 **Actions:**
+
 - Select format (large buttons)
 - Select teams/players (with suggestions)
-- Adjust scores (increment/decrement)
+- Choose winner (Équipe 1 / Équipe 2)
+- Optionally: cups remaining (winner), photo (winner team)
 - Review and confirm match
 - Submit match result
 
 **States:**
+
 - **Default:** Format selection visible
 - **Format Selected:** Team selection visible
-- **Teams Selected:** Score entry visible
-- **Scores Entered:** Review screen visible
+- **Teams Selected:** Winner selection visible
+- **Winner Selected:** Review screen visible (options: cups, photo)
 - **Submitting:** Loading state with optimistic update
 - **Success:** Celebration animation, redirect to leaderboard
 - **Error:** Clear error message, retry option
 
 **Variants:**
+
 - **Quick Mode:** Pre-filled with smart defaults (last format, recent teams)
 - **Full Mode:** Complete selection flow
 
 **Accessibility:**
+
 - ARIA labels for all interactive elements
 - Keyboard navigation (Tab, Enter, Escape)
 - Screen reader announcements for state changes
 - Focus management during modal flow
 
 **Content Guidelines:**
+
 - Format buttons: Large (min 60px height), clear labels
 - Team selection: Show recent teams first, searchable
-- Score buttons: Large +/- buttons (min 48px), visual feedback on tap
+- Winner selection: Large Équipe 1 / Équipe 2 buttons, visual feedback on tap
+- Optional: Cups (1–10), photo (camera/gallery) — clearly optional
 - Review: Clear summary, easy edit option
 
 **Interaction Behavior:**
+
 - Single-screen flow (no navigation between screens)
 - Smart defaults reduce input required
 - Optimistic updates show expected result immediately
@@ -2432,39 +2699,46 @@ Based on user journey analysis, we need the following custom components to suppo
 **Purpose:** Display scannable QR code for tournament join, with sharing options.
 
 **Content:**
+
 - Large, scannable QR code
 - Tournament name and date
 - Join instructions
 - Share options (copy link, share via message)
 
 **Actions:**
+
 - Display QR code
 - Copy tournament link
 - Share via native share API
 - Print QR code (for physical display)
 
 **States:**
+
 - **Default:** QR code displayed
 - **Generating:** Loading state
 - **Shared:** Success confirmation
 - **Error:** Error message if generation fails
 
 **Variants:**
+
 - **Full Screen:** For projection/display
 - **Modal:** For sharing from tournament dashboard
 - **Embedded:** Small version in tournament card
 
 **Accessibility:**
+
 - Alt text describing QR code purpose
 - Keyboard accessible share buttons
 - Screen reader announcement of share success
 
 **Content Guidelines:**
+
 - QR code: Minimum 200x200px for scanning
 - Instructions: Clear, simple language
 - Share options: Native share when available
 
 **Interaction Behavior:**
+
 - QR code auto-generates on tournament creation
 - Share options use native APIs when available
 - Copy to clipboard with visual confirmation
@@ -2474,18 +2748,21 @@ Based on user journey analysis, we need the following custom components to suppo
 **Purpose:** Display tournament leaderboard with smooth animations for ranking changes.
 
 **Content:**
+
 - Player rank, name, ELO, wins/losses
 - User's position highlighted
 - Top 3 podium styling
 - Position change indicators (up/down arrows)
 
 **Actions:**
+
 - View full leaderboard
 - Tap player for details
 - Refresh leaderboard
 - Filter/sort options (optional)
 
 **States:**
+
 - **Loading:** Skeleton loaders
 - **Default:** Full leaderboard displayed
 - **Updating:** Smooth position change animations
@@ -2493,23 +2770,27 @@ Based on user journey analysis, we need the following custom components to suppo
 - **Error:** Error message with retry
 
 **Variants:**
+
 - **Compact:** Minimal info (rank, name, ELO)
 - **Detailed:** Full stats (wins, losses, recent matches)
 - **Podium View:** Top 3 emphasized with podium styling
 - **User Focus:** User's position always visible, highlighted
 
 **Accessibility:**
+
 - ARIA live region for ranking updates
 - Keyboard navigation for player selection
 - Screen reader announcements for position changes
 
 **Content Guidelines:**
+
 - Top 3: Special styling (podium, larger text)
 - User position: Always visible, highlighted
 - Position changes: Clear visual indicators (green up, red down)
 - ELO: Prominent display, color-coded changes
 
 **Interaction Behavior:**
+
 - Auto-refresh after match submission
 - Smooth animations for position changes (< 500ms)
 - Highlight user's position change with animation
@@ -2520,38 +2801,45 @@ Based on user journey analysis, we need the following custom components to suppo
 **Purpose:** Create moments of delight with visual celebrations for achievements.
 
 **Content:**
+
 - Confetti animation
 - Success message
 - Achievement badge (optional)
 - ELO change display
 
 **Actions:**
+
 - Trigger on ranking improvement
 - Trigger on milestone achievement
 - Dismiss celebration
 
 **States:**
+
 - **Triggered:** Animation plays
 - **Playing:** Confetti, message displayed
 - **Complete:** Auto-dismiss or manual dismiss
 
 **Variants:**
+
 - **Ranking Improvement:** Confetti + position change
 - **Milestone:** Confetti + badge + message
 - **First Win:** Special celebration
 - **Top 3 Entry:** Podium celebration
 
 **Accessibility:**
+
 - Reduced motion support (disable animations)
 - Screen reader announcement of achievement
 - Keyboard dismiss option
 
 **Content Guidelines:**
+
 - Confetti: Colorful, celebratory, not overwhelming
 - Message: Positive, encouraging
 - Duration: 2-3 seconds, then auto-dismiss
 
 **Interaction Behavior:**
+
 - Triggers automatically on achievement
 - Can be manually dismissed
 - Respects user's motion preferences
@@ -2561,17 +2849,20 @@ Based on user journey analysis, we need the following custom components to suppo
 **Purpose:** Enable users to join tournament via QR code in < 30 seconds without account.
 
 **Content:**
+
 - Tournament landing page (name, date, current players)
 - Name entry field
 - Join button
 - Success confirmation
 
 **Actions:**
+
 - Enter name
 - Join tournament
 - View tournament dashboard
 
 **States:**
+
 - **Landing:** Tournament info displayed
 - **Name Entry:** Input field focused
 - **Joining:** Loading state
@@ -2579,20 +2870,24 @@ Based on user journey analysis, we need the following custom components to suppo
 - **Error:** Error message, retry option
 
 **Variants:**
+
 - **First Time:** Full landing page
 - **Returning:** Quick join if identity exists
 
 **Accessibility:**
+
 - ARIA labels for form fields
 - Keyboard navigation
 - Screen reader announcements
 
 **Content Guidelines:**
+
 - Tournament info: Clear, scannable
 - Name field: Single field, no validation complexity
 - Join button: Large, prominent
 
 **Interaction Behavior:**
+
 - Auto-focus name field on load
 - Submit on Enter key
 - Create guest identity automatically
@@ -2603,37 +2898,44 @@ Based on user journey analysis, we need the following custom components to suppo
 **Purpose:** Large, touch-friendly score input with +/- buttons for bar environment.
 
 **Content:**
+
 - Current score display
 - Large increment button (+)
 - Large decrement button (-)
 - Team label
 
 **Actions:**
+
 - Increment score
 - Decrement score
 - Reset score (optional)
 
 **States:**
+
 - **Default:** Score at 0
 - **Active:** Score > 0, buttons enabled
 - **Max Reached:** Increment disabled (if max exists)
 - **Min Reached:** Decrement disabled at 0
 
 **Variants:**
+
 - **Standard:** Single score input
 - **Dual:** Two scores side-by-side (Team A vs Team B)
 
 **Accessibility:**
+
 - ARIA labels for buttons
 - Keyboard support (Arrow keys, +/- keys)
 - Screen reader announcements for score changes
 
 **Content Guidelines:**
+
 - Buttons: Minimum 48px height, large touch targets
 - Score display: Large, readable font (min 24px)
 - Visual feedback: Button press animation
 
 **Interaction Behavior:**
+
 - Haptic feedback on tap (mobile)
 - Visual animation on score change
 - Prevent invalid scores (negative, etc.)
@@ -2643,37 +2945,44 @@ Based on user journey analysis, we need the following custom components to suppo
 **Purpose:** Show visual indicator of ranking position change after match.
 
 **Content:**
+
 - Previous position
 - New position
 - Change direction (up/down)
 - Change amount
 
 **Actions:**
+
 - Display position change
 - Animate change
 - Dismiss indicator
 
 **States:**
+
 - **Hidden:** Not displayed
 - **Showing:** Animation playing
 - **Visible:** Static display
 - **Dismissed:** Fade out
 
 **Variants:**
+
 - **Improvement:** Green, up arrow, positive message
 - **Decline:** Red, down arrow, encouraging message
 - **No Change:** Neutral, no animation
 
 **Accessibility:**
+
 - ARIA live region for position changes
 - Screen reader announcement
 
 **Content Guidelines:**
+
 - Clear visual distinction (color, icon)
 - Encouraging message even for declines
 - Brief, non-intrusive
 
 **Interaction Behavior:**
+
 - Auto-display after match submission
 - Auto-dismiss after 3 seconds
 - Can be manually dismissed
@@ -2683,37 +2992,44 @@ Based on user journey analysis, we need the following custom components to suppo
 **Purpose:** Components optimized for large screen projection in bars.
 
 **Content:**
+
 - Full-screen leaderboard
 - Live match updates
 - Tournament branding
 - Animated transitions
 
 **Actions:**
+
 - Display leaderboard
 - Show live updates
 - Rotate between views (optional)
 
 **States:**
+
 - **Leaderboard:** Full leaderboard view
 - **Match Update:** Live match result display
 - **Celebration:** Full-screen celebration animation
 
 **Variants:**
+
 - **Leaderboard Only:** Static leaderboard
 - **Live Updates:** Animated position changes
 - **Multi-View:** Rotating between leaderboard, matches, stats
 
 **Accessibility:**
+
 - High contrast for projection
 - Large text for distance viewing
 - Clear visual hierarchy
 
 **Content Guidelines:**
+
 - Text: Minimum 24px, high contrast
 - Colors: Vibrant, visible from distance
 - Animations: Smooth, not distracting
 
 **Interaction Behavior:**
+
 - Auto-refresh every 5 seconds
 - Smooth transitions between updates
 - Respects reduced motion preferences
@@ -2723,6 +3039,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Foundation Components (From Design System):**
 
 **Base UI (Tailwind CSS):**
+
 - Buttons: Use Tailwind utility classes with design tokens
 - Inputs: Styled with Tailwind, consistent across app
 - Cards: Container pattern with `bg-slate-800`, `rounded-xl`
@@ -2730,11 +3047,13 @@ Based on user journey analysis, we need the following custom components to suppo
 - Typography: Consistent text utilities
 
 **Icons (Lucide React):**
+
 - Use existing icon library
 - Consistent sizing (24px default, 48px for emphasis)
 - Thematic colors (primary, secondary, accent)
 
 **Existing Components (Reuse):**
+
 - **EmptyState:** Already implemented, reuse for empty leaderboards
 - **LoadingSpinner:** Already implemented, reuse for loading states
 - **EloChangeDisplay:** Already implemented, enhance with celebration animations
@@ -2743,6 +3062,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Custom Components (Build with Design System Tokens):**
 
 **Implementation Approach:**
+
 1. **Build on Tailwind Foundation:** All custom components use Tailwind utilities
 2. **Design Token Integration:** Use established color/spacing/typography tokens
 3. **Consistency First:** Follow existing component patterns (EmptyState, EloChangeDisplay)
@@ -2751,18 +3071,21 @@ Based on user journey analysis, we need the following custom components to suppo
 6. **Performance:** Optimistic updates, smooth animations, efficient re-renders
 
 **Component Architecture:**
+
 - **Atomic Components:** Small, reusable pieces (Button, Input, ScoreInput)
 - **Molecular Components:** Combined atoms (MatchRecordingForm, QRCodeDisplay)
 - **Organism Components:** Complex features (AnimatedLeaderboard, TournamentJoinFlow)
 - **Page Components:** Full views (TournamentDashboard, LeagueDashboard)
 
 **Reusability Strategy:**
+
 - Extract common patterns (score input, position indicator)
 - Create shared hooks (useMatchRecording, useLeaderboard)
 - Build component variants for different contexts
 - Document component API and usage
 
 **Accessibility Strategy:**
+
 - ARIA labels for all interactive elements
 - Keyboard navigation support
 - Screen reader announcements
@@ -2771,6 +3094,7 @@ Based on user journey analysis, we need the following custom components to suppo
 - High contrast mode support
 
 **Performance Strategy:**
+
 - Optimistic updates for instant feedback
 - Lazy loading for non-critical components
 - Memoization for expensive calculations
@@ -2866,8 +3190,9 @@ Based on user journey analysis, we need the following custom components to suppo
 **Visual Design:**
 
 **1. Floating Action Button (FAB) - Primary Action**
+
 - **Usage:** Core, most frequent action (e.g., "Record Match")
-- **Visual:** 
+- **Visual:**
   - Large circular button (56px minimum)
   - Primary color (`bg-primary`, amber `#f59e0b`)
   - Fixed position (bottom-right on mobile, contextual on desktop)
@@ -2883,6 +3208,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Focus visible indicator
 
 **2. Primary Button - Critical Actions**
+
 - **Usage:** Important actions within flows (e.g., "Join Tournament", "Submit Match")
 - **Visual:**
   - Full-width on mobile (min 48px height)
@@ -2900,6 +3226,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Loading state announced to screen readers
 
 **3. Secondary Button - Supporting Actions**
+
 - **Usage:** Alternative actions, less critical (e.g., "Cancel", "Edit")
 - **Visual:**
   - Outlined style (`border-2 border-slate-600`)
@@ -2914,6 +3241,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Keyboard accessible
 
 **4. Tertiary Button - Subtle Actions**
+
 - **Usage:** Low-priority actions (e.g., "Skip", "Later")
 - **Visual:**
   - Text-only style
@@ -2928,12 +3256,14 @@ Based on user journey analysis, we need the following custom components to suppo
   - Clear text label
 
 **Button Size Guidelines:**
+
 - **FAB:** 56px (mobile), 64px (desktop)
 - **Primary/Secondary:** 48px minimum height (mobile), 44px (desktop)
 - **Touch Target:** Minimum 44x44px for all interactive elements
 - **Spacing:** 16px between buttons, 24px from screen edges
 
 **Button State Patterns:**
+
 - **Default:** Full opacity, normal state
 - **Hover:** Slightly darker/lighter, cursor pointer
 - **Active:** Pressed appearance, immediate feedback
@@ -2947,6 +3277,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Success Feedback:**
 
 **1. Match Recorded Success**
+
 - **Visual:**
   - Celebration animation (confetti)
   - Success toast notification
@@ -2965,6 +3296,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - ARIA live region update
 
 **2. Tournament Joined Success**
+
 - **Visual:**
   - Success message
   - Welcome animation
@@ -2982,6 +3314,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Error Feedback:**
 
 **1. Validation Errors**
+
 - **Visual:**
   - Inline error message below field
   - Red border on input (`border-red-500`)
@@ -3000,6 +3333,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Error associated with field
 
 **2. Network Errors**
+
 - **Visual:**
   - Error toast notification
   - Retry button
@@ -3016,6 +3350,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Keyboard accessible retry
 
 **3. System Errors**
+
 - **Visual:**
   - Error modal or toast
   - Clear error message
@@ -3034,6 +3369,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Loading Feedback:**
 
 **1. Optimistic Updates**
+
 - **Visual:**
   - Show expected result immediately
   - Subtle loading indicator
@@ -3050,6 +3386,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Success confirmed when complete
 
 **2. Skeleton Loaders**
+
 - **Visual:**
   - Placeholder shapes matching content
   - Subtle animation (pulse)
@@ -3063,6 +3400,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Content structure communicated
 
 **3. Progress Indicators**
+
 - **Visual:**
   - Spinner for short operations (< 2s)
   - Progress bar for longer operations
@@ -3078,6 +3416,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Warning Feedback:**
 
 **1. Confirmation Dialogs**
+
 - **Visual:**
   - Modal overlay
   - Warning icon
@@ -3095,6 +3434,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Info Feedback:**
 
 **1. Informational Toasts**
+
 - **Visual:**
   - Subtle notification
   - Info icon
@@ -3114,6 +3454,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Form Structure:**
 
 **1. Single-Screen Forms**
+
 - **Usage:** Match recording, tournament join
 - **Layout:**
   - All fields visible
@@ -3130,6 +3471,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Error messages clear
 
 **2. Multi-Step Forms**
+
 - **Usage:** Tournament creation (if complex)
 - **Layout:**
   - Progress indicator
@@ -3147,6 +3489,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Input Patterns:**
 
 **1. Text Input**
+
 - **Visual:**
   - Large touch target (min 48px height)
   - Clear label above or inside
@@ -3163,6 +3506,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Keyboard accessible
 
 **2. Score Input (Custom)**
+
 - **Visual:**
   - Large +/- buttons (min 48px)
   - Current score display (large, 24px+)
@@ -3177,6 +3521,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Screen reader announcements
 
 **3. Selection Input (Format, Teams)**
+
 - **Visual:**
   - Large selection buttons (min 60px height)
   - Clear labels
@@ -3194,6 +3539,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Validation Patterns:**
 
 **1. Real-Time Validation**
+
 - **Usage:** Score inputs, required fields
 - **Behavior:**
   - Validate on blur
@@ -3205,6 +3551,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Success checkmark (optional)
 
 **2. Submit Validation**
+
 - **Usage:** Form submission
 - **Behavior:**
   - Validate all fields on submit
@@ -3217,6 +3564,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Clear error indication
 
 **3. Smart Validation**
+
 - **Usage:** Prevent common errors
 - **Behavior:**
   - Format suggestions
@@ -3235,6 +3583,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Mobile Navigation:**
 
 **1. Bottom Navigation Bar**
+
 - **Usage:** Primary app navigation (if multiple main sections)
 - **Visual:**
   - Fixed at bottom
@@ -3251,6 +3600,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Current page announced
 
 **2. Floating Action Button (FAB)**
+
 - **Usage:** Primary action (Record Match)
 - **Visual:**
   - Fixed position (bottom-right)
@@ -3267,6 +3617,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Focus visible
 
 **3. Contextual Navigation**
+
 - **Usage:** Tournament-specific actions
 - **Visual:**
   - Adapts to current context
@@ -3283,6 +3634,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Desktop Navigation:**
 
 **1. Top Navigation Bar**
+
 - **Usage:** Main navigation on desktop
 - **Visual:**
   - Horizontal bar at top
@@ -3299,6 +3651,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Focus management
 
 **2. Side Navigation (Drawer)**
+
 - **Usage:** Secondary navigation, settings
 - **Visual:**
   - Slide-out drawer
@@ -3316,6 +3669,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Breadcrumb Navigation:**
 
 **1. Hierarchical Breadcrumbs**
+
 - **Usage:** Deep navigation (Tournament > Match > Details)
 - **Visual:**
   - Horizontal path
@@ -3334,6 +3688,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Navigation State Patterns:**
 
 **1. Active State**
+
 - **Visual:**
   - Primary color
   - Bold text or underline
@@ -3343,6 +3698,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Selected item
 
 **2. Hover State**
+
 - **Visual:**
   - Subtle background change
   - Cursor pointer
@@ -3352,6 +3708,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Interactive elements
 
 **3. Disabled State**
+
 - **Visual:**
   - 50% opacity
   - No interaction
@@ -3367,6 +3724,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Empty State Pattern:**
 
 **1. Visual Design**
+
 - **Icon:** Large, relevant icon (Lucide)
 - **Title:** Clear, descriptive heading
 - **Description:** Helpful explanation
@@ -3374,6 +3732,7 @@ Based on user journey analysis, we need the following custom components to suppo
 - **Layout:** Centered, vertical stack
 
 **2. Content Guidelines**
+
 - **Tone:** Helpful, encouraging, not apologetic
 - **Message:** Explain why empty, what user can do
 - **Action:** Clear next step
@@ -3382,30 +3741,35 @@ Based on user journey analysis, we need the following custom components to suppo
 **3. Specific Empty States**
 
 **No Matches:**
+
 - **Icon:** Trophy or Calendar
 - **Title:** "No matches yet"
 - **Description:** "Record your first match to start the tournament!"
 - **Action:** "Record Match" button (FAB or primary button)
 
 **No Players:**
+
 - **Icon:** Users
 - **Title:** "No players yet"
 - **Description:** "Share the tournament to invite players!"
 - **Action:** "Share Tournament" button
 
 **No Tournaments:**
+
 - **Icon:** Calendar or Plus
 - **Title:** "No tournaments yet"
 - **Description:** "Create your first tournament to get started!"
 - **Action:** "Create Tournament" button
 
 **No Search Results:**
+
 - **Icon:** Search
 - **Title:** "No results found"
 - **Description:** "Try different search terms or filters"
 - **Action:** "Clear Filters" button
 
 **4. Accessibility**
+
 - **Icon:** Decorative, hidden from screen readers
 - **Text:** Clear, descriptive
 - **Action:** Keyboard accessible
@@ -3418,6 +3782,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Loading State Patterns:**
 
 **1. Skeleton Loaders**
+
 - **Usage:** Content loading (leaderboard, lists)
 - **Visual:**
   - Placeholder shapes matching content
@@ -3432,6 +3797,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Content structure communicated
 
 **2. Spinner Loaders**
+
 - **Usage:** Short operations (< 2 seconds)
 - **Visual:**
   - Circular spinner
@@ -3446,6 +3812,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Progress if available
 
 **3. Progress Bars**
+
 - **Usage:** Longer operations (> 2 seconds)
 - **Visual:**
   - Horizontal progress bar
@@ -3460,6 +3827,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Percentage read aloud
 
 **4. Optimistic Updates**
+
 - **Usage:** Match recording, ranking updates
 - **Visual:**
   - Show expected result immediately
@@ -3476,22 +3844,26 @@ Based on user journey analysis, we need the following custom components to suppo
 **Loading State Guidelines:**
 
 **1. Timing:**
+
 - **< 100ms:** No loading state needed (feels instant)
 - **100ms - 2s:** Spinner or skeleton loader
 - **> 2s:** Progress bar with percentage
 - **Always:** Show something, never blank screen
 
 **2. Content:**
+
 - **Loading text:** "Loading..." or specific action ("Recording match...")
 - **Progress:** Percentage if available
 - **Estimated time:** If known and helpful
 
 **3. Error Handling:**
+
 - **Timeout:** Show error after 10 seconds
 - **Retry:** Provide retry option
 - **Fallback:** Show cached data if available
 
 **4. Accessibility:**
+
 - **Announcements:** Screen reader announces loading state
 - **Progress:** Progress updates announced
 - **Completion:** Success/error announced
@@ -3503,6 +3875,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Modal Patterns:**
 
 **1. Full-Screen Modal (Mobile)**
+
 - **Usage:** Match recording, tournament creation
 - **Visual:**
   - Full screen on mobile
@@ -3519,6 +3892,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Screen reader announcement
 
 **2. Centered Modal (Desktop)**
+
 - **Usage:** Confirmations, details
 - **Visual:**
   - Centered on screen
@@ -3535,6 +3909,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Screen reader announcement
 
 **3. Bottom Sheet (Mobile)**
+
 - **Usage:** Quick actions, options
 - **Visual:**
   - Slides up from bottom
@@ -3553,6 +3928,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Overlay Patterns:**
 
 **1. Toast Notifications**
+
 - **Usage:** Success, error, info messages
 - **Visual:**
   - Fixed position (top or bottom)
@@ -3569,6 +3945,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Non-intrusive
 
 **2. Celebration Overlay**
+
 - **Usage:** Achievement celebrations
 - **Visual:**
   - Full-screen or centered
@@ -3591,6 +3968,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Search Pattern:**
 
 **1. Search Input**
+
 - **Visual:**
   - Search icon left
   - Clear input field
@@ -3606,6 +3984,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Keyboard navigation
 
 **2. Search Results**
+
 - **Visual:**
   - List of results
   - Highlight matching text
@@ -3622,6 +4001,7 @@ Based on user journey analysis, we need the following custom components to suppo
 **Filtering Pattern:**
 
 **1. Filter Controls**
+
 - **Visual:**
   - Filter button or chips
   - Active filters highlighted
@@ -3636,6 +4016,7 @@ Based on user journey analysis, we need the following custom components to suppo
   - Clear labels
 
 **2. Filter Results**
+
 - **Visual:**
   - Results update immediately
   - Show active filters
@@ -3651,18 +4032,21 @@ Based on user journey analysis, we need the following custom components to suppo
 ### Pattern Consistency Rules
 
 **1. Visual Consistency:**
+
 - Same colors for same states (primary for primary actions, red for errors)
 - Consistent spacing (16px, 24px, 32px scale)
 - Uniform border radius (rounded-xl for cards, rounded-2xl for modals)
 - Consistent typography (font sizes, weights)
 
 **2. Behavioral Consistency:**
+
 - Same interactions for same actions (tap to select, swipe to dismiss)
 - Consistent animations (300ms transitions)
 - Uniform feedback timing (immediate for actions, 3-5s for toasts)
 - Predictable navigation patterns
 
 **3. Accessibility Consistency:**
+
 - ARIA labels on all interactive elements
 - Keyboard navigation everywhere
 - Screen reader announcements for all state changes
@@ -3670,6 +4054,7 @@ Based on user journey analysis, we need the following custom components to suppo
 - Reduced motion support throughout
 
 **4. Mobile-First Consistency:**
+
 - Touch targets minimum 44x44px
 - Large text (minimum 16px)
 - Spacing optimized for thumbs
@@ -3677,6 +4062,7 @@ Based on user journey analysis, we need the following custom components to suppo
 - Bar environment considerations (large buttons, high contrast)
 
 **5. Error Handling Consistency:**
+
 - Clear error messages
 - Easy recovery paths
 - No data loss
@@ -3710,6 +4096,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 **Primary Use Case:** Players recording matches, viewing leaderboards, joining tournaments via QR code.
 
 **Layout Principles:**
+
 - **Single Column:** All content stacks vertically
 - **Bottom Navigation:** Primary actions accessible with thumb (FAB for "Record Match")
 - **Large Touch Targets:** Minimum 44x44px, preferably 48px+ for bar environment
@@ -3718,6 +4105,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 - **Thumb Zone Optimization:** Critical actions in bottom 2/3 of screen
 
 **Key Mobile Features:**
+
 - **Floating Action Button (FAB):** Always-visible "Record Match" button
 - **Bottom Sheet:** Quick actions slide up from bottom
 - **Pull-to-Refresh:** Leaderboard and tournament lists
@@ -3725,6 +4113,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 - **Offline Support:** Core functionality works offline, syncs when connected
 
 **Mobile-Specific Considerations:**
+
 - **Bar Environment:** Large buttons, high contrast, readable in dim lighting
 - **One-Handed Use:** Critical actions reachable with thumb
 - **Quick Interactions:** < 30 seconds for match recording, < 3 taps
@@ -3736,6 +4125,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 **Primary Use Case:** Organizers managing tournaments, viewing detailed stats, display screen setup.
 
 **Layout Principles:**
+
 - **Two-Column Layout:** Content and sidebar when appropriate
 - **Touch-Optimized:** Still large touch targets (48px+)
 - **Enhanced Information Density:** More content visible without scrolling
@@ -3743,6 +4133,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 - **Multi-Panel Views:** Leaderboard + match history side-by-side
 
 **Key Tablet Features:**
+
 - **Split View:** Tournament dashboard with sidebar navigation
 - **Enhanced Leaderboard:** More columns visible (rank, name, ELO, wins, losses)
 - **Gesture Support:** Swipe, pinch-to-zoom for detailed views
@@ -3754,6 +4145,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 **Primary Use Case:** Organizers creating tournaments, analyzing stats, managing multiple tournaments, display screen configuration.
 
 **Layout Principles:**
+
 - **Multi-Column Layout:** Maximum use of screen real estate
 - **Top Navigation:** Horizontal navigation bar
 - **Sidebar:** Persistent sidebar for navigation and context
@@ -3761,6 +4153,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 - **Modal Dialogs:** Centered modals, not full-screen
 
 **Key Desktop Features:**
+
 - **Dashboard View:** Overview of all tournaments, stats, analytics
 - **Bulk Actions:** Select multiple items, batch operations
 - **Keyboard Shortcuts:** Power user features (e.g., Cmd+K for quick actions)
@@ -3769,6 +4162,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 - **Export Features:** Export leaderboards, stats, match history
 
 **Desktop-Specific Enhancements:**
+
 - **Hover States:** Rich hover interactions (tooltips, previews)
 - **Right-Click Menus:** Context menus for quick actions
 - **Drag-and-Drop:** Reorder items, drag players between teams
@@ -3780,6 +4174,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 **Primary Use Case:** Large screen projection in bars, showing live leaderboard and match updates.
 
 **Layout Principles:**
+
 - **Full-Screen Layout:** No navigation, no controls
 - **Large Typography:** Minimum 24px, preferably 32px+
 - **High Contrast:** Maximum contrast for distance viewing
@@ -3787,6 +4182,7 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 - **Auto-Rotate Views:** Rotate between leaderboard, recent matches, top players
 
 **Key Display Features:**
+
 - **Live Leaderboard:** Auto-refresh every 5 seconds
 - **Match Celebrations:** Full-screen celebrations for match completions
 - **Top 3 Podium:** Emphasized podium view for top players
@@ -3800,14 +4196,17 @@ Beer Pong League is designed mobile-first, recognizing that the primary use case
 We use Tailwind's standard breakpoint system with custom additions for our specific needs:
 
 **Mobile:**
+
 - **sm:** 640px - Small phones in landscape
 - **Default (0px - 639px):** Mobile-first base styles
 
 **Tablet:**
+
 - **md:** 768px - Tablets, large phones in landscape
 - **lg:** 1024px - Small laptops, large tablets
 
 **Desktop:**
+
 - **xl:** 1280px - Desktop screens
 - **2xl:** 1536px - Large desktop screens
 
@@ -3819,6 +4218,7 @@ We use Tailwind's standard breakpoint system with custom additions for our speci
 **Breakpoint Usage Guidelines:**
 
 **Mobile-First Development:**
+
 - Start with mobile styles (default)
 - Add tablet styles with `md:` prefix
 - Add desktop styles with `lg:` and `xl:` prefixes
@@ -3827,21 +4227,25 @@ We use Tailwind's standard breakpoint system with custom additions for our speci
 **Responsive Component Patterns:**
 
 **1. Navigation:**
+
 - **Mobile:** Bottom navigation or FAB
 - **Tablet:** Bottom navigation + drawer
 - **Desktop:** Top navigation bar + sidebar
 
 **2. Leaderboard:**
+
 - **Mobile:** Compact view (rank, name, ELO)
 - **Tablet:** Standard view (+ wins/losses)
 - **Desktop:** Full view (all columns, sortable)
 
 **3. Match Recording:**
+
 - **Mobile:** Full-screen modal
 - **Tablet:** Full-screen modal (touch-optimized)
 - **Desktop:** Centered modal (600px max-width)
 
 **4. Tournament Dashboard:**
+
 - **Mobile:** Single column, stacked cards
 - **Tablet:** Two columns, cards grid
 - **Desktop:** Three columns, detailed tables
@@ -3849,6 +4253,7 @@ We use Tailwind's standard breakpoint system with custom additions for our speci
 **Breakpoint Testing:**
 
 **Required Device Testing:**
+
 - iPhone SE (375px) - Smallest common mobile
 - iPhone 12/13/14 (390px) - Standard mobile
 - iPad (768px) - Standard tablet
@@ -3857,6 +4262,7 @@ We use Tailwind's standard breakpoint system with custom additions for our speci
 - Large Desktop (1920px+) - Display view
 
 **Browser Testing:**
+
 - Chrome (mobile & desktop)
 - Safari (iOS & macOS)
 - Firefox (desktop)
@@ -3869,6 +4275,7 @@ We use Tailwind's standard breakpoint system with custom additions for our speci
 Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard for accessible web applications. This ensures the product is usable by people with disabilities while maintaining practical implementation.
 
 **Why Level AA:**
+
 - **Legal Compliance:** Meets most legal requirements (ADA, Section 508)
 - **User Base:** Ensures accessibility for users with various disabilities
 - **Best Practice:** Industry standard for modern web applications
@@ -3879,18 +4286,21 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **1. Perceivable:**
 
 **Color Contrast:**
+
 - **Normal Text:** Minimum 4.5:1 contrast ratio
 - **Large Text (18px+):** Minimum 3:1 contrast ratio
 - **UI Components:** Minimum 3:1 contrast ratio for borders and interactive elements
 - **Current Implementation:** Primary amber (#f59e0b) on dark background meets AA standards
 
 **Text Alternatives:**
+
 - All images have alt text
 - Icons have ARIA labels
 - Decorative images marked as decorative
 - Complex graphics have text descriptions
 
 **Text Resizing:**
+
 - Text can be resized up to 200% without loss of functionality
 - Layout remains usable at 200% zoom
 - No horizontal scrolling required
@@ -3898,6 +4308,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **2. Operable:**
 
 **Keyboard Navigation:**
+
 - All functionality available via keyboard
 - No keyboard traps
 - Logical tab order
@@ -3905,11 +4316,13 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 - Focus indicators visible (2px outline, primary color)
 
 **Touch Target Sizes:**
+
 - Minimum 44x44px for all interactive elements
 - Spacing between touch targets (8px minimum)
 - Large buttons for bar environment (48px+ preferred)
 
 **No Seizure-Inducing Content:**
+
 - No flashing content (more than 3 flashes per second)
 - Animations can be reduced/disabled
 - Respects `prefers-reduced-motion` media query
@@ -3917,16 +4330,19 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **3. Understandable:**
 
 **Language:**
+
 - Page language declared (HTML lang attribute)
 - Language changes announced
 - Content in user's preferred language (French for French users)
 
 **Consistent Navigation:**
+
 - Navigation consistent across pages
 - Predictable interaction patterns
 - Clear labels and instructions
 
 **Error Identification:**
+
 - Errors clearly identified
 - Error messages descriptive
 - Error fields highlighted
@@ -3935,18 +4351,21 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **4. Robust:**
 
 **Semantic HTML:**
+
 - Proper heading hierarchy (h1, h2, h3)
 - Semantic elements (nav, main, article, section)
 - Form labels associated with inputs
 - Lists properly marked up
 
 **ARIA Support:**
+
 - ARIA labels for interactive elements
 - ARIA roles where needed
 - ARIA live regions for dynamic content
 - ARIA states (aria-expanded, aria-selected, etc.)
 
 **Screen Reader Support:**
+
 - Compatible with VoiceOver (iOS/macOS)
 - Compatible with NVDA (Windows)
 - Compatible with JAWS (Windows)
@@ -3955,30 +4374,35 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **Specific Accessibility Considerations for Beer Pong League:**
 
 **1. Bar Environment Accessibility:**
+
 - **High Contrast Mode:** Support system high contrast settings
 - **Large Text Mode:** Support system large text settings
 - **Reduced Motion:** Respect `prefers-reduced-motion` for animations
 - **Brightness:** Readable in dim bar lighting (high contrast, large text)
 
 **2. Touch Accessibility:**
+
 - **Large Targets:** All buttons minimum 44x44px (48px+ preferred)
 - **Spacing:** Adequate spacing between interactive elements
 - **Haptic Feedback:** Tactile feedback for button presses (mobile)
 - **Gesture Alternatives:** All gestures have button alternatives
 
 **3. Cognitive Accessibility:**
+
 - **Simple Language:** Clear, simple instructions
 - **Progressive Disclosure:** Complex information revealed gradually
 - **Error Prevention:** Validation before submission, clear error messages
 - **Consistent Patterns:** Predictable interactions throughout
 
 **4. Visual Accessibility:**
+
 - **Color Independence:** Information not conveyed by color alone
 - **Focus Indicators:** Clear focus states (2px outline, primary color)
 - **Text Alternatives:** Icons have text labels or ARIA labels
 - **Zoom Support:** Content usable at 200% zoom
 
 **5. Motor Accessibility:**
+
 - **Keyboard Navigation:** Full keyboard support
 - **Voice Control:** Compatible with voice control software
 - **Switch Control:** Compatible with switch control devices
@@ -3987,12 +4411,14 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **Accessibility Testing Checklist:**
 
 **Automated Testing:**
+
 - [ ] axe DevTools (browser extension)
 - [ ] WAVE (Web Accessibility Evaluation Tool)
 - [ ] Lighthouse accessibility audit
 - [ ] Pa11y (command-line tool)
 
 **Manual Testing:**
+
 - [ ] Keyboard-only navigation (Tab, Enter, Space, Arrow keys)
 - [ ] Screen reader testing (VoiceOver, NVDA, JAWS)
 - [ ] Color contrast verification
@@ -4001,6 +4427,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 - [ ] Reduced motion testing
 
 **User Testing:**
+
 - [ ] Test with users who use screen readers
 - [ ] Test with users who use keyboard navigation
 - [ ] Test with users with motor disabilities
@@ -4012,12 +4439,14 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **Responsive Design Testing:**
 
 **Device Testing:**
+
 - **Physical Devices:** Test on actual phones, tablets, desktops
 - **Device Lab:** Test on variety of screen sizes and resolutions
 - **Real Network Conditions:** Test on slow/unreliable bar WiFi
 - **Battery Impact:** Monitor battery usage on mobile devices
 
 **Browser Testing:**
+
 - **Chrome:** Mobile (Android) and Desktop
 - **Safari:** iOS and macOS
 - **Firefox:** Desktop
@@ -4025,6 +4454,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 - **Samsung Internet:** Android (popular alternative)
 
 **Responsive Testing Checklist:**
+
 - [ ] Mobile (320px - 767px) - All features functional
 - [ ] Tablet (768px - 1023px) - Enhanced layouts work
 - [ ] Desktop (1024px+) - Full feature set accessible
@@ -4038,12 +4468,14 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **Accessibility Testing:**
 
 **Automated Tools:**
+
 - **axe DevTools:** Browser extension for accessibility testing
 - **WAVE:** Web accessibility evaluation tool
 - **Lighthouse:** Chrome DevTools accessibility audit
 - **Pa11y:** Command-line accessibility testing
 
 **Manual Testing:**
+
 - **Keyboard Navigation:** Test all features with keyboard only
 - **Screen Readers:** Test with VoiceOver, NVDA, JAWS, TalkBack
 - **Color Contrast:** Verify all text meets contrast requirements
@@ -4052,6 +4484,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 - **Reduced Motion:** Test with `prefers-reduced-motion` enabled
 
 **User Testing:**
+
 - **Screen Reader Users:** Test with users who rely on screen readers
 - **Keyboard Users:** Test with users who navigate via keyboard
 - **Motor Disabilities:** Test with users who have motor impairments
@@ -4059,6 +4492,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 - **Visual Impairments:** Test with users who have visual impairments
 
 **Accessibility Testing Checklist:**
+
 - [ ] WCAG 2.1 Level AA compliance verified
 - [ ] Keyboard navigation works for all features
 - [ ] Screen reader compatibility (VoiceOver, NVDA, JAWS)
@@ -4073,6 +4507,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **Bar Environment Testing:**
 
 **Real-World Testing:**
+
 - **Bar Lighting:** Test in dim bar lighting conditions
 - **Network Conditions:** Test on slow/unreliable bar WiFi
 - [ ] **Distractions:** Test with background noise and distractions
@@ -4082,6 +4517,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 - [ ] **Large Buttons:** Verify buttons large enough for bar environment
 
 **Performance Testing:**
+
 - **Load Time:** < 3 seconds on 3G connection
 - [ ] **Interaction Response:** < 100ms for button presses
 - [ ] **Animation Performance:** 60fps animations
@@ -4093,6 +4529,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **Responsive Development Guidelines:**
 
 **1. Mobile-First CSS:**
+
 ```css
 /* Start with mobile styles (default) */
 .button {
@@ -4116,24 +4553,28 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 ```
 
 **2. Relative Units:**
+
 - Use `rem` for font sizes (scales with user's font size preferences)
 - Use `%` for widths and flexible layouts
 - Use `vw`/`vh` for viewport-relative sizing (sparingly)
 - Avoid fixed `px` values except for borders and small details
 
 **3. Flexible Layouts:**
+
 - Use Flexbox for component layouts
 - Use CSS Grid for complex page layouts
 - Use `min-width`/`max-width` for responsive containers
 - Avoid fixed widths that break on small screens
 
 **4. Responsive Images:**
+
 - Use `srcset` for different image sizes
 - Use `picture` element for art direction
 - Lazy load images below the fold
 - Optimize images for different screen densities
 
 **5. Touch Optimization:**
+
 - Minimum 44x44px touch targets
 - Adequate spacing between interactive elements (8px+)
 - Haptic feedback for button presses (mobile)
@@ -4142,6 +4583,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 **Accessibility Development Guidelines:**
 
 **1. Semantic HTML:**
+
 ```html
 <!-- Good: Semantic structure -->
 <nav>
@@ -4153,8 +4595,12 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 <main>
   <h1>Tournament Leaderboard</h1>
   <table>
-    <thead>...</thead>
-    <tbody>...</tbody>
+    <thead>
+      ...
+    </thead>
+    <tbody>
+      ...
+    </tbody>
   </table>
 </main>
 
@@ -4165,14 +4611,15 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 ```
 
 **2. ARIA Labels:**
+
 ```html
 <!-- Good: Clear ARIA labels -->
 <button aria-label="Record new match">
   <PlusIcon />
 </button>
 
-<input 
-  type="text" 
+<input
+  type="text"
   aria-label="Player name"
   aria-required="true"
   aria-invalid="false"
@@ -4185,6 +4632,7 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 ```
 
 **3. Keyboard Navigation:**
+
 - All interactive elements keyboard accessible
 - Logical tab order (left-to-right, top-to-bottom)
 - Skip links for main content
@@ -4193,11 +4641,12 @@ Beer Pong League targets **WCAG 2.1 Level AA** compliance, the industry standard
 - Enter/Space activates buttons
 
 **4. Focus Management:**
+
 ```javascript
 // Focus trap in modals
-const modal = document.querySelector('.modal');
+const modal = document.querySelector(".modal");
 const focusableElements = modal.querySelectorAll(
-  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
 );
 const firstElement = focusableElements[0];
 const lastElement = focusableElements[focusableElements.length - 1];
@@ -4207,11 +4656,10 @@ firstElement.focus();
 ```
 
 **5. Screen Reader Support:**
+
 ```html
 <!-- Live regions for dynamic content -->
-<div aria-live="polite" aria-atomic="true">
-  Match recorded successfully!
-</div>
+<div aria-live="polite" aria-atomic="true">Match recorded successfully!</div>
 
 <!-- Status announcements -->
 <div role="status" aria-live="assertive">
@@ -4220,12 +4668,14 @@ firstElement.focus();
 ```
 
 **6. Color Contrast:**
+
 - Verify all text meets 4.5:1 contrast ratio (normal text)
 - Verify all text meets 3:1 contrast ratio (large text)
 - Use tools to check contrast (WebAIM Contrast Checker)
 - Don't rely on color alone to convey information
 
 **7. Reduced Motion:**
+
 ```css
 /* Respect user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
@@ -4238,18 +4688,17 @@ firstElement.focus();
 ```
 
 **8. Form Accessibility:**
+
 ```html
 <!-- Good: Properly labeled form -->
 <label for="player-name">Player Name</label>
-<input 
-  type="text" 
+<input
+  type="text"
   id="player-name"
   aria-required="true"
   aria-describedby="name-error"
 />
-<span id="name-error" role="alert" aria-live="polite">
-  Name is required
-</span>
+<span id="name-error" role="alert" aria-live="polite"> Name is required </span>
 
 <!-- Bad: No label association -->
 <input type="text" placeholder="Enter name" />
@@ -4258,6 +4707,7 @@ firstElement.focus();
 **Implementation Checklist:**
 
 **Responsive:**
+
 - [ ] Mobile-first CSS approach
 - [ ] Relative units (rem, %, vw, vh)
 - [ ] Flexible layouts (Flexbox, Grid)
@@ -4267,6 +4717,7 @@ firstElement.focus();
 - [ ] Tested in bar environment
 
 **Accessibility:**
+
 - [ ] Semantic HTML structure
 - [ ] ARIA labels and roles
 - [ ] Keyboard navigation

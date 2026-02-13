@@ -93,15 +93,21 @@ describe('useHomeData', () => {
     });
 
     it('should handle zero matches correctly in stats', async () => {
-      // Create type-safe mock chain
-      const mockLimit = vi.fn().mockResolvedValue({ data: [], error: null });
+      // Mock chain with maybeSingle for tournament/league queries
+      const mockMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
       const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
       const mockEq = vi.fn().mockReturnValue({ order: mockOrder });
       const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-      
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-      } as MockSupabaseQuery);
+
+      // elo_history has different chain (select->eq only, no order/limit)
+      const mockEloEq = vi.fn().mockResolvedValue({ data: [], error: null });
+      const mockEloSelect = vi.fn().mockReturnValue({ eq: mockEloEq });
+
+      vi.mocked(supabase.from).mockImplementation((table: string) => ({
+        select: table === 'elo_history' ? mockEloSelect : mockSelect,
+        eq: table === 'elo_history' ? mockEloEq : mockEq,
+      } as unknown as MockSupabaseQuery));
 
       const { result } = renderHook(() => useHomeData('user-123'), {
         wrapper: createWrapper(),

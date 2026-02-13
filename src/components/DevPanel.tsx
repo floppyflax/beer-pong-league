@@ -1,13 +1,14 @@
-import { useState } from 'react';
-import { useIdentityContext } from '../context/IdentityContext';
-import { useAuthContext } from '../context/AuthContext';
-import { authService } from '../services/AuthService';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useIdentityContext } from "../context/IdentityContext";
+import { useAuthContext } from "../context/AuthContext";
+import { authService } from "../services/AuthService";
+import toast from "react-hot-toast";
 
 /**
  * Development-only panel for quick actions and debugging.
  * Only visible when import.meta.env.DEV === true
- * 
+ *
  * Features:
  * - Quick dev admin login (no Magic Link needed)
  * - Identity state display
@@ -25,61 +26,64 @@ export function DevPanel() {
 
   const handleTestAccountLogin = async (email: string) => {
     const loadingToast = toast.loading(`Connexion avec ${email}...`);
-    
+
     try {
       const { error, usedOTP } = await authService.signInWithOTP(email);
-      
+
       if (error) {
         toast.error(`Erreur: ${error.message}`, { id: loadingToast });
-        console.error('Test account login failed:', error);
+        console.error("Test account login failed:", error);
         return;
       }
 
       // If password auth succeeded (usedOTP === false)
       if (usedOTP === false) {
-        toast.success('✨ Connecté avec mot de passe! Redirection...', { id: loadingToast });
+        toast.success("✨ Connecté avec mot de passe! Redirection...", {
+          id: loadingToast,
+        });
         // Wait a moment for auth state to update
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = "/";
         }, 1000);
         return;
       }
 
       // If OTP fallback was used (usedOTP === true)
       if (usedOTP === true) {
-        toast.success('✉️ Email envoyé! Vérifiez votre boîte de réception', {
+        toast.success("✉️ Email envoyé! Vérifiez votre boîte de réception", {
           id: loadingToast,
           duration: 5000,
         });
-        console.log('⚠️ Password auth not enabled - OTP fallback used');
-        console.log('💡 To enable instant login, follow: ENABLE_PASSWORD_AUTH.md');
+        console.log("⚠️ Password auth not enabled - OTP fallback used");
+        console.log(
+          "💡 To enable instant login, follow: ENABLE_PASSWORD_AUTH.md",
+        );
         return;
       }
 
       // Default success (shouldn't reach here normally)
-      toast.success('Connecté! Redirection...', { id: loadingToast });
+      toast.success("Connecté! Redirection...", { id: loadingToast });
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = "/";
       }, 1000);
-      
     } catch (error) {
-      toast.error('Erreur de connexion', { id: loadingToast });
-      console.error('Test account login exception:', error);
+      toast.error("Erreur de connexion", { id: loadingToast });
+      console.error("Test account login exception:", error);
     }
   };
 
   const handleAuthLogout = async () => {
     try {
       await signOut();
-      toast.success('Déconnecté');
+      toast.success("Déconnecté");
     } catch (error) {
-      toast.error('Erreur lors de la déconnexion');
+      toast.error("Erreur lors de la déconnexion");
     }
   };
 
   const handleClearLocalIdentity = () => {
-    localStorage.removeItem('local_user');
-    toast.success('Identité locale supprimée');
+    localStorage.removeItem("local_user");
+    toast.success("Identité locale supprimée");
     window.location.reload();
   };
 
@@ -114,7 +118,7 @@ export function DevPanel() {
             <div className="text-xs font-semibold text-slate-400 mb-2">
               IDENTITY STATUS
             </div>
-            
+
             {isAuthenticated && user ? (
               <div className="space-y-1">
                 <div className="text-green-400 font-semibold">
@@ -152,9 +156,7 @@ export function DevPanel() {
                 </button>
               </div>
             ) : (
-              <div className="text-slate-400">
-                ❌ No Identity
-              </div>
+              <div className="text-slate-400">❌ No Identity</div>
             )}
           </div>
 
@@ -163,7 +165,7 @@ export function DevPanel() {
             <div className="text-xs font-semibold text-slate-400 mb-2">
               QUICK ACTIONS
             </div>
-            
+
             {/* Test Account Logins (only if not authenticated) */}
             {!isAuthenticated && (
               <div className="space-y-2">
@@ -171,13 +173,13 @@ export function DevPanel() {
                   Test Accounts (no email required):
                 </div>
                 <button
-                  onClick={() => handleTestAccountLogin('devadmin@test.com')}
+                  onClick={() => handleTestAccountLogin("devadmin@test.com")}
                   className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors flex items-center justify-center gap-2"
                 >
                   <span>👨‍💻</span> Login as Dev Admin
                 </button>
                 <button
-                  onClick={() => handleTestAccountLogin('devtest@test.com')}
+                  onClick={() => handleTestAccountLogin("devtest@test.com")}
                   className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors flex items-center justify-center gap-2"
                 >
                   <span>🧪</span> Login as Dev Test
@@ -187,13 +189,21 @@ export function DevPanel() {
 
             {/* Utility Actions */}
             <div className="pt-2 mt-2 border-t border-slate-700">
+              <Link
+                to="/design-system"
+                className="w-full block px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded transition-colors mb-2 text-center"
+              >
+                Design System
+              </Link>
               <button
                 onClick={() => {
-                  console.log('localStorage:', {
-                    localUser: localStorage.getItem('local_user'),
-                    supabaseAuth: Object.keys(localStorage).filter(k => k.startsWith('sb-')),
+                  console.log("localStorage:", {
+                    localUser: localStorage.getItem("local_user"),
+                    supabaseAuth: Object.keys(localStorage).filter((k) =>
+                      k.startsWith("sb-"),
+                    ),
                   });
-                  toast.success('Check console for localStorage data');
+                  toast.success("Check console for localStorage data");
                 }}
                 className="w-full px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded transition-colors mb-2"
               >

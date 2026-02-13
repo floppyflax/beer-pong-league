@@ -13,7 +13,34 @@ interface League {
 interface LastLeagueCardProps {
   league?: League;
   isLoading?: boolean;
+  /** AC3: When empty, callback for "Créer une league" (checks premium limit when provided) */
+  onEmptyAction?: () => void;
+  /** Show lock icon on empty CTA when at premium limit */
+  emptyActionLocked?: boolean;
 }
+
+const EmptyCard = ({
+  onAction,
+  showLock,
+}: {
+  onAction: () => void;
+  showLock?: boolean;
+}) => (
+  <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 text-center">
+    <Award size={32} className="mx-auto mb-4 text-slate-600" />
+    <h3 className="text-lg font-bold text-white mb-2">Aucune league</h3>
+    <p className="text-sm text-slate-400 mb-4">
+      Créez une league pour jouer avec vos amis régulièrement
+    </p>
+    <button
+      onClick={onAction}
+      className="w-full bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
+    >
+      Créer une league
+      {showLock && <span>🔒</span>}
+    </button>
+  </div>
+);
 
 const SkeletonCard = () => (
   <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 animate-pulse">
@@ -23,27 +50,12 @@ const SkeletonCard = () => (
   </div>
 );
 
-const EmptyCard = () => {
-  const navigate = useNavigate();
-
-  return (
-    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 text-center">
-      <Award size={32} className="mx-auto mb-4 text-slate-600" />
-      <h3 className="text-lg font-bold text-white mb-2">Aucune league</h3>
-      <p className="text-sm text-slate-400 mb-4">
-        Créez une league pour jouer avec vos amis régulièrement
-      </p>
-      <button
-        onClick={() => navigate('/create-league')}
-        className="w-full bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-lg transition-all"
-      >
-        Créer une league
-      </button>
-    </div>
-  );
-};
-
-export const LastLeagueCard = ({ league, isLoading }: LastLeagueCardProps) => {
+export const LastLeagueCard = ({
+  league,
+  isLoading,
+  onEmptyAction,
+  emptyActionLocked,
+}: LastLeagueCardProps) => {
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -51,7 +63,12 @@ export const LastLeagueCard = ({ league, isLoading }: LastLeagueCardProps) => {
   }
 
   if (!league) {
-    return <EmptyCard />;
+    return (
+      <EmptyCard
+        onAction={onEmptyAction ?? (() => navigate('/create-league'))}
+        showLock={emptyActionLocked}
+      />
+    );
   }
 
   return (

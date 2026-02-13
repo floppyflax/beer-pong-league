@@ -442,3 +442,19 @@ Successfully implemented the Join page with QR code scanning and manual code ent
 - `tests/unit/utils/extractCodeFromQR.test.ts` - **Created**
 - `tests/unit/pages/Join.test.tsx` - Fallback test, getAllByText for multiple buttons
 - `tests/unit/hooks/useJoinTournament.test.ts` - 6-8 char tests
+
+---
+
+## Code Review (AI) - 2026-02-13 (Batch 10-1, 10-3, 10-4, 14-1)
+
+### Fixes Applied
+
+#### ✅ FIXED: CodeInputModal error display (MEDIUM)
+**Issue:** When onSubmit threw, setError was never called — modal didn't show error inline (only toast).  
+**Fix:** Added setError(message) in catch block.  
+**File:** `src/components/join/CodeInputModal.tsx`
+
+#### ✅ FIXED: Join test multiple elements
+**Issue:** "Rejoindre un Tournoi" appears in header and h2 — getByText failed with multiple elements.  
+**Fix:** Updated test to use getAllByText with length check.  
+**File:** `tests/unit/pages/Join.test.tsx`

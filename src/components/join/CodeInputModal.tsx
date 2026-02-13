@@ -36,8 +36,8 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
       await onSubmit(code);
       // Success - modal will be closed by parent after navigation
     } catch (err) {
-      // Error is handled in the hook and displayed via toast
-      // We keep the modal open so user can try again
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       setIsLoading(false);
     }
   };

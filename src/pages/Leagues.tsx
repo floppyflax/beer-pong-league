@@ -116,11 +116,13 @@ export const Leagues: React.FC = () => {
           </div>
         </div>
 
-        {/* Payment Modal */}
+        {/* Payment Modal - AC5: custom message when at league limit */}
         {showPaymentModal && (
           <PaymentModal
             isOpen={showPaymentModal}
             onClose={() => setShowPaymentModal(false)}
+            title={isAtLeagueLimit ? 'Limite gratuite atteinte' : undefined}
+            subtitle={isAtLeagueLimit ? 'La version gratuite est limitée à 1 league active. Passez Premium pour créer des leagues illimitées et profiter de toutes les fonctionnalités avancées.' : undefined}
           />
         )}
       </div>
@@ -208,11 +210,13 @@ export const Leagues: React.FC = () => {
         />
       </div>
 
-      {/* Payment Modal for Premium Upgrade */}
+      {/* Payment Modal for Premium Upgrade - AC5: custom message when at league limit */}
       {showPaymentModal && (
         <PaymentModal
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
+          title={isAtLeagueLimit ? 'Limite gratuite atteinte' : undefined}
+          subtitle={isAtLeagueLimit ? 'La version gratuite est limitée à 1 league active. Passez Premium pour créer des leagues illimitées et profiter de toutes les fonctionnalités avancées.' : undefined}
         />
       )}
     </div>

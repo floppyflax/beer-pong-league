@@ -17,8 +17,9 @@ import { premiumService } from "../services/PremiumService";
 import { databaseService } from "../services/DatabaseService";
 import { generateTournamentCode } from "../utils/tournamentCode";
 import { PaymentModal } from "../components/PaymentModal";
+import { ContextualHeader } from "../components/navigation/ContextualHeader";
 import toast from "react-hot-toast";
-import { ArrowLeft, Info } from "lucide-react";
+import { Info } from "lucide-react";
 
 interface FormatOption {
   value: '2v2' | '1v1' | 'libre';
@@ -257,19 +258,15 @@ export const CreateTournament = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => navigate('/')}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
-            aria-label="Retour"
-          >
-            <ArrowLeft size={24} className="text-white" />
-          </button>
-          <h1 className="text-3xl font-bold text-white">Créer un Tournoi</h1>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Contextual Header (Story 13.2) */}
+      <ContextualHeader 
+        title="Créer un Tournoi"
+        showBackButton={true}
+        onBack={() => navigate('/')}
+      />
+      
+      <div className="max-w-2xl mx-auto p-4">
 
         {/* Premium status badge */}
         {!isPremium && (

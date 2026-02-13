@@ -1,3 +1,5 @@
+@import "./styles/design-tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,6 +15,3 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
-
-
-

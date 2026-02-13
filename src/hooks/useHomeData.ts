@@ -33,9 +33,26 @@ interface HomeData {
 
 async function fetchHomeData(userId: string) {
   try {
+    // Guard: userId required (queryFn only runs when enabled: !!userId, but extra safety)
+    if (!userId) {
+      return {
+        lastTournament: undefined,
+        lastLeague: undefined,
+        personalStats: undefined,
+      };
+    }
+    // Project-context: Always check Supabase availability before operations
+    if (!supabase) {
+      return {
+        lastTournament: undefined,
+        lastLeague: undefined,
+        personalStats: undefined,
+      };
+    }
+
     // Fetch last tournament (either created by user OR participated in)
     // First, get tournaments created by the user
-    const { data: createdTournament, error: createdError } = await supabase
+    const { data: createdTournament } = await supabase
       .from('tournaments')
       .select('id, name, is_finished, updated_at')
       .eq('creator_user_id', userId)
@@ -44,7 +61,7 @@ async function fetchHomeData(userId: string) {
       .maybeSingle();
 
     // Also get tournaments where user is a participant
-    const { data: participatedTournament, error: participationError } = await supabase
+    const { data: participatedTournament } = await supabase
       .from('tournament_players')
       .select('tournament:tournaments(id, name, is_finished, updated_at)')
       .eq('user_id', userId)
@@ -91,7 +108,7 @@ async function fetchHomeData(userId: string) {
 
     // Fetch last league (either created by user OR participated in)
     // First, get leagues created by the user
-    const { data: createdLeague, error: leagueCreatedError } = await supabase
+    const { data: createdLeague } = await supabase
       .from('leagues')
       .select('id, name, updated_at')
       .eq('creator_user_id', userId)
@@ -100,7 +117,7 @@ async function fetchHomeData(userId: string) {
       .maybeSingle();
 
     // Also get leagues where user is a member
-    const { data: joinedLeague, error: leagueMemberError } = await supabase
+    const { data: joinedLeague } = await supabase
       .from('league_players')
       .select('league:leagues(id, name, updated_at)')
       .eq('user_id', userId)
@@ -204,7 +221,10 @@ async function fetchHomeData(userId: string) {
 export function useHomeData(userId: string | null | undefined): HomeData {
   const { data, isLoading, error } = useQuery({
     queryKey: ['homeData', userId],
-    queryFn: () => fetchHomeData(userId!),
+    queryFn: () => {
+      if (!userId) throw new Error('userId required');
+      return fetchHomeData(userId);
+    },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 1, // Only retry once on failure

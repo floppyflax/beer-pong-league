@@ -10,12 +10,16 @@ interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  /** Optional custom title (e.g. "Limite gratuite atteinte" for league limit) */
+  title?: string;
+  /** Optional custom subtitle/message (e.g. AC5 10-3 league limit message) */
+  subtitle?: string;
 }
 
 // Payment state machine
 type PaymentState = 'idle' | 'processing' | 'success' | 'error';
 
-export const PaymentModal = ({ isOpen, onClose, onSuccess }: PaymentModalProps) => {
+export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: PaymentModalProps) => {
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
   const [paymentState, setPaymentState] = useState<PaymentState>('idle');
@@ -349,7 +353,7 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess }: PaymentModalProps) 
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Sparkles size={24} className="text-primary" />
-            <h3 className="text-xl font-bold">Passe Premium</h3>
+            <h3 className="text-xl font-bold">{title ?? 'Passe Premium'}</h3>
           </div>
           <button
             onClick={handleClose}
@@ -362,6 +366,12 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess }: PaymentModalProps) 
         </div>
 
         <div className="space-y-6">
+          {/* Custom subtitle (e.g. league limit message per AC5 10-3) */}
+          {subtitle && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+              <p className="text-amber-200 text-sm">{subtitle}</p>
+            </div>
+          )}
           {/* Prix */}
           <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl p-6 text-center border border-primary/30">
             <div className="text-5xl font-black text-white mb-2">3€</div>

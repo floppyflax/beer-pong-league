@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import {
@@ -11,20 +11,19 @@ import {
   Share2,
   LogOut,
   UserPlus,
-  Zap,
 } from "lucide-react";
+import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import { QRCodeDisplay } from "../components/QRCodeDisplay";
 import { MatchRecordingForm } from "../components/MatchRecordingForm";
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG } from "qrcode.react";
 import type { Match } from "../types";
 import { databaseService } from "../services/DatabaseService";
 import { useAuthContext } from "../context/AuthContext";
 import { useIdentity } from "../hooks/useIdentity";
 import { toast } from "react-hot-toast";
-import { ContextualBar } from "../components/navigation/ContextualBar";
+import { ContextualHeader } from "../components/navigation/ContextualHeader";
 import { useDetailPagePermissions } from "../hooks/useDetailPagePermissions";
 
 // Task 4 - Utility function for relative timestamps (AC4)
@@ -39,15 +38,22 @@ function getRelativeTimestamp(date: string): string {
   if (diffMins < 1) return "À l'instant";
   if (diffMins < 60) return `Il y a ${diffMins} min`;
   if (diffHours < 24) return `Il y a ${diffHours}h`;
-  if (diffDays === 1) return `Hier à ${matchDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
-  if (diffDays < 7) return `${diffDays}j à ${matchDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
-  return matchDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  if (diffDays === 1)
+    return `Hier à ${matchDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+  if (diffDays < 7)
+    return `${diffDays}j à ${matchDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+  return matchDate.toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export const TournamentDashboard = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { user, isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
@@ -74,13 +80,16 @@ export const TournamentDashboard = () => {
   const [showRecordMatch, setShowRecordMatch] = useState(false);
   const [showEloChanges, setShowEloChanges] = useState(false);
   const [lastEloChanges, setLastEloChanges] = useState<Record<string, number>>(
-    {}
+    {},
   );
   const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [addPlayerTab, setAddPlayerTab] = useState<'pseudo' | 'invitation' | 'league'>('pseudo');
+  const [addPlayerTab, setAddPlayerTab] = useState<
+    "pseudo" | "invitation" | "league"
+  >("pseudo");
   const [newPlayerName, setNewPlayerName] = useState("");
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>("");
-  const [selectedLeaguePlayerId, setSelectedLeaguePlayerId] = useState<string>("");
+  const [selectedLeaguePlayerId, setSelectedLeaguePlayerId] =
+    useState<string>("");
 
   // Find tournament (but ALL hooks must still be called even if null)
   const tournament = tournaments.find((t) => t.id === id);
@@ -89,14 +98,15 @@ export const TournamentDashboard = () => {
   const league = tournament?.leagueId
     ? leagues.find((l) => l.id === tournament.leagueId)
     : null;
-  const tournamentPlayers = league && tournament
-    ? league.players.filter((p) => tournament.playerIds.includes(p.id))
-    : [];
+  const tournamentPlayers =
+    league && tournament
+      ? league.players.filter((p) => tournament.playerIds.includes(p.id))
+      : [];
 
   // Story 9-5 - Get permissions for contextual actions
   const { isAdmin, canInvite } = useDetailPagePermissions(
-    id || '',
-    'tournament'
+    id || "",
+    "tournament",
   );
 
   // Get ranking based on mode - MUST be called unconditionally
@@ -123,7 +133,7 @@ export const TournamentDashboard = () => {
 
     const leaguePlayerIds = league.players.map((p) => p.id);
     const missingPlayers = leaguePlayerIds.filter(
-      (id) => !tournament.playerIds.includes(id)
+      (id) => !tournament.playerIds.includes(id),
     );
 
     if (missingPlayers.length > 0) {
@@ -164,18 +174,17 @@ export const TournamentDashboard = () => {
     );
   }
 
-
   const handleMatchFormSuccess = async (match: Match) => {
     // Calculate winner from scores
     const winner: "A" | "B" = match.scoreA > match.scoreB ? "A" : "B";
-    
+
     // Call recordTournamentMatch with scores
     const eloChanges = await recordTournamentMatch(
       tournament.id,
       match.teamA,
       match.teamB,
       winner,
-      { scoreA: match.scoreA, scoreB: match.scoreB }
+      { scoreA: match.scoreA, scoreB: match.scoreB },
     );
 
     if (eloChanges) {
@@ -198,15 +207,15 @@ export const TournamentDashboard = () => {
         await databaseService.leaveTournament(
           tournament.id,
           isAuthenticated ? user?.id : undefined,
-          !isAuthenticated ? localUser?.anonymousUserId : undefined
+          !isAuthenticated ? localUser?.anonymousUserId : undefined,
         );
-        
+
         // Reload data to update context
         await reloadData();
-        
+
         // Navigate to home
         navigate("/");
-        
+
         // Show success toast (AC7)
         toast.success("Tu as quitté le tournoi");
       } catch (error: any) {
@@ -226,23 +235,25 @@ export const TournamentDashboard = () => {
     } else {
       // TODO: For autonomous tournaments, create guest player directly
       // For now, add to league if exists
-      alert("Pour ajouter des joueurs, associez d'abord ce tournoi à une League dans les paramètres.");
+      alert(
+        "Pour ajouter des joueurs, associez d'abord ce tournoi à une League dans les paramètres.",
+      );
       setShowAddPlayer(false);
       setActiveTab("settings");
       return;
     }
     setNewPlayerName("");
     setShowAddPlayer(false);
-    setAddPlayerTab('pseudo'); // Reset to default tab
+    setAddPlayerTab("pseudo"); // Reset to default tab
   };
 
   const handleAddPlayerFromLeague = () => {
     if (!selectedLeaguePlayerId || !tournament.leagueId) return;
-    
+
     addPlayerToTournament(tournament.id, selectedLeaguePlayerId);
     setSelectedLeaguePlayerId("");
     setShowAddPlayer(false);
-    setAddPlayerTab('pseudo'); // Reset to default tab
+    setAddPlayerTab("pseudo"); // Reset to default tab
   };
 
   const handleCopyCode = () => {
@@ -254,17 +265,17 @@ export const TournamentDashboard = () => {
 
   const handleShareLink = async () => {
     const url = `${window.location.origin}/tournament/${tournament.id}/join`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: tournament.name,
           text: `Rejoins le tournoi ${tournament.name}!`,
-          url: url
+          url: url,
         });
       } catch (err) {
         // User cancelled share or error occurred
-        console.log('Share cancelled or failed');
+        console.log("Share cancelled or failed");
       }
     } else {
       // Fallback: copy to clipboard
@@ -281,64 +292,95 @@ export const TournamentDashboard = () => {
 
   return (
     <div className="h-full flex flex-col relative">
-      {/* Header - Task 2: Enhanced with join code, format, player count (AC2) */}
-      <div className="p-4 bg-slate-800/50">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-2xl font-bold leading-none">
-                🏆 {tournament.name}
-              </h2>
-              <span
-                className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
-                  tournament.status === 'finished' || tournament.isFinished
-                    ? "bg-green-500/20 text-green-500"
-                    : tournament.status === 'cancelled'
-                    ? "bg-red-500/20 text-red-500"
-                    : "bg-amber-500/20 text-amber-500"
-                }`}
-              >
-                {tournament.status === 'finished' || tournament.isFinished 
-                  ? "Terminé" 
-                  : tournament.status === 'cancelled'
-                  ? "Annulé"
-                  : "En cours"}
-              </span>
+      {/* Story 13.2 - Contextual Header with back button and actions */}
+      <ContextualHeader
+        title={tournament.name}
+        showBackButton={true}
+        onBack={() => navigate("/tournaments")}
+        actions={[
+          {
+            label: "NOUVEAU MATCH",
+            icon: <BeerPongMatchIcon size={20} />,
+            onClick: () => setShowRecordMatch(true),
+            variant: "primary",
+            disabled: tournament.isFinished,
+          },
+          ...(isAdmin || canInvite
+            ? [
+                {
+                  label: "INVITER",
+                  icon: <UserPlus size={20} />,
+                  onClick: () => setShowAddPlayer(true),
+                  variant: "secondary" as const,
+                },
+              ]
+            : []),
+        ]}
+        menuItems={[
+          ...(isAdmin
+            ? [
+                {
+                  label: "Mode Diffusion",
+                  icon: <Monitor size={20} />,
+                  onClick: () =>
+                    navigate(`/tournament/${tournament.id}/display`),
+                },
+              ]
+            : []),
+          {
+            label: "Quitter le tournoi",
+            icon: <LogOut size={20} />,
+            onClick: handleLeaveTournament,
+            destructive: false,
+          },
+        ]}
+      />
+
+      {/* Tournament Info (below header) */}
+      <div className="px-4 py-3 bg-slate-800/30 border-b border-slate-700">
+        <div className="flex items-center gap-4 text-sm">
+          {/* Join code */}
+          {tournament.joinCode && (
+            <div className="text-slate-300 font-mono bg-slate-700/50 px-2 py-1 rounded">
+              Code: {tournament.joinCode}
             </div>
-            {/* Task 2 - AC2: Join code display */}
-            {tournament.joinCode && (
-              <div className="text-sm text-slate-300 font-mono bg-slate-700/50 px-2 py-1 rounded inline-block mb-2">
-                Code: {tournament.joinCode}
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => navigate(`/tournament/${tournament.id}/display`)}
-              className="p-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg transition-colors"
-              title="Vue Display (plein écran)"
-            >
-              <Monitor size={20} />
-            </button>
-          </div>
+          )}
+          {/* Status badge */}
+          <span
+            className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+              tournament.status === "finished" || tournament.isFinished
+                ? "bg-green-500/20 text-green-500"
+                : tournament.status === "cancelled"
+                  ? "bg-red-500/20 text-red-500"
+                  : "bg-amber-500/20 text-amber-500"
+            }`}
+          >
+            {tournament.status === "finished" || tournament.isFinished
+              ? "Terminé"
+              : tournament.status === "cancelled"
+                ? "Annulé"
+                : "En cours"}
+          </span>
         </div>
-        {/* Task 2 - AC2: Format info and player count */}
-        <div className="flex items-center gap-4 text-xs text-slate-400">
+        {/* Format info and player count */}
+        <div className="flex items-center gap-4 text-xs text-slate-400 mt-2">
           <div className="flex items-center gap-1">
             <span>📊</span>
             <span>
-              Format: {tournament.formatType === 'fixed' 
-                ? `${tournament.team1Size}v${tournament.team2Size}` 
-                : 'Libre'}
+              Format:{" "}
+              {tournament.formatType === "fixed"
+                ? `${tournament.team1Size}v${tournament.team2Size}`
+                : "Libre"}
             </span>
           </div>
           <div className="flex items-center gap-1">
             <span>👥</span>
             <span>
               {tournamentPlayers.length}
-              {tournament.maxPlayers && tournament.maxPlayers < 999 
-                ? `/${tournament.maxPlayers}` 
-                : ''} joueurs
+              {tournament.maxPlayers && tournament.maxPlayers < 999
+                ? `/${tournament.maxPlayers}`
+                : ""}{" "}
+              joueurs
             </span>
           </div>
           <div className="text-slate-500">
@@ -469,10 +511,10 @@ export const TournamentDashboard = () => {
                         index === 0
                           ? "text-yellow-400"
                           : index === 1
-                          ? "text-slate-300"
-                          : index === 2
-                          ? "text-amber-700"
-                          : "text-slate-500"
+                            ? "text-slate-300"
+                            : index === 2
+                              ? "text-amber-700"
+                              : "text-slate-500"
                       }`}
                     >
                       {index + 1}
@@ -482,7 +524,7 @@ export const TournamentDashboard = () => {
                       <div className="text-xs text-slate-400">
                         {player.wins}V - {player.losses}D •{" "}
                         {Math.round(
-                          (player.wins / (player.matchesPlayed || 1)) * 100
+                          (player.wins / (player.matchesPlayed || 1)) * 100,
                         )}
                         %
                       </div>
@@ -517,8 +559,12 @@ export const TournamentDashboard = () => {
               />
             ) : (
               tournament.matches.map((match) => {
-                const teamAPlayers = tournamentPlayers.filter((p) => match.teamA.includes(p.id));
-                const teamBPlayers = tournamentPlayers.filter((p) => match.teamB.includes(p.id));
+                const teamAPlayers = tournamentPlayers.filter((p) =>
+                  match.teamA.includes(p.id),
+                );
+                const teamBPlayers = tournamentPlayers.filter((p) =>
+                  match.teamB.includes(p.id),
+                );
                 const teamANames = teamAPlayers.map((p) => p.name).join(", ");
                 const teamBNames = teamBPlayers.map((p) => p.name).join(", ");
                 const winnerA = match.scoreA > match.scoreB;
@@ -555,26 +601,28 @@ export const TournamentDashboard = () => {
                       {getRelativeTimestamp(match.date)}
                     </div>
                     {/* Task 4 - AC4: ELO changes for players */}
-                    {match.eloChanges && Object.keys(match.eloChanges).length > 0 && (
-                      <div className="flex flex-wrap gap-2 text-xs">
-                        {[...teamAPlayers, ...teamBPlayers].map((player) => {
-                          const change = match.eloChanges?.[player.id];
-                          if (change === undefined) return null;
-                          return (
-                            <span
-                              key={player.id}
-                              className={`px-2 py-0.5 rounded ${
-                                change > 0
-                                  ? "bg-green-500/20 text-green-400"
-                                  : "bg-red-500/20 text-red-400"
-                              }`}
-                            >
-                              {player.name}: {change > 0 ? "+" : ""}{change}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
+                    {match.eloChanges &&
+                      Object.keys(match.eloChanges).length > 0 && (
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          {[...teamAPlayers, ...teamBPlayers].map((player) => {
+                            const change = match.eloChanges?.[player.id];
+                            if (change === undefined) return null;
+                            return (
+                              <span
+                                key={player.id}
+                                className={`px-2 py-0.5 rounded ${
+                                  change > 0
+                                    ? "bg-green-500/20 text-green-400"
+                                    : "bg-red-500/20 text-red-400"
+                                }`}
+                              >
+                                {player.name}: {change > 0 ? "+" : ""}
+                                {change}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                   </div>
                 );
               })
@@ -589,25 +637,28 @@ export const TournamentDashboard = () => {
                 <Share2 size={20} />
                 Inviter des participants
               </h3>
-              
+
               <p className="text-slate-400 mb-4 text-sm">
-                Scannez ce QR code ou saisissez le code pour rejoindre le tournoi
+                Scannez ce QR code ou saisissez le code pour rejoindre le
+                tournoi
               </p>
-              
+
               {/* Join Code Display */}
               {tournament.joinCode && (
                 <div className="bg-slate-700 rounded-lg p-4 mb-4 text-center">
-                  <div className="text-sm text-slate-400 mb-1">Code du tournoi</div>
+                  <div className="text-sm text-slate-400 mb-1">
+                    Code du tournoi
+                  </div>
                   <div className="text-3xl font-mono font-bold text-primary">
                     {tournament.joinCode}
                   </div>
                 </div>
               )}
-              
+
               {/* QR Code */}
               <div className="flex justify-center">
                 <div className="bg-white p-4 rounded-lg">
-                  <QRCodeSVG 
+                  <QRCodeSVG
                     value={`${window.location.origin}/tournament/join/${tournament.id}`}
                     size={200}
                     level="H"
@@ -615,10 +666,12 @@ export const TournamentDashboard = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="mt-4">
                 <button
-                  onClick={() => navigate(`/tournament/${tournament.id}/invite`)}
+                  onClick={() =>
+                    navigate(`/tournament/${tournament.id}/invite`)
+                  }
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-amber-600 transition-colors"
                 >
                   <Share2 size={20} />
@@ -641,7 +694,7 @@ export const TournamentDashboard = () => {
                       updateTournament(
                         tournament.id,
                         e.target.value,
-                        tournament.date
+                        tournament.date,
                       )
                     }
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-primary outline-none"
@@ -656,7 +709,7 @@ export const TournamentDashboard = () => {
                       updateTournament(
                         tournament.id,
                         tournament.name,
-                        e.target.value
+                        e.target.value,
                       )
                     }
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-primary outline-none"
@@ -672,7 +725,7 @@ export const TournamentDashboard = () => {
                         tournament.name,
                         tournament.date,
                         undefined,
-                        e.target.value as '1v1' | '2v2' | '3v3' | 'libre'
+                        e.target.value as "1v1" | "2v2" | "3v3" | "libre",
                       )
                     }
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-primary outline-none"
@@ -704,7 +757,11 @@ export const TournamentDashboard = () => {
                   </div>
                   <button
                     onClick={() => {
-                      if (confirm("Voulez-vous dissocier ce tournoi de la League ?")) {
+                      if (
+                        confirm(
+                          "Voulez-vous dissocier ce tournoi de la League ?",
+                        )
+                      ) {
                         associateTournamentToLeague(tournament.id, "");
                       }
                     }}
@@ -716,7 +773,8 @@ export const TournamentDashboard = () => {
               ) : (
                 <div className="space-y-3">
                   <div className="text-sm text-slate-400 mb-3">
-                    Associe ce tournoi à une league pour suivre le classement global ET ajouter rapidement les joueurs de la league.
+                    Associe ce tournoi à une league pour suivre le classement
+                    global ET ajouter rapidement les joueurs de la league.
                   </div>
                   <select
                     value={selectedLeagueId}
@@ -747,8 +805,8 @@ export const TournamentDashboard = () => {
               <h3 className="font-bold text-white mb-4">Mode Anti-Triche</h3>
               <div className="space-y-3">
                 <div className="text-sm text-slate-400 mb-3">
-                  Lorsque activé, chaque match doit être confirmé par l'adversaire
-                  pour éviter la triche.
+                  Lorsque activé, chaque match doit être confirmé par
+                  l'adversaire pour éviter la triche.
                 </div>
                 <label className="flex items-center justify-between cursor-pointer">
                   <span className="text-white font-medium">
@@ -762,7 +820,7 @@ export const TournamentDashboard = () => {
                         tournament.id,
                         tournament.name,
                         tournament.date,
-                        e.target.checked
+                        e.target.checked,
                       )
                     }
                     className="w-6 h-6 rounded bg-slate-700 border-slate-600 text-primary focus:ring-2 focus:ring-primary"
@@ -786,7 +844,7 @@ export const TournamentDashboard = () => {
                     ? "Rouvrir le tournoi"
                     : "Clôturer le tournoi"}
                 </button>
-                
+
                 {/* Task 7 - Leave tournament button (AC7 - only for non-admins) */}
                 {!isAdmin && (
                   <button
@@ -797,7 +855,7 @@ export const TournamentDashboard = () => {
                     Quitter le tournoi
                   </button>
                 )}
-                
+
                 <button
                   onClick={handleDeleteTournament}
                   className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-500 font-bold py-3 rounded-lg border border-red-500/50"
@@ -831,10 +889,10 @@ export const TournamentDashboard = () => {
             {/* Modal Header */}
             <div className="flex justify-between items-center p-6 border-b border-slate-700">
               <h3 className="text-xl font-bold">Ajouter un joueur</h3>
-              <button 
+              <button
                 onClick={() => {
                   setShowAddPlayer(false);
-                  setAddPlayerTab('pseudo'); // Reset tab on close
+                  setAddPlayerTab("pseudo"); // Reset tab on close
                 }}
                 className="hover:bg-slate-800 rounded-lg p-1 transition-colors"
               >
@@ -845,34 +903,34 @@ export const TournamentDashboard = () => {
             {/* Tabs */}
             <div className="flex border-b border-slate-700">
               <button
-                onClick={() => setAddPlayerTab('pseudo')}
+                onClick={() => setAddPlayerTab("pseudo")}
                 className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-                  addPlayerTab === 'pseudo'
-                    ? 'border-primary text-white'
-                    : 'border-transparent text-slate-500 hover:text-slate-300'
+                  addPlayerTab === "pseudo"
+                    ? "border-primary text-white"
+                    : "border-transparent text-slate-500 hover:text-slate-300"
                 }`}
               >
                 Pseudo
               </button>
               <button
-                onClick={() => setAddPlayerTab('invitation')}
+                onClick={() => setAddPlayerTab("invitation")}
                 className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-                  addPlayerTab === 'invitation'
-                    ? 'border-primary text-white'
-                    : 'border-transparent text-slate-500 hover:text-slate-300'
+                  addPlayerTab === "invitation"
+                    ? "border-primary text-white"
+                    : "border-transparent text-slate-500 hover:text-slate-300"
                 }`}
               >
                 Invitation
               </button>
               <button
-                onClick={() => setAddPlayerTab('league')}
+                onClick={() => setAddPlayerTab("league")}
                 disabled={!tournament.leagueId}
                 className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-                  addPlayerTab === 'league'
-                    ? 'border-primary text-white'
+                  addPlayerTab === "league"
+                    ? "border-primary text-white"
                     : tournament.leagueId
-                    ? 'border-transparent text-slate-500 hover:text-slate-300'
-                    : 'border-transparent text-slate-600 cursor-not-allowed'
+                      ? "border-transparent text-slate-500 hover:text-slate-300"
+                      : "border-transparent text-slate-600 cursor-not-allowed"
                 }`}
               >
                 Depuis ligue
@@ -882,7 +940,7 @@ export const TournamentDashboard = () => {
             {/* Tab Content */}
             <div className="p-6">
               {/* Tab 1: Pseudo */}
-              {addPlayerTab === 'pseudo' && (
+              {addPlayerTab === "pseudo" && (
                 <form onSubmit={handleAddPlayerByPseudo} className="space-y-4">
                   <div>
                     <label className="text-sm text-slate-400 mb-2 block">
@@ -907,10 +965,12 @@ export const TournamentDashboard = () => {
               )}
 
               {/* Tab 2: Invitation */}
-              {addPlayerTab === 'invitation' && (
+              {addPlayerTab === "invitation" && (
                 <div className="space-y-4">
-                  <h4 className="font-bold text-center mb-4">Partage le tournoi</h4>
-                  
+                  <h4 className="font-bold text-center mb-4">
+                    Partage le tournoi
+                  </h4>
+
                   {tournament.joinCode && (
                     <div className="bg-slate-800 p-4 rounded-xl text-center">
                       <div className="text-sm text-slate-400 mb-2">Code</div>
@@ -935,11 +995,13 @@ export const TournamentDashboard = () => {
                     </button>
                   </div>
 
-                  <div className="text-center text-sm text-slate-400 my-4">ou</div>
+                  <div className="text-center text-sm text-slate-400 my-4">
+                    ou
+                  </div>
 
                   <div className="flex flex-col items-center">
                     <div className="bg-white p-3 rounded-lg">
-                      <QRCodeSVG 
+                      <QRCodeSVG
                         value={`${window.location.origin}/tournament/join/${tournament.id}`}
                         size={150}
                         level="H"
@@ -959,7 +1021,7 @@ export const TournamentDashboard = () => {
               )}
 
               {/* Tab 3: Depuis ligue */}
-              {addPlayerTab === 'league' && (
+              {addPlayerTab === "league" && (
                 <div className="space-y-4">
                   {tournament.leagueId && league ? (
                     <>
@@ -969,13 +1031,15 @@ export const TournamentDashboard = () => {
                         </label>
                         <select
                           value={selectedLeaguePlayerId}
-                          onChange={(e) => setSelectedLeaguePlayerId(e.target.value)}
+                          onChange={(e) =>
+                            setSelectedLeaguePlayerId(e.target.value)
+                          }
                           className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-primary outline-none"
                         >
                           <option value="">Choisir un joueur...</option>
                           {league.players
-                            .filter(p => !tournament.playerIds.includes(p.id))
-                            .map(player => (
+                            .filter((p) => !tournament.playerIds.includes(p.id))
+                            .map((player) => (
                               <option key={player.id} value={player.id}>
                                 {player.name}
                               </option>
@@ -1022,25 +1086,7 @@ export const TournamentDashboard = () => {
         />
       )}
 
-      {/* Story 9-5 - Contextual Action Bar */}
-      <ContextualBar
-        actions={[
-          {
-            id: 'match',
-            label: 'NOUVEAU MATCH',
-            icon: <Zap size={20} />,
-            onClick: () => setShowRecordMatch(true),
-            visible: !tournament.isFinished,
-          },
-          {
-            id: 'invite',
-            label: 'INVITER',
-            icon: <UserPlus size={20} />,
-            onClick: () => setShowAddPlayer(true),
-            visible: isAdmin || canInvite,
-          },
-        ]}
-      />
+      {/* Story 13.2 - Actions moved to ContextualHeader (removed ContextualBar) */}
     </div>
   );
 };

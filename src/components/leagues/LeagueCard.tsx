@@ -26,15 +26,16 @@ interface LeagueCardProps {
 export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
-  const { anonymousUser } = useIdentity();
+  const { localUser } = useIdentity();
 
   const handleClick = () => {
     navigate(`/league/${league.id}`);
   };
 
-  // Check if current user is the owner
-  const isOwner = (user && user.id === league.creator_user_id) || 
-                  (anonymousUser && anonymousUser.id === league.creator_anonymous_user_id);
+  // Check if current user is the owner (authenticated or anonymous)
+  const isOwner =
+    (user && user.id === league.creator_user_id) ||
+    (localUser && localUser.anonymousUserId === league.creator_anonymous_user_id);
 
   // Format last activity time (consistent with LastLeagueCard, LastTournamentCard)
   const lastActivity = formatRelativeTime(league.updatedAt);
@@ -63,7 +64,7 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
           className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
             league.status === 'finished'
               ? 'bg-slate-700 text-slate-300'
-              : 'bg-green-500/20 text-green-400'
+              : 'bg-primary/20 text-primary'
           }`}
         >
           {league.status === 'finished' ? 'Terminée' : 'Active'}

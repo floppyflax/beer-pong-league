@@ -6,6 +6,7 @@ interface IdentityContextType extends IdentityState {
   createIdentity: (pseudo: string) => Promise<LocalUser>;
   updateIdentity: (updates: Partial<LocalUser>) => void;
   clearIdentity: () => void;
+  initializeAnonymousUser: () => Promise<LocalUser>;
 }
 
 const IdentityContext = createContext<IdentityContextType | undefined>(undefined);

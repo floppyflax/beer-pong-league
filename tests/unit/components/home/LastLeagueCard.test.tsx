@@ -47,7 +47,7 @@ describe('LastLeagueCard', () => {
       expect(screen.getByText(/Créer une league/i)).toBeInTheDocument();
     });
 
-    it('should navigate to /create-league when clicking empty state CTA', async () => {
+    it('should navigate to /create-league when clicking empty state CTA (no onEmptyAction)', async () => {
       const user = userEvent.setup();
 
       render(
@@ -60,6 +60,42 @@ describe('LastLeagueCard', () => {
       await user.click(ctaButton);
 
       expect(mockNavigate).toHaveBeenCalledWith('/create-league');
+    });
+
+    it('should call onEmptyAction when provided instead of navigate', async () => {
+      const user = userEvent.setup();
+      const onEmptyAction = vi.fn();
+
+      render(
+        <BrowserRouter>
+          <LastLeagueCard
+            league={undefined}
+            isLoading={false}
+            onEmptyAction={onEmptyAction}
+          />
+        </BrowserRouter>
+      );
+
+      const ctaButton = screen.getByText(/Créer une league/i);
+      await user.click(ctaButton);
+
+      expect(onEmptyAction).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('should show lock icon when emptyActionLocked is true', () => {
+      render(
+        <BrowserRouter>
+          <LastLeagueCard
+            league={undefined}
+            isLoading={false}
+            onEmptyAction={() => {}}
+            emptyActionLocked={true}
+          />
+        </BrowserRouter>
+      );
+
+      expect(screen.getByText('🔒')).toBeInTheDocument();
     });
   });
 

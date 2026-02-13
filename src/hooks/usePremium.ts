@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { premiumService } from '../services/PremiumService';
 
 /**
@@ -9,10 +9,12 @@ export function usePremium(userId: string | null | undefined): {
   isPremium: boolean;
   isLoading: boolean;
   error: Error | null;
+  refetch: () => void;
 } {
   const [isPremium, setIsPremium] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
     const checkPremium = async () => {
@@ -37,7 +39,11 @@ export function usePremium(userId: string | null | undefined): {
     };
 
     checkPremium();
-  }, [userId]);
+  }, [userId, refetchTrigger]);
 
-  return { isPremium, isLoading, error };
+  const refetch = useCallback(() => {
+    setRefetchTrigger((t) => t + 1);
+  }, []);
+
+  return { isPremium, isLoading, error, refetch };
 }

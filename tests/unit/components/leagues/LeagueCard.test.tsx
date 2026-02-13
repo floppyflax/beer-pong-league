@@ -114,10 +114,13 @@ describe('LeagueCard', () => {
     });
 
     vi.mocked(useIdentity).mockReturnValue({
-      anonymousUser: { id: 'anon-1', pseudo: 'Anon User' },
-      loading: false,
-      createAnonymousUser: vi.fn(),
-    });
+      localUser: { anonymousUserId: 'anon-1', pseudo: 'Anon User', createdAt: '' },
+      isLoading: false,
+      createIdentity: vi.fn(),
+      updateIdentity: vi.fn(),
+      clearIdentity: vi.fn(),
+      initializeAnonymousUser: vi.fn(),
+    } as any);
 
     render(
       <BrowserRouter>
@@ -212,8 +215,8 @@ describe('LeagueCard', () => {
     );
 
     const statusBadge = screen.getByText('Active');
-    expect(statusBadge).toHaveClass('bg-green-500/20');
-    expect(statusBadge).toHaveClass('text-green-400');
+    expect(statusBadge).toHaveClass('bg-primary/20');
+    expect(statusBadge).toHaveClass('text-primary');
   });
 
   it('should display correct styling for finished league', () => {

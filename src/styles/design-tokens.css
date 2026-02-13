@@ -1,0 +1,55 @@
+/**
+ * Design tokens — variables CSS
+ * Source: design-system-convergence.md section 3
+ *
+ * Usage:
+ * - CSS: var(--color-primary), var(--spacing-page), etc.
+ * - Tailwind: bg-background-primary, text-text-primary, p-page, rounded-card, etc.
+ *
+ * Migration progressive: Préférer les classes Tailwind du thème (tailwind.config.js)
+ * pour les nouveaux composants. Les variables CSS sont disponibles pour les cas
+ * où Tailwind ne suffit pas (ex: styles dynamiques, media queries complexes).
+ */
+
+:root {
+  /* Couleurs — fonds */
+  --color-bg-primary: #0f172a; /* slate-900 */
+  --color-bg-secondary: #1e293b; /* slate-800 */
+  --color-bg-tertiary: #334155; /* slate-700 */
+
+  /* Couleurs — texte */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #cbd5e1; /* slate-300 */
+  --color-text-tertiary: #94a3b8; /* slate-400 */
+  --color-text-muted: #64748b; /* slate-500 */
+
+  /* Couleurs — accents */
+  --color-primary: #f59e0b; /* amber-500 */
+  --color-success: #22c55e; /* green-500 */
+  --color-error: #ef4444; /* red-500 */
+  --color-elo: #f59e0b; /* amber-500 */
+  --color-info: #3b82f6; /* blue-500 */
+
+  /* Espacements */
+  --spacing-page: 1rem;
+  --spacing-page-lg: 1.5rem;
+  --spacing-card-gap: 1rem;
+  --spacing-card-gap-lg: 1.5rem;
+  --spacing-bottom-nav: 5rem;
+  --spacing-bottom-nav-lg: 6rem;
+
+  /* Radius */
+  --radius-card: 0.75rem;
+  --radius-button: 0.5rem;
+  --radius-input: 0.75rem;
+
+  /* Bordures */
+  --border-card: 1px solid #334155;
+  --border-card-muted: 1px solid rgba(51, 65, 85, 0.5);
+
+  /* Gradients (parité avec Tailwind) */
+  --gradient-cta: linear-gradient(to right, #f59e0b, #eab308);
+  --gradient-cta-alt: linear-gradient(to right, #3b82f6, #7c3aed);
+  --gradient-fab: linear-gradient(to right, #3b82f6, #7c3aed);
+  --gradient-tab-active: linear-gradient(to right, #3b82f6, #7c3aed);
+}

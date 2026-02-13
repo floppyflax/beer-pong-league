@@ -45,8 +45,8 @@ export const Join = () => {
       // Navigation happens inside the hook
       setShowCodeInput(false);
     } catch (err) {
-      // Error is handled and displayed by the hook
-      // Modal stays open so user can try again
+      // Re-throw so CodeInputModal can display error inline (AC3/AC4)
+      throw err;
     }
   };
 
@@ -54,7 +54,7 @@ export const Join = () => {
     <div className="min-h-screen bg-slate-900">
       {/* Contextual Header (Story 13.2) */}
       <ContextualHeader 
-        title="Rejoindre" 
+        title="Rejoindre un Tournoi" 
         showBackButton={true}
         onBack={() => window.history.back()}
       />
@@ -114,12 +114,12 @@ export const Join = () => {
       <BottomMenuSpecific
         actions={[
           {
-            label: 'SCANNER QR',
+            label: '📷 SCANNER QR',
             icon: <Camera size={20} />,
             onClick: () => setShowScanner(true),
           },
           {
-            label: 'CODE',
+            label: '🔢 CODE',
             icon: <Hash size={20} />,
             onClick: () => setShowCodeInput(true),
           },

@@ -683,3 +683,15 @@ Claude Sonnet 4.5
 - ✅ All 46 tests passing (Home, LastTournamentCard, LastLeagueCard, NewUserWelcome)
 - ✅ No linter errors
 - ✅ AC5 fully implemented
+
+---
+
+## Code Review (AI) - 2026-02-13 (Batch 10-1, 10-3, 10-4, 14-1)
+
+### Review Summary
+**Reviewer:** Adversarial Code Review Workflow  
+**Outcome:** ✅ Fixes Applied
+
+### Fixes Applied
+
+- **[10-1]** Home: Added `queryClient.invalidateQueries` on payment success for full data refresh (with refetchPremium)
