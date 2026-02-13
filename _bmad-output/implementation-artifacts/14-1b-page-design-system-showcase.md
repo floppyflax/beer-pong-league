@@ -1,6 +1,6 @@
 # Story 14.1b: Page Design System (showcase)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -22,7 +22,7 @@ So que je puisse visualiser et valider les fondations (couleurs, typo, gradients
    - **Radius** : exemples pour card, button, input
    - **Bordures** : exemples pour border-card, border-card-muted
 
-3. **Section Composants** : StatCard, SegmentedTabs, ListRow, InfoCard, FAB, Banner, SearchBar
+3. **Section Composants** : StatCard, SegmentedTabs, ListRow, InfoCard, FAB, Banner, SearchBar, Navigation (BottomTabMenu, BottomMenuSpecific — ajouté par Story 14.10b)
 
 4. Chaque section composant affiche le composant s'il existe, ou un placeholder "À venir" avec le nom du composant
 
@@ -100,7 +100,20 @@ Composer (dev-story workflow)
 - Route /design-system ajoutée dans App.tsx (lazy-loaded)
 - Lien "Design System" ajouté dans DevPanel (visible en mode dev)
 - /design-system exclu de shouldShowBottomMenu dans navigationHelpers.ts
-- 9 tests unitaires DesignSystemShowcase + 1 test navigationHelpers pour /design-system
+- 14 tests unitaires DesignSystemShowcase + 1 test navigationHelpers pour /design-system
+- **Code review (2026-02-13):** 5 issues corrigés — imports @/ alias, token mb-bottom-nav, suppression ComponentPlaceholder mort, démo Banner position=top, tests InfoCard/FAB/Banner
+
+### Senior Developer Review (AI)
+
+**Reviewer:** floppyflax on 2026-02-13  
+**Outcome:** Approve (after fixes)
+
+**Findings addressed:**
+1. Imports harmonisés sur alias `@/` (project-context)
+2. Magic number remplacé par token `mb-bottom-nav`
+3. Suppression `ComponentPlaceholder` (code mort)
+4. Démo Banner `position="top"` ajoutée
+5. Tests InfoCard, FAB, Banner renforcés
 
 ### File List
 
@@ -111,6 +124,21 @@ Composer (dev-story workflow)
 - tests/unit/pages/DesignSystemShowcase.test.tsx (new)
 - tests/unit/utils/navigationHelpers.test.ts (modified)
 
+## Code Review (AI) - 2026-02-13 (Batch 10-1, 10-3, 10-4, 14-1, 14-1b)
+
+### Fixes Applied
+
+- **[14-1b]** Banner test: Added assertion for Banner component (success, error, dismissable)
+- **[14-1b]** BannerShowcase: Dismissable demo now uses useState — clicking X hides the banner
+- **[14-1b]** Padding: Changed pb-24 to pb-8 (bottom nav hidden on /design-system)
+
+### File List (Code Review)
+
+- src/pages/DesignSystemShowcase.tsx (modified — BannerShowcase, pb-8)
+- tests/unit/pages/DesignSystemShowcase.test.tsx (modified — Banner test)
+
 ## Change Log
 
 - 2026-02-13: Implémentation complète Story 14-1b — Page Design System (showcase) avec tokens et placeholders composants
+- 2026-02-13: Code review batch — Banner test, BannerShowcase dismiss demo, pb-8
+- 2026-02-13: Code review — 5 corrections (imports @/, token bottom-nav, dead code, Banner position top, tests)

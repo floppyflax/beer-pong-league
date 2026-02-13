@@ -7,13 +7,17 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ListRow } from "../components/design-system";
-import { InfoCard } from "../components/design-system/InfoCard";
+import {
+  ListRow,
+  Banner,
+  StatCard,
+  InfoCard,
+  FAB,
+  SegmentedTabs,
+  SearchBar,
+} from "@/components/design-system";
 import { Calendar, Users, LayoutGrid, Plus } from "lucide-react";
-import { FAB } from "@/components/design-system/FAB";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
-import { SegmentedTabs } from "@/components/design-system/SegmentedTabs";
-import { StatCard } from "../components/design-system";
 
 function ColorSwatch({
   name,
@@ -41,14 +45,6 @@ function GradientBar({ name, className }: { name: string; className: string }) {
     <div className="flex flex-col gap-1">
       <div className={`h-10 w-full rounded-lg ${className}`} />
       <span className="text-[10px] text-slate-400 font-mono">{name}</span>
-    </div>
-  );
-}
-
-function ComponentPlaceholder({ name }: { name: string }) {
-  return (
-    <div className="p-4 bg-slate-800 rounded-xl border border-dashed border-slate-600 text-slate-400">
-      {name} — À venir
     </div>
   );
 }
@@ -99,10 +95,67 @@ function SegmentedTabsShowcase() {
   );
 }
 
+function BannerShowcase() {
+  const [showDismissable, setShowDismissable] = useState(true);
+
+  return (
+    <div>
+      <h3 className="text-body font-semibold text-slate-300 mb-2">
+        Banner
+      </h3>
+      <div className="space-y-3">
+        <p className="text-body-sm text-slate-400 mb-2">
+          Variants success et error. Position inline ou top. onDismiss optionnel.
+        </p>
+        <Banner
+          message="Tournoi rejoint ! Redirection…"
+          variant="success"
+        />
+        <Banner
+          message="Erreur lors de la connexion. Réessayez."
+          variant="error"
+        />
+        {showDismissable && (
+          <Banner
+            message="Message dismissable (cliquez X)"
+            variant="success"
+            onDismiss={() => setShowDismissable(false)}
+          />
+        )}
+        <Banner
+          message="Position top (fixe en haut)"
+          variant="success"
+          position="top"
+        />
+      </div>
+    </div>
+  );
+}
+
+function SearchBarShowcase() {
+  const [searchValue, setSearchValue] = useState("");
+
+  return (
+    <div className="space-y-4 p-4 bg-background-secondary rounded-card border border-card">
+      <p className="text-body-sm text-slate-400 mb-2">
+        Recherche avec debounce 300ms — la valeur débouncée s'affiche ci-dessous
+      </p>
+      <SearchBar
+        value={searchValue}
+        onChange={setSearchValue}
+        placeholder="Rechercher un tournoi ou une league..."
+      />
+      <p className="text-body-sm text-slate-500">
+        Valeur débouncée : {searchValue || "(vide)"}
+      </p>
+    </div>
+  );
+}
+
 export function DesignSystemShowcase() {
   return (
     <div className="min-h-screen bg-background-primary text-text-primary">
-      <div className="p-page space-y-8 pb-24">
+      <div className="p-page space-y-8 pb-8">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link
@@ -274,10 +327,7 @@ export function DesignSystemShowcase() {
                 </span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <div
-                  className="bg-background-secondary rounded-lg border border-slate-600 p-2 h-16"
-                  style={{ marginBottom: "5rem" }}
-                />
+                <div className="bg-background-secondary rounded-lg border border-slate-600 p-2 h-16 mb-bottom-nav" />
                 <span className="text-[10px] text-slate-400 font-mono">
                   bottom-nav (5rem)
                 </span>
@@ -449,18 +499,13 @@ export function DesignSystemShowcase() {
             </div>
           </div>
 
-          <div>
-            <h3 className="text-body font-semibold text-slate-300 mb-2">
-              Banner
-            </h3>
-            <ComponentPlaceholder name="Banner" />
-          </div>
+          <BannerShowcase />
 
           <div>
             <h3 className="text-body font-semibold text-slate-300 mb-2">
               SearchBar
             </h3>
-            <ComponentPlaceholder name="SearchBar" />
+            <SearchBarShowcase />
           </div>
         </section>
       </div>

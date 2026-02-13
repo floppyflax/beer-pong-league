@@ -82,15 +82,15 @@ development_status:
   7-2-premium-service-implementation: done
   7-3-stripe-payment-integration: done
   7-4-payment-webhook-handler: ready-for-dev
-  7-5-home-page-ux-single-create-button: done  # Replaced by Story 7.13
-  7-6-create-menu-modal-component: done  # No longer needed (modal approach abandoned)
+  7-5-home-page-ux-single-create-button: done # Replaced by Story 7.13
+  7-6-create-menu-modal-component: done # No longer needed (modal approach abandoned)
   7-7-tournament-creation-limit-enforcement: ready-for-dev
   7-8-tournament-player-limit-enforcement: ready-for-dev
   7-9-league-creation-premium-requirement: ready-for-dev
   7-10-premium-status-display-profile: ready-for-dev
   7-11-payment-modal-component: done
   7-12-premium-status-context-integration: ready-for-dev
-  7-13-adaptive-home-page-with-three-actions: done  # NEW: Replaces 7.5 and 7.6
+  7-13-adaptive-home-page-with-three-actions: done # NEW: Replaces 7.5 and 7.6
   epic-7-retrospective: optional
 
   epic-8: in-progress
@@ -99,23 +99,23 @@ development_status:
   8-3-tournament-dashboard-management: done
   8-4-league-creation-flow: done
   8-5-match-recording-universal: done
-  8-6-auto-add-creator-as-participant: done  # Bug fix - creator auto-joins their tournament (database trigger + tests)
+  8-6-auto-add-creator-as-participant: done # Bug fix - creator auto-joins their tournament (database trigger + tests)
   epic-8-retrospective: optional
 
   epic-9: in-progress
   9-1-landing-page-non-connected: done
   9-2-responsive-navigation-infrastructure: done
   9-3-bottom-tab-menu-principal: review
-  9-4-bottom-menu-specifique: done  # Code review complete - 8 issues fixed (4 CRITICAL, 4 HIGH)
-  9-5-contextual-action-bar: done  # Code review complete - 9 issues fixed (2 CRITICAL, 2 HIGH, 4 MEDIUM, 1 LOW)
-  9-6-desktop-sidebar-navigation: done  # Code review complete - 8 issues fixed (3 CRITICAL, 5 HIGH)
+  9-4-bottom-menu-specifique: done # Code review complete - 8 issues fixed (4 CRITICAL, 4 HIGH)
+  9-5-contextual-action-bar: done # Code review complete - 9 issues fixed (2 CRITICAL, 2 HIGH, 4 MEDIUM, 1 LOW)
+  9-6-desktop-sidebar-navigation: done # Code review complete - 8 issues fixed (3 CRITICAL, 5 HIGH)
   epic-9-retrospective: optional
 
   epic-10: in-progress
-  10-1-home-page-connected: done  # Code review complete - 7 issues fixed (4 CRITICAL, 3 MEDIUM)
-  10-2-tournaments-list-page: done  # Code review complete - 7 issues fixed (4 HIGH, 3 MEDIUM)
-  10-3-leagues-list-page: done  # Code review complete - 9 issues fixed (2 CRITICAL, 4 MEDIUM, 3 LOW)
-  10-4-join-page-qr-scanner: done  # Code review complete - 6 issues fixed (2 CRITICAL, 4 MEDIUM)
+  10-1-home-page-connected: done # Code review complete - 7 issues fixed (4 CRITICAL, 3 MEDIUM)
+  10-2-tournaments-list-page: done # Code review complete - 7 issues fixed (4 HIGH, 3 MEDIUM)
+  10-3-leagues-list-page: done # Code review complete - 9 issues fixed (2 CRITICAL, 4 MEDIUM, 3 LOW)
+  10-4-join-page-qr-scanner: done # Code review complete - 6 issues fixed (2 CRITICAL, 4 MEDIUM)
   epic-10-retrospective: optional
 
   epic-13: in-progress
@@ -126,16 +126,17 @@ development_status:
   epic-14: in-progress
   # Phase 1 — Fondations
   14-1-design-tokens-dans-tailwind-theme: done
-  14-1b-page-design-system-showcase: review
-  14-2-composant-statcard: review
-  14-3-composant-segmentedtabs: review
-  14-4-composant-listrow: review
-  14-5-composant-infocard: review
-  14-6-composant-fab: review
-  14-7-composant-banner: ready-for-dev
-  14-8-composant-searchbar: ready-for-dev
+  14-1b-page-design-system-showcase: done # code review complete - 5 issues fixed
+  14-2-composant-statcard: done # code review complete
+  14-3-composant-segmentedtabs: done # code review complete
+  14-4-composant-listrow: done # code review complete
+  14-5-composant-infocard: done # code review complete
+  14-6-composant-fab: done # code review complete
+  14-7-composant-banner: review
+  14-8-composant-searchbar: done
   14-9-icone-identitaire-beerpongmatchicon: done
   14-10-regles-navigation-bottom-nav-toujours-visible: ready-for-dev
+  14-10b-navigation-design-system-showcase: ready-for-dev
   14-11-bouton-fermer-modales-design-system: ready-for-dev
   # Phase 2 — Flow tournoi
   14-12-page-mes-tournois-refonte: ready-for-dev

@@ -27,13 +27,17 @@ So que la navigation soit cohérente avec le design system.
 - [ ] Task 1: Audit navigationHelpers (AC: 4)
   - [ ] Vérifier `src/utils/navigationHelpers.ts`
   - [ ] shouldShowBottomMenu, shouldShowBackButton
-  - [ ] Mettre à jour pour retourner true sur routes core
+  - [ ] Mettre à jour pour retourner true sur routes core (/, /join, /tournaments, /leagues, /user/profile, /tournament/:id, /league/:id, /player/:id)
 - [ ] Task 2: Routes et exclusions (AC: 2, 3)
   - [ ] Lister routes core vs exclusions
+  - [ ] Exclusions : Landing, /display/*, /auth/*, modales plein écran
   - [ ] Tester chaque route
 - [ ] Task 3: Padding contenu (AC: 5)
   - [ ] pb-20 ou pb-24 sur contenu scrollable
   - [ ] Vérifier BottomTabMenu, BottomMenuSpecific
+- [ ] Task 4: Intégration App.tsx
+  - [ ] S'assurer que BottomTabMenu s'affiche quand shouldShowBottomMenu true
+  - [ ] Gérer la coexistence avec BottomMenuSpecific si nécessaire (join, tournaments, leagues)
 
 ## Dev Notes
 

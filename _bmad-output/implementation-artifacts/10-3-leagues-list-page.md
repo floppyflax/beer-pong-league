@@ -408,3 +408,9 @@ Successfully implemented the Leagues List page with all acceptance criteria met:
 ### Deferred (Out of Scope)
 
 - **Error state handling** - useLeaguesList/LeagueContext don't expose error state. Would require LeagueContext changes. Recommend as follow-up task.
+
+## Code Review (AI) - 2026-02-13 (Batch)
+
+### Fixes Applied
+
+- **[10-3]** PaymentModal onSuccess: Added `onSuccess={() => reloadData()}` so leagues list refreshes after premium upgrade

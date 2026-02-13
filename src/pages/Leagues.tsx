@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { LeagueCard } from '../components/leagues/LeagueCard';
 import { usePremiumLimits } from '../hooks/usePremiumLimits';
 import { useLeaguesList } from '../hooks/useLeaguesList';
+import { useLeague } from '../context/LeagueContext';
 
 /**
  * Leagues Page
@@ -36,6 +37,7 @@ export const Leagues: React.FC = () => {
   
   const { canCreateLeague, isAtLeagueLimit } = usePremiumLimits();
   const { leagues, isLoading } = useLeaguesList();
+  const { reloadData } = useLeague();
 
   // Story 10.3: Add 300ms debounce to search for performance (same as Story 10.2)
   useEffect(() => {
@@ -121,6 +123,7 @@ export const Leagues: React.FC = () => {
           <PaymentModal
             isOpen={showPaymentModal}
             onClose={() => setShowPaymentModal(false)}
+            onSuccess={() => reloadData()}
             title={isAtLeagueLimit ? 'Limite gratuite atteinte' : undefined}
             subtitle={isAtLeagueLimit ? 'La version gratuite est limitée à 1 league active. Passez Premium pour créer des leagues illimitées et profiter de toutes les fonctionnalités avancées.' : undefined}
           />
@@ -215,6 +218,7 @@ export const Leagues: React.FC = () => {
         <PaymentModal
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
+          onSuccess={() => reloadData()}
           title={isAtLeagueLimit ? 'Limite gratuite atteinte' : undefined}
           subtitle={isAtLeagueLimit ? 'La version gratuite est limitée à 1 league active. Passez Premium pour créer des leagues illimitées et profiter de toutes les fonctionnalités avancées.' : undefined}
         />

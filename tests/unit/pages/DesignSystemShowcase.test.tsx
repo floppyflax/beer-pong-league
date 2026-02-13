@@ -76,4 +76,35 @@ describe("DesignSystemShowcase", () => {
     const backLink = screen.getByRole("link", { name: /retour/i });
     expect(backLink).toHaveAttribute("href", "/");
   });
+
+  it("should render SearchBar with interactive demo (Story 14-8)", () => {
+    renderWithRouter();
+    expect(screen.getByRole("searchbox")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/rechercher un tournoi ou une league/i)).toBeInTheDocument();
+    expect(screen.getByText(/Valeur débouncée/)).toBeInTheDocument();
+  });
+
+  it("should render InfoCard component (Story 14-5)", () => {
+    renderWithRouter();
+    expect(screen.getByText("Tournoi Beer Pong Mars 2025")).toBeInTheDocument();
+    expect(screen.getAllByText(/En cours/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/15 mars 2025/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/8 joueurs/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/2v2/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should render FAB component with variants (Story 14-6)", () => {
+    renderWithRouter();
+    expect(screen.getByRole("button", { name: /créer \(primary\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /nouveau match/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /action secondaire/i })).toBeInTheDocument();
+  });
+
+  it("should render Banner component with success and error variants (Story 14-7)", () => {
+    renderWithRouter();
+    expect(screen.getByText(/Tournoi rejoint ! Redirection…/)).toBeInTheDocument();
+    expect(screen.getByText(/Erreur lors de la connexion/)).toBeInTheDocument();
+    expect(screen.getByText(/Message dismissable/)).toBeInTheDocument();
+    expect(screen.getAllByRole("alert").length).toBeGreaterThanOrEqual(3);
+  });
 });

@@ -1,6 +1,6 @@
 # Story 14.7: Composant Banner (feedback)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -24,13 +24,13 @@ So que les toasts et bannières soient cohérents.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Créer Banner.tsx (AC: 1-4)
-  - [ ] Créer `src/components/design-system/Banner.tsx`
-  - [ ] Variants success/error
-  - [ ] onDismiss optionnel
-- [ ] Task 2: Export et tests (AC: 5)
-- [ ] Task 3: Design System showcase (Story 14-1b)
-  - [ ] Ajouter section Banner dans DesignSystemShowcase (variants success/error, avec onDismiss)
+- [x] Task 1: Créer Banner.tsx (AC: 1-4)
+  - [x] Créer `src/components/design-system/Banner.tsx`
+  - [x] Variants success/error
+  - [x] onDismiss optionnel
+- [x] Task 2: Export et tests (AC: 5)
+- [x] Task 3: Design System showcase (Story 14-1b)
+  - [x] Ajouter section Banner dans DesignSystemShowcase (variants success/error, avec onDismiss)
 
 ## Dev Notes
 
@@ -50,4 +50,19 @@ So que les toasts et bannières soient cohérents.
 
 ### Completion Notes List
 
+- Banner.tsx créé avec variants success (bg-success, CheckCircle) et error (bg-error, XCircle)
+- Props: message, variant, position ('top' | 'inline'), onDismiss?
+- 11 tests unitaires couvrant tous les AC
+- Export dans design-system/index.ts
+- Section Banner dans DesignSystemShowcase avec exemples success, error, dismissable
+
 ### File List
+
+- src/components/design-system/Banner.tsx (new)
+- src/components/design-system/index.ts (modified)
+- src/pages/DesignSystemShowcase.tsx (modified)
+- tests/unit/components/design-system/Banner.test.tsx (new)
+
+## Change Log
+
+- 2026-02-13: Story 14-7 implémentée — composant Banner créé (success/error, position top/inline, onDismiss), tests, export, DesignSystemShowcase

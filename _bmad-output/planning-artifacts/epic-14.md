@@ -6,7 +6,7 @@
 
 **Scope:**
 
-1. **Fondations** — Design tokens + composants atomiques (StatCard, SegmentedTabs, ListRow, InfoCard, FAB, Banner, SearchBar) + icône BeerPongMatchIcon + règles navigation
+1. **Fondations** — Design tokens + composants atomiques (StatCard, SegmentedTabs, ListRow, InfoCard, FAB, Banner, SearchBar) + icône BeerPongMatchIcon + règles navigation + navigation dans showcase (14.10, 14.10b)
 2. **Modales** — Bouton X obligatoire (appliqué tôt pour cohérence dès les premières migrations)
 3. **Migration pages** — Chaque page migrée selon design-system-convergence
 4. **Flow match enrichi** — Choix gagnant, gobelets restants, photo souvenir
@@ -288,6 +288,39 @@ So que la navigation soit cohérente avec le design system.
 
 - `src/utils/navigationHelpers.ts` — `shouldShowBottomMenu`, `shouldShowBackButton`
 - Vérifier BottomTabMenu, BottomMenuSpecific
+
+---
+
+## Story 14.10b: Navigation dans le Design System (showcase)
+
+As a developer,
+I want les composants de navigation (BottomTabMenu, BottomMenuSpecific) documentés et visibles dans le Design System showcase,
+So que la navigation soit une partie officielle du design system et que je puisse la visualiser et la valider.
+
+**Acceptance Criteria:**
+
+**Given** la page Design System (`/design-system`)
+**When** j'accède à la section Navigation
+**Then** une section "Navigation" affiche BottomTabMenu et BottomMenuSpecific
+
+**And** BottomTabMenu : prévisualisation dans un cadre type mobile (ou zone dédiée) avec les 5 onglets (Accueil, Rejoindre, Tournois, Leagues, Profil)
+**And** les états actif/inactif sont démontrés (ex. onglet actif avec couleur primaire)
+**And** BottomMenuSpecific : démo avec 1 ou 2 actions (ex. Scanner QR, Créer un tournoi)
+
+**And** BottomTabMenu aligné sur design-system-convergence section 2.1 :
+- Icône Leagues : Medal (pas Users)
+- Hauteur min 64px, touch target 48px+
+- État actif : couleur primaire / gradient
+
+**And** les composants restent dans `src/components/navigation/` (pas de duplication dans design-system/)
+
+**Technical Notes:**
+
+- `src/pages/DesignSystemShowcase.tsx` — ajouter section Navigation
+- Prévisualisation : MemoryRouter ou zone avec hauteur fixe pour simuler le rendu
+- Référence : design-system-convergence.md sections 2.1, 2.2
+- BottomTabMenu : `src/components/navigation/BottomTabMenu.tsx`
+- BottomMenuSpecific : `src/components/navigation/BottomMenuSpecific.tsx`
 
 ---
 

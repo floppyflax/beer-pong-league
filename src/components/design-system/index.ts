@@ -22,3 +22,7 @@ export type {
 } from './InfoCard';
 export { FAB } from './FAB';
 export type { FABProps, FABVariant } from './FAB';
+export { Banner } from './Banner';
+export type { BannerProps, BannerVariant, BannerPosition } from './Banner';
+export { SearchBar } from './SearchBar';
+export type { SearchBarProps } from './SearchBar';

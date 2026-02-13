@@ -1,6 +1,6 @@
 # Story 14.8: Composant SearchBar
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -24,15 +24,15 @@ So que les recherches (tournois, leagues) soient cohérentes.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Créer SearchBar.tsx (AC: 1, 2, 4)
-  - [ ] Créer `src/components/design-system/SearchBar.tsx`
-  - [ ] Icône loupe (lucide-react Search)
-  - [ ] Props: value, onChange, placeholder
-- [ ] Task 2: Debounce (AC: 3)
-  - [ ] useDebouncedCallback ou équivalent 300ms
-- [ ] Task 3: Export et tests (AC: 5)
-- [ ] Task 4: Design System showcase (Story 14-1b)
-  - [ ] Ajouter section SearchBar dans DesignSystemShowcase avec démo interactive (debounce)
+- [x] Task 1: Créer SearchBar.tsx (AC: 1, 2, 4)
+  - [x] Créer `src/components/design-system/SearchBar.tsx`
+  - [x] Icône loupe (lucide-react Search)
+  - [x] Props: value, onChange, placeholder
+- [x] Task 2: Debounce (AC: 3)
+  - [x] useDebouncedCallback ou équivalent 300ms
+- [x] Task 3: Export et tests (AC: 5)
+- [x] Task 4: Design System showcase (Story 14-1b)
+  - [x] Ajouter section SearchBar dans DesignSystemShowcase avec démo interactive (debounce)
 
 ## Dev Notes
 
@@ -53,4 +53,34 @@ So que les recherches (tournois, leagues) soient cohérentes.
 
 ### Completion Notes List
 
+- SearchBar créé avec icône Search (lucide-react), input bg-slate-800 border-slate-700 rounded-lg pl-12
+- Debounce 300ms via useEffect + setTimeout (pattern cohérent avec Tournaments/Leagues)
+- 8 tests unitaires SearchBar + 1 test DesignSystemShowcase
+- Section SearchBar dans DesignSystemShowcase avec démo interactive (affichage valeur débouncée)
+- Code review 2026-02-13: 2 MEDIUM corrigés (onChangeRef pour stabilité, test clear input), 2 LOW (JSDoc @param, autocomplete="off")
+
 ### File List
+
+- src/components/design-system/SearchBar.tsx (new)
+- src/components/design-system/index.ts (modified — export SearchBar)
+- src/pages/DesignSystemShowcase.tsx (modified — SearchBarShowcase)
+- tests/unit/components/design-system/SearchBar.test.tsx (new)
+- tests/unit/pages/DesignSystemShowcase.test.tsx (modified — test SearchBar)
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-02-13  
+**Outcome:** Approve (after fixes)
+
+**Findings addressed:**
+- [MEDIUM] onChange in effect deps → fixed with onChangeRef
+- [MEDIUM] Missing test for clear input → added test
+- [LOW] JSDoc @param → added
+- [LOW] autocomplete="off" → added
+
+**Remaining (out of scope):** SearchBar non utilisé dans Tournaments/Leagues — prévu pour Story 14-12.
+
+## Change Log
+
+- 2026-02-13: Implémentation complète du composant SearchBar (Story 14-8). Composant avec icône loupe, debounce 300ms, export, tests, DesignSystemShowcase.
+- 2026-02-13: Code review — corrections: onChangeRef pour éviter re-runs effet, test clear input, JSDoc @param, autocomplete="off".
