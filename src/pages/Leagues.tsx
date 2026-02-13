@@ -133,7 +133,7 @@ export const Leagues: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 pb-20 lg:pb-8">
+    <div className="min-h-screen bg-slate-900 lg:pb-8">
       {/* Contextual Header (Story 13.2) */}
       <ContextualHeader 
         title="Mes Leagues"

@@ -95,7 +95,7 @@ describe('BottomTabMenu', () => {
     });
 
     it('should highlight profile tab when on profile route', () => {
-      mockLocation.pathname = '/profile';
+      mockLocation.pathname = '/user/profile';
       render(<BottomTabMenu />);
       
       const profileButton = screen.getByLabelText('Profile');
@@ -174,7 +174,7 @@ describe('BottomTabMenu', () => {
       const profileButton = screen.getByLabelText('Profile');
       fireEvent.click(profileButton);
       
-      expect(mockNavigate).toHaveBeenCalledWith('/profile');
+      expect(mockNavigate).toHaveBeenCalledWith('/user/profile');
     });
   });
 

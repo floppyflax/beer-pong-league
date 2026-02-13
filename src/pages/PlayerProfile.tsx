@@ -208,7 +208,7 @@ export const PlayerProfile = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-grow overflow-y-auto p-4 space-y-6">
+      <div className="flex-grow overflow-y-auto p-4 space-y-6 pb-20 lg:pb-4">
         {/* ELO Evolution Chart */}
         {eloEvolution.length > 1 && (
           <div>

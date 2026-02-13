@@ -14,7 +14,7 @@ function TestApp({ initialRoute = '/' }: { initialRoute?: string }) {
           <Route path="/join" element={<div>Join Page</div>} />
           <Route path="/tournaments" element={<div>Tournaments Page</div>} />
           <Route path="/leagues" element={<div>Leagues Page</div>} />
-          <Route path="/profile" element={<div>Profile Page</div>} />
+          <Route path="/user/profile" element={<div>Profile Page</div>} />
           <Route path="/tournament/:id" element={<div>Tournament Detail</div>} />
           <Route path="/league/:id" element={<div>League Detail</div>} />
           <Route path="/auth/callback" element={<div>Auth Callback</div>} />
@@ -54,7 +54,7 @@ describe('BottomTabMenu Integration', () => {
     });
 
     it('should show on profile route', async () => {
-      render(<TestApp initialRoute="/profile" />);
+      render(<TestApp initialRoute="/user/profile" />);
       
       await waitFor(() => {
         expect(screen.getByLabelText('Profile')).toBeInTheDocument();
@@ -62,42 +62,50 @@ describe('BottomTabMenu Integration', () => {
     });
   });
 
-  describe('Hidden on Pages with Specific Menu', () => {
-    it('should not show on join route (has specific menu)', () => {
+  describe('Visible on Core Routes (Story 14-10)', () => {
+    it('should show on join route', async () => {
       render(<TestApp initialRoute="/join" />);
       
-      expect(screen.queryByLabelText('Home')).not.toBeInTheDocument();
-      expect(screen.getByText('Join Page')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Home')).toBeInTheDocument();
+        expect(screen.getByText('Join Page')).toBeInTheDocument();
+      });
     });
 
-    it('should not show on tournaments route (has specific menu)', () => {
+    it('should show on tournaments route', async () => {
       render(<TestApp initialRoute="/tournaments" />);
       
-      expect(screen.queryByLabelText('Home')).not.toBeInTheDocument();
-      expect(screen.getByText('Tournaments Page')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Home')).toBeInTheDocument();
+        expect(screen.getByText('Tournaments Page')).toBeInTheDocument();
+      });
     });
 
-    it('should not show on leagues route (has specific menu)', () => {
+    it('should show on leagues route', async () => {
       render(<TestApp initialRoute="/leagues" />);
       
-      expect(screen.queryByLabelText('Home')).not.toBeInTheDocument();
-      expect(screen.getByText('Leagues Page')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Home')).toBeInTheDocument();
+        expect(screen.getByText('Leagues Page')).toBeInTheDocument();
+      });
     });
-  });
 
-  describe('Hidden on Detail Pages (AC4)', () => {
-    it('should not show on tournament detail page', () => {
+    it('should show on tournament detail page', async () => {
       render(<TestApp initialRoute="/tournament/123" />);
       
-      expect(screen.queryByLabelText('Home')).not.toBeInTheDocument();
-      expect(screen.getByText('Tournament Detail')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Home')).toBeInTheDocument();
+        expect(screen.getByText('Tournament Detail')).toBeInTheDocument();
+      });
     });
 
-    it('should not show on league detail page', () => {
+    it('should show on league detail page', async () => {
       render(<TestApp initialRoute="/league/456" />);
       
-      expect(screen.queryByLabelText('Home')).not.toBeInTheDocument();
-      expect(screen.getByText('League Detail')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText('Home')).toBeInTheDocument();
+        expect(screen.getByText('League Detail')).toBeInTheDocument();
+      });
     });
   });
 

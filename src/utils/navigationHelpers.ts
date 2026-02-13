@@ -6,45 +6,96 @@
  */
 
 /**
+ * Core routes where bottom nav should always be visible (design system 2.1)
+ */
+const CORE_ROUTES = [
+  "/",
+  "/join",
+  "/tournaments",
+  "/leagues",
+  "/user/profile",
+] as const;
+
+/**
+ * Route patterns for detail pages (bottom nav visible)
+ */
+const CORE_ROUTE_PATTERNS = [
+  /^\/tournament\/[^/]+$/, // /tournament/:id (exclude /tournament/:id/display, /invite, /join)
+  /^\/league\/[^/]+$/,     // /league/:id (exclude /league/:id/display)
+  /^\/player\/[^/]+$/,     // /player/:id
+];
+
+/**
+ * Excluded routes: Landing (handled by hasIdentity), Display views, Auth, payment, modals
+ */
+const EXCLUDED_PATTERNS = [
+  /\/display/,           // Display views (full-screen)
+  /^\/auth\//,           // Auth callback
+  /^\/payment-success/,  // Payment success
+  /^\/payment-cancel/,   // Payment cancel
+  /^\/design-system$/,   // Dev tool
+];
+
+/**
  * Determines if the bottom menu should be visible for a given route
  *
- * Bottom Menu Visibility Rules (Updated):
- * - SHOW on main routes: /, /profile
- * - HIDE on pages with specific menu: /join, /tournaments, /leagues
- * - HIDE on detail pages: /tournament/:id, /league/:id
- * - HIDE on auth routes: /auth/*
- * - HIDE on display routes: /display/*
- * - HIDE on unknown routes
+ * Bottom Menu Visibility Rules (Story 14-10, design system 2.1):
+ * - SHOW on core routes: /, /join, /tournaments, /leagues, /user/profile
+ * - SHOW on detail pages: /tournament/:id, /league/:id, /player/:id
+ * - HIDE on exclusions: Display views (/display/*), Auth (/auth/*), payment, modals
  *
  * @param pathname - The current route pathname
  * @returns true if bottom menu should be visible, false otherwise
  */
 export function shouldShowBottomMenu(pathname: string): boolean {
-  // Dev tool pages - hide bottom nav
-  if (pathname === "/design-system") {
-    return false;
+  // Exclusions first
+  for (const pattern of EXCLUDED_PATTERNS) {
+    if (pattern.test(pathname)) {
+      return false;
+    }
   }
 
-  // Pages with context-specific menu - hide bottom tab menu to avoid overlap
-  const specificMenuRoutes = ["/join", "/tournaments", "/leagues"];
-  if (specificMenuRoutes.includes(pathname)) {
-    return false;
-  }
-
-  // Main routes where bottom tab menu should be visible
-  const mainRoutes = ["/", "/profile"];
-
-  // Exact match for main routes
-  if (mainRoutes.includes(pathname)) {
+  // Exact match for core routes
+  if (CORE_ROUTES.includes(pathname as (typeof CORE_ROUTES)[number])) {
     return true;
   }
 
-  // Hide on all other routes:
-  // - Detail pages (/tournament/*, /league/*)
-  // - Auth routes (/auth/*)
-  // - Display routes (/display/*)
-  // - Unknown routes
+  // Detail page patterns
+  for (const pattern of CORE_ROUTE_PATTERNS) {
+    if (pattern.test(pathname)) {
+      return true;
+    }
+  }
+
   return false;
+}
+
+/** Routes that use BottomMenuSpecific (action bar) - need extra padding when visible */
+export const PAGES_WITH_SPECIFIC_MENU = [
+  "/join",
+  "/tournaments",
+  "/leagues",
+] as const;
+
+/**
+ * Returns the bottom padding class for scrollable content when bottom nav is visible.
+ * Story 14-10 AC5: pb-20 or pb-24 for content clearance.
+ * When BottomMenuSpecific is also shown (join, tournaments, leagues), extra padding needed.
+ *
+ * @param pathname - The current route pathname
+ * @returns Tailwind class for padding-bottom (e.g. "pb-20 lg:pb-4") or empty string
+ */
+export function getContentPaddingBottom(pathname: string): string {
+  if (!shouldShowBottomMenu(pathname)) {
+    return "";
+  }
+  // BottomTabMenu = 64px (h-16). BottomMenuSpecific ≈ 80px when stacked.
+  const hasSpecificMenu = (
+    PAGES_WITH_SPECIFIC_MENU as readonly string[]
+  ).includes(pathname);
+  return hasSpecificMenu
+    ? "pb-36 lg:pb-4" // Both menus: ~144px total
+    : "pb-20 lg:pb-4"; // BottomTabMenu only: 80px clearance
 }
 
 /**
@@ -53,7 +104,7 @@ export function shouldShowBottomMenu(pathname: string): boolean {
  * Back Button Visibility Rules:
  * - SHOW on pages with specific menu: /join, /tournaments, /leagues
  * - SHOW on detail pages: /tournament/:id, /league/:id
- * - HIDE on main navigation pages: /, /profile
+ * - HIDE on main navigation pages: /, /user/profile
  * - HIDE on auth and display routes
  *
  * @param pathname - The current route pathname
@@ -65,9 +116,8 @@ export function shouldShowBackButton(pathname: string): boolean {
     return false;
   }
 
-  // Show on pages with specific menu (they don't have bottom tab menu)
-  const specificMenuRoutes = ["/join", "/tournaments", "/leagues"];
-  if (specificMenuRoutes.includes(pathname)) {
+  // Show on pages with specific menu
+  if ((PAGES_WITH_SPECIFIC_MENU as readonly string[]).includes(pathname)) {
     return true;
   }
 
@@ -84,7 +134,7 @@ export function shouldShowBackButton(pathname: string): boolean {
  * Determines if the desktop sidebar should be shown based on the current pathname.
  *
  * Sidebar Visibility Rules:
- * - SHOW on all main pages: /, /join, /tournaments, /leagues, /profile
+ * - SHOW on all main pages: /, /join, /tournaments, /leagues, /user/profile
  * - SHOW on detail pages: /tournament/:id, /league/:id
  * - HIDE on auth routes: /auth/*
  * - HIDE on display routes (full-screen): /display/*

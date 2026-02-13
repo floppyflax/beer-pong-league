@@ -1,13 +1,18 @@
 import React, { ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAuthContext } from '../../context/AuthContext';
+import { useIdentity } from '../../hooks/useIdentity';
+import { shouldShowBottomMenu } from '../../utils/navigationHelpers';
 
 /**
  * BottomMenuSpecific Component
- * 
+ *
  * Context-specific bottom menu for list pages (Join, Tournaments, Leagues)
- * Replaces the Bottom Tab Menu Principal on pages where a primary action is more important than navigation
- * 
+ * Coexists with BottomTabMenu (Story 14-10): stacks above when both visible
+ *
  * Features (AC1-AC6):
  * - Fixed bottom position on mobile (hidden on desktop with lg:hidden)
+ * - Stacks above BottomTabMenu when on core routes AND user has identity (bottom: 4rem)
  * - 1-2 primary action buttons with responsive layout
  * - Full-width button for single action, 50/50 split for two actions
  * - Supports icons, disabled state, and premium lock indicator
@@ -27,14 +32,25 @@ interface BottomMenuSpecificProps {
 }
 
 export const BottomMenuSpecific: React.FC<BottomMenuSpecificProps> = ({ actions }) => {
+  const location = useLocation();
+  const { isAuthenticated } = useAuthContext();
+  const { localUser } = useIdentity();
+  const hasIdentity = isAuthenticated || localUser;
+  const stackAboveBottomNav =
+    shouldShowBottomMenu(location.pathname) && hasIdentity;
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 z-30 lg:hidden">
+    <div
+      className={`fixed left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 z-30 lg:hidden ${
+        stackAboveBottomNav ? 'bottom-16' : 'bottom-0'
+      }`}
+    >
       <div className={`flex gap-3 max-w-md mx-auto ${
         actions.length === 1 ? 'justify-center' : 'justify-between'
       }`}>
-        {actions.map((action, index) => (
+        {actions.map((action) => (
           <button
-            key={index}
+            key={action.label}
             onClick={action.onClick}
             disabled={action.disabled}
             className={`${

@@ -3,53 +3,69 @@ import {
   shouldShowBottomMenu,
   shouldShowBackButton,
   shouldShowSidebar,
+  getContentPaddingBottom,
 } from "../../../src/utils/navigationHelpers";
 
 describe("navigationHelpers", () => {
-  describe("shouldShowBottomMenu", () => {
-    it("should return true for home route", () => {
+  describe("shouldShowBottomMenu (Story 14-10)", () => {
+    it("should return true for core routes", () => {
       expect(shouldShowBottomMenu("/")).toBe(true);
+      expect(shouldShowBottomMenu("/join")).toBe(true);
+      expect(shouldShowBottomMenu("/tournaments")).toBe(true);
+      expect(shouldShowBottomMenu("/leagues")).toBe(true);
+      expect(shouldShowBottomMenu("/user/profile")).toBe(true);
     });
 
-    it("should return true for profile route", () => {
-      expect(shouldShowBottomMenu("/profile")).toBe(true);
+    it("should return true for detail pages", () => {
+      expect(shouldShowBottomMenu("/tournament/123")).toBe(true);
+      expect(shouldShowBottomMenu("/league/456")).toBe(true);
+      expect(shouldShowBottomMenu("/player/abc")).toBe(true);
     });
 
-    it("should return false for join route", () => {
-      expect(shouldShowBottomMenu("/join")).toBe(false);
-    });
-
-    it("should return false for tournaments route", () => {
-      expect(shouldShowBottomMenu("/tournaments")).toBe(false);
-    });
-
-    it("should return false for leagues route", () => {
-      expect(shouldShowBottomMenu("/leagues")).toBe(false);
-    });
-
-    it("should return false for tournament detail pages", () => {
-      expect(shouldShowBottomMenu("/tournament/123")).toBe(false);
-      expect(shouldShowBottomMenu("/tournament/abc/display")).toBe(false);
-    });
-
-    it("should return false for league detail pages", () => {
-      expect(shouldShowBottomMenu("/league/456")).toBe(false);
+    it("should return false for display routes", () => {
+      expect(shouldShowBottomMenu("/tournament/123/display")).toBe(false);
+      expect(shouldShowBottomMenu("/league/456/display")).toBe(false);
     });
 
     it("should return false for auth routes", () => {
       expect(shouldShowBottomMenu("/auth/callback")).toBe(false);
     });
 
-    it("should return false for display routes", () => {
-      expect(shouldShowBottomMenu("/tournament/123/display")).toBe(false);
+    it("should return false for payment routes", () => {
+      expect(shouldShowBottomMenu("/payment-success")).toBe(false);
+      expect(shouldShowBottomMenu("/payment-cancel")).toBe(false);
     });
 
-    it("should return false for design-system dev page (Story 14-1b)", () => {
+    it("should return false for design-system dev page", () => {
       expect(shouldShowBottomMenu("/design-system")).toBe(false);
     });
 
     it("should return false for unknown routes", () => {
       expect(shouldShowBottomMenu("/unknown")).toBe(false);
+    });
+
+    it("should return false for sub-routes of tournament/league (invite, join)", () => {
+      expect(shouldShowBottomMenu("/tournament/123/invite")).toBe(false);
+      expect(shouldShowBottomMenu("/tournament/123/join")).toBe(false);
+    });
+  });
+
+  describe("getContentPaddingBottom", () => {
+    it("should return empty string when bottom menu is hidden", () => {
+      expect(getContentPaddingBottom("/auth/callback")).toBe("");
+      expect(getContentPaddingBottom("/design-system")).toBe("");
+    });
+
+    it("should return pb-20 for core routes without specific menu", () => {
+      expect(getContentPaddingBottom("/")).toContain("pb-20");
+      expect(getContentPaddingBottom("/user/profile")).toContain("pb-20");
+      expect(getContentPaddingBottom("/tournament/123")).toContain("pb-20");
+    });
+
+    it("should return pb-36 for pages with BottomMenuSpecific", () => {
+      expect(getContentPaddingBottom("/join")).toContain("pb-36");
+      expect(getContentPaddingBottom("/tournaments")).toContain("pb-36");
+      expect(getContentPaddingBottom("/leagues")).toContain("pb-36");
     });
   });
 
@@ -59,7 +75,7 @@ describe("navigationHelpers", () => {
     });
 
     it("should return false for profile route", () => {
-      expect(shouldShowBackButton("/profile")).toBe(false);
+      expect(shouldShowBackButton("/user/profile")).toBe(false);
     });
 
     it("should return true for join route", () => {
@@ -110,7 +126,7 @@ describe("navigationHelpers", () => {
     });
 
     it("should return true for profile route", () => {
-      expect(shouldShowSidebar("/profile")).toBe(true);
+      expect(shouldShowSidebar("/user/profile")).toBe(true);
     });
 
     it("should return true for tournament detail pages", () => {

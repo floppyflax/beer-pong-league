@@ -24,6 +24,8 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import {
   shouldShowBottomMenu,
   shouldShowBackButton,
+  getContentPaddingBottom,
+  PAGES_WITH_SPECIFIC_MENU,
 } from "./utils/navigationHelpers";
 import { Menu, User, LogOut } from "lucide-react";
 
@@ -287,7 +289,16 @@ function AppContent() {
               </Routes>
             ) : (
               <ResponsiveLayout showSidebar={false}>
-                <div className="py-4">
+                <div
+                  className={`py-4 ${
+                    (shouldShowBottomMenu(location.pathname) && hasIdentity) ||
+                    (PAGES_WITH_SPECIFIC_MENU as readonly string[]).includes(
+                      location.pathname
+                    )
+                      ? getContentPaddingBottom(location.pathname)
+                      : ""
+                  }`}
+                >
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/join" element={<Join />} />
