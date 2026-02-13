@@ -47,7 +47,7 @@ describe('LastLeagueCard', () => {
       expect(screen.getByText(/Créer une league/i)).toBeInTheDocument();
     });
 
-    it('should navigate to /league/create when clicking empty state CTA', async () => {
+    it('should navigate to /create-league when clicking empty state CTA', async () => {
       const user = userEvent.setup();
 
       render(
@@ -59,7 +59,7 @@ describe('LastLeagueCard', () => {
       const ctaButton = screen.getByText(/Créer une league/i);
       await user.click(ctaButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/league/create');
+      expect(mockNavigate).toHaveBeenCalledWith('/create-league');
     });
   });
 

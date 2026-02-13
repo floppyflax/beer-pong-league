@@ -40,7 +40,7 @@ describe('NewUserWelcome', () => {
         </BrowserRouter>
       );
 
-      expect(screen.getByText(/Prêt à dominer les tournois de Beer Pong/i)).toBeInTheDocument();
+      expect(screen.getByText(/Commencez par rejoindre un tournoi ou créer votre propre league/i)).toBeInTheDocument();
     });
   });
 
@@ -67,15 +67,15 @@ describe('NewUserWelcome', () => {
       expect(screen.getByText(/Lancez votre premier tournoi/i)).toBeInTheDocument();
     });
 
-    it('should display "Voir les avantages Premium" action', () => {
+    it('should display "Créer une league" action', () => {
       render(
         <BrowserRouter>
           <NewUserWelcome />
         </BrowserRouter>
       );
 
-      expect(screen.getByText('Voir les avantages Premium')).toBeInTheDocument();
-      expect(screen.getByText(/Débloquez toutes les fonctionnalités/i)).toBeInTheDocument();
+      expect(screen.getByText('Créer une league')).toBeInTheDocument();
+      expect(screen.getByText(/Créez votre propre league/i)).toBeInTheDocument();
     });
   });
 
@@ -95,7 +95,7 @@ describe('NewUserWelcome', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/join');
     });
 
-    it('should navigate to /tournament/create when clicking "Créer un tournoi"', async () => {
+    it('should navigate to /create-tournament when clicking "Créer un tournoi"', async () => {
       const user = userEvent.setup();
 
       render(
@@ -107,23 +107,22 @@ describe('NewUserWelcome', () => {
       const createButton = screen.getByText('Créer un tournoi').closest('button')!;
       await user.click(createButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/tournament/create');
+      expect(mockNavigate).toHaveBeenCalledWith('/create-tournament');
     });
 
-    it('should call onUpgradeClick when clicking "Voir les avantages Premium"', async () => {
+    it('should navigate to /create-league when clicking "Créer une league"', async () => {
       const user = userEvent.setup();
-      const mockOnUpgrade = vi.fn();
 
       render(
         <BrowserRouter>
-          <NewUserWelcome onUpgradeClick={mockOnUpgrade} />
+          <NewUserWelcome />
         </BrowserRouter>
       );
 
-      const premiumButton = screen.getByText('Voir les avantages Premium').closest('button')!;
-      await user.click(premiumButton);
+      const leagueButton = screen.getByText('Créer une league').closest('button')!;
+      await user.click(leagueButton);
 
-      expect(mockOnUpgrade).toHaveBeenCalledOnce();
+      expect(mockNavigate).toHaveBeenCalledWith('/create-league');
     });
   });
 

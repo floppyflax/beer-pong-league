@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { QrCode, Trophy, Sparkles } from 'lucide-react';
+import { QrCode, Trophy, Award } from 'lucide-react';
 
 interface NewUserWelcomeProps {
   onUpgradeClick?: () => void;
@@ -19,13 +19,13 @@ export const NewUserWelcome = ({ onUpgradeClick }: NewUserWelcomeProps) => {
       icon: <Trophy size={24} className="text-accent" />,
       title: 'Créer un tournoi',
       description: 'Lancez votre premier tournoi entre amis',
-      action: () => navigate('/tournament/create'),
+      action: () => navigate('/create-tournament'),
     },
     {
-      icon: <Sparkles size={24} className="text-primary" />,
-      title: 'Voir les avantages Premium',
-      description: 'Débloquez toutes les fonctionnalités avancées',
-      action: onUpgradeClick,
+      icon: <Award size={24} className="text-primary" />,
+      title: 'Créer une league',
+      description: 'Créez votre propre league pour jouer régulièrement',
+      action: () => navigate('/create-league'),
     },
   ];
 
@@ -36,7 +36,7 @@ export const NewUserWelcome = ({ onUpgradeClick }: NewUserWelcomeProps) => {
           Bienvenue sur Beer Pong League! 🍺
         </h1>
         <p className="text-slate-400">
-          Prêt à dominer les tournois de Beer Pong ? Commencez par une de ces actions :
+          Commencez par rejoindre un tournoi ou créer votre propre league
         </p>
       </div>
 

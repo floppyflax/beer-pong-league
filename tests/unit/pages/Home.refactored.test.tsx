@@ -16,10 +16,8 @@ vi.mock('../../../src/hooks/useHomeData', () => ({
   useHomeData: vi.fn(),
 }));
 
-vi.mock('../../../src/services/PremiumService', () => ({
-  premiumService: {
-    isPremium: vi.fn(),
-  },
+vi.mock('../../../src/hooks/usePremium', () => ({
+  usePremium: vi.fn(),
 }));
 
 // Mock child components
@@ -62,13 +60,13 @@ vi.mock('../../../src/components/PaymentModal', () => ({
 import { useAuth } from '../../../src/hooks/useAuth';
 import { useIdentity } from '../../../src/hooks/useIdentity';
 import { useHomeData } from '../../../src/hooks/useHomeData';
-import { premiumService } from '../../../src/services/PremiumService';
+import { usePremium } from '../../../src/hooks/usePremium';
 
 describe('Home (Refactored)', () => {
   const mockUseAuth = vi.mocked(useAuth);
   const mockUseIdentity = vi.mocked(useIdentity);
   const mockUseHomeData = vi.mocked(useHomeData);
-  const mockIsPremium = vi.mocked(premiumService.isPremium);
+  const mockUsePremium = vi.mocked(usePremium);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -85,7 +83,11 @@ describe('Home (Refactored)', () => {
       userId: 'user-123',
     } as any);
 
-    mockIsPremium.mockResolvedValue(false);
+    mockUsePremium.mockReturnValue({
+      isPremium: false,
+      isLoading: false,
+      error: null,
+    });
   });
 
   describe('Loading State', () => {
@@ -199,8 +201,12 @@ describe('Home (Refactored)', () => {
   });
 
   describe('Premium Status', () => {
-    it('should pass isPremium=true to stats when user is premium', async () => {
-      mockIsPremium.mockResolvedValue(true);
+    it('should pass isPremium=true to stats when user is premium', () => {
+      mockUsePremium.mockReturnValue({
+        isPremium: true,
+        isLoading: false,
+        error: null,
+      });
       
       mockUseHomeData.mockReturnValue({
         lastTournament: undefined,
@@ -216,11 +222,15 @@ describe('Home (Refactored)', () => {
         </BrowserRouter>
       );
 
-      await screen.findByText(/Premium: true/);
+      expect(screen.getByText(/Premium: true/)).toBeInTheDocument();
     });
 
     it('should pass isPremium=false to stats when user is not premium', () => {
-      mockIsPremium.mockResolvedValue(false);
+      mockUsePremium.mockReturnValue({
+        isPremium: false,
+        isLoading: false,
+        error: null,
+      });
       
       mockUseHomeData.mockReturnValue({
         lastTournament: undefined,
@@ -263,7 +273,7 @@ describe('Home (Refactored)', () => {
   });
 
   describe('Page Structure', () => {
-    it('should display welcome header', () => {
+    it('should display welcome header with greeting', () => {
       mockUseHomeData.mockReturnValue({
         lastTournament: undefined,
         lastLeague: undefined,
@@ -278,7 +288,8 @@ describe('Home (Refactored)', () => {
         </BrowserRouter>
       );
 
-      expect(screen.getByText(/Tableau de bord/i)).toBeInTheDocument();
+      expect(screen.getByText(/Salut/i)).toBeInTheDocument();
+      expect(screen.getByText(/Voici ton activité récente/i)).toBeInTheDocument();
     });
   });
 });

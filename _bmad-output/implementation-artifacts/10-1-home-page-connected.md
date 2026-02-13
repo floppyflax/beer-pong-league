@@ -607,3 +607,79 @@ Claude Sonnet 4.5
 - ✅ TypeScript strict mode compliance
 - ✅ Architecture patterns respected
 - ✅ No regressions introduced
+
+---
+
+## Code Review (AI) - 2026-02-13
+
+### Review Summary
+**Reviewer:** Adversarial Code Review Workflow  
+**Date:** 2026-02-13  
+**Outcome:** ✅ All HIGH and MEDIUM issues fixed  
+**Issues Found:** 9 (4 CRITICAL, 3 MEDIUM, 2 LOW)  
+**Issues Fixed:** 7 (All CRITICAL + MEDIUM)
+
+### Critical Issues Fixed
+
+#### ✅ FIXED #1: Route 404 - LastLeagueCard
+**Severity:** CRITICAL  
+**Issue:** Empty state CTA navigated to `/league/create` (route doesn't exist)  
+**Fix Applied:** Changed to `/create-league`  
+**File:** `src/components/home/LastLeagueCard.tsx`
+
+#### ✅ FIXED #2: Route 404 - NewUserWelcome
+**Severity:** CRITICAL  
+**Issue:** "Créer un tournoi" navigated to `/tournament/create` (route doesn't exist)  
+**Fix Applied:** Changed to `/create-tournament`  
+**File:** `src/components/home/NewUserWelcome.tsx`
+
+#### ✅ FIXED #3: AC5 Violation - NewUserWelcome Third Card
+**Severity:** CRITICAL  
+**Issue:** AC5 specifies 3 cards: Rejoindre tournoi, Créer tournoi, **Créer une league**. Implementation had "Voir les avantages Premium" instead.  
+**Fix Applied:** Replaced with "Créer une league" → `/create-league`  
+**File:** `src/components/home/NewUserWelcome.tsx`
+
+#### ✅ FIXED #4: Failing Test - Home.refactored.test.tsx
+**Severity:** CRITICAL  
+**Issue:** Test expected "Tableau de bord" but implementation shows "Salut"  
+**Fix Applied:** Updated test to expect "Salut" and "Voici ton activité récente"  
+**File:** `tests/unit/pages/Home.refactored.test.tsx`
+
+### Medium Issues Fixed
+
+#### ✅ FIXED #5: AC5 Welcome Message
+**Severity:** MEDIUM  
+**Issue:** AC5 text "Commencez par rejoindre un tournoi ou créer votre propre league"  
+**Fix Applied:** Updated NewUserWelcome description to match AC5  
+**File:** `src/components/home/NewUserWelcome.tsx`
+
+#### ✅ FIXED #6: act() Warnings in Home Tests
+**Severity:** MEDIUM  
+**Issue:** usePremium async caused React act() warnings  
+**Fix Applied:** Mock usePremium hook for synchronous test behavior  
+**File:** `tests/unit/pages/Home.refactored.test.tsx`
+
+#### ✅ FIXED #7: Duplicate formatRelativeTime
+**Severity:** MEDIUM  
+**Issue:** Same function duplicated in LastTournamentCard and LastLeagueCard  
+**Fix Applied:** Extracted to `src/utils/dateUtils.ts`  
+**Files:** `src/utils/dateUtils.ts` (NEW), `LastTournamentCard.tsx`, `LastLeagueCard.tsx`
+
+### Files Modified in Code Review (2026-02-13)
+
+**Created:**
+- `src/utils/dateUtils.ts` - Shared formatRelativeTime utility
+
+**Modified:**
+- `src/components/home/LastLeagueCard.tsx` - Route fix, use dateUtils
+- `src/components/home/LastTournamentCard.tsx` - Use dateUtils
+- `src/components/home/NewUserWelcome.tsx` - AC5 compliance (routes, third card, welcome message)
+- `tests/unit/pages/Home.refactored.test.tsx` - usePremium mock, greeting assertion fix
+- `tests/unit/components/home/LastLeagueCard.test.tsx` - Route assertion fix
+- `tests/unit/components/home/NewUserWelcome.test.tsx` - AC5 test updates
+
+### Validation
+
+- ✅ All 46 tests passing (Home, LastTournamentCard, LastLeagueCard, NewUserWelcome)
+- ✅ No linter errors
+- ✅ AC5 fully implemented
