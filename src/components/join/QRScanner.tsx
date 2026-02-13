@@ -8,6 +8,8 @@ const SCANNER_BOX_SIZE = 250;
 interface QRScannerProps {
   onScan: (code: string) => void;
   onClose: () => void;
+  /** Called when user chooses "Saisir le code manuellement" - closes scanner and opens code input */
+  onFallbackToCodeInput?: () => void;
 }
 
 /**
@@ -22,7 +24,7 @@ interface QRScannerProps {
  * - Error handling and fallback to manual code input
  * - Mobile-optimized (uses back camera)
  */
-export const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
+export const QRScanner = ({ onScan, onClose, onFallbackToCodeInput }: QRScannerProps) => {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -128,10 +130,10 @@ export const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
     onClose();
   };
 
-  // Fallback to code input if camera fails
+  // Fallback to code input if camera fails - close scanner and optionally open code input
   const handleFallbackToCodeInput = async () => {
     await handleClose();
-    // Parent will handle opening code input modal
+    onFallbackToCodeInput?.();
   };
 
   return (

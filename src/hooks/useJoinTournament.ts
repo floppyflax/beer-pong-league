@@ -24,10 +24,10 @@ export const useJoinTournament = () => {
     setError(null);
 
     try {
-      // Validate format (6-8 chars, alphanumeric, uppercase)
+      // Validate format (6-8 chars per AC4, alphanumeric, uppercase)
       const trimmedCode = code.trim().toUpperCase();
-      if (!/^[A-Z0-9]{5,8}$/.test(trimmedCode)) {
-        throw new Error('Code invalide (5-8 caractères alphanumériques)');
+      if (!/^[A-Z0-9]{6,8}$/.test(trimmedCode)) {
+        throw new Error('Code invalide (6-8 caractères alphanumériques)');
       }
 
       // Check if online (offline-first architecture requirement)
@@ -35,8 +35,13 @@ export const useJoinTournament = () => {
         throw new Error('Connexion internet requise pour rejoindre un tournoi');
       }
 
+      // Check Supabase availability (project-context requirement)
+      if (!supabase) {
+        throw new Error('Connexion internet requise pour rejoindre un tournoi');
+      }
+
       // Query tournament by code with timeout for offline detection
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Connexion internet requise pour rejoindre un tournoi')), 10000)
       );
 

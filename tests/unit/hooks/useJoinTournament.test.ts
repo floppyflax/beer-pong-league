@@ -213,7 +213,12 @@ describe('useJoinTournament', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    it('should accept codes with 5-8 characters', async () => {
+    it('should reject codes with less than 6 characters', async () => {
+      const { result } = renderHook(() => useJoinTournament());
+      await expect(result.current.joinByCode('ABC12')).rejects.toThrow('Code invalide');
+    });
+
+    it('should accept codes with 6-8 characters', async () => {
       const mockFrom = vi.fn().mockReturnThis();
       const mockSelect = vi.fn().mockReturnThis();
       const mockEq = vi.fn().mockReturnThis();
@@ -222,7 +227,7 @@ describe('useJoinTournament', () => {
           id: '123',
           name: 'Test Tournament',
           is_finished: false,
-          join_code: 'ABC12',
+          join_code: 'ABC123',
         },
         error: null,
       });
@@ -240,9 +245,9 @@ describe('useJoinTournament', () => {
 
       const { result } = renderHook(() => useJoinTournament());
 
-      // Test 5 chars
-      await result.current.joinByCode('ABC12');
-      expect(mockEq).toHaveBeenCalledWith('join_code', 'ABC12');
+      // Test 6 chars
+      await result.current.joinByCode('ABC123');
+      expect(mockEq).toHaveBeenCalledWith('join_code', 'ABC123');
 
       // Test 8 chars
       mockSingle.mockResolvedValue({

@@ -25,10 +25,13 @@ vi.mock('../../../src/components/navigation/BottomMenuSpecific', () => ({
 }));
 
 vi.mock('../../../src/components/join/QRScanner', () => ({
-  QRScanner: ({ onClose, onScan }: any) => (
+  QRScanner: ({ onClose, onScan, onFallbackToCodeInput }: any) => (
     <div data-testid="qr-scanner">
       <button onClick={onClose}>Close Scanner</button>
       <button onClick={() => onScan('TEST123')}>Simulate Scan</button>
+      {onFallbackToCodeInput && (
+        <button onClick={onFallbackToCodeInput}>Fallback to Code Input</button>
+      )}
     </div>
   ),
 }));
@@ -70,8 +73,8 @@ describe('Join Page', () => {
       renderJoinPage();
       const bottomMenu = screen.getByTestId('bottom-menu');
       expect(bottomMenu).toBeInTheDocument();
-      expect(screen.getByText('SCANNER QR')).toBeInTheDocument();
-      expect(screen.getByText('CODE')).toBeInTheDocument();
+      expect(screen.getAllByText('SCANNER QR').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('CODE').length).toBeGreaterThan(0);
     });
 
     it('should render large icon in empty state', () => {
@@ -90,8 +93,8 @@ describe('Join Page', () => {
     it('should open QR scanner when "SCANNER QR" is clicked', () => {
       renderJoinPage();
       
-      const scannerButton = screen.getByText('SCANNER QR');
-      fireEvent.click(scannerButton);
+      const scannerButtons = screen.getAllByText('SCANNER QR');
+      fireEvent.click(scannerButtons[0]);
 
       expect(screen.getByTestId('qr-scanner')).toBeInTheDocument();
     });
@@ -99,8 +102,8 @@ describe('Join Page', () => {
     it('should close QR scanner', () => {
       renderJoinPage();
       
-      const scannerButton = screen.getByText('SCANNER QR');
-      fireEvent.click(scannerButton);
+      const scannerButtons = screen.getAllByText('SCANNER QR');
+      fireEvent.click(scannerButtons[0]);
 
       const closeButton = screen.getByText('Close Scanner');
       fireEvent.click(closeButton);
@@ -111,8 +114,8 @@ describe('Join Page', () => {
     it('should handle scanned QR code', async () => {
       renderJoinPage();
       
-      const scannerButton = screen.getByText('SCANNER QR');
-      fireEvent.click(scannerButton);
+      const scannerButtons = screen.getAllByText('SCANNER QR');
+      fireEvent.click(scannerButtons[0]);
 
       const simulateScanButton = screen.getByText('Simulate Scan');
       fireEvent.click(simulateScanButton);
@@ -128,8 +131,8 @@ describe('Join Page', () => {
     it('should open code input modal when "CODE" is clicked', () => {
       renderJoinPage();
       
-      const codeButton = screen.getByText('CODE');
-      fireEvent.click(codeButton);
+      const codeButtons = screen.getAllByText('CODE');
+      fireEvent.click(codeButtons[0]);
 
       expect(screen.getByTestId('code-input-modal')).toBeInTheDocument();
     });
@@ -137,8 +140,8 @@ describe('Join Page', () => {
     it('should close code input modal', () => {
       renderJoinPage();
       
-      const codeButton = screen.getByText('CODE');
-      fireEvent.click(codeButton);
+      const codeButtons = screen.getAllByText('CODE');
+      fireEvent.click(codeButtons[0]);
 
       const closeButton = screen.getByText('Close Modal');
       fireEvent.click(closeButton);
@@ -149,8 +152,8 @@ describe('Join Page', () => {
     it('should handle code submission', async () => {
       renderJoinPage();
       
-      const codeButton = screen.getByText('CODE');
-      fireEvent.click(codeButton);
+      const codeButtons = screen.getAllByText('CODE');
+      fireEvent.click(codeButtons[0]);
 
       const submitButton = screen.getByText('Submit Code');
       fireEvent.click(submitButton);
@@ -187,28 +190,20 @@ describe('Join Page', () => {
     });
   });
 
-  describe('Code Extraction Helper', () => {
-    // Note: These tests would ideally be in a separate file for the helper function
-    // For now, they're documented here as part of the Join page test suite
-    
-    it('should extract code from URL with query param', () => {
-      // This would test the extractCodeFromQR function
-      // Example: "https://bpl.com/tournament/123?code=ABC123" -> "ABC123"
-    });
+  describe('AC2: Fallback to code input', () => {
+    it('should open code input modal when fallback is clicked from QR scanner', async () => {
+      renderJoinPage();
 
-    it('should extract code from path segment', () => {
-      // This would test the extractCodeFromQR function
-      // Example: "/tournament/join/ABC123" -> "ABC123"
-    });
+      const scannerButtons = screen.getAllByText('SCANNER QR');
+      fireEvent.click(scannerButtons[0]);
 
-    it('should handle direct code input', () => {
-      // This would test the extractCodeFromQR function
-      // Example: "ABC123" -> "ABC123"
-    });
+      const fallbackButton = screen.getByText('Fallback to Code Input');
+      fireEvent.click(fallbackButton);
 
-    it('should convert extracted code to uppercase', () => {
-      // This would test the extractCodeFromQR function
-      // Example: "abc123" -> "ABC123"
+      await waitFor(() => {
+        expect(screen.queryByTestId('qr-scanner')).not.toBeInTheDocument();
+        expect(screen.getByTestId('code-input-modal')).toBeInTheDocument();
+      });
     });
   });
 });

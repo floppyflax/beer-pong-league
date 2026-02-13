@@ -115,7 +115,7 @@ development_status:
   10-1-home-page-connected: done  # Code review complete - 7 issues fixed (4 CRITICAL, 3 MEDIUM)
   10-2-tournaments-list-page: done  # Code review complete - 7 issues fixed (4 HIGH, 3 MEDIUM)
   10-3-leagues-list-page: done  # Code review complete - 9 issues fixed (2 CRITICAL, 4 MEDIUM, 3 LOW)
-  10-4-join-page-qr-scanner: review
+  10-4-join-page-qr-scanner: done  # Code review complete - 6 issues fixed (2 CRITICAL, 4 MEDIUM)
   epic-10-retrospective: optional
 
   epic-13: in-progress

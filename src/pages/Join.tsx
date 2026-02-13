@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BottomMenuSpecific } from '../components/navigation/BottomMenuSpecific';
-import { Modal } from '../components/Modal';
-import { Camera, Hash } from 'lucide-react';
-
-// Tournament code format constants
-const TOURNAMENT_CODE_LENGTH = 5; // Format: XXXXX (5 alphanumeric characters)
+import { ContextualHeader } from '../components/navigation/ContextualHeader';
+import { QRScanner } from '../components/join/QRScanner';
+import { CodeInputModal } from '../components/join/CodeInputModal';
+import { useJoinTournament } from '../hooks/useJoinTournament';
+import { extractCodeFromQR } from '../utils/extractCodeFromQR';
+import { Camera, Hash, Target } from 'lucide-react';
 
 /**
  * Join Page
@@ -12,31 +13,79 @@ const TOURNAMENT_CODE_LENGTH = 5; // Format: XXXXX (5 alphanumeric characters)
  * Page for users to join tournaments via QR code scanning or manual code entry
  * 
  * Features:
- * - QR Scanner action (opens camera)
- * - Code input action (opens modal)
+ * - QR Scanner (opens full-screen camera)
+ * - Code input modal (validates and submits code)
  * - Bottom Menu Specific with 2 actions (mobile only)
+ * - Works for both authenticated and anonymous users
+ * 
+ * Acceptance Criteria:
+ * - AC1: Page layout with header, instructions, and bottom menu
+ * - AC2: QR scanner modal with camera access
+ * - AC3: Code input modal with validation
+ * - AC4: Code validation and navigation
+ * - AC5: Anonymous user support
+ * - AC6: Desktop experience (inline actions)
+ * - AC7: Empty state with instructions
  */
-
-export const Join: React.FC = () => {
+export const Join = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [showCodeInput, setShowCodeInput] = useState(false);
+  const { joinByCode } = useJoinTournament();
+
+  const handleScanCode = (scannedCode: string) => {
+    setShowScanner(false);
+    // Extract code from QR data (could be URL or direct code)
+    const code = extractCodeFromQR(scannedCode);
+    handleJoinByCode(code);
+  };
+
+  const handleJoinByCode = async (code: string) => {
+    try {
+      await joinByCode(code);
+      // Navigation happens inside the hook
+      setShowCodeInput(false);
+    } catch (err) {
+      // Error is handled and displayed by the hook
+      // Modal stays open so user can try again
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] px-4">
-      <div className="max-w-md w-full space-y-6 text-center">
-        <h1 className="text-3xl font-bold text-white">
+    <div className="min-h-screen bg-slate-900">
+      {/* Contextual Header (Story 13.2) */}
+      <ContextualHeader 
+        title="Rejoindre" 
+        showBackButton={true}
+        onBack={() => window.history.back()}
+      />
+
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] px-4">
+        {/* Empty State / Default View (AC7) */}
+        <div className="max-w-md w-full space-y-6 text-center">
+        {/* Large icon */}
+        <div className="flex justify-center mb-4">
+          <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center">
+            <Target size={48} className="text-primary" />
+          </div>
+        </div>
+
+        {/* Instructions title (removed main h1 as it's now in header) */}
+        <h2 className="text-2xl font-bold text-white">
           Rejoindre un Tournoi
-        </h1>
+        </h2>
         
-        <p className="text-slate-300">
-          Scannez le QR code du tournoi ou entrez le code manuellement pour rejoindre.
+        {/* Instructions (AC1) */}
+        <p className="text-slate-300 leading-relaxed">
+          Scannez le QR code affiché par l'organisateur ou saisissez le code manuellement pour rejoindre un tournoi existant.
         </p>
 
-        {/* Desktop Actions (shown above lg breakpoint) */}
+        {/* Desktop Actions (AC6 - shown above lg breakpoint) */}
         <div className="hidden lg:flex gap-4 mt-8">
           <button
             onClick={() => setShowScanner(true)}
-            className="flex-1 bg-primary hover:bg-amber-600 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="flex-1 bg-primary hover:bg-amber-600 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3"
+            aria-label="Scanner un QR code"
+            title="Utilisez votre mobile"
           >
             <Camera size={24} />
             <span>SCANNER QR</span>
@@ -44,15 +93,24 @@ export const Join: React.FC = () => {
           
           <button
             onClick={() => setShowCodeInput(true)}
-            className="flex-1 bg-primary hover:bg-amber-600 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3"
+            aria-label="Saisir un code"
           >
             <Hash size={24} />
-            <span>CODE</span>
+            <span>SAISIR CODE</span>
           </button>
         </div>
+
+        {/* Additional info */}
+        <div className="mt-8 pt-8 border-t border-slate-700">
+          <p className="text-slate-500 text-sm">
+            💡 Astuce : Le code du tournoi vous est fourni par l'organisateur
+          </p>
+        </div>
+      </div>
       </div>
 
-      {/* Mobile Bottom Menu (shown below lg breakpoint) */}
+      {/* Mobile Bottom Menu (AC1 - shown below lg breakpoint) */}
       <BottomMenuSpecific
         actions={[
           {
@@ -68,62 +126,25 @@ export const Join: React.FC = () => {
         ]}
       />
 
-      {/* Scanner QR Modal - PLACEHOLDER: Actual camera integration to be implemented */}
-      <Modal
-        isOpen={showScanner}
-        onClose={() => setShowScanner(false)}
-        title="Scanner QR"
-      >
-        <div className="text-center">
-          <div className="text-6xl mb-4">📷</div>
-          <p className="text-slate-300 mb-4">
-            La fonctionnalité de scan QR sera implémentée prochainement.
-          </p>
-          <p className="text-slate-400 text-sm">
-            Cette fonctionnalité ouvrira la caméra pour scanner le QR code du tournoi.
-          </p>
-        </div>
-      </Modal>
+      {/* QR Scanner Modal (AC2 - full-screen camera) */}
+      {showScanner && (
+        <QRScanner
+          onScan={handleScanCode}
+          onClose={() => setShowScanner(false)}
+          onFallbackToCodeInput={() => {
+            setShowScanner(false);
+            setShowCodeInput(true);
+          }}
+        />
+      )}
 
-      {/* Code Input Modal */}
-      <Modal
-        isOpen={showCodeInput}
-        onClose={() => setShowCodeInput(false)}
-        title="Entrer le Code"
-        footer={
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowCodeInput(false)}
-              className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded-lg transition-all active:scale-95"
-            >
-              Annuler
-            </button>
-            <button
-              onClick={() => {
-                // TODO: Handle code submission and navigation to tournament
-                console.log('Code submission not yet implemented');
-                setShowCodeInput(false);
-              }}
-              className="flex-1 bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-lg transition-all active:scale-95"
-            >
-              Rejoindre
-            </button>
-          </div>
-        }
-      >
-        <div>
-          <p className="text-slate-300 mb-4">
-            Entrez le code à 5 caractères du tournoi que vous souhaitez rejoindre.
-          </p>
-          <input
-            type="text"
-            placeholder="XXXXX"
-            className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg uppercase text-center text-2xl font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-primary"
-            maxLength={TOURNAMENT_CODE_LENGTH}
-            aria-label="Code du tournoi"
-          />
-        </div>
-      </Modal>
+      {/* Code Input Modal (AC3 - validation & submission) */}
+      {showCodeInput && (
+        <CodeInputModal
+          onSubmit={handleJoinByCode}
+          onClose={() => setShowCodeInput(false)}
+        />
+      )}
     </div>
   );
 };

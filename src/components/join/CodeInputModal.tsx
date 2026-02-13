@@ -11,7 +11,7 @@ interface CodeInputModalProps {
  * 
  * Modal for manual entry of tournament join codes
  * - Auto-uppercase transformation
- * - Format validation (5-8 chars alphanumeric)
+ * - Format validation (6-8 chars alphanumeric per AC4)
  * - Submit button disabled until valid format
  */
 export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
@@ -42,14 +42,15 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && isValid && !isLoading) {
+      e.preventDefault();
       handleSubmit();
     }
   };
 
-  // Validation: 5-8 characters, alphanumeric
-  const isValid = /^[A-Z0-9]{5,8}$/.test(code);
+  // Validation: 6-8 characters per AC4, alphanumeric
+  const isValid = /^[A-Z0-9]{6,8}$/.test(code);
 
   return (
     <div className="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4">
@@ -69,7 +70,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
 
         {/* Description */}
         <p className="text-slate-400 text-sm mb-4">
-          Entrez le code du tournoi (5 à 8 caractères alphanumériques)
+          Entrez le code du tournoi (6 à 8 caractères alphanumériques)
         </p>
 
         {/* Code Input */}
@@ -77,7 +78,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
           type="text"
           value={code}
           onChange={(e) => handleCodeChange(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyDown}
           placeholder="Ex: ABC123"
           maxLength={8}
           className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-lg text-white text-center text-2xl font-bold tracking-wider uppercase focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
@@ -88,7 +89,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
 
         {/* Character counter */}
         <div className="text-right mt-2">
-          <span className={`text-sm ${code.length >= 5 && code.length <= 8 ? 'text-green-500' : 'text-slate-500'}`}>
+          <span className={`text-sm ${code.length >= 6 && code.length <= 8 ? 'text-green-500' : 'text-slate-500'}`}>
             {code.length}/8
           </span>
         </div>
