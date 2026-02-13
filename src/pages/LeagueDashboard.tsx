@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useLeague } from "../context/LeagueContext";
+import { useLeague } from "@/context/LeagueContext";
 import {
   Trophy,
   Plus,
@@ -11,6 +11,7 @@ import {
   Edit,
   Monitor,
   UserPlus,
+  Calendar,
 } from "lucide-react";
 import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
@@ -18,6 +19,58 @@ import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ContextualHeader } from "../components/navigation/ContextualHeader";
 import { useDetailPagePermissions } from "../hooks/useDetailPagePermissions";
+import {
+  InfoCard,
+  StatCard,
+  SegmentedTabs,
+  ListRow,
+  FAB,
+} from "@/components/design-system";
+
+// Delta ELO du dernier match du joueur (design system 4.3)
+// matches must be sorted by date desc (most recent first)
+function getDeltaFromLastMatch(
+  playerId: string,
+  matches: {
+    date: string;
+    teamA: string[];
+    teamB: string[];
+    eloChanges?: Record<string, number>;
+  }[],
+): number | undefined {
+  for (const m of matches) {
+    if (m.teamA.includes(playerId) || m.teamB.includes(playerId)) {
+      const change = m.eloChanges?.[playerId];
+      return change !== undefined ? change : undefined;
+    }
+  }
+  return undefined;
+}
+
+// Derniers 5 résultats (true=victoire, false=défaite), du plus récent au plus ancien
+// matches must be sorted by date desc (most recent first)
+function getLast5MatchResults(
+  playerId: string,
+  matches: {
+    date: string;
+    teamA: string[];
+    teamB: string[];
+    scoreA: number;
+    scoreB: number;
+  }[],
+): boolean[] {
+  const results: boolean[] = [];
+  for (const m of matches) {
+    if (results.length >= 5) break;
+    const inTeamA = m.teamA.includes(playerId);
+    const inTeamB = m.teamB.includes(playerId);
+    if (!inTeamA && !inTeamB) continue;
+    const won =
+      (inTeamA && m.scoreA > m.scoreB) || (inTeamB && m.scoreB > m.scoreA);
+    results.push(won);
+  }
+  return results;
+}
 
 export const LeagueDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +81,6 @@ export const LeagueDashboard = () => {
     recordMatch,
     deleteLeague,
     updateLeague,
-    // updatePlayer, // Unused
     deletePlayer,
     isLoadingInitialData,
   } = useLeague();
@@ -36,8 +88,8 @@ export const LeagueDashboard = () => {
 
   const league = leagues.find((l) => l.id === id);
   const [activeTab, setActiveTab] = useState<
-    "ranking" | "matches" | "tournaments" | "players" | "settings"
-  >("ranking");
+    "classement" | "matchs" | "parametres"
+  >("classement");
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showRecordMatch, setShowRecordMatch] = useState(false);
 
@@ -98,13 +150,23 @@ export const LeagueDashboard = () => {
     return [...league.players].sort((a, b) => b.elo - a.elo);
   }, [league.players]);
 
+  // Memoize sorted matches (by date desc) to avoid re-sorting 2N times per render
+  const sortedMatches = useMemo(
+    () =>
+      [...league.matches].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      ),
+    [league.matches],
+  );
+
   // Story 9-5 - Get permissions for contextual actions
   const { isAdmin, canInvite } = useDetailPagePermissions(id || "", "league");
 
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPlayerName.trim()) {
-      addPlayer(league.id, newPlayerName);
+    const trimmed = newPlayerName.trim();
+    if (trimmed && trimmed.length <= 50) {
+      addPlayer(league.id, trimmed);
       setNewPlayerName("");
       setShowAddPlayer(false);
     }
@@ -115,7 +177,6 @@ export const LeagueDashboard = () => {
       if (selectedPlayersA.includes(playerId)) {
         setSelectedPlayersA((prev) => prev.filter((id) => id !== playerId));
       } else {
-        // Remove from B if present
         if (selectedPlayersB.includes(playerId)) {
           setSelectedPlayersB((prev) => prev.filter((id) => id !== playerId));
         }
@@ -125,7 +186,6 @@ export const LeagueDashboard = () => {
       if (selectedPlayersB.includes(playerId)) {
         setSelectedPlayersB((prev) => prev.filter((id) => id !== playerId));
       } else {
-        // Remove from A if present
         if (selectedPlayersA.includes(playerId)) {
           setSelectedPlayersA((prev) => prev.filter((id) => id !== playerId));
         }
@@ -151,7 +211,6 @@ export const LeagueDashboard = () => {
       setSelectedPlayersB([]);
       setMatchWinner(null);
 
-      // Show ELO changes animation
       if (eloChanges) {
         setLastEloChanges(eloChanges);
         setShowEloChanges(true);
@@ -168,18 +227,12 @@ export const LeagueDashboard = () => {
 
   return (
     <div className="h-full flex flex-col relative">
-      {/* Story 13.2 - Contextual Header with back button and actions */}
+      {/* AC1: Header: name + back + actions (Invite, menu) */}
       <ContextualHeader
         title={league.name}
         showBackButton={true}
         onBack={() => navigate("/leagues")}
         actions={[
-          {
-            label: "NOUVEAU MATCH",
-            icon: <BeerPongMatchIcon size={20} />,
-            onClick: () => setShowRecordMatch(true),
-            variant: "primary",
-          },
           ...(isAdmin || canInvite
             ? [
                 {
@@ -214,111 +267,63 @@ export const LeagueDashboard = () => {
         ]}
       />
 
-      {/* League Info (below header) */}
-      <div className="px-4 py-3 bg-slate-800/30 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400 uppercase tracking-wider font-bold">
-            {league.type === "season" ? "Saison" : "Ligue"}
-          </span>
-          <span className="text-xs text-slate-400">•</span>
-          <span className="text-xs text-slate-400">
-            {league.players.length} joueurs
-          </span>
-          <span className="text-xs text-slate-400">•</span>
-          <span className="text-xs text-slate-400">
-            {league.matches.length} matchs
-          </span>
-        </div>
+      {/* AC2: InfoCard (status, format, date) */}
+      <div className="px-4 py-3">
+        <InfoCard
+          title=""
+          statusBadge="En cours"
+          statusVariant="active"
+          infos={[
+            {
+              icon: Trophy,
+              text: `Format: ${league.type === "season" ? "Par Saison" : "Continue"}`,
+            },
+            {
+              icon: Users,
+              text: `${league.players.length} joueurs`,
+            },
+            {
+              icon: Calendar,
+              text: new Date(league.createdAt).toLocaleDateString("fr-FR"),
+            },
+          ]}
+        />
       </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-3 gap-2 p-4 pt-0">
-        <div className="bg-slate-800 p-3 rounded-xl text-center">
-          <div className="text-2xl font-bold text-white">
-            {league.players.length}
-          </div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">
-            Joueurs
-          </div>
-        </div>
-        <div className="bg-slate-800 p-3 rounded-xl text-center">
-          <div className="text-2xl font-bold text-white">
-            {league.matches.length}
-          </div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">
-            Matchs
-          </div>
-        </div>
-        <div className="bg-slate-800 p-3 rounded-xl text-center">
-          <div className="text-2xl font-bold text-primary">
-            {league.matches.length > 0
-              ? Math.round(league.matches.length / (league.players.length || 1))
-              : 0}
-          </div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">
-            Moy. Matchs
-          </div>
-        </div>
+      {/* AC3: StatCards (3 columns) */}
+      <div className="grid grid-cols-3 gap-2 px-4 pb-4">
+        <StatCard
+          value={league.players.length}
+          label="Joueurs"
+          variant="primary"
+        />
+        <StatCard value={league.matches.length} label="Matchs" />
+        <StatCard
+          value={sortedPlayers.length > 0 ? sortedPlayers[0].elo : "-"}
+          label="Top ELO"
+          variant="accent"
+        />
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-700 px-4">
-        <button
-          onClick={() => setActiveTab("ranking")}
-          className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-            activeTab === "ranking"
-              ? "border-primary text-white"
-              : "border-transparent text-slate-500 hover:text-slate-300"
-          }`}
-        >
-          Classement
-        </button>
-        <button
-          onClick={() => setActiveTab("matches")}
-          className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-            activeTab === "matches"
-              ? "border-primary text-white"
-              : "border-transparent text-slate-500 hover:text-slate-300"
-          }`}
-        >
-          Historique
-        </button>
-        <button
-          onClick={() => setActiveTab("tournaments")}
-          className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-            activeTab === "tournaments"
-              ? "border-primary text-white"
-              : "border-transparent text-slate-500 hover:text-slate-300"
-          }`}
-        >
-          Tournois
-        </button>
-        <button
-          onClick={() => setActiveTab("players")}
-          className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-            activeTab === "players"
-              ? "border-primary text-white"
-              : "border-transparent text-slate-500 hover:text-slate-300"
-          }`}
-        >
-          Joueurs
-        </button>
-        <button
-          onClick={() => setActiveTab("settings")}
-          className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-            activeTab === "settings"
-              ? "border-primary text-white"
-              : "border-transparent text-slate-500 hover:text-slate-300"
-          }`}
-          title="Paramètres"
-        >
-          ⚙️ Paramètres
-        </button>
+      {/* AC4: SegmentedTabs (Ranking / Matches / Settings) */}
+      <div className="px-4 pb-4">
+        <SegmentedTabs
+          tabs={[
+            { id: "classement", label: "Classement" },
+            { id: "matchs", label: "Matchs" },
+            { id: "parametres", label: "Paramètres" },
+          ]}
+          activeId={activeTab}
+          onChange={(id) =>
+            setActiveTab(id as "classement" | "matchs" | "parametres")
+          }
+          variant="encapsulated"
+        />
       </div>
 
       {/* Content */}
-      <div className="flex-grow overflow-y-auto p-4 space-y-2 pb-24">
-        {activeTab === "ranking" && (
+      <div className="flex-grow overflow-y-auto px-4 py-4 space-y-2 pb-bottom-nav lg:pb-bottom-nav-lg">
+        {activeTab === "classement" && (
           <>
             {sortedPlayers.length === 0 ? (
               <EmptyState
@@ -336,57 +341,34 @@ export const LeagueDashboard = () => {
                 }
               />
             ) : (
-              sortedPlayers.map((player, index) => (
-                <div
-                  key={player.id}
-                  onClick={() => navigate(`/player/${player.id}`)}
-                  className="bg-slate-800 p-4 rounded-xl flex items-center justify-between border border-slate-700/50 hover:border-primary cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-8 h-8 flex items-center justify-center font-black text-lg ${
-                        index === 0
-                          ? "text-yellow-400"
-                          : index === 1
-                            ? "text-slate-300"
-                            : index === 2
-                              ? "text-amber-700"
-                              : "text-slate-500"
-                      }`}
-                    >
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className="font-bold text-white">{player.name}</div>
-                      <div className="text-xs text-slate-400">
-                        {player.wins}V - {player.losses}D •{" "}
-                        {Math.round(
-                          (player.wins / (player.matchesPlayed || 1)) * 100,
-                        )}
-                        %
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-black text-xl text-primary">
-                      {player.elo}
-                    </div>
-                    <div
-                      className={`text-[10px] font-bold uppercase ${
-                        player.streak > 0 ? "text-green-500" : "text-red-500"
-                      }`}
-                    >
-                      {player.streak > 0
-                        ? `+${player.streak} WIN`
-                        : `${player.streak} LOSS`}
-                    </div>
-                  </div>
-                </div>
-              ))
+              <div className="space-y-2 w-full">
+                {sortedPlayers.map((player, index) => {
+                  const recentResults = getLast5MatchResults(
+                    player.id,
+                    sortedMatches,
+                  );
+                  const delta = getDeltaFromLastMatch(player.id, sortedMatches);
+                  return (
+                    <ListRow
+                      key={player.id}
+                      variant="player"
+                      name={player.name}
+                      subtitle={`${player.wins}V - ${player.losses}D • ${Math.round(
+                        (player.wins / (player.matchesPlayed || 1)) * 100,
+                      )}%`}
+                      elo={player.elo}
+                      rank={index + 1}
+                      delta={delta}
+                      recentResults={recentResults}
+                      onClick={() => navigate(`/player/${player.id}`)}
+                    />
+                  );
+                })}
+              </div>
             )}
           </>
         )}
-        {activeTab === "matches" && (
+        {activeTab === "matchs" && (
           <>
             {league.matches.length === 0 ? (
               <EmptyState
@@ -425,6 +407,7 @@ export const LeagueDashboard = () => {
                         winnerA ? "text-white font-bold" : "text-slate-400"
                       }`}
                     >
+                      {winnerA && "🏆 "}
                       {teamANames}
                     </div>
                     <div className="px-4 font-bold text-slate-500 text-xs">
@@ -435,6 +418,7 @@ export const LeagueDashboard = () => {
                         !winnerA ? "text-white font-bold" : "text-slate-400"
                       }`}
                     >
+                      {!winnerA && "🏆 "}
                       {teamBNames}
                     </div>
                   </div>
@@ -443,120 +427,9 @@ export const LeagueDashboard = () => {
             )}
           </>
         )}
-        {activeTab === "tournaments" && (
-          <>
-            {league.tournaments && league.tournaments.length > 0 ? (
-              tournaments
-                .filter((t) => league.tournaments?.includes(t.id))
-                .map((tournament) => (
-                  <div
-                    key={tournament.id}
-                    onClick={() => navigate(`/tournament/${tournament.id}`)}
-                    className="bg-slate-800 p-4 rounded-xl border border-slate-700/50 flex justify-between items-center hover:border-accent cursor-pointer transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="font-bold text-white flex items-center gap-2">
-                        {tournament.name}
-                        {tournament.isFinished && (
-                          <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded">
-                            Terminé
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {new Date(tournament.date).toLocaleDateString("fr-FR")}{" "}
-                        • {tournament.matches.length} matchs
-                      </div>
-                    </div>
-                    <div className="text-slate-500">→</div>
-                  </div>
-                ))
-            ) : (
-              <EmptyState
-                icon={Trophy}
-                title="Aucun tournoi"
-                description="Crée un tournoi pour organiser des événements compétitifs."
-                action={
-                  <button
-                    onClick={() =>
-                      navigate(`/create-tournament?leagueId=${league.id}`)
-                    }
-                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
-                  >
-                    <Plus size={16} className="inline mr-2" />
-                    Créer un tournoi
-                  </button>
-                }
-              />
-            )}
-          </>
-        )}
-        {activeTab === "players" && (
-          <>
-            {sortedPlayers.length === 0 ? (
-              <EmptyState
-                icon={Users}
-                title="Aucun joueur"
-                description="Ajoute des joueurs à cette ligue pour commencer."
-                action={
-                  <button
-                    onClick={() => setShowAddPlayer(true)}
-                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
-                  >
-                    <Plus size={16} className="inline mr-2" />
-                    Ajouter un joueur
-                  </button>
-                }
-              />
-            ) : (
-              sortedPlayers.map((player) => (
-                <div
-                  key={player.id}
-                  className="bg-slate-800 p-4 rounded-xl flex items-center justify-between border border-slate-700/50"
-                >
-                  <div
-                    onClick={() => navigate(`/player/${player.id}`)}
-                    className="flex-1 flex items-center gap-4 cursor-pointer"
-                  >
-                    <div className="font-bold text-white">{player.name}</div>
-                    <div className="text-xs text-slate-400">
-                      {player.elo} ELO • {player.wins}V - {player.losses}D
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // FUTURE WORK: Implement edit player modal
-                        // This modal should allow updating player name and optionally merging with another player
-                      }}
-                      className="p-2 hover:bg-slate-700 rounded-lg"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (
-                          confirm(
-                            `Supprimer ${player.name} ? Tous ses matchs seront également supprimés.`,
-                          )
-                        ) {
-                          deletePlayer(league.id, player.id);
-                        }
-                      }}
-                      className="p-2 hover:bg-red-500/20 text-red-500 rounded-lg"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </>
-        )}
-        {activeTab === "settings" && (
+        {activeTab === "parametres" && (
           <div className="space-y-4">
+            {/* League info */}
             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
               <h3 className="font-bold text-white mb-4">Informations</h3>
               <div className="space-y-3">
@@ -605,6 +478,122 @@ export const LeagueDashboard = () => {
               </div>
             </div>
 
+            {/* Tournaments */}
+            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+              <h3 className="font-bold text-white mb-4">Tournois</h3>
+              {league.tournaments && league.tournaments.length > 0 ? (
+                <div className="space-y-2">
+                  {tournaments
+                    .filter((t) => league.tournaments?.includes(t.id))
+                    .map((tournament) => (
+                      <div
+                        key={tournament.id}
+                        onClick={() => navigate(`/tournament/${tournament.id}`)}
+                        className="bg-slate-700/50 p-3 rounded-xl flex justify-between items-center hover:border-slate-600 cursor-pointer transition-colors border border-transparent"
+                      >
+                        <div className="flex-1">
+                          <div className="font-bold text-white flex items-center gap-2">
+                            {tournament.name}
+                            {tournament.isFinished && (
+                              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-0.5 rounded">
+                                Terminé
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            {new Date(tournament.date).toLocaleDateString(
+                              "fr-FR",
+                            )}{" "}
+                            • {tournament.matches.length} matchs
+                          </div>
+                        </div>
+                        <div className="text-slate-500">→</div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-sm mb-4">
+                  Aucun tournoi associé.
+                </p>
+              )}
+              <button
+                onClick={() =>
+                  navigate(`/create-tournament?leagueId=${league.id}`)
+                }
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg"
+              >
+                <Plus size={16} className="inline mr-2" />
+                Créer un tournoi
+              </button>
+            </div>
+
+            {/* Players */}
+            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+              <h3 className="font-bold text-white mb-4">Joueurs</h3>
+              {sortedPlayers.length === 0 ? (
+                <p className="text-slate-400 text-sm mb-4">
+                  Aucun joueur dans cette ligue.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {sortedPlayers.map((player) => (
+                    <div
+                      key={player.id}
+                      className="bg-slate-700/50 p-3 rounded-xl flex items-center justify-between border border-transparent"
+                    >
+                      <div
+                        onClick={() => navigate(`/player/${player.id}`)}
+                        className="flex-1 flex items-center gap-4 cursor-pointer"
+                      >
+                        <div className="font-bold text-white">
+                          {player.name}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {player.elo} ELO • {player.wins}V - {player.losses}D
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // FUTURE: Implement edit player modal
+                          }}
+                          className="p-2 hover:bg-slate-600 rounded-lg"
+                          aria-label="Modifier"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (
+                              confirm(
+                                `Supprimer ${player.name} ? Tous ses matchs seront également supprimés.`,
+                              )
+                            ) {
+                              deletePlayer(league.id, player.id);
+                            }
+                          }}
+                          className="p-2 hover:bg-red-500/20 text-red-500 rounded-lg"
+                          aria-label="Supprimer"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => setShowAddPlayer(true)}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg mt-4"
+              >
+                <Plus size={16} className="inline mr-2" />
+                Ajouter un joueur
+              </button>
+            </div>
+
+            {/* Actions */}
             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
               <h3 className="font-bold text-white mb-4">Actions</h3>
               <div className="space-y-2">
@@ -619,6 +608,7 @@ export const LeagueDashboard = () => {
                     link.href = url;
                     link.download = `${league.name}.json`;
                     link.click();
+                    URL.revokeObjectURL(url);
                   }}
                   className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg"
                 >
@@ -636,7 +626,12 @@ export const LeagueDashboard = () => {
         )}
       </div>
 
-      {/* Old bottom bar removed - replaced by ContextualBar (Story 9.5) */}
+      {/* AC6: FAB Nouveau match (BeerPongMatchIcon) */}
+      <FAB
+        icon={BeerPongMatchIcon}
+        onClick={() => setShowRecordMatch(true)}
+        ariaLabel="Nouveau match"
+      />
 
       {/* Add Player Modal */}
       {showAddPlayer && (
@@ -687,7 +682,6 @@ export const LeagueDashboard = () => {
           </div>
 
           <div className="flex-grow space-y-8">
-            {/* Team A Selection */}
             <div>
               <div className="text-sm font-bold text-primary uppercase mb-2">
                 Équipe 1
@@ -714,7 +708,6 @@ export const LeagueDashboard = () => {
 
             <div className="text-center text-slate-500 font-bold">VS</div>
 
-            {/* Team B Selection */}
             <div>
               <div className="text-sm font-bold text-accent uppercase mb-2">
                 Équipe 2
@@ -739,7 +732,6 @@ export const LeagueDashboard = () => {
               </div>
             </div>
 
-            {/* Winner Selection */}
             {selectedPlayersA.length > 0 && selectedPlayersB.length > 0 && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="text-center text-sm text-slate-400 mb-4">
@@ -791,8 +783,6 @@ export const LeagueDashboard = () => {
           onClose={() => setShowEloChanges(false)}
         />
       )}
-
-      {/* Story 13.2 - Actions moved to ContextualHeader (removed ContextualBar) */}
     </div>
   );
 };

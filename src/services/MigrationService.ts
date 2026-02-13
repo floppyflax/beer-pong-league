@@ -3,9 +3,49 @@
  */
 
 import { databaseService } from './DatabaseService';
-import type { League, Tournament } from '../types';
+import type { League, Tournament, Match } from '../types';
 
 const MIGRATION_FLAG_KEY = 'bpl_data_migrated_to_supabase';
+
+/** Normalize a value to ISO 8601 datetime string (handles legacy formats) */
+function toIsoDateTime(val: unknown): string {
+  if (val == null || val === '') return new Date().toISOString();
+  if (typeof val === 'string') {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+  }
+  if (typeof val === 'number') return new Date(val).toISOString();
+  if (val instanceof Date) return val.toISOString();
+  return new Date().toISOString();
+}
+
+/** Normalize match for migration (legacy dates, null handling) */
+function normalizeMatch(m: Match): Match {
+  return {
+    ...m,
+    date: toIsoDateTime(m.date),
+    confirmed_at: m.confirmed_at != null ? toIsoDateTime(m.confirmed_at) : undefined,
+  };
+}
+
+/** Normalize league for migration (legacy createdAt, match dates) */
+function normalizeLeague(league: League): League {
+  return {
+    ...league,
+    createdAt: toIsoDateTime(league.createdAt ?? new Date().toISOString()),
+    matches: (league.matches ?? []).map(normalizeMatch),
+  };
+}
+
+/** Normalize tournament for migration (legacy dates, null location) */
+function normalizeTournament(tournament: Tournament): Tournament {
+  const t = { ...tournament };
+  t.date = toIsoDateTime(t.date ?? tournament.createdAt);
+  t.createdAt = toIsoDateTime(t.createdAt ?? t.date);
+  t.location = (t.location != null && t.location !== '') ? t.location : undefined; // null/empty -> undefined
+  t.matches = (t.matches ?? []).map(normalizeMatch);
+  return t;
+}
 
 class MigrationService {
   /**
@@ -43,22 +83,24 @@ class MigrationService {
       const leagues: League[] = leaguesJson ? JSON.parse(leaguesJson) : [];
       const tournaments: Tournament[] = tournamentsJson ? JSON.parse(tournamentsJson) : [];
 
-      // Migrer les leagues
+      // Migrer les leagues (normaliser les dates legacy avant sauvegarde)
       let leaguesMigrated = 0;
       for (const league of leagues) {
         try {
-          await databaseService.saveLeague(league);
+          const normalized = normalizeLeague(league);
+          await databaseService.saveLeague(normalized);
           leaguesMigrated++;
         } catch (error) {
           console.error(`Error migrating league ${league.id}:`, error);
         }
       }
 
-      // Migrer les tournaments
+      // Migrer les tournaments (normaliser dates et nulls legacy)
       let tournamentsMigrated = 0;
       for (const tournament of tournaments) {
         try {
-          await databaseService.saveTournament(tournament);
+          const normalized = normalizeTournament(tournament);
+          await databaseService.saveTournament(normalized);
           tournamentsMigrated++;
         } catch (error) {
           console.error(`Error migrating tournament ${tournament.id}:`, error);

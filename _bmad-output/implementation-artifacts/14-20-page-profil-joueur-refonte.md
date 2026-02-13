@@ -1,6 +1,6 @@
 # Story 14.20: Player profile page (overhaul)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -20,10 +20,10 @@ So that avatar, StatCards, streak and sections are consistent.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Integrate StatCard, ListRow (AC: 3, 5)
-- [ ] Task 2: Avatar and streak card (AC: 2, 4)
-- [ ] Task 3: Header and layout (AC: 1, 6)
-- [ ] Task 4: Frame 11 alignment (AC: 7)
+- [x] Task 1: Integrate StatCard, ListRow (AC: 3, 5)
+- [x] Task 2: Avatar and streak card (AC: 2, 4)
+- [x] Task 3: Header and layout (AC: 1, 6)
+- [x] Task 4: Frame 11 alignment (AC: 7)
 
 ## Dev Notes
 
@@ -42,4 +42,16 @@ So that avatar, StatCards, streak and sections are consistent.
 
 ### Completion Notes List
 
+- Task 1: Replaced custom stats divs with StatCard (ELO accent, W/L, Win rate success). Integrated ListRow for Head-to-head opponents (clickable to navigate to opponent profile).
+- Task 2: Added avatar section with initials (getInitials), player name, league name. Streak card kept with design tokens (bg-green-500/20, bg-red-500/20, border).
+- Task 3: ContextualHeader with name + back. Content area uses pb-bottom-nav lg:pb-bottom-nav-lg for bottom nav clearance.
+- Task 4: Applied design tokens (bg-slate-900, bg-slate-800, border-slate-700/50, rounded-xl), section titles text-lg font-bold, consistent spacing.
+
 ### File List
+
+- src/pages/PlayerProfile.tsx (modified)
+- tests/unit/pages/PlayerProfile.test.tsx (new)
+
+## Change Log
+
+- 2026-02-13: Story 14-20 implementation — PlayerProfile refonte design system (StatCard, ListRow, avatar, streak, pb-bottom-nav)

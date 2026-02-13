@@ -7,6 +7,7 @@
 
 /**
  * Core routes where bottom nav should always be visible (design system 2.1)
+ * Story 14-18: /create-league and /create-tournament (design-system 5.3 forms)
  */
 const CORE_ROUTES = [
   "/",
@@ -14,6 +15,8 @@ const CORE_ROUTES = [
   "/tournaments",
   "/leagues",
   "/user/profile",
+  "/create-league",
+  "/create-tournament",
 ] as const;
 
 /**

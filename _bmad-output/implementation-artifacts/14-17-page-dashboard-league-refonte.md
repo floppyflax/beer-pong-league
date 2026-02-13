@@ -1,6 +1,6 @@
 # Story 14.17: League dashboard page (overhaul)
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -21,9 +21,9 @@ So that InfoCard, StatCards, tabs and ranking are consistent.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Integrate components (AC: 2-6)
-- [ ] Task 2: Header and layout (AC: 1, 7)
-- [ ] Task 3: Frame 8 alignment (AC: 8)
+- [x] Task 1: Integrate components (AC: 2-6)
+- [x] Task 2: Header and layout (AC: 1, 7)
+- [x] Task 3: Frame 8 alignment (AC: 8)
 
 ## Dev Notes
 
@@ -37,8 +37,28 @@ So that InfoCard, StatCards, tabs and ranking are consistent.
 
 ### Agent Model Used
 
+Composer (dev-story workflow)
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- ✅ AC1: ContextualHeader with name, back, Invite action, menu (Mode Diffusion, Supprimer). Nouveau match moved to FAB.
+- ✅ AC2: InfoCard with status "En cours", format (Par Saison/Continue), date (createdAt), joueurs count.
+- ✅ AC3: StatCards 3 columns (Joueurs, Matchs, Top ELO) using design-system StatCard.
+- ✅ AC4: SegmentedTabs encapsulated variant (Classement / Matchs / Paramètres). Consolidated 5 tabs → 3.
+- ✅ AC5: Ranking list with ListRow player variant (rank, delta, recentResults).
+- ✅ AC6: FAB with BeerPongMatchIcon for Nouveau match.
+- ✅ AC7: Bottom nav visible via /league/:id in CORE_ROUTE_PATTERNS.
+- ✅ AC8: Design tokens (pb-bottom-nav, bg-slate-800, border-slate-700/50, rounded-xl).
+- ✅ Code review fixes (2026-02-13): URL.revokeObjectURL, tests, memoized sortedMatches, @/ import, addPlayer validation (trim, max 50).
+
 ### File List
+
+- src/pages/LeagueDashboard.tsx (modified)
+- tests/unit/pages/LeagueDashboard.test.tsx (created)
+
+## Change Log
+
+- 2026-02-13: Refonte LeagueDashboard alignée design system (InfoCard, StatCards, SegmentedTabs, ListRow, FAB)
+- 2026-02-13: Code review fixes (memory leak, tests, performance, imports, validation)

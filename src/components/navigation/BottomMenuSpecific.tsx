@@ -31,11 +31,14 @@ interface BottomMenuSpecificProps {
   actions: Action[];
   /** When true, uses absolute positioning for containment in preview frames (e.g. DesignSystemShowcase) */
   previewMode?: boolean;
+  /** Button style: 'primary' (amber) or 'gradient' (blue-violet, design system 2.2) */
+  variant?: "primary" | "gradient";
 }
 
 export const BottomMenuSpecific: React.FC<BottomMenuSpecificProps> = ({
   actions,
   previewMode = false,
+  variant = "primary",
 }) => {
   const location = useLocation();
   const { isAuthenticated } = useAuthContext();
@@ -69,7 +72,11 @@ export const BottomMenuSpecific: React.FC<BottomMenuSpecificProps> = ({
             disabled={action.disabled}
             className={`${
               actions.length === 1 ? "w-full" : "flex-1"
-            } bg-primary hover:bg-amber-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+            } ${
+              variant === "gradient"
+                ? "bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700"
+                : "bg-primary hover:bg-amber-600"
+            } text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {action.icon}
             <span>{action.label}</span>

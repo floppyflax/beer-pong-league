@@ -37,3 +37,7 @@ dist-ssr
 build
 *.tsbuildinfo
 
+# Test artifacts
+playwright-report/
+test-results/
+

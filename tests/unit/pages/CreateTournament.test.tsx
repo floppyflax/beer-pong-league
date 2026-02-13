@@ -1,298 +1,354 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import { CreateTournament } from '../../../src/pages/CreateTournament';
-import { LeagueProvider } from '../../../src/context/LeagueContext';
-import { AuthProvider } from '../../../src/context/AuthContext';
-import { IdentityProvider } from '../../../src/context/IdentityContext';
-import { createTournamentInputSchema } from '../../../src/utils/validation';
-import '@testing-library/jest-dom';
+/**
+ * CreateTournament Page Tests - Story 14.19
+ *
+ * Tests for design system alignment:
+ * - AC1: Header with title + back
+ * - AC2: Fields with labels, inline validation
+ * - AC3: Primary CTA at bottom
+ * - AC4: Frame 10 alignment (design tokens)
+ */
 
-// Mock navigation
+import React from "react";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { BrowserRouter } from "react-router-dom";
+import { CreateTournament } from "../../../src/pages/CreateTournament";
+import { AuthProvider } from "../../../src/context/AuthContext";
+import { IdentityProvider } from "../../../src/context/IdentityContext";
+import { databaseService } from "../../../src/services/DatabaseService";
+import { premiumService } from "../../../src/services/PremiumService";
+import "@testing-library/jest-dom";
+
 const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+const mockReloadData = vi.fn();
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useSearchParams: () => [new URLSearchParams()],
   };
 });
 
-// Wrapper component with all providers
+vi.mock("react-hot-toast", () => ({
+  default: {
+    success: vi.fn(),
+    error: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  },
+}));
+
+vi.mock("../../../src/services/PremiumService", () => ({
+  premiumService: {
+    isPremium: vi.fn().mockResolvedValue(false),
+    getTournamentCount: vi.fn().mockResolvedValue(0),
+    canCreateTournament: vi.fn().mockResolvedValue({
+      allowed: true,
+      remaining: 2,
+      message: "OK",
+    }),
+  },
+}));
+
+vi.mock("../../../src/services/DatabaseService", () => ({
+  databaseService: {
+    createTournament: vi.fn().mockResolvedValue("tournament-123"),
+    tournamentCodeExists: vi.fn().mockResolvedValue(false),
+  },
+}));
+
+vi.mock("../../../src/context/LeagueContext", () => ({
+  useLeague: () => ({
+    reloadData: mockReloadData,
+  }),
+}));
+
+vi.mock("../../../src/context/AuthContext", async () => {
+  const actual = await vi.importActual("../../../src/context/AuthContext");
+  return {
+    ...actual,
+    AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    useAuthContext: () => ({
+      isAuthenticated: true,
+      isLoading: false,
+      user: { id: "user-1" },
+      signOut: vi.fn(),
+    }),
+  };
+});
+
+vi.mock("../../../src/context/IdentityContext", async () => {
+  const actual = await vi.importActual("../../../src/context/IdentityContext");
+  return {
+    ...actual,
+    IdentityProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
+
+vi.mock("../../../src/hooks/useIdentity", () => ({
+  useIdentity: () => ({
+    localUser: { anonymousUserId: null },
+  }),
+}));
+
+vi.mock("../../../src/components/PaymentModal", () => ({
+  PaymentModal: () => null,
+}));
+
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
   <BrowserRouter>
     <AuthProvider>
-      <IdentityProvider>
-        <LeagueProvider>
-          {children}
-        </LeagueProvider>
-      </IdentityProvider>
+      <IdentityProvider>{children}</IdentityProvider>
     </AuthProvider>
   </BrowserRouter>
 );
 
-describe('CreateTournament - Story 3.1', () => {
+describe("CreateTournament - Story 14.19", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('Task 1: Review CreateTournament component', () => {
-    it('should render the form with required fields', () => {
-      render(<CreateTournament />, { wrapper: Wrapper });
-
-      // Check that form displays required fields (AC: Form displayed)
-      expect(screen.getByLabelText(/nom du tournoi/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/format/i)).toBeInTheDocument();
-    });
-
-    it('should have maximum 3-5 fields as per acceptance criteria', () => {
-      render(<CreateTournament />, { wrapper: Wrapper });
-
-      // Count visible input fields (AC: Form has maximum 3-5 fields)
-      const inputs = screen.getAllByRole('textbox');
-      const selects = screen.getAllByRole('combobox');
-      const checkboxes = screen.queryAllByRole('checkbox');
-      
-      const totalFields = inputs.length + selects.length + checkboxes.length;
-      expect(totalFields).toBeGreaterThanOrEqual(3);
-      expect(totalFields).toBeLessThanOrEqual(5);
-    });
-
-    it('should display format dropdown with 1v1, 2v2, 3v3 options', () => {
-      render(<CreateTournament />, { wrapper: Wrapper });
-
-      // Check format field exists (AC: Supports 1v1, 2v2, 3v3 formats)
-      const formatSelect = screen.getByLabelText(/format/i);
-      expect(formatSelect).toBeInTheDocument();
-      
-      // Check options are available
-      expect(screen.getByRole('option', { name: /1v1/i })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: /2v2/i })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: /3v3/i })).toBeInTheDocument();
-    });
-
-    it('should default format to 2v2', () => {
-      render(<CreateTournament />, { wrapper: Wrapper });
-
-      // Check default format (AC: Default is 2v2)
-      const formatSelect = screen.getByLabelText(/format/i) as HTMLSelectElement;
-      expect(formatSelect.value).toBe('2v2');
+    vi.mocked(databaseService.createTournament).mockResolvedValue("tournament-123");
+    vi.mocked(databaseService.tournamentCodeExists).mockResolvedValue(false);
+    vi.mocked(premiumService.isPremium).mockResolvedValue(false);
+    vi.mocked(premiumService.getTournamentCount).mockResolvedValue(0);
+    vi.mocked(premiumService.canCreateTournament).mockResolvedValue({
+      allowed: true,
+      remaining: 2,
+      message: "OK",
     });
   });
 
-  describe('Task 2: Integrate Zod validation', () => {
-    it('should validate tournament name is required', async () => {
+  describe("AC1: Header with title + back", () => {
+    it("should render header with title Créer un Tournoi", async () => {
       render(<CreateTournament />, { wrapper: Wrapper });
-
-      const submitButton = screen.getByRole('button', { name: /créer/i });
-      fireEvent.click(submitButton);
-
-      // AC: Form validates input using Zod schemas
       await waitFor(() => {
-        expect(screen.getByText(/nom.*requis/i)).toBeInTheDocument();
+        expect(
+          screen.getByRole("heading", { name: /créer un tournoi/i })
+        ).toBeInTheDocument();
       });
     });
 
-    it('should validate tournament name max length (200 chars)', async () => {
-      const result = createTournamentInputSchema.safeParse({
-        name: 'a'.repeat(201),
-        date: new Date().toISOString(),
-        format: '2v2',
-        leagueId: null,
-        playerIds: [],
-        isFinished: false,
-      });
+    it("should have back button that navigates to /", async () => {
+      render(<CreateTournament />, { wrapper: Wrapper });
+      const backButton = await screen.findByRole("button", { name: /retour/i }, { timeout: 5000 });
+      await userEvent.click(backButton);
+      expect(mockNavigate).toHaveBeenCalledWith("/");
+    });
+  });
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toContain('200');
-      }
+  describe("AC2: Fields with labels, inline validation", () => {
+    it("should render name field with label", async () => {
+      render(<CreateTournament />, { wrapper: Wrapper });
+      await waitFor(() => {
+        expect(screen.getByLabelText(/nom du tournoi/i)).toBeInTheDocument();
+      });
     });
 
-    it('should display field-specific error messages', async () => {
+    it("should render format selection with label", async () => {
       render(<CreateTournament />, { wrapper: Wrapper });
-
-      const nameInput = screen.getByLabelText(/nom du tournoi/i);
-      fireEvent.change(nameInput, { target: { value: '' } });
-      fireEvent.blur(nameInput);
-
-      // AC: Display field-specific error messages
       await waitFor(() => {
-        const errorMessage = screen.queryByText(/nom.*requis/i);
-        expect(errorMessage).toBeInTheDocument();
+        expect(screen.getByText(/format du match/i)).toBeInTheDocument();
+        expect(screen.getByText(/2v2 strict/i)).toBeInTheDocument();
+        expect(screen.getByText(/1v1 strict/i)).toBeInTheDocument();
+        expect(screen.getByText(/libre/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should show inline validation error when name is empty on blur", async () => {
+      render(<CreateTournament />, { wrapper: Wrapper });
+      const nameInput = await screen.findByLabelText(/nom du tournoi/i, {}, { timeout: 5000 });
+      await userEvent.click(nameInput);
+      await userEvent.tab();
+      await waitFor(() => {
+        expect(screen.getByText(/le nom du tournoi est requis/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should show inline validation error when name exceeds 50 chars", async () => {
+      render(<CreateTournament />, { wrapper: Wrapper });
+      const nameInput = await screen.findByLabelText(/nom du tournoi/i, {}, { timeout: 5000 });
+      await userEvent.type(nameInput, "a".repeat(51));
+      await userEvent.tab();
+      await waitFor(() => {
+        expect(
+          screen.getByText(/le nom ne peut pas dépasser 50 caractères/i)
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should clear validation error when user types valid name", async () => {
+      render(<CreateTournament />, { wrapper: Wrapper });
+      const nameInput = await screen.findByLabelText(/nom du tournoi/i, {}, { timeout: 5000 });
+      await userEvent.click(nameInput);
+      await userEvent.tab();
+      await waitFor(() => {
+        expect(screen.getByText(/le nom du tournoi est requis/i)).toBeInTheDocument();
+      });
+      await userEvent.type(nameInput, "Summer Cup 2026");
+      await waitFor(() => {
+        expect(
+          screen.queryByText(/le nom du tournoi est requis/i)
+        ).not.toBeInTheDocument();
       });
     });
   });
 
-  describe('Task 3: Test format selection', () => {
-    it('should allow selecting different formats', () => {
+  describe("AC3: Primary CTA at bottom", () => {
+    it("should render submit button with CTA text", async () => {
       render(<CreateTournament />, { wrapper: Wrapper });
-
-      const formatSelect = screen.getByLabelText(/format/i) as HTMLSelectElement;
-
-      // Test 1v1
-      fireEvent.change(formatSelect, { target: { value: '1v1' } });
-      expect(formatSelect.value).toBe('1v1');
-
-      // Test 3v3
-      fireEvent.change(formatSelect, { target: { value: '3v3' } });
-      expect(formatSelect.value).toBe('3v3');
-
-      // AC: Format selection persists
-      expect(formatSelect.value).toBe('3v3');
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /créer le tournoi/i })
+        ).toBeInTheDocument();
+      });
     });
 
-    it('should save selected format on submission', async () => {
+    it("should disable submit when name is empty", async () => {
       render(<CreateTournament />, { wrapper: Wrapper });
-
-      const nameInput = screen.getByLabelText(/nom du tournoi/i);
-      const formatSelect = screen.getByLabelText(/format/i);
-      
-      fireEvent.change(nameInput, { target: { value: 'Test Tournament' } });
-      fireEvent.change(formatSelect, { target: { value: '3v3' } });
-
-      const submitButton = screen.getByRole('button', { name: /créer/i });
-      fireEvent.click(submitButton);
-
-      // AC: Verify format is saved correctly
       await waitFor(() => {
-        // Check that navigate was called (tournament created)
-        expect(mockNavigate).toHaveBeenCalled();
+        const submitButton = screen.getByRole("button", {
+          name: /créer le tournoi/i,
+        });
+        expect(submitButton).toBeDisabled();
+      });
+    });
+
+    it("should not submit when name is empty", async () => {
+      const { container } = render(<CreateTournament />, { wrapper: Wrapper });
+      await screen.findByLabelText(/nom du tournoi/i, {}, { timeout: 5000 });
+      const form = container.querySelector("form");
+      expect(form).toBeTruthy();
+      fireEvent.submit(form!);
+      await waitFor(() => {
+        expect(databaseService.createTournament).not.toHaveBeenCalled();
+      });
+    });
+
+    it("should show validation error on submit when name is empty", async () => {
+      const { container } = render(<CreateTournament />, { wrapper: Wrapper });
+      await screen.findByLabelText(/nom du tournoi/i, {}, { timeout: 5000 });
+      const form = container.querySelector("form");
+      expect(form).toBeTruthy();
+      fireEvent.submit(form!);
+      await waitFor(() => {
+        expect(screen.getByText(/le nom du tournoi est requis/i)).toBeInTheDocument();
       });
     });
   });
 
-  describe('Task 4: Test form submission', () => {
-    it('should call DatabaseService.saveTournament on submit', async () => {
+  describe("Form submission", () => {
+    it("should call createTournament and navigate on valid submit", async () => {
       render(<CreateTournament />, { wrapper: Wrapper });
+      const nameInput = await screen.findByLabelText(/nom du tournoi/i, {}, { timeout: 5000 });
+      await userEvent.type(nameInput, "Summer Cup 2026");
+      const submitButton = screen.getByRole("button", { name: /créer le tournoi/i });
+      await userEvent.click(submitButton);
 
-      const nameInput = screen.getByLabelText(/nom du tournoi/i);
-      fireEvent.change(nameInput, { target: { value: 'Test Tournament' } });
-
-      const submitButton = screen.getByRole('button', { name: /créer/i });
-      fireEvent.click(submitButton);
-
-      // AC: Submits to Supabase via DatabaseService
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('/tournament/'));
+        expect(databaseService.createTournament).toHaveBeenCalled();
+        expect(mockNavigate).toHaveBeenCalledWith("/tournament/tournament-123");
       });
     });
 
-    it('should set creator_user_id when authenticated', async () => {
-      // This test would require mocking the auth context
-      // For now, we'll just verify the form can be submitted
+    it("should allow selecting format (libre)", async () => {
       render(<CreateTournament />, { wrapper: Wrapper });
-
+      await screen.findByLabelText(/nom du tournoi/i, {}, { timeout: 5000 });
+      await userEvent.click(screen.getByText(/libre/i));
       const nameInput = screen.getByLabelText(/nom du tournoi/i);
-      fireEvent.change(nameInput, { target: { value: 'Test Tournament' } });
+      await userEvent.type(nameInput, "Free Format Tourney");
+      const submitButton = screen.getByRole("button", { name: /créer le tournoi/i });
+      await userEvent.click(submitButton);
 
-      const submitButton = screen.getByRole('button', { name: /créer/i });
-      fireEvent.click(submitButton);
-
-      // AC: creator_user_id is set
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('Task 5: Test localStorage fallback', () => {
-    it('should save tournament to localStorage when offline', async () => {
-      // Mock localStorage
-      const localStorageMock = {
-        getItem: vi.fn(),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-        clear: vi.fn(),
-      };
-      Object.defineProperty(window, 'localStorage', {
-        value: localStorageMock,
-        writable: true,
-      });
-
-      render(<CreateTournament />, { wrapper: Wrapper });
-
-      const nameInput = screen.getByLabelText(/nom du tournoi/i);
-      fireEvent.change(nameInput, { target: { value: 'Offline Tournament' } });
-
-      const submitButton = screen.getByRole('button', { name: /créer/i });
-      fireEvent.click(submitButton);
-
-      // AC: Tournament saves to localStorage
-      await waitFor(() => {
-        expect(localStorageMock.setItem).toHaveBeenCalledWith(
-          'bpl_tournaments',
-          expect.any(String)
+        expect(databaseService.createTournament).toHaveBeenCalledWith(
+          expect.objectContaining({
+            formatType: "free",
+            team1Size: null,
+            team2Size: null,
+          })
         );
       });
     });
   });
 
-  describe('Task 6: Test redirect and success message', () => {
-    it('should redirect to tournament dashboard after creation', async () => {
-      render(<CreateTournament />, { wrapper: Wrapper });
-
-      const nameInput = screen.getByLabelText(/nom du tournoi/i);
-      fireEvent.change(nameInput, { target: { value: 'Test Tournament' } });
-
-      const submitButton = screen.getByRole('button', { name: /créer/i });
-      fireEvent.click(submitButton);
-
-      // AC: Redirect to tournament dashboard
+  describe("AC4: Design tokens (Frame 10 alignment)", () => {
+    it("should have form with design system structure", async () => {
+      const { container } = render(<CreateTournament />, { wrapper: Wrapper });
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith(expect.stringMatching(/^\/tournament\/.+$/));
-      });
-    });
-
-    it('should display success message after creation', async () => {
-      render(<CreateTournament />, { wrapper: Wrapper });
-
-      const nameInput = screen.getByLabelText(/nom du tournoi/i);
-      fireEvent.change(nameInput, { target: { value: 'Test Tournament' } });
-
-      const submitButton = screen.getByRole('button', { name: /créer/i });
-      fireEvent.click(submitButton);
-
-      // AC: Success message is displayed
-      await waitFor(() => {
-        // Toast success message should be triggered
-        // This would require mocking react-hot-toast
-        expect(mockNavigate).toHaveBeenCalled();
+        const form = container.querySelector("form");
+        expect(form).toBeInTheDocument();
+        expect(container.querySelector(".bg-slate-900")).toBeInTheDocument();
       });
     });
   });
 
-  describe('Zod Schema Validation', () => {
-    it('should validate complete tournament input', () => {
-      const validInput = {
-        name: 'Summer Tournament',
-        date: new Date().toISOString(),
-        format: '2v2' as const,
-        location: 'Beach Club',
-        leagueId: null,
-        playerIds: [],
-        isFinished: false,
-        anti_cheat_enabled: false,
-      };
+  describe("Limit reached scenario", () => {
+    it("should show limit reached UI when canCreate is false", async () => {
+      vi.mocked(premiumService.canCreateTournament).mockResolvedValue({
+        allowed: false,
+        remaining: 0,
+        message: "Limite atteinte",
+      });
+      vi.mocked(premiumService.getTournamentCount).mockResolvedValue(2);
 
-      const result = createTournamentInputSchema.safeParse(validInput);
-      expect(result.success).toBe(true);
+      render(<CreateTournament />, { wrapper: Wrapper });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText(/limite atteinte/i)).toBeInTheDocument();
+          expect(
+            screen.getByRole("button", { name: /passer premium/i }),
+          ).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
     });
+  });
 
-    it('should reject invalid format values', () => {
-      const invalidInput = {
-        name: 'Test',
-        date: new Date().toISOString(),
-        format: '4v4', // Invalid format
-        leagueId: null,
-        playerIds: [],
-        isFinished: false,
-      };
+  describe("Premium user", () => {
+    it("should show premium badge when isPremium is true", async () => {
+      vi.mocked(premiumService.isPremium).mockResolvedValue(true);
 
-      const result = createTournamentInputSchema.safeParse(invalidInput);
-      expect(result.success).toBe(false);
+      render(<CreateTournament />, { wrapper: Wrapper });
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText(/tournois illimités - premium actif/i),
+          ).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
+    });
+  });
+
+  describe("Player limit validation", () => {
+    it("should show validation error when player limit is invalid", async () => {
+      render(<CreateTournament />, { wrapper: Wrapper });
+      await screen.findByLabelText(/nom du tournoi/i, {}, { timeout: 5000 });
+
+      const limitToggle = screen.getByRole("button", {
+        name: /limiter le nombre de joueurs/i,
+      });
+      await userEvent.click(limitToggle);
+
+      const limitInput = await screen.findByLabelText(
+        /nombre maximum de joueurs/i,
+        {},
+        { timeout: 5000 },
+      );
+      await userEvent.clear(limitInput);
+      await userEvent.type(limitInput, "1");
+      await userEvent.tab();
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText(/au moins 2 joueurs requis/i),
+          ).toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
     });
   });
 });

@@ -839,3 +839,31 @@ So that I can relive the matches.
 **Technical Notes:**
 
 - TournamentDashboard, LeagueDashboard — match list
+
+---
+
+## Story 14.35: Player profile enrichment (Frame 11 — full data)
+
+As a user,
+I want the Player profile page to display enriched data as in Frame 11 (Marc Dupont),
+So that I see avatar photo, member since, ELO evolution graph, head-to-head with avatars, and improved match history.
+
+**Acceptance Criteria:**
+
+**Given** the design system (section 5.4) and Frame 11 reference
+
+**When** I view a player profile
+**Then** avatar shows photo if available (users.avatar_url), else initials
+**And** "Membre depuis…" is displayed (league_players.joined_at formatted)
+**And** streak card shows "En feu !" variant when streak ≥ 3 wins
+**And** ELO evolution section displays a graph (monthly aggregation from elo_history or match data)
+**And** Stats per league section shows stats grouped by league
+**And** Head-to-head section shows opponent avatars (or initials)
+**And** Recent matches show "Il y a X" relative time, league name, badge Victoire/Défaite, delta ELO
+**And** bottom nav visible
+
+**Technical Notes:**
+
+- `src/pages/PlayerProfile.tsx` — extend existing implementation
+- Data: users.avatar_url, league_players.joined_at, elo_history, matches
+- Phased: Phase 1 (avatar, member since, match badges), Phase 2 (ELO graph), Phase 3 (streak variant, head-to-head avatars)

@@ -174,16 +174,17 @@ Ce document formalise les décisions de design récentes pour **converger l’UI
 - **FAB :** `shadow-lg`
 - **Modales :** `shadow-2xl`
 
-### 3.7 Variantes de cartes (gradient vs plein)
+### 3.7 Variantes de cartes (gradient vs plein, transparence)
 
-| Variante          | Token              | Usage                                                              | Exemples                                                          |
-| ----------------- | ------------------ | ------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| **Avec gradient** | `bg-gradient-card` | Cartes de liste cliquables, items répétitifs dans une grille/liste | TournamentCard, LeagueCard (listes Mes tournois, Mes leagues)     |
-| **Sans gradient** | `bg-slate-800`     | Cartes de contexte, blocs d’info, stats, formulaires               | StatCard, InfoCard, SegmentedTabs encapsulé, champs de formulaire |
+| Variante                  | Token                          | Usage                            | Exemples                                               |
+| ------------------------- | ------------------------------ | -------------------------------- | ------------------------------------------------------ |
+| **Avec gradient**         | `bg-gradient-card`             | Cartes de liste (alpha 0.85)     | TournamentCard, LeagueCard                             |
+| **Gradient transparent**  | `bg-gradient-card-transparent` | Landing, overlays (alpha 0.7)    | Cartes Participer/Organiser                            |
+| **Fond semi-transparent** | `bg-slate-800/90`              | Cartes de contexte, stats, blocs | StatCard, InfoCard, LastTournamentCard, LastLeagueCard |
 
 **Règle :** Utiliser le gradient pour les cartes d’entité (tournoi, league) dans les listes — meilleur contraste avec le fond `bg-slate-900`. Utiliser le fond plein pour les blocs utilitaires (stats, infos, filtres).
 
-**Conteneur commun :** `rounded-xl p-4` ou `p-6`, `border border-slate-700/50`
+**Conteneur commun :** `rounded-xl p-4` ou `p-6`, `border border-slate-700/50`, `backdrop-blur-sm`. Toutes les cartes ont une transparence légère ; `bg-gradient-card-transparent` (alpha 0.7) pour Landing/overlays.
 
 ---
 
@@ -330,9 +331,15 @@ Ce document formalise les décisions de design récentes pour **converger l’UI
 
 - Header : titre + retour
 - Champs avec labels, validation inline
-- CTA principal en bas
+- **CTA principal sticky** : fixé en bas de l’écran, au-dessus du bottom nav (toujours visible au scroll)
 - Pas de FAB (le submit est le CTA)
 - Bottom nav visible (ou masquée selon choix produit)
+
+**Structure CTA sticky (pages création/édition) :**
+
+- Contenu du formulaire : zone scrollable avec `pb-24` (réserve d’espace pour la barre CTA)
+- Barre CTA : `fixed bottom-16 inset-x-0` (au-dessus du bottom nav 64px), `z-20`, `bg-slate-900`, `border-t border-slate-800`, `p-4 md:p-6`
+- Le CTA reste visible et accessible pendant tout le scroll du formulaire
 
 ### 5.4 Profil joueur
 

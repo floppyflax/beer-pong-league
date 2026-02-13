@@ -1,6 +1,6 @@
 # Story 14.22: Landing page (overhaul)
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -16,8 +16,8 @@ So that onboarding is consistent.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Apply tokens and styles
-- [ ] Task 2: Frame 1 alignment
+- [x] Task 1: Apply tokens and styles
+- [x] Task 2: Frame 1 alignment
 
 ## Dev Notes
 
@@ -32,8 +32,20 @@ So that onboarding is consistent.
 
 ### Agent Model Used
 
+Composer (dev-story workflow)
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Applied design tokens (bg-slate-900, text-slate-400 labels, text-slate-300 tagline, bg-gradient-cta hero CTA, shadow-fab, border-slate-700 secondary buttons, rounded-xl, p-4 md:p-6).
+- Task 2: Frame 1 alignment — branding, hero CTA, secondary CTAs (Tournoi/League), login section. Layout structure per design-system-convergence 3.x.
+
 ### File List
+
+- src/pages/LandingPage.tsx (refactored)
+- tests/unit/pages/LandingPage.test.tsx (updated visual design assertions)
+
+## Change Log
+
+- 2026-02-13: Refonte Landing page alignée design system (Frame 1). Tokens, gradient-cta, typography, spacing.

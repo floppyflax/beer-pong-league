@@ -54,7 +54,12 @@
   --gradient-tab-active: linear-gradient(to right, #3b82f6, #7c3aed);
   --gradient-card: linear-gradient(
     to left,
-    rgba(51, 65, 85, 0.98),
-    rgba(30, 41, 59, 0.98)
+    rgba(51, 65, 85, 0.85),
+    rgba(30, 41, 59, 0.85)
+  );
+  --gradient-card-transparent: linear-gradient(
+    to left,
+    rgba(51, 65, 85, 0.7),
+    rgba(30, 41, 59, 0.7)
   );
 }

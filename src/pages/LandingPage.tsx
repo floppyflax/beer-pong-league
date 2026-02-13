@@ -1,41 +1,38 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Trophy, Plus, Award, User } from 'lucide-react';
-import { AuthModal } from '../components/AuthModal';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Trophy,
+  Star,
+  LayoutGrid,
+  Crown,
+  Award,
+  ChevronRight,
+} from "lucide-react";
+import { AuthModal } from "../components/AuthModal";
 
 /**
  * LandingPage Component
- * 
- * Landing page for non-authenticated users
- * Displays 4 action buttons:
- * 1. Join Tournament (public access)
- * 2. Create Tournament (requires auth)
- * 3. Create League (requires auth)
- * 4. Sign In
- * 
- * Story 9.1: Landing Page (Non Connecté)
+ *
+ * Landing page for non-authenticated users (Story 14.33).
+ * No header, no bottom nav. Frame 1 (PongELO) layout.
+ * Fits on one phone screen without scroll.
  */
 export const LandingPage = () => {
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleJoinTournament = () => {
-    setIsNavigating(true);
-    navigate('/join');
+    navigate("/join");
   };
 
   const handleCreateTournament = () => {
-    // Note: In future, we'll handle returnTo properly via AuthModal
-    // For now, navigate to auth callback which should redirect
     setShowAuthModal(true);
-    // Store intended destination in sessionStorage for post-auth redirect
-    sessionStorage.setItem('authReturnTo', '/create-tournament');
+    sessionStorage.setItem("authReturnTo", "/create-tournament");
   };
 
   const handleCreateLeague = () => {
     setShowAuthModal(true);
-    sessionStorage.setItem('authReturnTo', '/create-league');
+    sessionStorage.setItem("authReturnTo", "/create-league");
   };
 
   const handleSignIn = () => {
@@ -43,79 +40,112 @@ export const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-10">
-        {/* App Branding + Tagline */}
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl font-bold text-primary">
-            <span className="inline-block">🍺</span> BEER PONG LEAGUE
-          </h1>
-          <p className="text-slate-400 text-lg font-medium">
-            Ton classement ELO entre amis
-          </p>
-        </div>
+    <div className="h-screen min-h-[568px] max-h-[932px] overflow-hidden flex flex-col bg-slate-950 relative">
+      {/* Background: gradient + subtle mesh */}
+      <div
+        className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950/40"
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage: `radial-gradient(at 40% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+            radial-gradient(at 80% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%),
+            radial-gradient(at 0% 50%, rgba(59, 130, 246, 0.08) 0px, transparent 50%)`,
+        }}
+        aria-hidden
+      />
 
-        {/* Action Sections */}
-        <div className="space-y-8">
-          {/* Section 1: Participe (Hero CTA) */}
-          <div className="space-y-3">
-            <p className="text-slate-500 text-sm uppercase tracking-wide font-semibold">
-              ▸ Participe
+      {/* Compact content - fits on one screen (responsive spacing for 568px viewport) */}
+      <div className="relative flex-1 flex flex-col justify-center px-4 py-3 sm:py-4 overflow-hidden min-h-0">
+        <div className="flex-shrink-0 max-w-md mx-auto w-full space-y-3 sm:space-y-4">
+          {/* Hero: icon (trophy + star) + PongELO + tagline (Frame 1) */}
+          <div className="text-center space-y-2">
+            <div
+              className="relative inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-500 text-white mb-2"
+              aria-hidden="true"
+            >
+              <Trophy size={28} strokeWidth={2.5} />
+              <Star
+                size={14}
+                className="absolute -top-0.5 -right-0.5 text-amber-300 fill-amber-300"
+                strokeWidth={2.5}
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-amber-400">PongELO</h1>
+            <p className="text-slate-300 text-sm">
+              Ton classement ELO entre amis
+            </p>
+          </div>
+
+          {/* Participer card — gradient + transparence, titre centré */}
+          <div className="bg-gradient-card-transparent rounded-xl p-4 border border-slate-700/50 space-y-3 backdrop-blur-sm">
+            <div className="flex flex-col items-center text-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-blue-500/80 flex items-center justify-center">
+                <LayoutGrid size={20} className="text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-white">Participer</h2>
+            </div>
+            <p className="text-slate-400 text-sm text-center">
+              Rejoins un tournoi en cours
             </p>
             <button
               onClick={handleJoinTournament}
-              className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-bold py-7 px-6 rounded-xl shadow-xl flex items-center justify-center gap-3 transition-all transform hover:scale-105 active:scale-95"
+              className="w-full bg-gradient-cta-alt hover:opacity-95 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
               aria-label="Rejoindre un tournoi"
             >
-              <Trophy size={24} aria-hidden="true" />
-              <span className="text-xl">REJOINDRE UN TOURNOI</span>
+              <ChevronRight size={20} aria-hidden="true" />
+              Rejoindre un tournoi
             </button>
           </div>
 
-          {/* Section 2: Organise (Secondary CTAs) */}
-          <div className="space-y-3">
-            <p className="text-slate-500 text-sm uppercase tracking-wide font-semibold">
-              ▸ Organise
+          {/* Organiser card — gradient + transparence, titre centré */}
+          <div className="bg-gradient-card-transparent rounded-xl p-4 border border-slate-700/50 space-y-3 backdrop-blur-sm">
+            <div className="flex flex-col items-center text-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center">
+                <Crown size={20} className="text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-white">Organiser</h2>
+            </div>
+            <p className="text-slate-400 text-sm text-center">
+              Crée tes propres compétitions
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
               <button
                 onClick={handleCreateTournament}
-                className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-bold py-5 px-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-all transform hover:scale-105 active:scale-95"
-                aria-label="Créer un nouveau tournoi"
+                className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                aria-label="Créer un tournoi"
               >
-                <Plus size={24} aria-hidden="true" />
-                <span className="text-sm">TOURNOI</span>
+                <Trophy size={18} aria-hidden="true" />
+                Créer un tournoi
               </button>
-
               <button
                 onClick={handleCreateLeague}
-                className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-bold py-5 px-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-all transform hover:scale-105 active:scale-95"
-                aria-label="Créer une nouvelle league"
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                aria-label="Créer une league"
               >
-                <Award size={24} aria-hidden="true" />
-                <span className="text-sm">LEAGUE</span>
+                <Award size={18} aria-hidden="true" />
+                Créer une league
               </button>
             </div>
           </div>
 
-          {/* Section 3: Login (Tertiary, discrete) */}
-          <div className="pt-4 border-t border-slate-800">
+          {/* Footer: login link */}
+          <div className="text-center pt-1">
             <button
               onClick={handleSignIn}
-              className="w-full text-slate-400 hover:text-primary py-4 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
+              className="text-slate-400 hover:text-white text-sm underline underline-offset-2 transition-colors"
               aria-label="Se connecter"
             >
-              <span className="text-base">Déjà membre?</span>
-              <span className="text-base font-semibold">Se connecter →</span>
+              Déjà membre ? Se connecter
             </button>
           </div>
         </div>
       </div>
 
-      {/* Auth Modal */}
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
     </div>
   );

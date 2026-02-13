@@ -48,6 +48,11 @@ describe("navigationHelpers", () => {
       expect(shouldShowBottomMenu("/tournament/123/invite")).toBe(true);
       expect(shouldShowBottomMenu("/tournament/123/join")).toBe(true);
     });
+
+    it("should return true for create-league and create-tournament (Story 14-18, design-system 5.3)", () => {
+      expect(shouldShowBottomMenu("/create-league")).toBe(true);
+      expect(shouldShowBottomMenu("/create-tournament")).toBe(true);
+    });
   });
 
   describe("getContentPaddingBottom", () => {
@@ -77,6 +82,11 @@ describe("navigationHelpers", () => {
       expect(getContentPaddingBottom("/tournament/123/join")).toContain(
         "pb-20",
       );
+    });
+
+    it("should return pb-20 for create-league and create-tournament (Story 14-18)", () => {
+      expect(getContentPaddingBottom("/create-league")).toContain("pb-20");
+      expect(getContentPaddingBottom("/create-tournament")).toContain("pb-20");
     });
   });
 

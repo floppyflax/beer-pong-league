@@ -64,7 +64,7 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      className="bg-gradient-card rounded-xl p-6 border border-slate-700/50 cursor-pointer transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/20 active:scale-95"
+      className="bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 cursor-pointer transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/20 active:scale-95"
       aria-label={`Voir la league ${league.name}`}
     >
       {/* Header: Title + Badge (format TournamentCard) */}

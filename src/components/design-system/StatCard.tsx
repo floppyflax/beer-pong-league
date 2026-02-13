@@ -5,14 +5,14 @@
  * Design system: design-system-convergence.md section 4.1
  */
 
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
-export type StatCardVariant = 'primary' | 'success' | 'accent';
+export type StatCardVariant = "primary" | "success" | "accent";
 
 const variantColorMap: Record<StatCardVariant, string> = {
-  primary: 'text-info', // bleu
-  success: 'text-success', // vert
-  accent: 'text-primary', // ambre/jaune
+  primary: "text-info", // bleu
+  success: "text-success", // vert
+  accent: "text-primary", // ambre/jaune
 };
 
 export interface StatCardProps {
@@ -25,11 +25,11 @@ export interface StatCardProps {
 }
 
 export function StatCard({ value, label, variant }: StatCardProps) {
-  const valueColor = variant ? variantColorMap[variant] : 'text-text-primary';
+  const valueColor = variant ? variantColorMap[variant] : "text-text-primary";
 
   return (
     <div
-      className="bg-slate-800 p-3 rounded-xl text-center"
+      className="bg-slate-800/90 backdrop-blur-sm p-3 rounded-xl text-center border border-slate-700/50"
       data-testid="statcard"
     >
       <div

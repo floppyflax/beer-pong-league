@@ -56,8 +56,8 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({
       : tournament.format.toUpperCase().replace("V", "v");
 
   const containerClasses = interactive
-    ? "bg-gradient-card rounded-xl p-6 border border-slate-700/50 cursor-pointer transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/20 active:scale-95"
-    : "bg-gradient-card rounded-xl p-6 border border-slate-700/50";
+    ? "bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 cursor-pointer transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/20 active:scale-95"
+    : "bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-slate-700/50";
 
   return (
     <div
@@ -67,7 +67,9 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({
       onKeyDown={interactive ? handleKeyDown : undefined}
       className={containerClasses}
       data-testid="tournament-card"
-      aria-label={interactive ? `Voir le tournoi ${tournament.name}` : undefined}
+      aria-label={
+        interactive ? `Voir le tournoi ${tournament.name}` : undefined
+      }
     >
       {/* Header: Title + Badge */}
       <div className="flex items-start justify-between gap-3 mb-2">

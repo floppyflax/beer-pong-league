@@ -1,6 +1,6 @@
 # Story 14.19: Create tournament page (overhaul)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -17,9 +17,9 @@ So that the form is consistent.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Apply tokens and styles (AC: 2, 3)
-- [ ] Task 2: Header and layout (AC: 1)
-- [ ] Task 3: Frame 10 alignment (AC: 4)
+- [x] Task 1: Apply tokens and styles (AC: 2, 3)
+- [x] Task 2: Header and layout (AC: 1)
+- [x] Task 3: Frame 10 alignment (AC: 4)
 
 ## Dev Notes
 
@@ -37,4 +37,11 @@ So that the form is consistent.
 
 ### Completion Notes List
 
+- Task 1: Applied design tokens (labels text-slate-400, inputs rounded-xl, error text-red-400, CTA gradient from-blue-500 to-violet-600, active:scale-[0.98])
+- Task 2: Header with ContextualHeader (title + back), layout h-full flex flex-col bg-slate-900 min-h-screen, content p-4 md:p-6 pb-24
+- Task 3: Aligned with design-system-convergence 5.3 (Frame 10): CTA sticky bottom-16, form structure, design tokens
+
 ### File List
+
+- src/pages/CreateTournament.tsx
+- tests/unit/pages/CreateTournament.test.tsx

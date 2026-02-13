@@ -1,15 +1,47 @@
+/**
+ * PlayerProfile — Story 14-20
+ *
+ * Page profil joueur alignée avec le design system (design-system-convergence §5.4).
+ * - Header: nom + retour
+ * - Avatar + infos
+ * - StatCards (ELO, W/L, Win rate)
+ * - Carte streak
+ * - Sections: Évolution ELO, Stats par league, Tête-à-tête, Matchs récents
+ * - Bottom nav visible
+ */
+
 import { useParams, useNavigate } from "react-router-dom";
-import { useLeague } from "../context/LeagueContext";
-import { ContextualHeader } from "../components/navigation/ContextualHeader";
+import { useLeague } from "@/context/LeagueContext";
+import { ContextualHeader } from "@/components/navigation/ContextualHeader";
+import { StatCard, ListRow } from "@/components/design-system";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { databaseService } from "@/services/DatabaseService";
 import { TrendingUp, TrendingDown, BarChart3, X } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import type { Player } from "@/types";
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  const first = parts[0] || "";
+  return first.slice(0, 2).toUpperCase() || "?";
+}
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const { leagues, updatePlayer } = useLeague();
+  const { leagues, tournaments, updatePlayer } = useLeague();
   const navigate = useNavigate();
   const [showEditModal, setShowEditModal] = useState(false);
   const [newName, setNewName] = useState("");
+  const [fetchedPlayer, setFetchedPlayer] = useState<{
+    player: Player;
+    playerLeague: { id: string; name: string } | null;
+    playersMap: Record<string, string>;
+  } | null>(null);
+  const [playerNotFound, setPlayerNotFound] = useState(false);
+  const [isLoadingPlayer, setIsLoadingPlayer] = useState(false);
 
   // Escape key closes edit modal
   useEffect(() => {
@@ -21,92 +53,146 @@ export const PlayerProfile = () => {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [showEditModal]);
 
-  // Find player across all leagues
-  let player = null;
-  let playerLeague = null;
+  // Find player in leagues first (sync)
+  let player: Player | null = null;
+  let playerLeague: { id: string; name: string } | null = null;
 
   for (const league of leagues) {
     const foundPlayer = league.players.find((p) => p.id === playerId);
     if (foundPlayer) {
       player = foundPlayer;
-      playerLeague = league;
+      playerLeague = { id: league.id, name: league.name };
       break;
     }
   }
 
-  if (!player) {
-    return (
-      <div className="p-4 text-center">
-        <p>Joueur introuvable.</p>
-        <button onClick={() => navigate(-1)} className="text-primary mt-4">
-          Retour
-        </button>
-      </div>
-    );
+  // If not in leagues, fetch from DB (tournament players, or league players from leagues we're not in)
+  useEffect(() => {
+    if (!playerId || player) {
+      setFetchedPlayer(null);
+      setPlayerNotFound(false);
+      setIsLoadingPlayer(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingPlayer(true);
+    setPlayerNotFound(false);
+    databaseService
+      .loadPlayerById(playerId)
+      .then((result) => {
+        if (cancelled) return;
+        setIsLoadingPlayer(false);
+        if (!result) {
+          setPlayerNotFound(true);
+          setFetchedPlayer(null);
+          return;
+        }
+        const { player: p, leagueId, leagueName, tournamentId } = result;
+        const playersMap: Record<string, string> = {};
+        leagues.forEach((l) => {
+          l.players.forEach((pl) => {
+            playersMap[pl.id] = pl.name;
+          });
+        });
+        playersMap[p.id] = p.name;
+
+        if (tournamentId) {
+          databaseService.loadTournamentParticipants(tournamentId).then((participants) => {
+            if (cancelled) return;
+            participants.forEach((tp) => {
+              playersMap[tp.id] = tp.name;
+            });
+            setFetchedPlayer({
+              player: p,
+              playerLeague: leagueName ? { id: leagueId!, name: leagueName } : null,
+              playersMap: { ...playersMap },
+            });
+          });
+        } else {
+          setFetchedPlayer({
+            player: p,
+            playerLeague: leagueName ? { id: leagueId!, name: leagueName } : null,
+            playersMap,
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIsLoadingPlayer(false);
+          setPlayerNotFound(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [playerId, player, leagues]);
+
+  if (fetchedPlayer) {
+    player = fetchedPlayer.player;
+    playerLeague = fetchedPlayer.playerLeague;
   }
 
-  // Calculate global stats across all leagues
-  const allMatches = leagues.flatMap((league) => league.matches);
-  const playerMatches = allMatches.filter(
-    (match) =>
-      match.teamA.includes(player!.id) || match.teamB.includes(player!.id),
-  );
-
-  // Sort matches chronologically
+  // Hooks MUST be called unconditionally before any early returns (Rules of Hooks)
+  const allMatches = [
+    ...leagues.flatMap((league) => league.matches),
+    ...tournaments.flatMap((t) => t.matches),
+  ];
+  const playerMatches = player
+    ? allMatches.filter(
+        (match) =>
+          match.teamA.includes(player!.id) || match.teamB.includes(player!.id),
+      )
+    : [];
   const sortedMatches = [...playerMatches].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
-  // Calculate ELO evolution over time
   const eloEvolution = useMemo(() => {
+    if (!player) return [];
     const evolution: { date: string; elo: number }[] = [];
-    let currentElo = 1000; // Starting ELO
-
+    let currentElo = 1000;
     evolution.push({
       date: sortedMatches[0]?.date || new Date().toISOString(),
       elo: currentElo,
     });
-
     sortedMatches.forEach((match) => {
       if (match.eloChanges && match.eloChanges[player!.id] !== undefined) {
         currentElo += match.eloChanges[player!.id];
-        evolution.push({
-          date: match.date,
-          elo: currentElo,
-        });
+        evolution.push({ date: match.date, elo: currentElo });
       }
     });
-
     return evolution;
   }, [sortedMatches, player]);
 
-  // Calculate stats per league
+  const playersMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    leagues.forEach((l) => {
+      l.players.forEach((pl) => {
+        map[pl.id] = pl.name;
+      });
+    });
+    if (fetchedPlayer?.playersMap) Object.assign(map, fetchedPlayer.playersMap);
+    if (player) map[player.id] = player.name;
+    return map;
+  }, [leagues, player, fetchedPlayer]);
+
   const statsByLeague = useMemo(() => {
+    if (!player) return {};
     const stats: Record<
       string,
-      {
-        leagueName: string;
-        matches: number;
-        wins: number;
-        losses: number;
-        elo: number;
-        winRate: number;
-      }
+      { leagueName: string; matches: number; wins: number; losses: number; elo: number; winRate: number }
     > = {};
-
     leagues.forEach((league) => {
       const leagueMatches = league.matches.filter(
         (match) =>
           match.teamA.includes(player!.id) || match.teamB.includes(player!.id),
       );
-
       if (leagueMatches.length > 0) {
         const wins = leagueMatches.filter((match) => {
           const isTeamA = match.teamA.includes(player!.id);
           const winner = match.scoreA > match.scoreB ? "A" : "B";
           return (isTeamA && winner === "A") || (!isTeamA && winner === "B");
         }).length;
-
         const leaguePlayer = league.players.find((p) => p.id === player!.id);
         stats[league.id] = {
           leagueName: league.name,
@@ -118,9 +204,35 @@ export const PlayerProfile = () => {
         };
       }
     });
-
     return stats;
   }, [leagues, player]);
+
+  // Early returns AFTER all hooks
+  if (isLoadingPlayer && !player) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size={48} />
+      </div>
+    );
+  }
+
+  if (!player && playerNotFound) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-slate-400">Joueur introuvable.</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="text-primary mt-4 font-semibold"
+        >
+          Retour
+        </button>
+      </div>
+    );
+  }
+
+  if (!player) {
+    return null;
+  }
 
   const playerWins = playerMatches.filter((match) => {
     const isTeamA = match.teamA.includes(player!.id);
@@ -158,53 +270,58 @@ export const PlayerProfile = () => {
   });
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Contextual Header (Story 13.2) */}
+    <div className="h-full flex flex-col bg-slate-900">
+      {/* AC1: Header — nom + retour */}
       <ContextualHeader
         title={player.name}
         showBackButton={true}
         onBack={() => navigate(-1)}
       />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-2 p-4">
-        <div className="bg-slate-800 p-3 rounded-xl text-center">
-          <div className="text-2xl font-bold text-primary">{player.elo}</div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">
-            ELO
+      {/* AC2: Avatar + infos */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-center gap-4">
+          <div className="flex-shrink-0 w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-xl font-bold text-slate-300 overflow-hidden">
+            <span>{getInitials(player.name)}</span>
           </div>
-        </div>
-        <div className="bg-slate-800 p-3 rounded-xl text-center">
-          <div className="text-2xl font-bold text-white">
-            {playerWins}V - {playerLosses}D
-          </div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">
-            Global
-          </div>
-        </div>
-        <div className="bg-slate-800 p-3 rounded-xl text-center">
-          <div className="text-2xl font-bold text-white">{winRate}%</div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">
-            Win Rate
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold text-white truncate">
+              {player.name}
+            </h2>
+            {playerLeague && (
+              <p className="text-sm text-slate-400 truncate">
+                {playerLeague.name}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Streak */}
+      {/* AC3: StatCards (ELO, W/L, Win rate) */}
+      <div className="grid grid-cols-3 gap-2 px-4 py-4">
+        <StatCard value={player.elo} label="ELO" variant="accent" />
+        <StatCard
+          value={`${playerWins}V - ${playerLosses}D`}
+          label="W/L"
+        />
+        <StatCard value={`${winRate}%`} label="Win rate" variant="success" />
+      </div>
+
+      {/* AC4: Streak card */}
       <div className="px-4 pb-4">
         <div
-          className={`p-4 rounded-xl flex items-center gap-3 ${
+          className={`p-4 rounded-xl flex items-center gap-3 border ${
             player.streak > 0
-              ? "bg-green-500/20 border border-green-500/50"
-              : "bg-red-500/20 border border-red-500/50"
+              ? "bg-green-500/20 border-green-500/50"
+              : "bg-red-500/20 border-red-500/50"
           }`}
         >
           {player.streak > 0 ? (
-            <TrendingUp className="text-green-500" size={24} />
+            <TrendingUp className="text-green-500 flex-shrink-0" size={24} />
           ) : (
-            <TrendingDown className="text-red-500" size={24} />
+            <TrendingDown className="text-red-500 flex-shrink-0" size={24} />
           )}
-          <div>
+          <div className="min-w-0">
             <div className="font-bold text-white">
               {player.streak > 0
                 ? `${player.streak} victoires d'affilée`
@@ -215,13 +332,13 @@ export const PlayerProfile = () => {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-grow overflow-y-auto p-4 space-y-6 pb-20 lg:pb-4">
+      {/* AC5: Sections — ELO evolution, Stats par league, Head-to-head, Recent matches */}
+      <div className="flex-grow overflow-y-auto px-4 py-4 space-y-6 pb-bottom-nav lg:pb-bottom-nav-lg">
         {/* ELO Evolution Chart */}
         {eloEvolution.length > 1 && (
-          <div>
-            <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-              <BarChart3 size={20} />
+          <section>
+            <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-white">
+              <BarChart3 size={20} className="text-slate-400" />
               Évolution ELO
             </h3>
             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
@@ -231,7 +348,6 @@ export const PlayerProfile = () => {
                   className="w-full h-full"
                   preserveAspectRatio="none"
                 >
-                  {/* Grid lines */}
                   {[0, 25, 50, 75, 100].map((percent) => (
                     <line
                       key={percent}
@@ -243,13 +359,12 @@ export const PlayerProfile = () => {
                       strokeWidth="1"
                     />
                   ))}
-
-                  {/* ELO line */}
                   {eloEvolution.length > 1 && (
                     <polyline
                       points={eloEvolution
                         .map((point, index) => {
-                          const x = (index / (eloEvolution.length - 1)) * 400;
+                          const x =
+                            (index / (eloEvolution.length - 1)) * 400;
                           const minElo = Math.min(
                             ...eloEvolution.map((p) => p.elo),
                           );
@@ -267,14 +382,17 @@ export const PlayerProfile = () => {
                       strokeWidth="3"
                     />
                   )}
-
-                  {/* Points */}
                   {eloEvolution.map((point, index) => {
-                    const minElo = Math.min(...eloEvolution.map((p) => p.elo));
-                    const maxElo = Math.max(...eloEvolution.map((p) => p.elo));
+                    const minElo = Math.min(
+                      ...eloEvolution.map((p) => p.elo),
+                    );
+                    const maxElo = Math.max(
+                      ...eloEvolution.map((p) => p.elo),
+                    );
                     const range = maxElo - minElo || 400;
                     const x = (index / (eloEvolution.length - 1)) * 400;
-                    const y = 200 - ((point.elo - minElo) / range) * 180 - 10;
+                    const y =
+                      200 - ((point.elo - minElo) / range) * 180 - 10;
                     return (
                       <circle
                         key={index}
@@ -295,13 +413,15 @@ export const PlayerProfile = () => {
                 {eloEvolution.length} points de données
               </div>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Stats by League */}
+        {/* Stats par league */}
         {Object.keys(statsByLeague).length > 0 && (
-          <div>
-            <h3 className="text-lg font-bold mb-3">Statistiques par League</h3>
+          <section>
+            <h3 className="text-lg font-bold mb-3 text-white">
+              Statistiques par League
+            </h3>
             <div className="space-y-2">
               {Object.entries(statsByLeague).map(([leagueId, stats]) => (
                 <div
@@ -327,62 +447,50 @@ export const PlayerProfile = () => {
                     </div>
                   </div>
                   <div className="flex gap-4 text-sm">
-                    <div className="text-green-500">{stats.wins}V</div>
-                    <div className="text-red-500">{stats.losses}D</div>
+                    <span className="text-green-500">{stats.wins}V</span>
+                    <span className="text-red-500">{stats.losses}D</span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Head-to-Head */}
+        {/* Head-to-Head — ListRow (AC5) */}
         {Object.keys(headToHead).length > 0 && (
-          <div>
-            <h3 className="text-lg font-bold mb-3">Tête-à-tête</h3>
+          <section>
+            <h3 className="text-lg font-bold mb-3 text-white">
+              Tête-à-tête
+            </h3>
             <div className="space-y-2">
               {Object.entries(headToHead)
                 .sort(
-                  (a, b) => b[1].wins + b[1].losses - (a[1].wins + a[1].losses),
+                  (a, b) =>
+                    b[1].wins + b[1].losses - (a[1].wins + a[1].losses),
                 )
                 .slice(0, 5)
                 .map(([opponentId, stats]) => {
-                  const opponent = leagues
-                    .flatMap((l) => l.players)
-                    .find((p) => p.id === opponentId);
-                  if (!opponent) return null;
-
+                  const opponentName = playersMap[opponentId] || `Joueur ${opponentId.slice(0, 8)}`;
                   return (
-                    <div
+                    <ListRow
                       key={opponentId}
-                      className="bg-slate-800 p-3 rounded-xl flex items-center justify-between"
-                    >
-                      <div>
-                        <div className="font-bold text-white">
-                          {opponent.name}
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {stats.wins + stats.losses} matchs
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-green-500">
-                          {stats.wins}V
-                        </div>
-                        <div className="text-xs text-red-500">
-                          {stats.losses}D
-                        </div>
-                      </div>
-                    </div>
+                      variant="player"
+                      name={opponentName}
+                      subtitle={`${stats.wins}V - ${stats.losses}D • ${stats.wins + stats.losses} matchs`}
+                      elo={stats.wins}
+                      onClick={() => navigate(`/player/${opponentId}`)}
+                    />
                   );
                 })}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Recent Matches */}
-        <div>
-          <h3 className="text-lg font-bold mb-3">Matchs récents</h3>
+        <section>
+          <h3 className="text-lg font-bold mb-3 text-white">
+            Matchs récents
+          </h3>
           <div className="space-y-2">
             {playerMatches.slice(0, 10).map((match) => {
               const isTeamA = match.teamA.includes(player!.id);
@@ -390,27 +498,23 @@ export const PlayerProfile = () => {
                 (isTeamA && match.scoreA > match.scoreB) ||
                 (!isTeamA && match.scoreB > match.scoreA);
 
-              const teamA = leagues
-                .flatMap((l) => l.players)
-                .filter((p) => match.teamA.includes(p.id))
-                .map((p) => p.name)
+              const teamA = match.teamA
+                .map((id) => playersMap[id] || `Joueur ${id.slice(0, 8)}`)
                 .join(", ");
-              const teamB = leagues
-                .flatMap((l) => l.players)
-                .filter((p) => match.teamB.includes(p.id))
-                .map((p) => p.name)
+              const teamB = match.teamB
+                .map((id) => playersMap[id] || `Joueur ${id.slice(0, 8)}`)
                 .join(", ");
 
               return (
                 <div
                   key={match.id}
-                  className={`bg-slate-800 p-3 rounded-xl border ${
+                  className={`bg-slate-800 p-4 rounded-xl border border-slate-700/50 ${
                     isWinner ? "border-green-500/50" : "border-red-500/50"
                   }`}
                 >
                   <div className="flex justify-between items-center text-sm">
                     <div
-                      className={`flex-1 ${
+                      className={`flex-1 truncate ${
                         isTeamA && isWinner
                           ? "text-white font-bold"
                           : "text-slate-400"
@@ -418,9 +522,9 @@ export const PlayerProfile = () => {
                     >
                       {teamA}
                     </div>
-                    <div className="px-3 text-slate-500">VS</div>
+                    <div className="px-3 text-slate-500 flex-shrink-0">VS</div>
                     <div
-                      className={`flex-1 text-right ${
+                      className={`flex-1 text-right truncate ${
                         !isTeamA && isWinner
                           ? "text-white font-bold"
                           : "text-slate-400"
@@ -450,7 +554,7 @@ export const PlayerProfile = () => {
               </p>
             )}
           </div>
-        </div>
+        </section>
       </div>
 
       {/* Edit Modal */}
@@ -458,7 +562,9 @@ export const PlayerProfile = () => {
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Modifier le nom</h3>
+              <h3 className="text-xl font-bold text-white">
+                Modifier le nom
+              </h3>
               <button
                 onClick={() => setShowEditModal(false)}
                 className="p-2 hover:bg-slate-800 rounded-lg transition-colors"

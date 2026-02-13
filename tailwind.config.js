@@ -40,7 +40,9 @@ export default {
         "gradient-fab": "linear-gradient(to right, #3b82f6, #7c3aed)", // blue-500 → violet-600
         "gradient-tab-active": "linear-gradient(to right, #3b82f6, #7c3aed)",
         "gradient-card":
-          "linear-gradient(to left, rgba(51, 65, 85, 0.98), rgba(30, 41, 59, 0.98))", // slate-700 → slate-800 (design-system-convergence 3.2)
+          "linear-gradient(to left, rgba(51, 65, 85, 0.85), rgba(30, 41, 59, 0.85))", // slate-700 → slate-800, avec transparence
+        "gradient-card-transparent":
+          "linear-gradient(to left, rgba(51, 65, 85, 0.7), rgba(30, 41, 59, 0.7))", // variante plus transparente (landing, overlays)
       },
       // --- Task 3: Typographie (AC: 3) ---
       fontSize: {

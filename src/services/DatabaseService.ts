@@ -819,6 +819,138 @@ class DatabaseService {
   }
 
   /**
+   * Charge un joueur par ID (league_players ou tournament_players).
+   * Utilisé par PlayerProfile quand le joueur n'est pas dans le contexte (ex: autre joueur d'un tournoi).
+   */
+  async loadPlayerById(playerId: string): Promise<{
+    player: Player;
+    leagueId?: string;
+    leagueName?: string;
+    tournamentId?: string;
+  } | null> {
+    if (!this.isSupabaseAvailable()) return null;
+
+    try {
+      // 1. Essayer league_players
+      const { data: lpData } = await supabase!
+        .from('league_players')
+        .select('id, league_id, pseudo_in_league, elo, wins, losses, matches_played')
+        .eq('id', playerId)
+        .maybeSingle();
+
+      if (lpData) {
+        const lp = lpData as { id: string; league_id: string; pseudo_in_league: string; elo?: number; wins?: number; losses?: number; matches_played?: number };
+        const league = await this.getLeagueById(lp.league_id);
+        return {
+          player: {
+            id: lp.id,
+            name: lp.pseudo_in_league || 'Joueur',
+            elo: lp.elo || 1000,
+            wins: lp.wins || 0,
+            losses: lp.losses || 0,
+            matchesPlayed: lp.matches_played || 0,
+            streak: 0,
+          },
+          leagueId: lp.league_id,
+          leagueName: league?.name,
+        };
+      }
+
+      // 2. Essayer tournament_players
+      const { data: tpData } = await supabase!
+        .from('tournament_players')
+        .select(`
+          id,
+          pseudo_in_tournament,
+          tournament_id,
+          user_id,
+          anonymous_user_id,
+          user:users ( pseudo ),
+          anonymous_user:anonymous_users ( pseudo )
+        `)
+        .eq('id', playerId)
+        .maybeSingle();
+
+      if (tpData) {
+        const name = (tpData as any).pseudo_in_tournament
+          || (tpData as any).user?.pseudo
+          || (tpData as any).anonymous_user?.pseudo
+          || 'Joueur';
+
+        // Essayer de récupérer les stats league si le tournoi a une league
+        const { data: tData } = await supabase!
+          .from('tournaments')
+          .select('league_id')
+          .eq('id', (tpData as any).tournament_id)
+          .single();
+
+        let elo = 1500;
+        let wins = 0;
+        let losses = 0;
+        let matchesPlayed = 0;
+
+        if (tData?.league_id) {
+          let lpResult: { data: { elo: number; wins: number; losses: number; matches_played: number } | null } = { data: null };
+          if ((tpData as any).user_id) {
+            lpResult = await supabase!
+              .from('league_players')
+              .select('elo, wins, losses, matches_played')
+              .eq('league_id', tData.league_id)
+              .eq('user_id', (tpData as any).user_id)
+              .maybeSingle();
+          } else if ((tpData as any).anonymous_user_id) {
+            lpResult = await supabase!
+              .from('league_players')
+              .select('elo, wins, losses, matches_played')
+              .eq('league_id', tData.league_id)
+              .eq('anonymous_user_id', (tpData as any).anonymous_user_id)
+              .maybeSingle();
+          }
+
+          if (lpResult?.data) {
+            elo = lpResult.data.elo || 1500;
+            wins = lpResult.data.wins || 0;
+            losses = lpResult.data.losses || 0;
+            matchesPlayed = lpResult.data.matches_played || 0;
+          }
+        }
+
+        const leagueId = tData?.league_id ?? undefined;
+        const league = leagueId ? await this.getLeagueById(leagueId) : null;
+        return {
+          player: {
+            id: (tpData as any).id,
+            name,
+            elo,
+            wins,
+            losses,
+            matchesPlayed,
+            streak: 0,
+          },
+          leagueId,
+          leagueName: league?.name,
+          tournamentId: (tpData as any).tournament_id,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error loading player by ID:', error);
+      return null;
+    }
+  }
+
+  private async getLeagueById(leagueId: string): Promise<{ name: string } | null> {
+    if (!this.isSupabaseAvailable()) return null;
+    const { data } = await supabase!
+      .from('leagues')
+      .select('name')
+      .eq('id', leagueId)
+      .maybeSingle();
+    return data as { name: string } | null;
+  }
+
+  /**
    * Charge les participants d'un tournament depuis tournament_players
    */
   async loadTournamentParticipants(tournamentId: string): Promise<{
