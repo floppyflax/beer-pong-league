@@ -17,6 +17,9 @@ export const supabase: SupabaseClient<Database> | null =
       })
     : null;
 
+/** Project-context: Check Supabase availability before operations */
+export const isSupabaseAvailable = (): boolean => !!supabase;
+
 // Log warning if Supabase is not configured (but don't block the app)
 if (!supabase) {
   console.warn(

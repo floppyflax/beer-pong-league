@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { localUserService, type LocalUser } from '../services/LocalUserService';
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import { localUserService, type LocalUser } from "../services/LocalUserService";
 // import { getDeviceFingerprint } from '../utils/deviceFingerprint'; // Unused
 
 interface IdentityModalProps {
@@ -25,6 +25,15 @@ export const IdentityModal = ({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleResume = () => {
@@ -47,8 +56,9 @@ export const IdentityModal = ({
           <button
             onClick={onClose}
             className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Fermer"
           >
-            <X size={20} />
+            <X size={20} className="text-slate-400" />
           </button>
         </div>
 
@@ -56,9 +66,12 @@ export const IdentityModal = ({
           <div className="space-y-4">
             <div className="bg-slate-800 p-4 rounded-xl">
               <div className="text-sm text-slate-400 mb-1">Ton pseudo</div>
-              <div className="text-lg font-bold text-white">{localUser.pseudo}</div>
+              <div className="text-lg font-bold text-white">
+                {localUser.pseudo}
+              </div>
               <div className="text-xs text-slate-500 mt-1">
-                Créé le {new Date(localUser.createdAt).toLocaleDateString('fr-FR')}
+                Créé le{" "}
+                {new Date(localUser.createdAt).toLocaleDateString("fr-FR")}
               </div>
             </div>
 
@@ -94,6 +107,3 @@ export const IdentityModal = ({
     </div>
   );
 };
-
-
-

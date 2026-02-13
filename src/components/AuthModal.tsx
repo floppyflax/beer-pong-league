@@ -1,6 +1,6 @@
-import { useState, FormEvent } from 'react';
-import { X, Mail, CheckCircle } from 'lucide-react';
-import { authService } from '../services/AuthService';
+import { useState, useEffect, useCallback, FormEvent } from "react";
+import { X, Mail, CheckCircle } from "lucide-react";
+import { authService } from "../services/AuthService";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,10 +9,27 @@ interface AuthModalProps {
 }
 
 export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
-  const [email, setEmail] = useState('');
-  const [step, setStep] = useState<'email' | 'sent'>('email');
+  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<"email" | "sent">("email");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleClose = useCallback(() => {
+    setEmail("");
+    setStep("email");
+    setError(null);
+    setIsLoading(false);
+    onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 
@@ -20,26 +37,26 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
   const isTestAccount = (email: string): boolean => {
     if (!import.meta.env.DEV) return false;
     const testAccounts = [
-      'admin@admin.com', 
-      'test@test.com',
-      'devadmin@test.com',
-      'devtest@test.com'
+      "admin@admin.com",
+      "test@test.com",
+      "devadmin@test.com",
+      "devtest@test.com",
     ];
     return testAccounts.includes(email.toLowerCase());
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!email.trim()) {
-      setError('Veuillez entrer un email');
+      setError("Veuillez entrer un email");
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setError('Email invalide');
+      setError("Email invalide");
       return;
     }
 
@@ -47,20 +64,21 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     setError(null);
 
     try {
-      const { error: authError, usedOTP } = await authService.signInWithOTP(email);
+      const { error: authError, usedOTP } =
+        await authService.signInWithOTP(email);
 
       if (authError) {
-        setError(authError.message || 'Erreur lors de l\'envoi de l\'email');
+        setError(authError.message || "Erreur lors de l'envoi de l'email");
         setIsLoading(false);
         return;
       }
 
       // Si c'est un compte test ET password auth a réussi (usedOTP === false)
       if (isTestAccount(email) && usedOTP === false) {
-        console.log('🧪 Test account logged in with password, closing modal');
+        console.log("🧪 Test account logged in with password, closing modal");
         setIsLoading(false);
         handleClose();
-        
+
         // Wait a bit for auth state to propagate, then call onSuccess
         setTimeout(() => {
           onSuccess?.();
@@ -69,20 +87,12 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
       }
 
       // Sinon (OTP envoyé), afficher l'étape "email envoyé"
-      setStep('sent');
+      setStep("sent");
       setIsLoading(false);
     } catch (error) {
-      setError('Une erreur est survenue');
+      setError("Une erreur est survenue");
       setIsLoading(false);
     }
-  };
-
-  const handleClose = () => {
-    setEmail('');
-    setStep('email');
-    setError(null);
-    setIsLoading(false);
-    onClose();
   };
 
   return (
@@ -90,23 +100,22 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
       <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold">
-            {step === 'email' ? 'Créer un compte' : 'Email envoyé !'}
+            {step === "email" ? "Créer un compte" : "Email envoyé !"}
           </h3>
           <button
             onClick={handleClose}
             className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
             disabled={isLoading}
+            aria-label="Fermer"
           >
-            <X size={20} />
+            <X size={20} className="text-slate-400" />
           </button>
         </div>
 
-        {step === 'email' ? (
+        {step === "email" ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm text-slate-400 mb-2 block">
-                Email
-              </label>
+              <label className="text-sm text-slate-400 mb-2 block">Email</label>
               <div className="relative">
                 <Mail
                   size={20}
@@ -125,9 +134,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                   disabled={isLoading}
                 />
               </div>
-              {error && (
-                <p className="text-red-500 text-sm mt-2">{error}</p>
-              )}
+              {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
               {isTestAccount(email) ? (
                 <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-2 mt-2">
                   <p className="text-xs text-green-500 font-semibold">
@@ -148,10 +155,13 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                   🧪 Mode développement
                 </p>
                 <p className="text-xs text-slate-400">
-                  Comptes test disponibles :<br />
-                  • <span className="text-white">devadmin@test.com</span><br />
-                  • <span className="text-white">devtest@test.com</span><br />
-                  <span className="text-slate-500">(connexion instantanée)</span>
+                  Comptes test disponibles :<br />•{" "}
+                  <span className="text-white">devadmin@test.com</span>
+                  <br />• <span className="text-white">devtest@test.com</span>
+                  <br />
+                  <span className="text-slate-500">
+                    (connexion instantanée)
+                  </span>
                 </p>
               </div>
             )}
@@ -161,11 +171,13 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
               disabled={!email.trim() || isLoading}
               className="w-full bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-xl transition-colors"
             >
-              {isLoading ? (
-                isTestAccount(email) ? 'Connexion...' : 'Envoi...'
-              ) : (
-                isTestAccount(email) ? 'Se connecter' : 'Envoyer le lien magique'
-              )}
+              {isLoading
+                ? isTestAccount(email)
+                  ? "Connexion..."
+                  : "Envoi..."
+                : isTestAccount(email)
+                  ? "Se connecter"
+                  : "Envoyer le lien magique"}
             </button>
           </form>
         ) : (
@@ -203,6 +215,3 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     </div>
   );
 };
-
-
-

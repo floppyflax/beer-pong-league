@@ -1,90 +1,90 @@
-# Story 14.1b: Page Design System (showcase)
+# Story 14.1b: Design System page (showcase)
 
 Status: done
 
 ## Story
 
 As a developer,
-I want une page Design System qui affiche les tokens et permet de tester les composants atomiques,
-So que je puisse visualiser et valider les fondations (couleurs, typo, gradients, etc.) et chaque composant au fur et à mesure de leur création.
+I want a Design System page that displays tokens and allows testing atomic components,
+So that I can visualize and validate foundations (colors, typography, gradients, etc.) and each component as they are created.
 
 ## Acceptance Criteria
 
-1. **Given** la route `/design-system`
-   **When** j'accède à cette page
-   **Then** une page showcase s'affiche avec le fond et typographie du design system
+1. **Given** the route `/design-system`
+   **When** I access this page
+   **Then** a showcase page is displayed with the design system background and typography
 
-2. **Section Design Tokens** (Story 14-1) — en tête de page :
-   - **Couleurs** : swatches pour background (primary/secondary/tertiary), text (primary/secondary/tertiary/muted), accents (primary, success, error, elo, info), sémantique (status-active, status-finished, delta-positive/negative)
-   - **Gradients** : barres ou carrés pour gradient-cta, gradient-cta-alt, gradient-fab, gradient-tab-active
-   - **Typographie** : exemples pour page-title, section-title, body, label, stat
-   - **Espacements** : exemples visuels (page, card-gap, bottom-nav)
-   - **Radius** : exemples pour card, button, input
-   - **Bordures** : exemples pour border-card, border-card-muted
+2. **Design Tokens section** (Story 14-1) — at the top of the page:
+   - **Colors:** swatches for background (primary/secondary/tertiary), text (primary/secondary/tertiary/muted), accents (primary, success, error, elo, info), semantic (status-active, status-finished, delta-positive/negative)
+   - **Gradients:** bars or squares for gradient-cta, gradient-cta-alt, gradient-fab, gradient-tab-active
+   - **Typography:** examples for page-title, section-title, body, label, stat
+   - **Spacing:** visual examples (page, card-gap, bottom-nav)
+   - **Radius:** examples for card, button, input
+   - **Borders:** examples for border-card, border-card-muted
 
-3. **Section Composants** : StatCard, SegmentedTabs, ListRow, InfoCard, FAB, Banner, SearchBar, Navigation (BottomTabMenu, BottomMenuSpecific — ajouté par Story 14.10b)
+3. **Components section:** StatCard, SegmentedTabs, ListRow, InfoCard, FAB, Banner, SearchBar, Navigation (BottomTabMenu, BottomMenuSpecific — added by Story 14.10b)
 
-4. Chaque section composant affiche le composant s'il existe, ou un placeholder "À venir" avec le nom du composant
+4. Each component section displays the component if it exists, or a "Coming soon" placeholder with the component name
 
-5. Les sections permettent de tester les variantes (ex. StatCard primary/success/accent, Banner success/error)
+5. Sections allow testing variants (e.g. StatCard primary/success/accent, Banner success/error)
 
-6. La page est accessible en dev via le DevPanel ou un lien direct
+6. The page is accessible in dev via DevPanel or direct link
 
-7. La bottom nav est masquée sur cette page (page outil dev)
+7. The bottom nav is hidden on this page (dev tool page)
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Créer la page et la route (AC: 1, 6, 7)
-  - [x] Créer `src/pages/DesignSystemShowcase.tsx`
-  - [x] Ajouter route `/design-system` dans App.tsx
-  - [x] Exclure `/design-system` de `shouldShowBottomMenu`
-  - [x] Ajouter lien "Design System" dans DevPanel
-- [x] Task 2: Section Design Tokens (AC: 2)
-  - [x] Sous-section Couleurs : grille de swatches avec noms (bg-background-primary, text-text-primary, etc.)
-  - [x] Sous-section Gradients : barres colorées (gradient-cta, gradient-fab, etc.)
-  - [x] Sous-section Typographie : exemples text-page-title, text-section-title, text-body, text-label, text-stat
-  - [x] Sous-section Espacements : blocs avec p-page, gap-card, etc.
-  - [x] Sous-section Radius : carrés/cartes avec rounded-card, rounded-button, rounded-input
-  - [x] Sous-section Bordures : exemples border-card, border-card-muted
-- [x] Task 3: Structure des sections composants (AC: 3, 4)
-  - [x] Sections avec titres (h2) pour StatCard, SegmentedTabs, ListRow, InfoCard, FAB, Banner, SearchBar
-  - [x] Placeholder "À venir" pour composants non encore implémentés
-  - [x] Import conditionnel ou barrel pour éviter erreurs si composant absent
-- [x] Task 4: Intégration progressive (AC: 5)
-  - [x] Chaque story 14-2 à 14-8 ajoutera sa démo dans la section correspondante
+- [x] Task 1: Create page and route (AC: 1, 6, 7)
+  - [x] Create `src/pages/DesignSystemShowcase.tsx`
+  - [x] Add route `/design-system` in App.tsx
+  - [x] Exclude `/design-system` from `shouldShowBottomMenu`
+  - [x] Add "Design System" link in DevPanel
+- [x] Task 2: Design Tokens section (AC: 2)
+  - [x] Colors subsection: grid of swatches with names (bg-background-primary, text-text-primary, etc.)
+  - [x] Gradients subsection: colored bars (gradient-cta, gradient-fab, etc.)
+  - [x] Typography subsection: examples text-page-title, text-section-title, text-body, text-label, text-stat
+  - [x] Spacing subsection: blocks with p-page, gap-card, etc.
+  - [x] Radius subsection: squares/cards with rounded-card, rounded-button, rounded-input
+  - [x] Borders subsection: examples border-card, border-card-muted
+- [x] Task 3: Component sections structure (AC: 3, 4)
+  - [x] Sections with titles (h2) for StatCard, SegmentedTabs, ListRow, InfoCard, FAB, Banner, SearchBar
+  - [x] "Coming soon" placeholder for components not yet implemented
+  - [x] Conditional import or barrel to avoid errors if component missing
+- [x] Task 4: Progressive integration (AC: 5)
+  - [x] Each story 14-2 to 14-8 adds its demo in the corresponding section
 
 ## Dev Notes
 
-- **Fichier:** `src/pages/DesignSystemShowcase.tsx`
+- **File:** `src/pages/DesignSystemShowcase.tsx`
 - **Route:** `/design-system`
-- **Accès:** Lien dans DevPanel (visible uniquement en `import.meta.env.DEV`)
-- **Structure:** Page scrollable, sections avec `space-y-8`, titre page "Design System — Beer Pong League"
-- **Section Tokens (Story 14-1):** Les tokens sont déjà implémentés dans `tailwind.config.js` et `src/styles/design-tokens.css`. La showcase les affiche visuellement pour validation.
-- **Placeholder:** Composant non créé → afficher `<div className="p-4 bg-slate-800 rounded-xl border border-dashed border-slate-600 text-slate-400">StatCard — À venir</div>`
-- **Import dynamique:** Utiliser des imports directs ; si le composant n'existe pas encore, le fichier DesignSystemShowcase peut importer depuis un barrel qui n'exporte que les composants existants, ou utiliser des blocs conditionnels par composant
+- **Access:** Link in DevPanel (visible only in `import.meta.env.DEV`)
+- **Structure:** Scrollable page, sections with `space-y-8`, page title "Design System — Beer Pong League"
+- **Tokens section (Story 14-1):** Tokens are already implemented in `tailwind.config.js` and `src/styles/design-tokens.css`. The showcase displays them visually for validation.
+- **Placeholder:** Component not created → display `<div className="p-4 bg-slate-800 rounded-xl border border-dashed border-slate-600 text-slate-400">StatCard — Coming soon</div>`
+- **Dynamic import:** Use direct imports; if the component does not exist yet, DesignSystemShowcase can import from a barrel that only exports existing components, or use conditional blocks per component
 
-### Stratégie d'intégration progressive
+### Progressive integration strategy
 
-Option A (recommandée) : La page importe tous les composants du barrel `design-system/index.ts`. Au début, le barrel n'exporte rien (ou seulement ce qui existe). Chaque story 14-2 à 14-8 :
+Option A (recommended): The page imports all components from the barrel `design-system/index.ts`. Initially, the barrel exports nothing (or only what exists). Each story 14-2 to 14-8:
 
-1. Crée son composant
-2. L'exporte depuis le barrel
-3. Ajoute une section démo dans DesignSystemShowcase
+1. Creates its component
+2. Exports it from the barrel
+3. Adds a demo section in DesignSystemShowcase
 
-Option B : La page utilise des sous-composants `DesignSystemShowcase/StatCardSection.tsx` etc., créés au fur et à mesure. Plus modulaire mais plus de fichiers.
+Option B: The page uses subcomponents `DesignSystemShowcase/StatCardSection.tsx` etc., created progressively. More modular but more files.
 
-**Recommandation :** Option A — une seule page avec des sections inline, mises à jour par chaque story composant.
+**Recommendation:** Option A — single page with inline sections, updated by each component story.
 
 ### Project Structure Notes
 
 - `src/pages/DesignSystemShowcase.tsx`
-- Mise à jour : `src/App.tsx`, `src/components/DevPanel.tsx`, `src/utils/navigationHelpers.ts`
+- Updates: `src/App.tsx`, `src/components/DevPanel.tsx`, `src/utils/navigationHelpers.ts`
 
 ### References
 
 - [Source: _bmad-output/planning-artifacts/design-system-convergence.md]
 - [Source: Story 14-1 — design tokens (tailwind.config.js, design-tokens.css)]
-- [Source: Stories 14-2 à 14-8 — composants à showcase]
+- [Source: Stories 14-2 to 14-8 — components to showcase]
 
 ## Dev Agent Record
 
@@ -96,12 +96,12 @@ Composer (dev-story workflow)
 
 ### Completion Notes List
 
-- Page DesignSystemShowcase créée avec section Design Tokens (couleurs, gradients, typographie, espacements, radius, bordures) et sections composants avec placeholders
-- Route /design-system ajoutée dans App.tsx (lazy-loaded)
-- Lien "Design System" ajouté dans DevPanel (visible en mode dev)
-- /design-system exclu de shouldShowBottomMenu dans navigationHelpers.ts
-- 14 tests unitaires DesignSystemShowcase + 1 test navigationHelpers pour /design-system
-- **Code review (2026-02-13):** 5 issues corrigés — imports @/ alias, token mb-bottom-nav, suppression ComponentPlaceholder mort, démo Banner position=top, tests InfoCard/FAB/Banner
+- DesignSystemShowcase page created with Design Tokens section (colors, gradients, typography, spacing, radius, borders) and component sections with placeholders
+- Route /design-system added in App.tsx (lazy-loaded)
+- "Design System" link added in DevPanel (visible in dev mode)
+- /design-system excluded from shouldShowBottomMenu in navigationHelpers.ts
+- 14 DesignSystemShowcase unit tests + 1 navigationHelpers test for /design-system
+- **Code review (2026-02-13):** 5 issues fixed — @/ alias imports, token mb-bottom-nav, removed dead ComponentPlaceholder, Banner demo position=top, InfoCard/FAB/Banner tests
 
 ### Senior Developer Review (AI)
 
@@ -109,11 +109,12 @@ Composer (dev-story workflow)
 **Outcome:** Approve (after fixes)
 
 **Findings addressed:**
-1. Imports harmonisés sur alias `@/` (project-context)
-2. Magic number remplacé par token `mb-bottom-nav`
-3. Suppression `ComponentPlaceholder` (code mort)
-4. Démo Banner `position="top"` ajoutée
-5. Tests InfoCard, FAB, Banner renforcés
+
+1. Imports harmonized on `@/` alias (project-context)
+2. Magic number replaced by token `mb-bottom-nav`
+3. Removed `ComponentPlaceholder` (dead code)
+4. Banner demo `position="top"` added
+5. InfoCard, FAB, Banner tests strengthened
 
 ### File List
 
@@ -139,6 +140,6 @@ Composer (dev-story workflow)
 
 ## Change Log
 
-- 2026-02-13: Implémentation complète Story 14-1b — Page Design System (showcase) avec tokens et placeholders composants
+- 2026-02-13: Full implementation Story 14-1b — Design System page (showcase) with tokens and component placeholders
 - 2026-02-13: Code review batch — Banner test, BannerShowcase dismiss demo, pb-8
-- 2026-02-13: Code review — 5 corrections (imports @/, token bottom-nav, dead code, Banner position top, tests)
+- 2026-02-13: Code review — 5 fixes (imports @/, bottom-nav token, dead code, Banner position top, tests)

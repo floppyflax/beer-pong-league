@@ -1,17 +1,18 @@
-import { useAuthContext } from '../context/AuthContext';
-import { useLeague } from '../context/LeagueContext';
+import { useAuthContext } from "../context/AuthContext";
+import { useLeague } from "../context/LeagueContext";
+import { usePremium } from "./usePremium";
 
 /**
  * Premium Limits Hook
- * 
+ *
  * Manages premium feature limits for tournaments and leagues
- * 
+ *
  * Free user limits:
  * - Tournaments: 2 active tournaments max
  * - Leagues: 1 active league max
- * 
+ *
  * Premium users: Unlimited
- * 
+ *
  * @returns Object with limit information and creation flags
  */
 
@@ -27,18 +28,18 @@ export interface PremiumLimitsResult {
   isPremium: boolean;
   isAtTournamentLimit: boolean;
   isAtLeagueLimit: boolean;
+  /** Call after payment success to refresh premium status */
+  refetchPremium: () => void;
 }
 
 export const usePremiumLimits = (): PremiumLimitsResult => {
   const { user } = useAuthContext();
   const { tournaments = [], leagues = [] } = useLeague();
-
-  // Check premium status
-  const isPremium = user?.user_metadata?.isPremium || false;
+  const { isPremium, refetch: refetchPremium } = usePremium(user?.id ?? null);
 
   // Count active tournaments and leagues
-  const activeTournaments = tournaments.filter(t => !t.isFinished).length;
-  const activeLeagues = leagues.filter(l => l.status === 'active').length;
+  const activeTournaments = tournaments.filter((t) => !t.isFinished).length;
+  const activeLeagues = leagues.filter((l) => l.status === "active").length;
 
   // Define limits
   const limits = {
@@ -59,5 +60,6 @@ export const usePremiumLimits = (): PremiumLimitsResult => {
     isPremium,
     isAtTournamentLimit,
     isAtLeagueLimit,
+    refetchPremium,
   };
 };

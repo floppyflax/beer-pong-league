@@ -11,6 +11,7 @@ import {
   Share2,
   LogOut,
   UserPlus,
+  Calendar,
 } from "lucide-react";
 import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
@@ -25,6 +26,33 @@ import { useIdentity } from "../hooks/useIdentity";
 import { toast } from "react-hot-toast";
 import { ContextualHeader } from "../components/navigation/ContextualHeader";
 import { useDetailPagePermissions } from "../hooks/useDetailPagePermissions";
+import {
+  InfoCard,
+  StatCard,
+  SegmentedTabs,
+  ListRow,
+  FAB,
+} from "../components/design-system";
+
+// Derniers 5 résultats (true=victoire, false=défaite), du plus récent au plus ancien
+function getLast5MatchResults(
+  playerId: string,
+  matches: { date: string; teamA: string[]; teamB: string[]; scoreA: number; scoreB: number }[],
+): boolean[] {
+  const sorted = [...matches].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+  const results: boolean[] = [];
+  for (const m of sorted) {
+    if (results.length >= 5) break;
+    const inTeamA = m.teamA.includes(playerId);
+    const inTeamB = m.teamB.includes(playerId);
+    if (!inTeamA && !inTeamB) continue;
+    const won = (inTeamA && m.scoreA > m.scoreB) || (inTeamB && m.scoreB > m.scoreA);
+    results.push(won);
+  }
+  return results;
+}
 
 // Task 4 - Utility function for relative timestamps (AC4)
 function getRelativeTimestamp(date: string): string {
@@ -91,17 +119,57 @@ export const TournamentDashboard = () => {
   const [selectedLeaguePlayerId, setSelectedLeaguePlayerId] =
     useState<string>("");
 
+  // Escape key closes Add Player modal
+  useEffect(() => {
+    if (!showAddPlayer) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowAddPlayer(false);
+        setAddPlayerTab("pseudo");
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [showAddPlayer]);
+
   // Find tournament (but ALL hooks must still be called even if null)
   const tournament = tournaments.find((t) => t.id === id);
+
+  // Load tournament participants from tournament_players (IDs match match.teamA/teamB)
+  const [tournamentParticipants, setTournamentParticipants] = useState<
+    { id: string; leaguePlayerId?: string; name: string; elo: number; wins: number; losses: number; matchesPlayed: number; streak: number }[]
+  >([]);
+
+  useEffect(() => {
+    if (!id) return;
+    databaseService
+      .loadTournamentParticipants(id)
+      .then((participants) =>
+        setTournamentParticipants(
+          participants.map((p) => ({
+            id: p.id,
+            leaguePlayerId: p.leaguePlayerId,
+            name: p.name,
+            elo: p.elo,
+            wins: p.wins,
+            losses: p.losses,
+            matchesPlayed: p.matchesPlayed,
+            streak: 0,
+          })),
+        ),
+      )
+      .catch(() => setTournamentParticipants([]));
+  }, [id, tournament?.matches.length, tournament?.playerIds?.length]);
 
   // Calculate derived data (safe to do even if tournament is null)
   const league = tournament?.leagueId
     ? leagues.find((l) => l.id === tournament.leagueId)
     : null;
-  const tournamentPlayers =
-    league && tournament
-      ? league.players.filter((p) => tournament.playerIds.includes(p.id))
-      : [];
+  // Use tournament participants (from tournament_players) - IDs match match.teamA/teamB
+  const tournamentPlayers = tournamentParticipants;
+  // For PlayerProfile navigation: use leaguePlayerId when available so /player/:id finds the player
+  const getPlayerProfileId = (p: { id: string; leaguePlayerId?: string }) =>
+    p.leaguePlayerId || p.id;
 
   // Story 9-5 - Get permissions for contextual actions
   const { isAdmin, canInvite } = useDetailPagePermissions(
@@ -110,10 +178,11 @@ export const TournamentDashboard = () => {
   );
 
   // Get ranking based on mode - MUST be called unconditionally
+  // Pass tournamentParticipants so ranking uses tournament_players.id (matches match.teamA/teamB)
   const ranking = useMemo(() => {
     if (!tournament) return [];
     if (rankingMode === "local") {
-      return getTournamentLocalRanking(tournament.id);
+      return getTournamentLocalRanking(tournament.id, tournamentParticipants);
     } else {
       if (tournament.leagueId) {
         return getLeagueGlobalRanking(tournament.leagueId);
@@ -123,6 +192,7 @@ export const TournamentDashboard = () => {
   }, [
     rankingMode,
     tournament,
+    tournamentParticipants,
     getTournamentLocalRanking,
     getLeagueGlobalRanking,
   ]);
@@ -178,13 +248,14 @@ export const TournamentDashboard = () => {
     // Calculate winner from scores
     const winner: "A" | "B" = match.scoreA > match.scoreB ? "A" : "B";
 
-    // Call recordTournamentMatch with scores
+    // Call recordTournamentMatch with scores and tournament participants (tournament_players.id)
     const eloChanges = await recordTournamentMatch(
       tournament.id,
       match.teamA,
       match.teamB,
       winner,
       { scoreA: match.scoreA, scoreB: match.scoreB },
+      tournamentPlayers,
     );
 
     if (eloChanges) {
@@ -247,10 +318,39 @@ export const TournamentDashboard = () => {
     setAddPlayerTab("pseudo"); // Reset to default tab
   };
 
-  const handleAddPlayerFromLeague = () => {
+  const handleAddPlayerFromLeague = async () => {
     if (!selectedLeaguePlayerId || !tournament.leagueId) return;
 
-    addPlayerToTournament(tournament.id, selectedLeaguePlayerId);
+    try {
+      const tournamentPlayerId = await databaseService.addLeaguePlayerToTournament(
+        tournament.id,
+        selectedLeaguePlayerId,
+      );
+      addPlayerToTournament(tournament.id, tournamentPlayerId);
+      await reloadData();
+      databaseService
+        .loadTournamentParticipants(tournament.id)
+        .then((participants) =>
+          setTournamentParticipants(
+            participants.map((p) => ({
+              id: p.id,
+              leaguePlayerId: p.leaguePlayerId,
+              name: p.name,
+              elo: p.elo,
+              wins: p.wins,
+              losses: p.losses,
+              matchesPlayed: p.matchesPlayed,
+              streak: 0,
+            })),
+          ),
+        )
+        .catch(() => {});
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Erreur lors de l'ajout du joueur",
+      );
+      return;
+    }
     setSelectedLeaguePlayerId("");
     setShowAddPlayer(false);
     setAddPlayerTab("pseudo"); // Reset to default tab
@@ -298,13 +398,6 @@ export const TournamentDashboard = () => {
         showBackButton={true}
         onBack={() => navigate("/tournaments")}
         actions={[
-          {
-            label: "NOUVEAU MATCH",
-            icon: <BeerPongMatchIcon size={20} />,
-            onClick: () => setShowRecordMatch(true),
-            variant: "primary",
-            disabled: tournament.isFinished,
-          },
           ...(isAdmin || canInvite
             ? [
                 {
@@ -336,120 +429,79 @@ export const TournamentDashboard = () => {
         ]}
       />
 
-      {/* Tournament Info (below header) */}
-      <div className="px-4 py-3 bg-slate-800/30 border-b border-slate-700">
-        <div className="flex items-center gap-4 text-sm">
-          {/* Join code */}
-          {tournament.joinCode && (
-            <div className="text-slate-300 font-mono bg-slate-700/50 px-2 py-1 rounded">
-              Code: {tournament.joinCode}
-            </div>
-          )}
-          {/* Status badge */}
-          <span
-            className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
-              tournament.status === "finished" || tournament.isFinished
-                ? "bg-green-500/20 text-green-500"
-                : tournament.status === "cancelled"
-                  ? "bg-red-500/20 text-red-500"
-                  : "bg-amber-500/20 text-amber-500"
-            }`}
-          >
-            {tournament.status === "finished" || tournament.isFinished
+      {/* InfoCard (AC2): status, code, format, date */}
+      <div className="px-4 py-3">
+        <InfoCard
+          title=""
+          statusBadge={
+            tournament.status === "finished" || tournament.isFinished
               ? "Terminé"
               : tournament.status === "cancelled"
                 ? "Annulé"
-                : "En cours"}
-          </span>
-        </div>
-        {/* Format info and player count */}
-        <div className="flex items-center gap-4 text-xs text-slate-400 mt-2">
-          <div className="flex items-center gap-1">
-            <span>📊</span>
-            <span>
-              Format:{" "}
-              {tournament.formatType === "fixed"
-                ? `${tournament.team1Size}v${tournament.team2Size}`
-                : "Libre"}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>👥</span>
-            <span>
-              {tournamentPlayers.length}
-              {tournament.maxPlayers && tournament.maxPlayers < 999
-                ? `/${tournament.maxPlayers}`
-                : ""}{" "}
-              joueurs
-            </span>
-          </div>
-          <div className="text-slate-500">
-            {new Date(tournament.date).toLocaleDateString("fr-FR")}
-          </div>
-        </div>
+                : "En cours"
+          }
+          statusVariant={
+            tournament.status === "finished" || tournament.isFinished
+              ? "finished"
+              : tournament.status === "cancelled"
+                ? "cancelled"
+                : "active"
+          }
+          infos={[
+            ...(tournament.joinCode
+              ? [{ icon: LinkIcon, text: `Code: ${tournament.joinCode}` }]
+              : []),
+            {
+              icon: Trophy,
+              text: `Format: ${
+                tournament.format === "libre" ? "Libre" : tournament.format
+              }`,
+            },
+            {
+              icon: Users,
+              text: `${tournamentPlayers.length}${
+                tournament.maxPlayers && tournament.maxPlayers < 999
+                  ? `/${tournament.maxPlayers}`
+                  : ""
+              } joueurs`,
+            },
+            {
+              icon: Calendar,
+              text: new Date(tournament.date).toLocaleDateString("fr-FR"),
+            },
+          ]}
+        />
       </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-3 gap-2 p-4 pt-0">
-        <div className="bg-slate-800 p-3 rounded-xl text-center">
-          <div className="text-2xl font-bold text-white">
-            {tournamentPlayers.length}
-          </div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">
-            Joueurs
-          </div>
-        </div>
-        <div className="bg-slate-800 p-3 rounded-xl text-center">
-          <div className="text-2xl font-bold text-white">
-            {tournament.matches.length}
-          </div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">
-            Matchs
-          </div>
-        </div>
-        <div className="bg-slate-800 p-3 rounded-xl text-center">
-          <div className="text-2xl font-bold text-primary">
-            {ranking.length > 0 ? ranking[0].elo : "-"}
-          </div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">
-            Top ELO
-          </div>
-        </div>
+      {/* StatCards (AC3): 3 columns */}
+      <div className="grid grid-cols-3 gap-2 px-4 pb-4">
+        <StatCard
+          value={tournamentPlayers.length}
+          label="Joueurs"
+          variant="primary"
+        />
+        <StatCard value={tournament.matches.length} label="Matchs" />
+        <StatCard
+          value={ranking.length > 0 ? ranking[0].elo : "-"}
+          label="Top ELO"
+          variant="accent"
+        />
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-700 px-4 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("classement")}
-          className={`flex-1 min-w-[100px] py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-            activeTab === "classement"
-              ? "border-primary text-white"
-              : "border-transparent text-slate-500 hover:text-slate-300"
-          }`}
-        >
-          Classement
-        </button>
-        <button
-          onClick={() => setActiveTab("matchs")}
-          className={`flex-1 min-w-[100px] py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-            activeTab === "matchs"
-              ? "border-primary text-white"
-              : "border-transparent text-slate-500 hover:text-slate-300"
-          }`}
-        >
-          Matchs
-        </button>
-        <button
-          onClick={() => setActiveTab("settings")}
-          className={`flex-1 min-w-[100px] py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-            activeTab === "settings"
-              ? "border-primary text-white"
-              : "border-transparent text-slate-500 hover:text-slate-300"
-          }`}
-          title="Paramètres"
-        >
-          ⚙️ Paramètres
-        </button>
+      {/* SegmentedTabs (AC4): Classement / Matchs / Paramètres */}
+      <div className="px-4 pb-4">
+        <SegmentedTabs
+          tabs={[
+            { id: "classement", label: "Classement" },
+            { id: "matchs", label: "Matchs" },
+            { id: "settings", label: "Paramètres" },
+          ]}
+          activeId={activeTab}
+          onChange={(id) =>
+            setActiveTab(id as "classement" | "matchs" | "settings")
+          }
+          variant="encapsulated"
+        />
       </div>
 
       {!tournament.leagueId && activeTab === "classement" && (
@@ -499,53 +551,35 @@ export const TournamentDashboard = () => {
                 description="Invite tes amis pour commencer à jouer!"
               />
             ) : (
-              ranking.map((player, index) => (
-                <div
-                  key={player.id}
-                  onClick={() => navigate(`/player/${player.id}`)}
-                  className="bg-slate-800 p-4 rounded-xl flex items-center justify-between border border-slate-700/50 hover:border-primary cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-8 h-8 flex items-center justify-center font-black text-lg ${
-                        index === 0
-                          ? "text-yellow-400"
-                          : index === 1
-                            ? "text-slate-300"
-                            : index === 2
-                              ? "text-amber-700"
-                              : "text-slate-500"
-                      }`}
-                    >
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className="font-bold text-white">{player.name}</div>
-                      <div className="text-xs text-slate-400">
-                        {player.wins}V - {player.losses}D •{" "}
-                        {Math.round(
-                          (player.wins / (player.matchesPlayed || 1)) * 100,
-                        )}
-                        %
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-black text-xl text-primary">
-                      {player.elo}
-                    </div>
-                    <div
-                      className={`text-[10px] font-bold uppercase ${
-                        player.streak > 0 ? "text-green-500" : "text-red-500"
-                      }`}
-                    >
-                      {player.streak > 0
-                        ? `+${player.streak} WIN`
-                        : `${player.streak} LOSS`}
-                    </div>
-                  </div>
-                </div>
-              ))
+              <div className="space-y-2 w-full">
+                {ranking.map((player, index) => {
+                  const participant = tournamentParticipants.find(
+                    (tp) => tp.id === player.id,
+                  );
+                  const profileId = getPlayerProfileId(
+                    participant || { id: player.id },
+                  );
+                  const recentResults = getLast5MatchResults(
+                    player.id,
+                    tournament.matches,
+                  );
+                  return (
+                    <ListRow
+                      key={player.id}
+                      variant="player"
+                      name={player.name}
+                      subtitle={`${player.wins}V - ${player.losses}D • ${Math.round(
+                        (player.wins / (player.matchesPlayed || 1)) * 100,
+                      )}%`}
+                      elo={player.elo}
+                      rank={index + 1}
+                      delta={undefined}
+                      recentResults={recentResults}
+                      onClick={() => navigate(`/player/${profileId}`)}
+                    />
+                  );
+                })}
+              </div>
             )}
           </>
         )}
@@ -868,7 +902,14 @@ export const TournamentDashboard = () => {
         )}
       </div>
 
-      {/* Old bottom bars removed - replaced by ContextualBar (Story 9.5) */}
+      {/* FAB (AC6): Nouveau match with BeerPongMatchIcon */}
+      {!tournament.isFinished && (
+        <FAB
+          icon={BeerPongMatchIcon}
+          onClick={() => setShowRecordMatch(true)}
+          ariaLabel="Nouveau match"
+        />
+      )}
 
       {/* Record Match Modal - Using new MatchRecordingForm */}
       {showRecordMatch && (
@@ -894,9 +935,10 @@ export const TournamentDashboard = () => {
                   setShowAddPlayer(false);
                   setAddPlayerTab("pseudo"); // Reset tab on close
                 }}
-                className="hover:bg-slate-800 rounded-lg p-1 transition-colors"
+                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                aria-label="Fermer"
               >
-                <X size={24} />
+                <X size={24} className="text-slate-400" />
               </button>
             </div>
 
@@ -1038,7 +1080,12 @@ export const TournamentDashboard = () => {
                         >
                           <option value="">Choisir un joueur...</option>
                           {league.players
-                            .filter((p) => !tournament.playerIds.includes(p.id))
+                            .filter(
+                              (lp) =>
+                                !tournamentParticipants.some(
+                                  (tp) => tp.leaguePlayerId === lp.id,
+                                ),
+                            )
                             .map((player) => (
                               <option key={player.id} value={player.id}>
                                 {player.name}

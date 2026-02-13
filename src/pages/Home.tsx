@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 import { useIdentity } from '../hooks/useIdentity';
 import { useHomeData } from '../hooks/useHomeData';
 import { usePremium } from '../hooks/usePremium';
@@ -16,7 +16,7 @@ import { PaymentModal } from '../components/PaymentModal';
 export const Home = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const { localUser } = useIdentity();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -79,7 +79,7 @@ export const Home = () => {
           {/* Welcome Message */}
           <div className="mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-              👋 Salut {user?.email?.split('@')[0] || 'Champion'}
+              👋 Salut {localUser?.pseudo ?? user?.email?.split('@')[0] ?? 'Champion'}
             </h2>
             <p className="text-slate-400">
               Voici ton activité récente

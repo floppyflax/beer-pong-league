@@ -823,6 +823,7 @@ class DatabaseService {
    */
   async loadTournamentParticipants(tournamentId: string): Promise<{
     id: string;
+    leaguePlayerId?: string;
     name: string;
     elo: number;
     matchesPlayed: number;
@@ -858,6 +859,8 @@ class DatabaseService {
         .from('tournament_players')
         .select(`
           id,
+          user_id,
+          anonymous_user_id,
           joined_at,
           pseudo_in_tournament,
           user:users (
@@ -913,7 +916,7 @@ class DatabaseService {
 
           let statsQuery = supabase!
             .from('league_players')
-            .select('elo, matches_played, wins, losses')
+            .select('id, elo, matches_played, wins, losses')
             .eq('league_id', tournamentData.league_id);
 
           if (tp.user_id) {
@@ -926,11 +929,12 @@ class DatabaseService {
 
           // Type guard to ensure statsData is valid
           const stats = (statsData && typeof statsData === 'object' && 'elo' in statsData) 
-            ? statsData as { elo: number; matches_played: number; wins: number; losses: number }
+            ? statsData as { id: string; elo: number; matches_played: number; wins: number; losses: number }
             : null;
 
           return {
             id: tp.id,
+            leaguePlayerId: stats?.id,
             name: tp.pseudo_in_tournament || tp.user?.pseudo || tp.anonymous_user?.pseudo || 'Anonymous',
             elo: stats?.elo || 1500,
             matchesPlayed: stats?.matches_played || 0,
@@ -1017,6 +1021,70 @@ class DatabaseService {
       console.error('Error adding anonymous player to tournament:', error);
       throw error;
     }
+  }
+
+  /**
+   * Ajoute un joueur de la league au tournoi (crée une entrée tournament_players)
+   */
+  async addLeaguePlayerToTournament(
+    tournamentId: string,
+    leaguePlayerId: string
+  ): Promise<string> {
+    if (!this.isSupabaseAvailable()) {
+      const tournaments = this.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find((t) => t.id === tournamentId);
+      if (tournament) {
+        tournament.playerIds.push(leaguePlayerId);
+        this.saveTournamentToLocalStorage(tournament);
+        return leaguePlayerId;
+      }
+      throw new Error('Tournament not found');
+    }
+
+    const { data: leaguePlayer, error: lpError } = await supabase!
+      .from('league_players')
+      .select('user_id, anonymous_user_id, pseudo_in_league')
+      .eq('id', leaguePlayerId)
+      .single();
+
+    if (lpError || !leaguePlayer) throw new Error('League player not found');
+
+    let existingQuery = supabase!
+      .from('tournament_players')
+      .select('id')
+      .eq('tournament_id', tournamentId);
+    if (leaguePlayer.user_id) {
+      existingQuery = existingQuery.eq('user_id', leaguePlayer.user_id);
+    } else if (leaguePlayer.anonymous_user_id) {
+      existingQuery = existingQuery.eq('anonymous_user_id', leaguePlayer.anonymous_user_id);
+    } else {
+      throw new Error('League player has no user identity');
+    }
+    const { data: existing } = await existingQuery.maybeSingle();
+
+    if (existing) return existing.id;
+
+    const newId = crypto.randomUUID();
+    const { error: insertError } = await supabase!
+      .from('tournament_players')
+      .insert({
+        id: newId,
+        tournament_id: tournamentId,
+        user_id: leaguePlayer.user_id || null,
+        anonymous_user_id: leaguePlayer.anonymous_user_id || null,
+        pseudo_in_tournament: leaguePlayer.pseudo_in_league,
+      });
+
+    if (insertError) throw insertError;
+
+    const tournaments = this.loadTournamentsFromLocalStorage();
+    const tournament = tournaments.find((t) => t.id === tournamentId);
+    if (tournament && !tournament.playerIds.includes(newId)) {
+      tournament.playerIds.push(newId);
+      this.saveTournamentToLocalStorage(tournament);
+    }
+
+    return newId;
   }
 
   /**
@@ -1278,7 +1346,8 @@ class DatabaseService {
     match: Match,
     eloChanges: Record<string, { before: number; after: number; change: number }>,
     userId?: string | null,
-    anonymousUserId?: string | null
+    anonymousUserId?: string | null,
+    tournamentPlayerIdToLeaguePlayerId?: Record<string, string>
   ): Promise<void> {
     if (!this.isSupabaseAvailable()) {
       const tournaments = this.loadTournamentsFromLocalStorage();
@@ -1349,12 +1418,14 @@ class DatabaseService {
       }
 
       // Update player stats in league_players (if tournament is linked to a league)
+      // When tournamentPlayerIdToLeaguePlayerId is provided, playerId in eloChanges is tournament_players.id - resolve to league_players.id
       if (tournamentData.league_id) {
         for (const [playerId, change] of Object.entries(eloChanges)) {
+          const leaguePlayerId = tournamentPlayerIdToLeaguePlayerId?.[playerId] ?? playerId;
           const { data: playerData } = await supabase!
             .from('league_players')
             .select('wins, losses, matches_played, streak')
-            .eq('id', playerId)
+            .eq('id', leaguePlayerId)
             .eq('league_id', tournamentData.league_id)
             .single();
 
@@ -1376,7 +1447,7 @@ class DatabaseService {
                 matches_played: (player.matches_played || 0) + 1,
                 streak: newStreak,
               } as any)
-              .eq('id', playerId)
+              .eq('id', leaguePlayerId)
               .eq('league_id', tournamentData.league_id);
           }
         }

@@ -1,7 +1,8 @@
 /**
- * Design System Showcase — Story 14-1b
+ * Design System Showcase — Story 14-1b, 14-10b
  *
- * Page de visualisation des tokens (Story 14-1) et des composants atomiques (Stories 14-2 à 14-8).
+ * Page de visualisation des tokens (Story 14-1), des composants atomiques (Stories 14-2 à 14-8)
+ * et de la navigation (Story 14-10b).
  * Accessible via /design-system, lien dans DevPanel (mode dev uniquement).
  */
 
@@ -11,12 +12,22 @@ import {
   ListRow,
   Banner,
   StatCard,
+  HelpCard,
   InfoCard,
   FAB,
   SegmentedTabs,
   SearchBar,
 } from "@/components/design-system";
-import { Calendar, Users, LayoutGrid, Plus } from "lucide-react";
+import { BottomTabMenu } from "@/components/navigation/BottomTabMenu";
+import { BottomMenuSpecific } from "@/components/navigation/BottomMenuSpecific";
+import {
+  Calendar,
+  Users,
+  LayoutGrid,
+  Plus,
+  QrCode,
+  Trophy,
+} from "lucide-react";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 
 function ColorSwatch({
@@ -52,6 +63,7 @@ function GradientBar({ name, className }: { name: string; className: string }) {
 function SegmentedTabsShowcase() {
   const [filterActive, setFilterActive] = useState("all");
   const [tabActive, setTabActive] = useState("ranking");
+  const [encapsulatedActive, setEncapsulatedActive] = useState("all");
 
   const filterTabs = [
     { id: "all", label: "Tous" },
@@ -69,12 +81,24 @@ function SegmentedTabsShowcase() {
     <div className="space-y-6 p-4 bg-background-secondary rounded-card border border-card">
       <div>
         <p className="text-body-sm text-slate-400 mb-2">
-          Filtres (Tous / Actifs / Terminés)
+          Variant default — Filtres (Tous / Actifs / Terminés)
         </p>
         <SegmentedTabs
           tabs={filterTabs}
           activeId={filterActive}
           onChange={setFilterActive}
+        />
+      </div>
+      <div>
+        <p className="text-body-sm text-slate-400 mb-2">
+          Variant encapsulated — Filtres dans un bloc unique (Frame 3 Mes
+          tournois)
+        </p>
+        <SegmentedTabs
+          tabs={filterTabs}
+          activeId={encapsulatedActive}
+          onChange={setEncapsulatedActive}
+          variant="encapsulated"
         />
       </div>
       <div>
@@ -88,8 +112,24 @@ function SegmentedTabsShowcase() {
         />
       </div>
       <p className="text-body-sm text-slate-500">
-        Onglet actif : {filterActive === "all" ? "Tous" : filterActive === "active" ? "Actifs" : "Terminés"} · Dashboard :{" "}
-        {tabActive === "ranking" ? "Classement" : tabActive === "matches" ? "Matchs" : "Paramètres"}
+        Default actif :{" "}
+        {filterActive === "all"
+          ? "Tous"
+          : filterActive === "active"
+            ? "Actifs"
+            : "Terminés"}{" "}
+        · Encapsulated :{" "}
+        {encapsulatedActive === "all"
+          ? "Tous"
+          : encapsulatedActive === "active"
+            ? "Actifs"
+            : "Terminés"}{" "}
+        · Dashboard :{" "}
+        {tabActive === "ranking"
+          ? "Classement"
+          : tabActive === "matches"
+            ? "Matchs"
+            : "Paramètres"}
       </p>
     </div>
   );
@@ -100,17 +140,13 @@ function BannerShowcase() {
 
   return (
     <div>
-      <h3 className="text-body font-semibold text-slate-300 mb-2">
-        Banner
-      </h3>
+      <h3 className="text-body font-semibold text-slate-300 mb-2">Banner</h3>
       <div className="space-y-3">
         <p className="text-body-sm text-slate-400 mb-2">
-          Variants success et error. Position inline ou top. onDismiss optionnel.
+          Variants success et error. Position inline ou top. onDismiss
+          optionnel.
         </p>
-        <Banner
-          message="Tournoi rejoint ! Redirection…"
-          variant="success"
-        />
+        <Banner message="Tournoi rejoint ! Redirection…" variant="success" />
         <Banner
           message="Erreur lors de la connexion. Réessayez."
           variant="error"
@@ -128,6 +164,23 @@ function BannerShowcase() {
           position="top"
         />
       </div>
+    </div>
+  );
+}
+
+function BottomTabMenuPreview() {
+  const [activeRoute, setActiveRoute] = useState("/");
+
+  return (
+    <div className="relative h-64 max-w-sm mx-auto border border-slate-600 rounded-card overflow-hidden bg-background-secondary">
+      <div className="p-4 text-body-sm text-slate-500">
+        Simulated content area — click tabs to see active state
+      </div>
+      <BottomTabMenu
+        previewMode
+        previewActiveRoute={activeRoute}
+        previewOnTabClick={setActiveRoute}
+      />
     </div>
   );
 }
@@ -278,6 +331,19 @@ export function DesignSystemShowcase() {
                 name="gradient-tab-active"
                 className="bg-gradient-tab-active"
               />
+              <GradientBar name="gradient-card" className="bg-gradient-card" />
+            </div>
+            <p className="text-body-sm text-slate-500 mt-2">
+              gradient-card : dégradé horizontal discret (slate-800 → slate-900)
+              pour cartes TournamentCard / LeagueCard (Frame 3).
+            </p>
+            <div className="mt-4 p-4 rounded-card border border-card bg-gradient-card">
+              <p className="text-body font-semibold text-white">
+                Exemple de carte avec bg-gradient-card
+              </p>
+              <p className="text-body-sm text-slate-400 mt-1">
+                Tournoi d&apos;été · 8 joueurs · En cours
+              </p>
             </div>
           </div>
 
@@ -425,10 +491,11 @@ export function DesignSystemShowcase() {
               <ListRow
                 variant="player"
                 name="Bob Dupont"
-                subtitle="10W / 2L"
+                subtitle="10W / 2L • 83%"
                 elo={1180}
                 rank={2}
                 delta={-12}
+                recentResults={[true, false, true, true, false]}
               />
               <p className="text-body-sm text-slate-400 mt-4 mb-2">
                 Variant tournament
@@ -455,6 +522,25 @@ export function DesignSystemShowcase() {
 
           <div>
             <h3 className="text-body font-semibold text-slate-300 mb-2">
+              HelpCard (variante aide/tuto)
+            </h3>
+            <p className="text-body-sm text-slate-400 mb-3">
+              Carte dédiée aux blocs d&apos;aide et tutoriels. Fond bleu clair
+              accentué, icône point d&apos;interrogation.
+            </p>
+            <HelpCard
+              title="Comment ça marche ?"
+              steps={[
+                { number: 1, text: "Partage le QR code ou le lien" },
+                { number: 2, text: "Les joueurs scannent ou cliquent" },
+                { number: 3, text: "Ils rejoignent le tournoi" },
+              ]}
+              successMessage="C'est parti pour la compétition !"
+            />
+          </div>
+
+          <div>
+            <h3 className="text-body font-semibold text-slate-300 mb-2">
               InfoCard
             </h3>
             <InfoCard
@@ -473,7 +559,8 @@ export function DesignSystemShowcase() {
             <h3 className="text-body font-semibold text-slate-300 mb-2">FAB</h3>
             <div className="flex flex-wrap gap-4 items-center p-4 bg-background-secondary rounded-card border border-card">
               <p className="text-body-sm text-slate-400 w-full">
-                Variants primary (gradient) et secondary (muted). Icône 24px blanche.
+                Variants primary (gradient) et secondary (muted). Icône 24px
+                blanche.
               </p>
               <FAB
                 icon={Plus}
@@ -506,6 +593,54 @@ export function DesignSystemShowcase() {
               SearchBar
             </h3>
             <SearchBarShowcase />
+          </div>
+        </section>
+
+        {/* ========== SECTION: Navigation (Story 14-10b) ========== */}
+        <section className="space-y-6">
+          <h2 className="text-section-title text-text-secondary">
+            3. Navigation
+          </h2>
+
+          <div>
+            <h3 className="text-body font-semibold text-slate-300 mb-2">
+              BottomTabMenu
+            </h3>
+            <p className="text-body-sm text-slate-400 mb-3">
+              5 tabs (Home, Join, Tournaments, Leagues, Profile). Active state
+              with gradient. Min height 64px, touch target 48px+.
+            </p>
+            <BottomTabMenuPreview />
+          </div>
+
+          <div>
+            <h3 className="text-body font-semibold text-slate-300 mb-2">
+              BottomMenuSpecific
+            </h3>
+            <p className="text-body-sm text-slate-400 mb-3">
+              Context-specific actions (e.g. Scan QR, Create tournament). Stacks
+              above BottomTabMenu when both visible.
+            </p>
+            <div className="relative h-48 max-w-sm mx-auto border border-slate-600 rounded-card overflow-hidden bg-background-secondary">
+              <div className="p-4 text-body-sm text-slate-500">
+                Simulated list page
+              </div>
+              <BottomMenuSpecific
+                previewMode
+                actions={[
+                  {
+                    label: "Scanner QR",
+                    icon: <QrCode size={20} />,
+                    onClick: () => {},
+                  },
+                  {
+                    label: "Créer un tournoi",
+                    icon: <Trophy size={20} />,
+                    onClick: () => {},
+                  },
+                ]}
+              />
+            </div>
           </div>
         </section>
       </div>

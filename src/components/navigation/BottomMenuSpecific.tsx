@@ -1,8 +1,8 @@
-import React, { ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useAuthContext } from '../../context/AuthContext';
-import { useIdentity } from '../../hooks/useIdentity';
-import { shouldShowBottomMenu } from '../../utils/navigationHelpers';
+import React, { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+import { useAuthContext } from "@/context/AuthContext";
+import { useIdentity } from "@/hooks/useIdentity";
+import { shouldShowBottomMenu } from "@/utils/navigationHelpers";
 
 /**
  * BottomMenuSpecific Component
@@ -29,32 +29,46 @@ export interface Action {
 
 interface BottomMenuSpecificProps {
   actions: Action[];
+  /** When true, uses absolute positioning for containment in preview frames (e.g. DesignSystemShowcase) */
+  previewMode?: boolean;
 }
 
-export const BottomMenuSpecific: React.FC<BottomMenuSpecificProps> = ({ actions }) => {
+export const BottomMenuSpecific: React.FC<BottomMenuSpecificProps> = ({
+  actions,
+  previewMode = false,
+}) => {
   const location = useLocation();
   const { isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
   const hasIdentity = isAuthenticated || localUser;
   const stackAboveBottomNav =
-    shouldShowBottomMenu(location.pathname) && hasIdentity;
+    !previewMode && shouldShowBottomMenu(location.pathname) && hasIdentity;
+
+  const positionClass = previewMode
+    ? "absolute left-0 right-0"
+    : "fixed left-0 right-0";
+  const bottomClass = previewMode
+    ? "bottom-0"
+    : stackAboveBottomNav
+      ? "bottom-16"
+      : "bottom-0";
 
   return (
     <div
-      className={`fixed left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 z-30 lg:hidden ${
-        stackAboveBottomNav ? 'bottom-16' : 'bottom-0'
-      }`}
+      className={`${positionClass} ${bottomClass} p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 z-30 ${!previewMode ? "lg:hidden" : ""}`}
     >
-      <div className={`flex gap-3 max-w-md mx-auto ${
-        actions.length === 1 ? 'justify-center' : 'justify-between'
-      }`}>
-        {actions.map((action) => (
+      <div
+        className={`flex gap-3 max-w-md mx-auto ${
+          actions.length === 1 ? "justify-center" : "justify-between"
+        }`}
+      >
+        {actions.map((action, index) => (
           <button
-            key={action.label}
+            key={`${action.label}-${index}`}
             onClick={action.onClick}
             disabled={action.disabled}
             className={`${
-              actions.length === 1 ? 'w-full' : 'flex-1'
+              actions.length === 1 ? "w-full" : "flex-1"
             } bg-primary hover:bg-amber-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {action.icon}

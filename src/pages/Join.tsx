@@ -34,8 +34,11 @@ export const Join = () => {
 
   const handleScanCode = (scannedCode: string) => {
     setShowScanner(false);
-    // Extract code from QR data (could be URL or direct code)
     const code = extractCodeFromQR(scannedCode);
+    if (!code) {
+      setShowCodeInput(true);
+      return;
+    }
     handleJoinByCode(code);
   };
 

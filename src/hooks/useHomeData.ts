@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseAvailable } from '../lib/supabase';
 
 interface Tournament {
   id: string;
@@ -42,7 +42,7 @@ async function fetchHomeData(userId: string) {
       };
     }
     // Project-context: Always check Supabase availability before operations
-    if (!supabase) {
+    if (!isSupabaseAvailable()) {
       return {
         lastTournament: undefined,
         lastLeague: undefined,

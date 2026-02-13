@@ -68,7 +68,8 @@ interface LeagueContextType {
     teamAIds: string[],
     teamBIds: string[],
     winner: "A" | "B",
-    scores?: { scoreA: number; scoreB: number }
+    scores?: { scoreA: number; scoreB: number },
+    participantsOverride?: Player[]
   ) => Promise<Record<string, number> | null>;
   deleteLeague: (id: string) => Promise<void>;
   deleteTournament: (id: string) => Promise<void>;
@@ -87,7 +88,7 @@ interface LeagueContextType {
   ) => Promise<void>;
   updatePlayer: (leagueId: string, playerId: string, name: string) => Promise<void>;
   deletePlayer: (leagueId: string, playerId: string) => Promise<void>;
-  getTournamentLocalRanking: (tournamentId: string) => Player[];
+  getTournamentLocalRanking: (tournamentId: string, participantsOverride?: Player[]) => Player[];
   getLeagueGlobalRanking: (leagueId: string) => Player[];
 }
 
@@ -686,14 +687,17 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     teamAIds: string[],
     teamBIds: string[],
     winner: "A" | "B",
-    scores?: { scoreA: number; scoreB: number }
+    scores?: { scoreA: number; scoreB: number },
+    participantsOverride?: Player[]
   ): Promise<Record<string, number> | null> => {
     const tournament = tournaments.find((t) => t.id === tournamentId);
     if (!tournament) return null;
 
-    // Get players from the League (if linked) or create temporary players for autonomous tournaments
+    // Use participantsOverride (tournament_players) when provided, else fallback to league.players
     let tournamentPlayers: Player[] = [];
-    if (tournament.leagueId) {
+    if (participantsOverride && participantsOverride.length > 0) {
+      tournamentPlayers = participantsOverride;
+    } else if (tournament.leagueId) {
       const league = leagues.find((l) => l.id === tournament.leagueId);
       if (league) {
         tournamentPlayers = league.players.filter((p) =>
@@ -748,30 +752,44 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // If Tournament is linked to a League, also update League players and matches
+    // When using participantsOverride, teamAIds/teamBIds are tournament_players.id - map to league_players via leaguePlayerId
     if (tournament.leagueId) {
+      const participantsWithLeague = participantsOverride as (Player & { leaguePlayerId?: string })[];
+      const leaguePlayerIdsInMatch = new Set(
+        [...teamAIds, ...teamBIds].flatMap((tpId) => {
+          const p = participantsWithLeague?.find((x) => x.id === tpId);
+          return p?.leaguePlayerId ? [p.leaguePlayerId] : [];
+        }),
+      );
+      const leaguePlayerIdToTpId = new Map<string, string>();
+      participantsWithLeague?.forEach((p) => {
+        if (p.leaguePlayerId) leaguePlayerIdToTpId.set(p.leaguePlayerId, p.id);
+      });
+
       setLeagues((prev) =>
         prev.map((league) => {
           if (league.id !== tournament.leagueId) return league;
 
           const updatedPlayers = league.players.map((player) => {
-            if (
-              !newRatings[player.id] &&
-              !teamAIds.includes(player.id) &&
-              !teamBIds.includes(player.id)
-            ) {
+            const tpId = leaguePlayerIdToTpId.get(player.id);
+            const inMatch = leaguePlayerIdsInMatch.has(player.id);
+            const newElo = tpId ? newRatings[tpId] : newRatings[player.id];
+            if (!inMatch && !newElo && !teamAIds.includes(player.id) && !teamBIds.includes(player.id)) {
               return player;
             }
+            if (!inMatch && !leaguePlayerIdsInMatch.has(player.id)) return player;
 
-            const isTeamA = teamAIds.includes(player.id);
-            const isTeamB = teamBIds.includes(player.id);
+            const isTeamA = tpId ? teamAIds.includes(tpId) : teamAIds.includes(player.id);
+            const isTeamB = tpId ? teamBIds.includes(tpId) : teamBIds.includes(player.id);
             if (!isTeamA && !isTeamB) return player;
 
             const isWinner =
               (winner === "A" && isTeamA) || (winner === "B" && isTeamB);
+            const eloUpdate = newElo ?? player.elo;
 
             return {
               ...player,
-              elo: newRatings[player.id],
+              elo: eloUpdate,
               matchesPlayed: player.matchesPlayed + 1,
               wins: player.wins + (isWinner ? 1 : 0),
               losses: player.losses + (isWinner ? 0 : 1),
@@ -794,14 +812,20 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
-    // Save to Supabase
+    // Save to Supabase - build mapping for league_players update when using tournament_players.id
+    const tournamentPlayerIdToLeaguePlayerId: Record<string, string> = {};
+    (participantsOverride as (Player & { leaguePlayerId?: string })[])?.forEach((p) => {
+      if (p.leaguePlayerId) tournamentPlayerIdToLeaguePlayerId[p.id] = p.leaguePlayerId;
+    });
+
     try {
       await databaseService.recordTournamentMatch(
         tournamentId,
         newMatch,
         eloChangesForDB,
         isAuthenticated && user ? user.id : null,
-        !isAuthenticated && localUser ? localUser.anonymousUserId : null
+        !isAuthenticated && localUser ? localUser.anonymousUserId : null,
+        tournamentPlayerIdToLeaguePlayerId
       );
       toast.success('Match enregistré !');
     } catch (error) {
@@ -813,13 +837,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Calculate local ranking for a Tournament (based only on Tournament matches, starting from base ELO)
-  const getTournamentLocalRanking = (tournamentId: string): Player[] => {
+  // participantsOverride: when provided (from loadTournamentParticipants), use these - their ids match match.teamA/teamB (tournament_players.id)
+  const getTournamentLocalRanking = (tournamentId: string, participantsOverride?: Player[]): Player[] => {
     const tournament = tournaments.find((t) => t.id === tournamentId);
     if (!tournament) return [];
 
-    // Get base players from League or create temporary ones
+    // Get base players: use override (tournament_players) when provided, else fallback to league.players filtered by tournament.playerIds
     let basePlayers: Player[] = [];
-    if (tournament.leagueId) {
+    if (participantsOverride && participantsOverride.length > 0) {
+      basePlayers = participantsOverride;
+    } else if (tournament.leagueId) {
       const league = leagues.find((l) => l.id === tournament.leagueId);
       if (league) {
         basePlayers = league.players.filter((p) =>

@@ -1,3 +1,5 @@
+const VALID_CODE_REGEX = /^[A-Z0-9]{6,8}$/i;
+
 /**
  * Extract tournament code from QR code data
  *
@@ -5,6 +7,8 @@
  * - Direct code: "ABC123"
  * - URL: "https://bpl.com/tournament/123/join?code=ABC123"
  * - Join URL: "/tournament/123/join?code=ABC123"
+ *
+ * Returns empty string if no valid 6-8 char code can be extracted (invalid QR format).
  */
 export function extractCodeFromQR(qrData: string): string {
   try {
@@ -12,23 +16,24 @@ export function extractCodeFromQR(qrData: string): string {
     if (qrData.includes('code=')) {
       const url = new URL(qrData, window.location.origin);
       const code = url.searchParams.get('code');
-      if (code) return code.toUpperCase();
+      if (code && VALID_CODE_REGEX.test(code.trim())) {
+        return code.trim().toUpperCase();
+      }
     }
 
     // If it contains a slash, extract the last segment
     if (qrData.includes('/')) {
       const segments = qrData.split('/');
       const lastSegment = segments[segments.length - 1];
-      // Check if last segment is a valid code format (6-8 chars per AC4)
-      if (/^[A-Z0-9]{6,8}$/i.test(lastSegment)) {
+      if (VALID_CODE_REGEX.test(lastSegment)) {
         return lastSegment.toUpperCase();
       }
     }
 
-    // Otherwise, treat as direct code
-    return qrData.toUpperCase().trim();
+    // Otherwise, treat as direct code — only if it matches valid format
+    const trimmed = qrData.trim().toUpperCase();
+    return VALID_CODE_REGEX.test(trimmed) ? trimmed : '';
   } catch {
-    // If URL parsing fails, return as-is
-    return qrData.toUpperCase().trim();
+    return '';
   }
 }

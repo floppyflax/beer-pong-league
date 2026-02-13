@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import {
@@ -40,6 +40,19 @@ export const LeagueDashboard = () => {
   >("ranking");
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showRecordMatch, setShowRecordMatch] = useState(false);
+
+  // Escape key closes modals
+  useEffect(() => {
+    if (!showAddPlayer && !showRecordMatch) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowAddPlayer(false);
+        setShowRecordMatch(false);
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [showAddPlayer, showRecordMatch]);
 
   // Add Player State
   const [newPlayerName, setNewPlayerName] = useState("");
@@ -631,8 +644,12 @@ export const LeagueDashboard = () => {
           <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Nouveau Joueur</h3>
-              <button onClick={() => setShowAddPlayer(false)}>
-                <X size={24} />
+              <button
+                onClick={() => setShowAddPlayer(false)}
+                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                aria-label="Fermer"
+              >
+                <X size={24} className="text-slate-400" />
               </button>
             </div>
             <form onSubmit={handleAddPlayer}>
@@ -660,8 +677,12 @@ export const LeagueDashboard = () => {
         <div className="fixed inset-0 bg-black/90 z-50 flex flex-col p-4 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-bold">Nouveau Match</h3>
-            <button onClick={() => setShowRecordMatch(false)}>
-              <X size={24} />
+            <button
+              onClick={() => setShowRecordMatch(false)}
+              className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Fermer"
+            >
+              <X size={24} className="text-slate-400" />
             </button>
           </div>
 

@@ -1,38 +1,38 @@
-# Story 14.28: Affichage photo et gobelets dans l'historique des matchs
+# Story 14.28: Display photo and cups in match history
 
 Status: ready-for-dev
 
 ## Story
 
 As a player,
-I want voir la photo et les gobelets dans l'historique des matchs,
-So que je puisse revivre les matchs.
+I want to see the photo and cups in match history,
+So that I can relive the matches.
 
 ## Acceptance Criteria
 
-1. **Given** un match avec photo et/ou gobelets
-   **When** je consulte l'historique
-   **Then** thumbnail photo si disponible
+1. **Given** a match with photo and/or cups
+   **When** I view the history
+   **Then** photo thumbnail if available
 
-2. Badge "X gobelets restants" si enregistré
+2. Badge "X cups remaining" if recorded
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Thumbnail photo (AC: 1)
-  - [ ] Afficher img si photo_url
+- [ ] Task 1: Photo thumbnail (AC: 1)
+  - [ ] Display img if photo_url
   - [ ] Lazy loading
-  - [ ] Option: clic pour agrandir
-- [ ] Task 2: Badge gobelets (AC: 2)
-  - [ ] Afficher si cups_remaining
-  - [ ] Format "X gobelets restants"
-- [ ] Task 3: Intégration
-  - [ ] TournamentDashboard: liste matchs
-  - [ ] LeagueDashboard: liste matchs
+  - [ ] Option: click to enlarge
+- [ ] Task 2: Cups badge (AC: 2)
+  - [ ] Display if cups_remaining
+  - [ ] Format "X cups remaining"
+- [ ] Task 3: Integration
+  - [ ] TournamentDashboard: match list
+  - [ ] LeagueDashboard: match list
 
 ## Dev Notes
 
-- **Fichiers:** TournamentDashboard.tsx, LeagueDashboard.tsx
-- Dépend: 14.24, 14.26, 14.27
+- **Files:** TournamentDashboard.tsx, LeagueDashboard.tsx
+- Depends: 14.24, 14.26, 14.27
 
 ### References
 

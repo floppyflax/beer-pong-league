@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { ContextualHeader } from "../components/navigation/ContextualHeader";
-import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { TrendingUp, TrendingDown, BarChart3, X } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
@@ -10,6 +10,16 @@ export const PlayerProfile = () => {
   const navigate = useNavigate();
   const [showEditModal, setShowEditModal] = useState(false);
   const [newName, setNewName] = useState("");
+
+  // Escape key closes edit modal
+  useEffect(() => {
+    if (!showEditModal) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowEditModal(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [showEditModal]);
 
   // Find player across all leagues
   let player = null;
@@ -28,10 +38,7 @@ export const PlayerProfile = () => {
     return (
       <div className="p-4 text-center">
         <p>Joueur introuvable.</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="text-primary mt-4"
-        >
+        <button onClick={() => navigate(-1)} className="text-primary mt-4">
           Retour
         </button>
       </div>
@@ -42,12 +49,12 @@ export const PlayerProfile = () => {
   const allMatches = leagues.flatMap((league) => league.matches);
   const playerMatches = allMatches.filter(
     (match) =>
-      match.teamA.includes(player!.id) || match.teamB.includes(player!.id)
+      match.teamA.includes(player!.id) || match.teamB.includes(player!.id),
   );
 
   // Sort matches chronologically
   const sortedMatches = [...playerMatches].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
   // Calculate ELO evolution over time
@@ -90,7 +97,7 @@ export const PlayerProfile = () => {
     leagues.forEach((league) => {
       const leagueMatches = league.matches.filter(
         (match) =>
-          match.teamA.includes(player!.id) || match.teamB.includes(player!.id)
+          match.teamA.includes(player!.id) || match.teamB.includes(player!.id),
       );
 
       if (leagueMatches.length > 0) {
@@ -122,9 +129,10 @@ export const PlayerProfile = () => {
   }).length;
 
   const playerLosses = playerMatches.length - playerWins;
-  const winRate = playerMatches.length > 0 
-    ? Math.round((playerWins / playerMatches.length) * 100) 
-    : 0;
+  const winRate =
+    playerMatches.length > 0
+      ? Math.round((playerWins / playerMatches.length) * 100)
+      : 0;
 
   // Find head-to-head stats
   const headToHead: Record<string, { wins: number; losses: number }> = {};
@@ -152,7 +160,7 @@ export const PlayerProfile = () => {
   return (
     <div className="h-full flex flex-col">
       {/* Contextual Header (Story 13.2) */}
-      <ContextualHeader 
+      <ContextualHeader
         title={player.name}
         showBackButton={true}
         onBack={() => navigate(-1)}
@@ -242,10 +250,15 @@ export const PlayerProfile = () => {
                       points={eloEvolution
                         .map((point, index) => {
                           const x = (index / (eloEvolution.length - 1)) * 400;
-                          const minElo = Math.min(...eloEvolution.map((p) => p.elo));
-                          const maxElo = Math.max(...eloEvolution.map((p) => p.elo));
+                          const minElo = Math.min(
+                            ...eloEvolution.map((p) => p.elo),
+                          );
+                          const maxElo = Math.max(
+                            ...eloEvolution.map((p) => p.elo),
+                          );
                           const range = maxElo - minElo || 400;
-                          const y = 200 - ((point.elo - minElo) / range) * 180 - 10;
+                          const y =
+                            200 - ((point.elo - minElo) / range) * 180 - 10;
                           return `${x},${y}`;
                         })
                         .join(" ")}
@@ -274,12 +287,8 @@ export const PlayerProfile = () => {
                   })}
                 </svg>
                 <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-slate-500 px-2">
-                  <span>
-                    {Math.min(...eloEvolution.map((p) => p.elo))}
-                  </span>
-                  <span>
-                    {Math.max(...eloEvolution.map((p) => p.elo))}
-                  </span>
+                  <span>{Math.min(...eloEvolution.map((p) => p.elo))}</span>
+                  <span>{Math.max(...eloEvolution.map((p) => p.elo))}</span>
                 </div>
               </div>
               <div className="mt-2 text-xs text-slate-400 text-center">
@@ -318,12 +327,8 @@ export const PlayerProfile = () => {
                     </div>
                   </div>
                   <div className="flex gap-4 text-sm">
-                    <div className="text-green-500">
-                      {stats.wins}V
-                    </div>
-                    <div className="text-red-500">
-                      {stats.losses}D
-                    </div>
+                    <div className="text-green-500">{stats.wins}V</div>
+                    <div className="text-red-500">{stats.losses}D</div>
                   </div>
                 </div>
               ))}
@@ -338,8 +343,7 @@ export const PlayerProfile = () => {
             <div className="space-y-2">
               {Object.entries(headToHead)
                 .sort(
-                  (a, b) =>
-                    b[1].wins + b[1].losses - (a[1].wins + a[1].losses)
+                  (a, b) => b[1].wins + b[1].losses - (a[1].wins + a[1].losses),
                 )
                 .slice(0, 5)
                 .map(([opponentId, stats]) => {
@@ -401,9 +405,7 @@ export const PlayerProfile = () => {
                 <div
                   key={match.id}
                   className={`bg-slate-800 p-3 rounded-xl border ${
-                    isWinner
-                      ? "border-green-500/50"
-                      : "border-red-500/50"
+                    isWinner ? "border-green-500/50" : "border-red-500/50"
                   }`}
                 >
                   <div className="flex justify-between items-center text-sm">
@@ -455,7 +457,16 @@ export const PlayerProfile = () => {
       {showEditModal && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
-            <h3 className="text-xl font-bold mb-4">Modifier le nom</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Modifier le nom</h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                aria-label="Fermer"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
             <input
               type="text"
               value={newName}
@@ -489,4 +500,3 @@ export const PlayerProfile = () => {
     </div>
   );
 };
-

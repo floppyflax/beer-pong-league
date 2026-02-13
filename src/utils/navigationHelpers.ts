@@ -18,22 +18,25 @@ const CORE_ROUTES = [
 
 /**
  * Route patterns for detail pages (bottom nav visible)
+ * Story 14-14: /tournament/:id/invite and /tournament/:id/join show bottom nav (design-system 5.5)
  */
 const CORE_ROUTE_PATTERNS = [
-  /^\/tournament\/[^/]+$/, // /tournament/:id (exclude /tournament/:id/display, /invite, /join)
-  /^\/league\/[^/]+$/,     // /league/:id (exclude /league/:id/display)
-  /^\/player\/[^/]+$/,     // /player/:id
+  /^\/tournament\/[^/]+$/, // /tournament/:id (exclude /tournament/:id/display)
+  /^\/tournament\/[^/]+\/invite$/, // /tournament/:id/invite
+  /^\/tournament\/[^/]+\/join$/, // /tournament/:id/join
+  /^\/league\/[^/]+$/, // /league/:id (exclude /league/:id/display)
+  /^\/player\/[^/]+$/, // /player/:id
 ];
 
 /**
  * Excluded routes: Landing (handled by hasIdentity), Display views, Auth, payment, modals
  */
 const EXCLUDED_PATTERNS = [
-  /\/display/,           // Display views (full-screen)
-  /^\/auth\//,           // Auth callback
-  /^\/payment-success/,  // Payment success
-  /^\/payment-cancel/,   // Payment cancel
-  /^\/design-system$/,   // Dev tool
+  /\/display/, // Display views (full-screen)
+  /^\/auth\//, // Auth callback
+  /^\/payment-success/, // Payment success
+  /^\/payment-cancel/, // Payment cancel
+  /^\/design-system/, // Dev tool (includes subpaths)
 ];
 
 /**
@@ -71,11 +74,9 @@ export function shouldShowBottomMenu(pathname: string): boolean {
 }
 
 /** Routes that use BottomMenuSpecific (action bar) - need extra padding when visible */
-export const PAGES_WITH_SPECIFIC_MENU = [
-  "/join",
-  "/tournaments",
-  "/leagues",
-] as const;
+/** Story 14-12: /tournaments uses FAB instead of BottomMenuSpecific */
+/** Story 14-16: /leagues uses FAB instead of BottomMenuSpecific */
+export const PAGES_WITH_SPECIFIC_MENU = ["/join"] as const;
 
 /**
  * Returns the bottom padding class for scrollable content when bottom nav is visible.
@@ -102,7 +103,7 @@ export function getContentPaddingBottom(pathname: string): string {
  * Determines if a back button should be shown in the header
  *
  * Back Button Visibility Rules:
- * - SHOW on pages with specific menu: /join, /tournaments, /leagues
+ * - SHOW on pages with specific menu: /join
  * - SHOW on detail pages: /tournament/:id, /league/:id
  * - HIDE on main navigation pages: /, /user/profile
  * - HIDE on auth and display routes

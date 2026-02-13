@@ -1,8 +1,10 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
+import { databaseService } from "../services/DatabaseService";
 import { TrendingUp, TrendingDown, Zap, Calendar } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import type { Player } from "../types";
 
 export const TournamentDisplayView = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,13 +18,34 @@ export const TournamentDisplayView = () => {
 
   const [scrollPosition, setScrollPosition] = useState<"top" | "scrolling">("top");
   const [highlightedPlayers, setHighlightedPlayers] = useState<Set<string>>(new Set());
+  const [tournamentParticipants, setTournamentParticipants] = useState<Player[]>([]);
   const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Get sorted players (local ranking for tournament)
+  useEffect(() => {
+    if (!id) return;
+    databaseService
+      .loadTournamentParticipants(id)
+      .then((participants) =>
+        setTournamentParticipants(
+          participants.map((p) => ({
+            id: p.id,
+            name: p.name,
+            elo: p.elo,
+            wins: p.wins,
+            losses: p.losses,
+            matchesPlayed: p.matchesPlayed,
+            streak: 0,
+          })),
+        ),
+      )
+      .catch(() => setTournamentParticipants([]));
+  }, [id, tournament?.matches?.length]);
+
+  // Get sorted players (local ranking for tournament) - use participants for correct IDs
   const sortedPlayers = useMemo(() => {
     if (!tournament) return [];
-    return getTournamentLocalRanking(tournament.id);
-  }, [tournament, getTournamentLocalRanking]);
+    return getTournamentLocalRanking(tournament.id, tournamentParticipants);
+  }, [tournament, tournamentParticipants, getTournamentLocalRanking]);
 
   // Get recent matches
   const recentMatches = useMemo(() => {

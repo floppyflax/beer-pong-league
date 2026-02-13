@@ -4,8 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { Home } from '../../../src/pages/Home';
 
 // Mock hooks
-vi.mock('../../../src/hooks/useAuth', () => ({
-  useAuth: vi.fn(),
+vi.mock('../../../src/context/AuthContext', () => ({
+  useAuthContext: vi.fn(),
 }));
 
 vi.mock('../../../src/hooks/useIdentity', () => ({
@@ -69,14 +69,14 @@ vi.mock('../../../src/components/PaymentModal', () => ({
   ),
 }));
 
-import { useAuth } from '../../../src/hooks/useAuth';
+import { useAuthContext } from '../../../src/context/AuthContext';
 import { useIdentity } from '../../../src/hooks/useIdentity';
 import { useHomeData } from '../../../src/hooks/useHomeData';
 import { usePremium } from '../../../src/hooks/usePremium';
 import { usePremiumLimits } from '../../../src/hooks/usePremiumLimits';
 
 describe('Home (Refactored)', () => {
-  const mockUseAuth = vi.mocked(useAuth);
+  const mockUseAuthContext = vi.mocked(useAuthContext);
   const mockUseIdentity = vi.mocked(useIdentity);
   const mockUseHomeData = vi.mocked(useHomeData);
   const mockUsePremium = vi.mocked(usePremium);
@@ -90,10 +90,11 @@ describe('Home (Refactored)', () => {
       isAtLeagueLimit: false,
       canCreateTournament: true,
       isAtTournamentLimit: false,
+      refetchPremium: vi.fn(),
     } as any);
 
     // Default mocks
-    mockUseAuth.mockReturnValue({
+    mockUseAuthContext.mockReturnValue({
       user: { id: 'user-123', email: 'test@example.com' },
       loading: false,
     } as any);

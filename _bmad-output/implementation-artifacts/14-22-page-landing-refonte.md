@@ -1,28 +1,28 @@
-# Story 14.22: Page Landing (refonte)
+# Story 14.22: Landing page (overhaul)
 
 Status: ready-for-dev
 
 ## Story
 
 As a user,
-I want la page Landing alignée sur le design system,
-So que l'onboarding soit cohérent.
+I want the Landing page aligned with the design system,
+So that onboarding is consistent.
 
 ## Acceptance Criteria
 
-1. **Given** le design system
-   **When** je suis sur la Landing (non connecté)
-   **Then** la page correspond aux designs Frame 1
+1. **Given** the design system
+   **When** I am on the Landing (logged out)
+   **Then** the page matches designs Frame 1
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Appliquer tokens et styles
-- [ ] Task 2: Alignement Frame 1
+- [ ] Task 1: Apply tokens and styles
+- [ ] Task 2: Frame 1 alignment
 
 ## Dev Notes
 
-- **Fichier:** `src/pages/LandingPage.tsx`
-- Landing = visiteur non identifié (exclusion bottom nav selon design system)
+- **File:** `src/pages/LandingPage.tsx`
+- Landing = unidentified visitor (bottom nav exclusion per design system)
 
 ### References
 

@@ -1,56 +1,56 @@
-# Story 14.2: Composant StatCard
+# Story 14.2: StatCard component
 
 Status: review
 
 ## Story
 
 As a developer,
-I want un composant StatCard réutilisable,
-So que les résumés chiffrés (Joueurs, Matchs, ELO, etc.) soient cohérents partout.
+I want a reusable StatCard component,
+So that numeric summaries (Players, Matches, ELO, etc.) are consistent everywhere.
 
 ## Acceptance Criteria
 
-1. **Given** le design system (section 4.1)
-   **When** j'utilise StatCard
-   **Then** le composant affiche une valeur (texte ou nombre) et un label
+1. **Given** the design system (section 4.1)
+   **When** I use StatCard
+   **Then** the component displays a value (text or number) and a label
 
-2. Les variantes : primary, success, accent (couleurs sémantiques)
+2. Variants: primary, success, accent (semantic colors)
 
-3. Structure : `bg-slate-800 p-3 rounded-xl text-center`
+3. Structure: `bg-slate-800 p-3 rounded-xl text-center`
 
-4. Valeur : `text-2xl font-bold` + couleur selon variante
+4. Value: `text-2xl font-bold` + color per variant
 
-5. Label : `text-[10px] text-slate-400 uppercase font-bold`
+5. Label: `text-[10px] text-slate-400 uppercase font-bold`
 
-6. Le composant est exporté et documenté
+6. The component is exported and documented
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Créer StatCard.tsx (AC: 1, 3, 4, 5)
-  - [x] Créer `src/components/design-system/StatCard.tsx`
+- [x] Task 1: Create StatCard.tsx (AC: 1, 3, 4, 5)
+  - [x] Create `src/components/design-system/StatCard.tsx`
   - [x] Props: value, label, variant?
-  - [x] Structure selon design system
-- [x] Task 2: Variantes (AC: 2)
-  - [x] primary: bleu/violet
-  - [x] success: vert
-  - [x] accent: ambre/jaune
-- [x] Task 3: Export et tests (AC: 6)
-  - [x] Export depuis design-system index
-  - [x] Test unitaire basique
+  - [x] Structure per design system
+- [x] Task 2: Variants (AC: 2)
+  - [x] primary: blue/violet
+  - [x] success: green
+  - [x] accent: amber/yellow
+- [x] Task 3: Export and tests (AC: 6)
+  - [x] Export from design-system index
+  - [x] Basic unit test
 - [x] Task 4: Design System showcase (Story 14-1b)
-  - [x] Ajouter section StatCard dans DesignSystemShowcase avec variantes primary/success/accent
+  - [x] Add StatCard section in DesignSystemShowcase with primary/success/accent variants
 
 ## Dev Notes
 
 - **Source:** design-system-convergence.md section 4.1
-- **Fichier:** `src/components/design-system/StatCard.tsx`
-- Props : value (ReactNode), label (string), variant? ('primary' | 'success' | 'accent')
-- Créer `src/components/design-system/index.ts` si absent pour exports barrel
+- **File:** `src/components/design-system/StatCard.tsx`
+- Props: value (ReactNode), label (string), variant? ('primary' | 'success' | 'accent')
+- Create `src/components/design-system/index.ts` if missing for barrel exports
 
 ### Project Structure Notes
 
-- Nouveau dossier: `src/components/design-system/`
-- Composants design system isolés, testables
+- New folder: `src/components/design-system/`
+- Design system components isolated, testable
 
 ### References
 
@@ -66,20 +66,20 @@ Composer (dev-story workflow)
 
 ### Completion Notes List
 
-- StatCard créé dans `src/components/design-system/StatCard.tsx` avec props value (ReactNode), label (string), variant? ('primary' | 'success' | 'accent')
-- Structure: bg-slate-800 p-3 rounded-xl text-center, valeur text-2xl font-bold, label text-[10px] text-slate-400 uppercase font-bold
-- Variantes: primary → text-info (bleu), success → text-success (vert), accent → text-primary (ambre)
-- Export barrel dans design-system/index.ts
-- 9 tests unitaires StatCard + mise à jour DesignSystemShowcase avec 3 StatCards (Joueurs, Matchs, Top ELO)
-- SegmentedTabs ajouté à l'index design-system (fix import manquant dans DesignSystemShowcase)
+- StatCard created in `src/components/design-system/StatCard.tsx` with props value (ReactNode), label (string), variant? ('primary' | 'success' | 'accent')
+- Structure: bg-slate-800 p-3 rounded-xl text-center, value text-2xl font-bold, label text-[10px] text-slate-400 uppercase font-bold
+- Variants: primary → text-info (blue), success → text-success (green), accent → text-primary (amber)
+- Barrel export in design-system/index.ts
+- 9 StatCard unit tests + DesignSystemShowcase update with 3 StatCards (Players, Matches, Top ELO)
+- SegmentedTabs added to design-system index (fix missing import in DesignSystemShowcase)
 
 ### File List
 
 - src/components/design-system/StatCard.tsx (new)
 - src/components/design-system/index.ts (modified — StatCard + SegmentedTabs exports)
-- src/pages/DesignSystemShowcase.tsx (modified — StatCard section avec variantes)
+- src/pages/DesignSystemShowcase.tsx (modified — StatCard section with variants)
 - tests/unit/components/design-system/StatCard.test.tsx (new)
 
 ## Change Log
 
-- 2026-02-13: Implémentation complète du composant StatCard (Story 14-2). StatCard avec variantes primary/success/accent, tests unitaires, intégration DesignSystemShowcase.
+- 2026-02-13: Full implementation of StatCard component (Story 14-2). StatCard with primary/success/accent variants, unit tests, DesignSystemShowcase integration.

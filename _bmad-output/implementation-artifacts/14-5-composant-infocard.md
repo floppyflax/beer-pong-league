@@ -1,44 +1,44 @@
-# Story 14.5: Composant InfoCard
+# Story 14.5: InfoCard component
 
 Status: review
 
 ## Story
 
 As a developer,
-I want un composant InfoCard réutilisable,
-So que les bandeaux de contexte (dashboard tournoi/league) soient cohérents.
+I want a reusable InfoCard component,
+So that context banners (tournament/league dashboard) are consistent.
 
 ## Acceptance Criteria
 
-1. **Given** le design system (section 4.4)
-   **When** j'utilise InfoCard
-   **Then** structure : `bg-slate-800/50 rounded-xl p-4 border border-slate-700/50`
+1. **Given** the design system (section 4.4)
+   **When** I use InfoCard
+   **Then** structure: `bg-slate-800/50 rounded-xl p-4 border border-slate-700/50`
 
-2. Titre + badge statut
+2. Title + status badge
 
-3. Ligne d'infos avec icônes (calendrier, users, format)
+3. Info line with icons (calendar, users, format)
 
-4. Le composant est flexible (children ou props structurées)
+4. The component is flexible (children or structured props)
 
-5. Le composant est exporté et documenté
+5. The component is exported and documented
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Créer InfoCard.tsx (AC: 1, 2, 3)
-  - [x] Structure selon design system
-  - [x] Support titre, badge, infos
-- [x] Task 2: Flexibilité (AC: 4)
-  - [x] Props structurées ou children
-  - [x] Exemple d'usage
-- [x] Task 3: Export et tests (AC: 5)
+- [x] Task 1: Create InfoCard.tsx (AC: 1, 2, 3)
+  - [x] Structure per design system
+  - [x] Support title, badge, infos
+- [x] Task 2: Flexibility (AC: 4)
+  - [x] Structured props or children
+  - [x] Usage example
+- [x] Task 3: Export and tests (AC: 5)
 - [x] Task 4: Design System showcase (Story 14-1b)
-  - [x] Ajouter section InfoCard dans DesignSystemShowcase
+  - [x] Add InfoCard section in DesignSystemShowcase
 
 ## Dev Notes
 
 - **Source:** design-system-convergence.md section 4.4
-- **Fichier:** `src/components/design-system/InfoCard.tsx`
-- Référence: screens Frame 4 (Dashboard tournoi), Frame 8 (Dashboard league)
+- **File:** `src/components/design-system/InfoCard.tsx`
+- Reference: screens Frame 4 (Tournament dashboard), Frame 8 (League dashboard)
 
 ### Project Structure Notes
 
@@ -58,13 +58,13 @@ Composer (dev-story workflow)
 
 ### Completion Notes List
 
-- InfoCard créé avec structure design system (bg-slate-800/50, rounded-xl, p-4, border-slate-700/50)
-- Support titre + badge statut (variantes: active, finished, cancelled)
-- Ligne d'infos avec icônes Lucide (calendrier, users, format)
-- Flexibilité: props structurées (infos[]) ou children
-- Export dans design-system/index.ts
-- 8 tests unitaires passants
-- Section InfoCard ajoutée dans DesignSystemShowcase
+- InfoCard created with design system structure (bg-slate-800/50, rounded-xl, p-4, border-slate-700/50)
+- Support title + status badge (variants: active, finished, cancelled)
+- Info line with Lucide icons (calendar, users, format)
+- Flexibility: structured props (infos[]) or children
+- Export in design-system/index.ts
+- 8 passing unit tests
+- InfoCard section added in DesignSystemShowcase
 
 ### File List
 
@@ -75,4 +75,4 @@ Composer (dev-story workflow)
 
 ## Change Log
 
-- 2026-02-13: Story 14-5 implémentée — composant InfoCard créé, exporté, testé et intégré au Design System Showcase
+- 2026-02-13: Story 14-5 implemented — InfoCard component created, exported, tested and integrated into Design System Showcase

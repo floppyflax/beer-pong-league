@@ -1,40 +1,40 @@
-# Story 14.25: Choix de l'équipe gagnante (obligatoire)
+# Story 14.25: Winning team selection (mandatory)
 
 Status: ready-for-dev
 
 ## Story
 
 As a player,
-I want choisir l'équipe gagnante au lieu des scores,
-So que je valide un match rapidement.
+I want to choose the winning team instead of scores,
+So that I can validate a match quickly.
 
 ## Acceptance Criteria
 
-1. **Given** j'enregistre un match
-   **When** j'ai sélectionné les équipes
-   **Then** je vois "Qui a gagné ?" — Équipe 1 / Équipe 2 (obligatoire)
+1. **Given** I am recording a match
+   **When** I have selected the teams
+   **Then** I see "Who won?" — Team 1 / Team 2 (mandatory)
 
-2. Le formulaire remplace teamAScore/teamBScore par ce choix
+2. The form replaces teamAScore/teamBScore with this choice
 
-3. ELO utilise le gagnant
+3. ELO uses the winner
 
 ## Tasks / Subtasks
 
 - [ ] Task 1: Refactor MatchRecordingForm (AC: 1, 2)
-  - [ ] Supprimer teamAScore, teamBScore
-  - [ ] Ajouter winner: 'A' | 'B' | null
-  - [ ] UI: deux boutons/chips Équipe 1 / Équipe 2
-- [ ] Task 2: Mapping et ELO (AC: 3)
-  - [ ] Mapper winner vers format score (1-0 ou 0-1)
-  - [ ] DatabaseService: accepter winner
+  - [ ] Remove teamAScore, teamBScore
+  - [ ] Add winner: 'A' | 'B' | null
+  - [ ] UI: two buttons/chips Team 1 / Team 2
+- [ ] Task 2: Mapping and ELO (AC: 3)
+  - [ ] Map winner to score format (1-0 or 0-1)
+  - [ ] DatabaseService: accept winner
 - [ ] Task 3: Validation
-  - [ ] Winner obligatoire avant submit
+  - [ ] Winner mandatory before submit
 
 ## Dev Notes
 
-- **Fichier:** `src/components/MatchRecordingForm.tsx`
+- **File:** `src/components/MatchRecordingForm.tsx`
 - design-system-convergence section 7.4
-- Dépend de 14.24 (schema) pour cohérence
+- Depends on 14.24 (schema) for consistency
 
 ### References
 

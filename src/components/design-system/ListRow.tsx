@@ -21,6 +21,8 @@ export interface ListRowPlayerProps {
   delta?: number;
   /** URL avatar ou undefined pour initiales */
   avatarUrl?: string;
+  /** Derniers résultats (true=victoire/vert, false=défaite/rouge), max 5, du plus récent au plus ancien */
+  recentResults?: boolean[];
   onClick?: () => void;
 }
 
@@ -79,7 +81,7 @@ function getRankBadgeClass(rank: number): string {
 
 export function ListRow(props: ListRowProps) {
   const baseClasses =
-    'flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-slate-700/50 transition-all hover:border-slate-600';
+    'flex items-center gap-3 p-4 w-full bg-slate-800 rounded-xl border border-slate-700/50 transition-all hover:border-slate-600';
   const clickableClasses = props.onClick ? ' cursor-pointer' : '';
 
   const handleClick = () => {
@@ -133,12 +135,27 @@ export function ListRow(props: ListRowProps) {
           </div>
         )}
 
-        {/* Nom + sous-texte */}
+        {/* Nom + sous-texte + cercles derniers matchs */}
         <div className="flex-1 min-w-0">
           <div className="text-base font-semibold text-white truncate">
             {props.name}
           </div>
-          <div className="text-sm text-slate-400 truncate">{props.subtitle}</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-slate-400 truncate">{props.subtitle}</span>
+            {props.recentResults && props.recentResults.length > 0 && (
+              <div className="flex gap-0.5" role="img" aria-label="Derniers résultats">
+                {props.recentResults.slice(0, 5).map((won, i) => (
+                  <div
+                    key={i}
+                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      won ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                    title={won ? 'Victoire' : 'Défaite'}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ELO + delta */}

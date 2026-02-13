@@ -2,6 +2,7 @@
 
 **Author:** floppyflax  
 **Date:** 2026-02-11  
+**Dernière mise à jour :** 2026-02-13 (variantes cartes gradient/plein §3.7, TournamentCard refonte)  
 **Status:** Addendum to UX Design Specification  
 **Reference:** Screens Frame 1–11 (assets), Party Mode discussion 2026-02-11
 
@@ -143,6 +144,7 @@ Ce document formalise les décisions de design récentes pour **converger l’UI
 - **CTA principal :** `bg-gradient-to-r from-amber-500 to-yellow-500` (landing) ou `from-blue-500 to-violet-600` (screens)
 - **FAB / boutons primaires :** `from-blue-500 to-violet-600`
 - **Onglet actif :** même gradient ou `bg-primary`
+- **Cartes de liste (TournamentCard, LeagueCard) :** `bg-gradient-card` — dégradé horizontal `to left` (slate-700 → slate-800) pour contraste avec le fond. Valeur : `linear-gradient(to left, rgba(51, 65, 85, 0.98), rgba(30, 41, 59, 0.98))`. Référence : Frame 3 (Mes tournois).
 
 ### 3.3 Typographie
 
@@ -172,6 +174,17 @@ Ce document formalise les décisions de design récentes pour **converger l’UI
 - **FAB :** `shadow-lg`
 - **Modales :** `shadow-2xl`
 
+### 3.7 Variantes de cartes (gradient vs plein)
+
+| Variante          | Token              | Usage                                                              | Exemples                                                          |
+| ----------------- | ------------------ | ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| **Avec gradient** | `bg-gradient-card` | Cartes de liste cliquables, items répétitifs dans une grille/liste | TournamentCard, LeagueCard (listes Mes tournois, Mes leagues)     |
+| **Sans gradient** | `bg-slate-800`     | Cartes de contexte, blocs d’info, stats, formulaires               | StatCard, InfoCard, SegmentedTabs encapsulé, champs de formulaire |
+
+**Règle :** Utiliser le gradient pour les cartes d’entité (tournoi, league) dans les listes — meilleur contraste avec le fond `bg-slate-900`. Utiliser le fond plein pour les blocs utilitaires (stats, infos, filtres).
+
+**Conteneur commun :** `rounded-xl p-4` ou `p-6`, `border border-slate-700/50`
+
 ---
 
 ## 4. Composants à implémenter / standardiser
@@ -192,24 +205,36 @@ Ce document formalise les décisions de design récentes pour **converger l’UI
 
 **Usage :** Filtres Tous / Actifs / Terminés, ou onglets Classement / Matchs / Paramètres
 
-**Structure :**
+**Variantes :**
 
-- Conteneur : `flex gap-2`
-- Tab : `px-4 py-2 rounded-lg font-semibold`
-- Actif : `bg-primary text-white` ou gradient
-- Inactif : `bg-slate-800 text-slate-400 hover:bg-slate-700`
+- **`default`** (onglets séparés) :
+  - Conteneur : `flex gap-2`
+  - Tab : `px-4 py-2 rounded-lg font-semibold`
+  - Actif : `bg-primary text-white` ou gradient
+  - Inactif : `bg-slate-800 text-slate-400 hover:bg-slate-700`
+
+- **`encapsulated`** (onglets dans un bloc unique) — Référence : Frame 3 (Mes tournois) :
+  - Conteneur : `bg-slate-800 rounded-xl p-1` (bloc unique encapsulant tous les onglets)
+  - Tabs : `flex` à l’intérieur, sans gap entre eux
+  - Actif : `bg-gradient-tab-active text-white rounded-lg` (gradient bleu-violet)
+  - Inactif : fond transparent, `text-slate-400`
 
 ### 4.3 ListRow (joueur / tournoi / league)
 
 **Usage :** Ligne de liste cliquable (classement, cartes tournoi/league)
+
+**Layout :** `w-full` — les cartes prennent toute la largeur du conteneur parent.
 
 **Structure (joueur) :**
 
 - Avatar circulaire (ou placeholder initiales)
 - Rang en pastille (1, 2, 3 avec couleurs or/argent/bronze)
 - Nom + sous-texte (W/L, winrate)
+- **Derniers résultats (optionnel) :** 5 petits cercles (vert=victoire, rouge=défaite) affichant les 5 derniers matchs, du plus récent au plus ancien. Taille : `w-2.5 h-2.5`, couleurs : `bg-green-500` / `bg-red-500`
 - ELO à droite + delta (vert/rouge) si pertinent
 - Chevron ou flèche droite
+
+**Props joueur :** `name`, `subtitle`, `elo`, `rank?`, `delta?`, `avatarUrl?`, `recentResults?: boolean[]` (max 5), `onClick?`
 
 **Structure (carte tournoi/league) :**
 
@@ -255,6 +280,28 @@ Ce document formalise les décisions de design récentes pour **converger l’UI
 - Input : `bg-slate-800 border border-slate-700 rounded-lg pl-12`
 - Debounce 300ms
 
+### 4.8 TournamentCard (carte tournoi)
+
+**Usage :** Carte de tournoi dans les listes (Mes tournois, Mes leagues). Référence : Frame 3 (Mes tournois).
+
+**Style de fond :** `bg-gradient-card` (dégradé horizontal `to left`, slate-700 → slate-800, section 3.2)
+
+**Structure :**
+
+1. **Header :** `[Titre en gras blanc] [Badge ACTIF / TERMINÉ]`
+   - Badge actif : `bg-green-500/20 text-green-400` — « ACTIF »
+   - Badge terminé : `bg-slate-700 text-slate-300` — « TERMINÉ »
+
+2. **Milieu :** Date du tournoi seule (`text-sm text-slate-400`, ex. « 15 janv. 2024 »)
+
+3. **Bas :** Trois colonnes de stats + bouton chevron :
+   - **Matchs** : nombre en `text-lg font-bold text-white`, label « Matchs » en `text-xs text-slate-400`
+   - **Joueurs** : nombre en `text-lg font-bold text-white`, label « Joueurs » en `text-xs text-slate-400`
+   - **Format** : valeur (2v2, 1v1, 3v3, Libre) en `text-lg font-bold text-blue-400`, label « Format » en `text-xs text-slate-400`
+   - **Bouton navigation** : cercle `w-10 h-10 rounded-full bg-slate-700`, icône chevron droite blanche, `aria-label="Voir le tournoi"`
+
+**Conteneur :** `rounded-xl p-6 border border-slate-700/50` — clic sur la carte ou le bouton → navigation vers `/tournament/:id`
+
 ---
 
 ## 5. Règles par type de page
@@ -263,8 +310,9 @@ Ce document formalise les décisions de design récentes pour **converger l’UI
 
 - Header : titre + bouton + (search en header ou barre dédiée)
 - Barre de recherche
-- SegmentedTabs (Tous / Actifs / Terminés)
-- Grille ou liste de cartes (ListRow)
+- SegmentedTabs (Tous / Actifs / Terminés) — variante `encapsulated` recommandée (Frame 3)
+- Grille ou liste de cartes (TournamentCard ou ListRow)
+- TournamentCard : fond `gradient-card`, structure section 4.8
 - FAB : Créer tournoi / Créer league
 - Bottom nav visible
 
@@ -274,7 +322,7 @@ Ce document formalise les décisions de design récentes pour **converger l’UI
 - InfoCard (statut, code, format, date)
 - StatCards (3 colonnes)
 - SegmentedTabs (Classement / Matchs / Paramètres, etc.)
-- Liste classement avec ListRow (avatar, rang, ELO, delta)
+- Liste classement avec ListRow (avatar, rang, ELO, delta, recentResults 5 cercles)
 - FAB : Nouveau match (et Inviter si pertinent)
 - Bottom nav visible
 

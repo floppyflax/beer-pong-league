@@ -1,13 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
+import { AuthProvider } from "../../../src/context/AuthContext";
+import { IdentityProvider } from "../../../src/context/IdentityContext";
 import { DesignSystemShowcase } from "../../../src/pages/DesignSystemShowcase";
 
 function renderWithRouter() {
   return render(
-    <BrowserRouter>
-      <DesignSystemShowcase />
-    </BrowserRouter>,
+    <AuthProvider>
+      <IdentityProvider>
+        <BrowserRouter>
+          <DesignSystemShowcase />
+        </BrowserRouter>
+      </IdentityProvider>
+    </AuthProvider>,
   );
 }
 
@@ -34,6 +40,17 @@ describe("DesignSystemShowcase", () => {
     expect(screen.getByText("Gradients")).toBeInTheDocument();
   });
 
+  it("should render gradient-card token and sample card (Story 14-29)", () => {
+    renderWithRouter();
+    expect(screen.getByText("gradient-card")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Exemple de carte avec bg-gradient-card/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Tournoi d'été · 8 joueurs · En cours/),
+    ).toBeInTheDocument();
+  });
+
   it("should render Typographie subsection", () => {
     renderWithRouter();
     expect(screen.getByText("Typographie")).toBeInTheDocument();
@@ -54,11 +71,15 @@ describe("DesignSystemShowcase", () => {
     expect(screen.getByText("Top ELO")).toBeInTheDocument();
   });
 
-  it("should render SegmentedTabs with interactive demo", () => {
+  it("should render SegmentedTabs with interactive demo (default + encapsulated variants, Story 14-30)", () => {
     renderWithRouter();
-    expect(screen.getByRole("tab", { name: "Tous" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Actifs" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Terminés" })).toBeInTheDocument();
+    // Filter tabs appear twice: default + encapsulated variant
+    const tousTabs = screen.getAllByRole("tab", { name: "Tous" });
+    expect(tousTabs.length).toBeGreaterThanOrEqual(2);
+    const actifsTabs = screen.getAllByRole("tab", { name: "Actifs" });
+    expect(actifsTabs.length).toBeGreaterThanOrEqual(2);
+    const terminesTabs = screen.getAllByRole("tab", { name: "Terminés" });
+    expect(terminesTabs.length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("tab", { name: "Classement" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Matchs" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Paramètres" })).toBeInTheDocument();
@@ -80,7 +101,9 @@ describe("DesignSystemShowcase", () => {
   it("should render SearchBar with interactive demo (Story 14-8)", () => {
     renderWithRouter();
     expect(screen.getByRole("searchbox")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/rechercher un tournoi ou une league/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/rechercher un tournoi ou une league/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Valeur débouncée/)).toBeInTheDocument();
   });
 
@@ -88,23 +111,64 @@ describe("DesignSystemShowcase", () => {
     renderWithRouter();
     expect(screen.getByText("Tournoi Beer Pong Mars 2025")).toBeInTheDocument();
     expect(screen.getAllByText(/En cours/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/15 mars 2025/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/15 mars 2025/).length).toBeGreaterThanOrEqual(
+      1,
+    );
     expect(screen.getAllByText(/8 joueurs/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/2v2/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("should render FAB component with variants (Story 14-6)", () => {
     renderWithRouter();
-    expect(screen.getByRole("button", { name: /créer \(primary\)/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /nouveau match/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /action secondaire/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /créer \(primary\)/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /nouveau match/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /action secondaire/i }),
+    ).toBeInTheDocument();
   });
 
   it("should render Banner component with success and error variants (Story 14-7)", () => {
     renderWithRouter();
-    expect(screen.getByText(/Tournoi rejoint ! Redirection…/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Tournoi rejoint ! Redirection…/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Erreur lors de la connexion/)).toBeInTheDocument();
     expect(screen.getByText(/Message dismissable/)).toBeInTheDocument();
     expect(screen.getAllByRole("alert").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("should render Navigation section (Story 14-10b)", () => {
+    renderWithRouter();
+    expect(screen.getByText("3. Navigation")).toBeInTheDocument();
+  });
+
+  it("should render BottomTabMenu and BottomMenuSpecific in Navigation section (Story 14-10b)", () => {
+    renderWithRouter();
+    expect(screen.getByText("BottomTabMenu")).toBeInTheDocument();
+    expect(screen.getByText("BottomMenuSpecific")).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: /main navigation/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /scanner qr/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /créer un tournoi/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("should update active tab when clicking BottomTabMenu in preview (Story 14-10b)", () => {
+    renderWithRouter();
+    const homeTab = screen.getByLabelText("Home");
+    const tournamentsTab = screen.getByLabelText("Tournaments");
+    expect(homeTab).toHaveAttribute("aria-current", "page");
+    expect(tournamentsTab).not.toHaveAttribute("aria-current");
+    fireEvent.click(tournamentsTab);
+    expect(tournamentsTab).toHaveAttribute("aria-current", "page");
+    expect(homeTab).not.toHaveAttribute("aria-current");
   });
 });

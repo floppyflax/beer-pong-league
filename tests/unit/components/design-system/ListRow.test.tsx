@@ -113,6 +113,27 @@ describe('ListRow (Story 14-4)', () => {
       );
       expect(screen.getByTestId('listrow-chevron')).toBeInTheDocument();
     });
+
+    it('should display recent results as 5 colored circles (green=win, red=loss)', () => {
+      render(
+        <ListRow
+          variant="player"
+          name="Ivy"
+          subtitle="5W / 5L"
+          elo={1000}
+          recentResults={[true, false, true, true, false]}
+        />
+      );
+      const container = screen.getByRole('img', { name: 'Derniers résultats' });
+      expect(container).toBeInTheDocument();
+      const circles = container.querySelectorAll('div[class*="rounded-full"]');
+      expect(circles).toHaveLength(5);
+      expect(circles[0]).toHaveClass('bg-green-500');
+      expect(circles[1]).toHaveClass('bg-red-500');
+      expect(circles[2]).toHaveClass('bg-green-500');
+      expect(circles[3]).toHaveClass('bg-green-500');
+      expect(circles[4]).toHaveClass('bg-red-500');
+    });
   });
 
   describe('variant tournament (AC: 2)', () => {

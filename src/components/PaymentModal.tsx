@@ -1,10 +1,10 @@
-import { X, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
-import { useIdentity } from '../hooks/useIdentity';
-import { useAuthContext } from '../context/AuthContext';
-import { premiumService } from '../services/PremiumService';
-import { stripeService } from '../services/StripeService';
-import { supabase } from '../lib/supabase';
+import { X, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useIdentity } from "../hooks/useIdentity";
+import { useAuthContext } from "../context/AuthContext";
+import { premiumService } from "../services/PremiumService";
+import { stripeService } from "../services/StripeService";
+import { supabase } from "../lib/supabase";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -17,16 +17,22 @@ interface PaymentModalProps {
 }
 
 // Payment state machine
-type PaymentState = 'idle' | 'processing' | 'success' | 'error';
+type PaymentState = "idle" | "processing" | "success" | "error";
 
-export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: PaymentModalProps) => {
+export const PaymentModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  title,
+  subtitle,
+}: PaymentModalProps) => {
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
-  const [paymentState, setPaymentState] = useState<PaymentState>('idle');
+  const [paymentState, setPaymentState] = useState<PaymentState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false); // FIX #4: Prevent double-click
-  
+
   // FIX #1 & #3: Refs for cleanup
   const pollingAbortRef = useRef<AbortController | null>(null);
   const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -35,15 +41,15 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
   // FIX #3: Cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     return () => {
       isMountedRef.current = false;
-      
+
       // Cleanup polling
       if (pollingAbortRef.current) {
         pollingAbortRef.current.abort();
       }
-      
+
       // Cleanup success timeout
       if (successTimeoutRef.current) {
         clearTimeout(successTimeoutRef.current);
@@ -51,46 +57,70 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
     };
   }, []);
 
+  // Escape key closes modal (or dismisses confirmation)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showCloseConfirmation) {
+        setShowCloseConfirmation(false);
+      } else if (paymentState === "success") {
+        onClose();
+      } else if (paymentState === "processing") {
+        setShowCloseConfirmation(true);
+      } else {
+        setPaymentState("idle");
+        setError(null);
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, showCloseConfirmation, paymentState, onClose]);
+
   if (!isOpen) return null;
 
   // FIX #2 & #7: Poll for premium status update after payment (webhook confirmation)
   // This simulates waiting for a webhook. In production (Story 7.4), we'll use real webhook events.
   const pollForPremiumStatus = async (
-    userId: string | null, 
+    userId: string | null,
     anonymousUserId: string | null,
     transactionId: string,
-    abortSignal: AbortSignal
+    abortSignal: AbortSignal,
   ): Promise<boolean> => {
     const maxAttempts = 10; // 10 attempts
     const interval = 1000; // 1 second between attempts
 
-    console.log('Polling for webhook confirmation of transaction:', transactionId);
+    console.log(
+      "Polling for webhook confirmation of transaction:",
+      transactionId,
+    );
 
     for (let i = 0; i < maxAttempts; i++) {
       // Check if aborted
       if (abortSignal.aborted) {
-        console.log('Polling aborted for transaction:', transactionId);
+        console.log("Polling aborted for transaction:", transactionId);
         return false;
       }
 
       // Wait before polling
-      await new Promise(resolve => setTimeout(resolve, interval));
-      
+      await new Promise((resolve) => setTimeout(resolve, interval));
+
       // Check if aborted again after timeout
       if (abortSignal.aborted) {
         return false;
       }
-      
+
       // In production (Story 7.4), we'd check if a webhook confirmed this specific transaction
       // For now, we verify premium status was updated (webhook simulation)
       const isPremium = await premiumService.isPremium(userId, anonymousUserId);
       if (isPremium) {
-        console.log('Webhook confirmed transaction:', transactionId);
+        console.log("Webhook confirmed transaction:", transactionId);
         return true;
       }
     }
-    
-    console.log('Webhook timeout for transaction:', transactionId);
+
+    console.log("Webhook timeout for transaction:", transactionId);
     return false;
   };
 
@@ -99,9 +129,9 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
     if (isProcessing) {
       return;
     }
-    
+
     setIsProcessing(true);
-    setPaymentState('processing');
+    setPaymentState("processing");
     setError(null);
 
     try {
@@ -109,15 +139,15 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
       const anonymousUserId = localUser?.anonymousUserId || null;
 
       if (!userId && !anonymousUserId) {
-        setError('Vous devez être connecté pour acheter Premium');
-        setPaymentState('error');
+        setError("Vous devez être connecté pour acheter Premium");
+        setPaymentState("error");
         setIsProcessing(false);
         return;
       }
 
       // FIX #6: Check if supabase is available
       if (!supabase) {
-        throw new Error('Database connection not available');
+        throw new Error("Database connection not available");
       }
 
       // Story 7.3: Check if Stripe is configured
@@ -125,20 +155,25 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
 
       if (isStripeConfigured) {
         // PRODUCTION MODE: Use real Stripe Checkout
-        console.log('🔐 Stripe Mode: Redirecting to Stripe Checkout...');
-        
+        console.log("🔐 Stripe Mode: Redirecting to Stripe Checkout...");
+
         // Create Stripe Checkout session
-        const session = await stripeService.createCheckoutSession(userId, anonymousUserId);
-        
+        const session = await stripeService.createCheckoutSession(
+          userId,
+          anonymousUserId,
+        );
+
         if (!session) {
-          setError('Impossible de créer la session de paiement. Veuillez réessayer.');
-          setPaymentState('error');
+          setError(
+            "Impossible de créer la session de paiement. Veuillez réessayer.",
+          );
+          setPaymentState("error");
           setIsProcessing(false);
           return;
         }
 
         // Log transaction for tracking
-        console.log('Payment transaction started:', session.sessionId);
+        console.log("Payment transaction started:", session.sessionId);
 
         // Redirect to Stripe Checkout (user will be redirected back after payment)
         window.location.href = session.url;
@@ -147,61 +182,73 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
       }
 
       // DEVELOPMENT MODE: Simulation fallback (if Stripe not configured)
-      console.log('🧪 Simulation Mode: Stripe not configured, using simulation');
-      
+      console.log(
+        "🧪 Simulation Mode: Stripe not configured, using simulation",
+      );
+
       // Generate simulated transaction ID
       const transactionId = `sim_${Date.now()}_${userId || anonymousUserId}`;
-      console.log('Simulated payment transaction started:', transactionId);
+      console.log("Simulated payment transaction started:", transactionId);
 
       // Simulate payment delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // FIX #2: In simulation, we update is_premium directly to mimic webhook
       // In production, webhook (Story 7.4) will do this server-side
       let updateError;
-      
-      console.log('💳 Payment simulation - User info:', { userId, anonymousUserId, localUser });
-      
+
+      console.log("💳 Payment simulation - User info:", {
+        userId,
+        anonymousUserId,
+        localUser,
+      });
+
       if (userId) {
         // Authenticated user: UPSERT (create if doesn't exist, update otherwise)
-        console.log('💳 Upserting authenticated user:', userId);
+        console.log("💳 Upserting authenticated user:", userId);
         const { error, data } = await supabase
-          .from('users')
-          .upsert({ 
-            id: userId, 
-            is_premium: true,
-            // Minimal data - the user should already exist from auth
-            pseudo: user?.email?.split('@')[0] || 'User'
-          }, { 
-            onConflict: 'id',
-            ignoreDuplicates: false 
-          })
+          .from("users")
+          .upsert(
+            {
+              id: userId,
+              is_premium: true,
+              // Minimal data - the user should already exist from auth
+              pseudo: user?.email?.split("@")[0] || "User",
+            },
+            {
+              onConflict: "id",
+              ignoreDuplicates: false,
+            },
+          )
           .select();
-        console.log('💳 Upsert result:', { error, data });
+        console.log("💳 Upsert result:", { error, data });
         updateError = error;
       } else if (anonymousUserId) {
         // Anonymous user: UPSERT (create if doesn't exist)
-        console.log('💳 Upserting anonymous user:', anonymousUserId);
+        console.log("💳 Upserting anonymous user:", anonymousUserId);
         const { error, data } = await supabase
-          .from('anonymous_users')
-          .upsert({ 
-            id: anonymousUserId, 
-            is_premium: true,
-            pseudo: localUser?.pseudo || 'Anonymous',
-            device_fingerprint: localUser?.deviceFingerprint || null
-          }, { 
-            onConflict: 'id',
-            ignoreDuplicates: false 
-          })
+          .from("anonymous_users")
+          .upsert(
+            {
+              id: anonymousUserId,
+              is_premium: true,
+              pseudo: localUser?.pseudo || "Anonymous",
+              device_fingerprint: localUser?.deviceFingerprint || null,
+            },
+            {
+              onConflict: "id",
+              ignoreDuplicates: false,
+            },
+          )
           .select();
-        console.log('💳 Upsert result:', { error, data });
+        console.log("💳 Upsert result:", { error, data });
         updateError = error;
       }
 
       if (updateError) {
-        console.error('Error updating premium status:', updateError);
-        setError('Erreur lors de la mise à jour du statut premium');
-        setPaymentState('error');
+        console.error("Error updating premium status:", updateError);
+        setError("Erreur lors de la mise à jour du statut premium");
+        setPaymentState("error");
         setIsProcessing(false);
         return;
       }
@@ -211,20 +258,20 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
 
       // Poll for premium status confirmation (simulates waiting for webhook)
       const premiumConfirmed = await pollForPremiumStatus(
-        userId, 
-        anonymousUserId, 
+        userId,
+        anonymousUserId,
         transactionId,
-        pollingAbortRef.current.signal
+        pollingAbortRef.current.signal,
       );
-      
+
       // FIX #3: Check if component is still mounted
       if (!isMountedRef.current) {
         return;
       }
 
       if (!premiumConfirmed) {
-        setError('Le paiement n\'a pas pu être confirmé. Contactez le support.');
-        setPaymentState('error');
+        setError("Le paiement n'a pas pu être confirmé. Contactez le support.");
+        setPaymentState("error");
         setIsProcessing(false);
         return;
       }
@@ -233,9 +280,9 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
       premiumService.updatePremiumStatusInLocalStorage(true);
 
       // Success state
-      setPaymentState('success');
+      setPaymentState("success");
       setIsProcessing(false);
-      
+
       // FIX #1: Store timeout ref for cleanup and check if mounted
       successTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current) {
@@ -244,47 +291,47 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
         }
       }, 1500);
     } catch (error) {
-      console.error('Payment error:', error);
-      
+      console.error("Payment error:", error);
+
       // FIX #3: Check if component is still mounted
       if (!isMountedRef.current) {
         return;
       }
-      
-      setError('Une erreur est survenue lors du paiement. Veuillez réessayer.');
-      setPaymentState('error');
+
+      setError("Une erreur est survenue lors du paiement. Veuillez réessayer.");
+      setPaymentState("error");
       setIsProcessing(false);
     }
   };
 
   const handleClose = () => {
     // If processing, show confirmation
-    if (paymentState === 'processing') {
+    if (paymentState === "processing") {
       setShowCloseConfirmation(true);
       return;
     }
 
     // If success, don't allow manual close (auto-closes)
-    if (paymentState === 'success') {
+    if (paymentState === "success") {
       return;
     }
 
     // Reset state and close
-    setPaymentState('idle');
+    setPaymentState("idle");
     setError(null);
     setShowCloseConfirmation(false);
     onClose();
   };
 
   const handleConfirmClose = () => {
-    setPaymentState('idle');
+    setPaymentState("idle");
     setError(null);
     setShowCloseConfirmation(false);
     onClose();
   };
 
   const handleRetry = () => {
-    setPaymentState('idle');
+    setPaymentState("idle");
     setError(null);
     setIsProcessing(false); // FIX #4: Reset processing flag
   };
@@ -294,14 +341,28 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
     return (
       <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
         <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
-          <div className="flex items-start gap-3 mb-6">
-            <AlertCircle size={24} className="text-amber-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-lg font-bold mb-2">Annuler le paiement ?</h3>
-              <p className="text-sm text-slate-400">
-                Le paiement est en cours. Êtes-vous sûr de vouloir annuler ?
-              </p>
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex items-start gap-3 flex-1">
+              <AlertCircle
+                size={24}
+                className="text-amber-500 flex-shrink-0 mt-0.5"
+              />
+              <div>
+                <h3 className="text-lg font-bold mb-2">
+                  Annuler le paiement ?
+                </h3>
+                <p className="text-sm text-slate-400">
+                  Le paiement est en cours. Êtes-vous sûr de vouloir annuler ?
+                </p>
+              </div>
             </div>
+            <button
+              onClick={() => setShowCloseConfirmation(false)}
+              className="p-2 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+              aria-label="Fermer"
+            >
+              <X size={20} className="text-slate-400" />
+            </button>
           </div>
 
           <div className="flex gap-3">
@@ -324,21 +385,31 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
   }
 
   // Success state
-  if (paymentState === 'success') {
+  if (paymentState === "success") {
     return (
       <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-        <div className="bg-slate-900 w-full max-w-md rounded-2xl p-6 border border-slate-700">
+        <div className="bg-slate-900 w-full max-w-md rounded-2xl p-6 border border-slate-700 relative">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Fermer"
+          >
+            <X size={20} className="text-slate-400" />
+          </button>
           <div className="text-center space-y-4">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-2">
               <CheckCircle size={32} className="text-green-500" />
             </div>
             <h3 className="text-2xl font-bold text-white">Paiement réussi !</h3>
             <p className="text-slate-400">
-              Ton compte est maintenant Premium. Profite de toutes les fonctionnalités illimitées !
+              Ton compte est maintenant Premium. Profite de toutes les
+              fonctionnalités illimitées !
             </p>
             <div className="pt-2">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-              <p className="text-sm text-slate-500 mt-2">Fermeture automatique...</p>
+              <p className="text-sm text-slate-500 mt-2">
+                Fermeture automatique...
+              </p>
             </div>
           </div>
         </div>
@@ -353,15 +424,15 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Sparkles size={24} className="text-primary" />
-            <h3 className="text-xl font-bold">{title ?? 'Passe Premium'}</h3>
+            <h3 className="text-xl font-bold">{title ?? "Passe Premium"}</h3>
           </div>
           <button
             onClick={handleClose}
             className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={paymentState === 'processing'}
+            disabled={paymentState === "processing"}
             aria-label="Fermer"
           >
-            <X size={20} />
+            <X size={20} className="text-slate-400" />
           </button>
         </div>
 
@@ -375,15 +446,22 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
           {/* Prix */}
           <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl p-6 text-center border border-primary/30">
             <div className="text-5xl font-black text-white mb-2">3€</div>
-            <div className="text-sm text-slate-300">Paiement unique - À vie</div>
+            <div className="text-sm text-slate-300">
+              Paiement unique - À vie
+            </div>
           </div>
 
           {/* Avantages */}
           <div className="space-y-3">
             <div className="flex items-start gap-3 bg-slate-800/50 p-4 rounded-xl">
-              <CheckCircle size={20} className="text-green-500 mt-0.5 flex-shrink-0" />
+              <CheckCircle
+                size={20}
+                className="text-green-500 mt-0.5 flex-shrink-0"
+              />
               <div>
-                <div className="font-semibold text-white">Tournois illimités</div>
+                <div className="font-semibold text-white">
+                  Tournois illimités
+                </div>
                 <div className="text-sm text-slate-400">
                   Crée autant de tournois que tu veux
                 </div>
@@ -391,9 +469,14 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
             </div>
 
             <div className="flex items-start gap-3 bg-slate-800/50 p-4 rounded-xl">
-              <CheckCircle size={20} className="text-green-500 mt-0.5 flex-shrink-0" />
+              <CheckCircle
+                size={20}
+                className="text-green-500 mt-0.5 flex-shrink-0"
+              />
               <div>
-                <div className="font-semibold text-white">Ligues illimitées</div>
+                <div className="font-semibold text-white">
+                  Ligues illimitées
+                </div>
                 <div className="text-sm text-slate-400">
                   Crée et gère des ligues avec saisons
                 </div>
@@ -401,9 +484,14 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
             </div>
 
             <div className="flex items-start gap-3 bg-slate-800/50 p-4 rounded-xl">
-              <CheckCircle size={20} className="text-green-500 mt-0.5 flex-shrink-0" />
+              <CheckCircle
+                size={20}
+                className="text-green-500 mt-0.5 flex-shrink-0"
+              />
               <div>
-                <div className="font-semibold text-white">Joueurs illimités</div>
+                <div className="font-semibold text-white">
+                  Joueurs illimités
+                </div>
                 <div className="text-sm text-slate-400">
                   Aucune limite de participants par tournoi
                 </div>
@@ -412,12 +500,17 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
           </div>
 
           {/* Message d'erreur */}
-          {paymentState === 'error' && error && (
+          {paymentState === "error" && error && (
             <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4">
               <div className="flex items-start gap-3">
-                <AlertCircle size={20} className="text-red-500 mt-0.5 flex-shrink-0" />
+                <AlertCircle
+                  size={20}
+                  className="text-red-500 mt-0.5 flex-shrink-0"
+                />
                 <div>
-                  <div className="font-semibold text-red-500 mb-1">Erreur de paiement</div>
+                  <div className="font-semibold text-red-500 mb-1">
+                    Erreur de paiement
+                  </div>
                   <div className="text-red-400 text-sm">{error}</div>
                 </div>
               </div>
@@ -425,7 +518,7 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
           )}
 
           {/* Bouton de paiement ou retry */}
-          {paymentState === 'error' ? (
+          {paymentState === "error" ? (
             <button
               onClick={handleRetry}
               className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
@@ -435,10 +528,10 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
           ) : (
             <button
               onClick={handlePayment}
-              disabled={paymentState === 'processing'}
+              disabled={paymentState === "processing"}
               className="w-full bg-primary hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
-              {paymentState === 'processing' ? (
+              {paymentState === "processing" ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
                   <span>Traitement en cours...</span>
@@ -460,7 +553,7 @@ export const PaymentModal = ({ isOpen, onClose, onSuccess, title, subtitle }: Pa
                 L'intégration Stripe (Story 7.3) sera ajoutée prochainement
               </>
             ) : (
-              'Paiement sécurisé via Stripe'
+              "Paiement sécurisé via Stripe"
             )}
           </div>
         </div>

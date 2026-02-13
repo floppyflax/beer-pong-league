@@ -9,6 +9,7 @@ vi.mock('../../../src/lib/supabase', () => ({
   supabase: {
     from: vi.fn(),
   },
+  isSupabaseAvailable: () => true,
 }));
 
 vi.mock('react-router-dom', () => ({

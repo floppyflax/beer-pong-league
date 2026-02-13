@@ -1,18 +1,19 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, QrCode, Trophy, Users, User } from 'lucide-react';
+import { useNavigate, useLocation } from "react-router-dom";
+import { Home, QrCode, Trophy, Medal, User } from "lucide-react";
 
 /**
  * BottomTabMenu Component
- * 
+ *
  * Bottom navigation menu for mobile with 5 main tabs
- * 
+ *
  * Features (AC1-AC6):
  * - Fixed bottom position on mobile
  * - 5 tabs with icons and labels
- * - Active state highlighting with primary color and top border
+ * - Active state: gradient (bg-gradient-tab-active) per design-system-convergence 2.1
  * - Navigation on tab click
  * - Hidden on desktop (lg:hidden)
  * - Accessible with ARIA labels and proper touch targets
+ * - previewMode: for isolated showcase (absolute positioning, controlled active route)
  */
 
 interface Tab {
@@ -24,25 +25,73 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-  { id: 'home', label: 'ACCUEIL', icon: Home, route: '/', ariaLabel: 'Home' },
-  { id: 'join', label: 'REJOINDRE', icon: QrCode, route: '/join', ariaLabel: 'Join' },
-  { id: 'tournaments', label: 'TOURNOIS', icon: Trophy, route: '/tournaments', ariaLabel: 'Tournaments' },
-  { id: 'leagues', label: 'LEAGUES', icon: Users, route: '/leagues', ariaLabel: 'Leagues' },
-  { id: 'profile', label: 'PROFIL', icon: User, route: '/user/profile', ariaLabel: 'Profile' },
+  { id: "home", label: "ACCUEIL", icon: Home, route: "/", ariaLabel: "Home" },
+  {
+    id: "join",
+    label: "REJOINDRE",
+    icon: QrCode,
+    route: "/join",
+    ariaLabel: "Join",
+  },
+  {
+    id: "tournaments",
+    label: "TOURNOIS",
+    icon: Trophy,
+    route: "/tournaments",
+    ariaLabel: "Tournaments",
+  },
+  {
+    id: "leagues",
+    label: "LEAGUES",
+    icon: Medal,
+    route: "/leagues",
+    ariaLabel: "Leagues",
+  },
+  {
+    id: "profile",
+    label: "PROFIL",
+    icon: User,
+    route: "/user/profile",
+    ariaLabel: "Profile",
+  },
 ];
 
-export const BottomTabMenu: React.FC = () => {
+interface BottomTabMenuProps {
+  /** When true, uses absolute positioning for containment in preview frames (e.g. DesignSystemShowcase) */
+  previewMode?: boolean;
+  /** In preview mode: overrides active route for demo (avoids nested Router) */
+  previewActiveRoute?: string;
+  /** In preview mode: called instead of navigate when tab is clicked */
+  previewOnTabClick?: (route: string) => void;
+}
+
+export const BottomTabMenu: React.FC<BottomTabMenuProps> = ({
+  previewMode = false,
+  previewActiveRoute,
+  previewOnTabClick,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const currentPath = location.pathname;
+  const currentPath =
+    previewMode && previewActiveRoute !== undefined
+      ? previewActiveRoute
+      : location.pathname;
 
   const handleTabClick = (route: string) => {
-    navigate(route);
+    if (previewMode && previewOnTabClick) {
+      previewOnTabClick(route);
+    } else {
+      navigate(route);
+    }
   };
+
+  const positionClass = previewMode
+    ? "absolute bottom-0 left-0 right-0"
+    : "fixed bottom-0 left-0 right-0";
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 lg:hidden z-40"
+      className={`${positionClass} bg-slate-800 border-t border-slate-700 z-40 ${!previewMode ? "lg:hidden" : ""}`}
       role="navigation"
       aria-label="Main navigation"
     >
@@ -50,7 +99,7 @@ export const BottomTabMenu: React.FC = () => {
         {tabs.map((tab) => {
           const isActive = currentPath === tab.route;
           const Icon = tab.icon;
-          
+
           return (
             <button
               key={tab.id}
@@ -59,15 +108,19 @@ export const BottomTabMenu: React.FC = () => {
                 flex-1 flex flex-col items-center justify-center gap-1
                 border-t-2 transition-all duration-200
                 min-h-[48px] active:scale-95
-                ${isActive 
-                  ? 'border-primary text-white' 
-                  : 'border-transparent text-slate-400 hover:text-slate-300'
+                ${
+                  isActive
+                    ? "border-transparent bg-gradient-tab-active text-white"
+                    : "border-transparent text-slate-400 hover:text-slate-300"
                 }
               `}
               aria-label={tab.ariaLabel}
-              aria-current={isActive ? 'page' : undefined}
+              aria-current={isActive ? "page" : undefined}
             >
-              <Icon className={isActive ? 'text-primary' : 'text-slate-400'} size={24} />
+              <Icon
+                className={isActive ? "text-white" : "text-slate-400"}
+                size={24}
+              />
               <span className="text-[10px] font-medium">{tab.label}</span>
             </button>
           );

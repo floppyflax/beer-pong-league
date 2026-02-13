@@ -18,6 +18,7 @@ vi.mock('../../../src/lib/supabase', () => ({
   supabase: {
     from: vi.fn(),
   },
+  isSupabaseAvailable: () => true,
 }));
 
 import { supabase } from '../../../src/lib/supabase';

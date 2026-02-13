@@ -40,6 +40,13 @@ describe("Tailwind design tokens (Story 14-1)", () => {
     expect(theme?.backgroundImage?.["gradient-tab-active"]).toBeDefined();
   });
 
+  it("should define gradient-card for TournamentCard/LeagueCard (design-system-convergence 3.2)", () => {
+    expect(theme?.backgroundImage?.["gradient-card"]).toBeDefined();
+    expect(theme?.backgroundImage?.["gradient-card"]).toBe(
+      "linear-gradient(to left, rgba(51, 65, 85, 0.98), rgba(30, 41, 59, 0.98))",
+    );
+  });
+
   it("should define typography tokens with correct mobile/desktop sizes (AC: 3)", () => {
     expect(theme?.fontSize?.["page-title"]).toBeDefined();
     expect(theme?.fontSize?.["page-title"]?.[0]).toBe("1.25rem"); // text-xl mobile

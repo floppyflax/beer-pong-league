@@ -1,46 +1,46 @@
-# Story 14.3: Composant SegmentedTabs
+# Story 14.3: SegmentedTabs component
 
 Status: review
 
 ## Story
 
 As a developer,
-I want un composant SegmentedTabs réutilisable,
-So que les filtres (Tous/Actifs/Terminés) et onglets (Classement/Matchs/Paramètres) soient cohérents.
+I want a reusable SegmentedTabs component,
+So that filters (All/Active/Finished) and tabs (Ranking/Matches/Settings) are consistent.
 
 ## Acceptance Criteria
 
-1. **Given** le design system (section 4.2)
-   **When** j'utilise SegmentedTabs
-   **Then** le composant affiche une liste d'onglets
+1. **Given** the design system (section 4.2)
+   **When** I use SegmentedTabs
+   **Then** the component displays a list of tabs
 
-2. Onglet actif : `bg-primary text-white` ou gradient
+2. Active tab: `bg-primary text-white` or gradient
 
-3. Onglet inactif : `bg-slate-800 text-slate-400 hover:bg-slate-700`
+3. Inactive tab: `bg-slate-800 text-slate-400 hover:bg-slate-700`
 
-4. Structure : `flex gap-2`, `px-4 py-2 rounded-lg font-semibold`
+4. Structure: `flex gap-2`, `px-4 py-2 rounded-lg font-semibold`
 
-5. Callback onClick pour changement d'onglet
+5. onClick callback for tab change
 
-6. Le composant est exporté et documenté
+6. The component is exported and documented
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Créer SegmentedTabs.tsx (AC: 1, 2, 3, 4, 5)
-  - [x] Créer `src/components/design-system/SegmentedTabs.tsx`
+- [x] Task 1: Create SegmentedTabs.tsx (AC: 1, 2, 3, 4, 5)
+  - [x] Create `src/components/design-system/SegmentedTabs.tsx`
   - [x] Props: tabs: { id: string, label: string }[], activeId, onChange
-  - [x] Styles actif/inactif
-- [x] Task 2: Export et tests (AC: 6)
-  - [x] Export depuis design-system
-  - [x] Test unitaire
+  - [x] Active/inactive styles
+- [x] Task 2: Export and tests (AC: 6)
+  - [x] Export from design-system
+  - [x] Unit test
 - [x] Task 3: Design System showcase (Story 14-1b)
-  - [x] Ajouter section SegmentedTabs dans DesignSystemShowcase avec démo interactive
+  - [x] Add SegmentedTabs section in DesignSystemShowcase with interactive demo
 
 ## Dev Notes
 
 - **Source:** design-system-convergence.md section 4.2
-- **Fichier:** `src/components/design-system/SegmentedTabs.tsx`
-- Props : tabs, activeId, onChange: (id: string) => void
+- **File:** `src/components/design-system/SegmentedTabs.tsx`
+- Props: tabs, activeId, onChange: (id: string) => void
 - Accessible: aria-selected, role="tablist"
 
 ### Project Structure Notes
@@ -61,12 +61,12 @@ Cursor / Composer
 
 ### Completion Notes List
 
-- SegmentedTabs créé avec props tabs, activeId, onChange
-- Styles: actif = gradient-tab-active, inactif = bg-slate-800 text-slate-400 hover:bg-slate-700
+- SegmentedTabs created with props tabs, activeId, onChange
+- Styles: active = gradient-tab-active, inactive = bg-slate-800 text-slate-400 hover:bg-slate-700
 - Accessible: role="tablist", role="tab", aria-selected
 - Export via src/components/design-system/index.ts
-- Démo interactive dans DesignSystemShowcase (filtres + onglets dashboard)
-- Test StatCard DesignSystemShowcase mis à jour (getAllByText pour "Matchs" car doublon avec SegmentedTabs)
+- Interactive demo in DesignSystemShowcase (filters + dashboard tabs)
+- StatCard DesignSystemShowcase test updated (getAllByText for "Matchs" due to SegmentedTabs duplicate)
 
 ### File List
 
@@ -78,4 +78,4 @@ Cursor / Composer
 
 ## Change Log
 
-- 2026-02-13: Story 14-3 implémentée — SegmentedTabs créé, exporté, testé, intégré au DesignSystemShowcase
+- 2026-02-13: Story 14-3 implemented — SegmentedTabs created, exported, tested, integrated into DesignSystemShowcase

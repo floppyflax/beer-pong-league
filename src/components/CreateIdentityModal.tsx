@@ -1,8 +1,8 @@
-import { useState, FormEvent } from 'react';
-import { X } from 'lucide-react';
-import { localUserService, type LocalUser } from '../services/LocalUserService';
-import { getDeviceFingerprint } from '../utils/deviceFingerprint';
-import { anonymousUserService } from '../services/AnonymousUserService';
+import { useState, useEffect, FormEvent } from "react";
+import { X } from "lucide-react";
+import { localUserService, type LocalUser } from "../services/LocalUserService";
+import { getDeviceFingerprint } from "../utils/deviceFingerprint";
+import { anonymousUserService } from "../services/AnonymousUserService";
 
 interface CreateIdentityModalProps {
   isOpen: boolean;
@@ -15,14 +15,23 @@ export const CreateIdentityModal = ({
   onClose,
   onIdentityCreated,
 }: CreateIdentityModalProps) => {
-  const [pseudo, setPseudo] = useState('');
+  const [pseudo, setPseudo] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!pseudo.trim()) return;
 
     setIsCreating(true);
@@ -34,19 +43,19 @@ export const CreateIdentityModal = ({
       // Create local user
       const localUser = localUserService.createLocalUser(
         pseudo.trim(),
-        deviceFingerprint
+        deviceFingerprint,
       );
 
       // Try to sync to Supabase (non-blocking)
       anonymousUserService.syncLocalUserToSupabase(localUser).catch((error) => {
-        console.warn('Failed to sync to Supabase (will retry later):', error);
+        console.warn("Failed to sync to Supabase (will retry later):", error);
       });
 
       onIdentityCreated(localUser);
-      setPseudo('');
+      setPseudo("");
       onClose();
     } catch (error) {
-      console.error('Error creating identity:', error);
+      console.error("Error creating identity:", error);
     } finally {
       setIsCreating(false);
     }
@@ -61,8 +70,9 @@ export const CreateIdentityModal = ({
             onClick={onClose}
             className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
             disabled={isCreating}
+            aria-label="Fermer"
           >
-            <X size={20} />
+            <X size={20} className="text-slate-400" />
           </button>
         </div>
 
@@ -91,13 +101,10 @@ export const CreateIdentityModal = ({
             disabled={!pseudo.trim() || isCreating}
             className="w-full bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-xl transition-colors"
           >
-            {isCreating ? 'Création...' : 'Créer mon profil'}
+            {isCreating ? "Création..." : "Créer mon profil"}
           </button>
         </form>
       </div>
     </div>
   );
 };
-
-
-

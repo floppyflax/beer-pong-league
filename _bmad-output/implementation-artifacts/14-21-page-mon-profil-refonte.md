@@ -1,28 +1,28 @@
-# Story 14.21: Page Mon profil (refonte)
+# Story 14.21: My profile page (overhaul)
 
 Status: ready-for-dev
 
 ## Story
 
 As a user,
-I want la page Mon profil alignée sur le design system,
-So que les éléments soient cohérents.
+I want the My profile page aligned with the design system,
+So that elements are consistent.
 
 ## Acceptance Criteria
 
-1. **Given** le design system
-   **When** je consulte Mon profil
-   **Then** la page est alignée sur les designs
+1. **Given** the design system
+   **When** I view My profile
+   **Then** the page is aligned with the designs
 2. Bottom nav visible
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Appliquer design system
+- [ ] Task 1: Apply design system
 - [ ] Task 2: Bottom nav (AC: 2)
 
 ## Dev Notes
 
-- **Fichier:** `src/pages/UserProfile.tsx`
+- **File:** `src/pages/UserProfile.tsx`
 
 ### References
 

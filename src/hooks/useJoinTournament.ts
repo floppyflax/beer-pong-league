@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseAvailable } from '../lib/supabase';
 import { useAuthContext } from '../context/AuthContext';
 import { useIdentity } from './useIdentity';
 import toast from 'react-hot-toast';
@@ -36,7 +36,7 @@ export const useJoinTournament = () => {
       }
 
       // Check Supabase availability (project-context requirement)
-      if (!supabase) {
+      if (!isSupabaseAvailable()) {
         throw new Error('Connexion internet requise pour rejoindre un tournoi');
       }
 

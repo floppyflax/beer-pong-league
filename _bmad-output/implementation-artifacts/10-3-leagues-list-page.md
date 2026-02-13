@@ -348,8 +348,10 @@ Successfully implemented the Leagues List page with all acceptance criteria met:
 **Database Note:**
 ⚠️ The `leagues` table doesn't currently have a `status` field. All leagues are treated as "active" in this implementation. A future migration should add `status` column to support finished leagues (similar to tournaments' `is_finished` field).
 
+**Design Note (Story 14-16):** AC1 originally specified "Bottom menu with CRÉER button". Implementation uses FAB (Floating Action Button) per design system 5.1 — migration applied in Story 14-16 for consistency with Tournaments page.
+
 **All Acceptance Criteria Satisfied:**
-✅ AC1: Page layout with header, search, filters, list, bottom menu
+✅ AC1: Page layout with header, search, filters, list, FAB (design system 5.1)
 ✅ AC2: League cards with name, owner badge, status, member count, tournament count, last activity
 ✅ AC3: Status filtering (Tous, Actifs, Terminés)
 ✅ AC4: Search functionality (debounced, case-insensitive)

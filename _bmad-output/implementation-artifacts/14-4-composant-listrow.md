@@ -1,54 +1,58 @@
-# Story 14.4: Composant ListRow
+# Story 14.4: ListRow component
 
 Status: review
 
 ## Story
 
 As a developer,
-I want un composant ListRow réutilisable,
-So que les lignes de liste (joueur, tournoi, league) soient cohérentes.
+I want a reusable ListRow component,
+So that list rows (player, tournament, league) are consistent.
 
 ## Acceptance Criteria
 
-1. **Given** le design system (section 4.3)
-   **When** j'utilise ListRow (joueur)
-   **Then** avatar circulaire ou placeholder initiales
-   **And** rang en pastille (1, 2, 3 avec or/argent/bronze)
-   **And** nom + sous-texte (W/L, winrate)
-   **And** ELO à droite + delta (vert/rouge)
-   **And** chevron ou flèche droite
+1. **Given** the design system (section 4.3)
+   **When** I use ListRow (player)
+   **Then** circular avatar or initials placeholder
+   **And** rank badge (1, 2, 3 with gold/silver/bronze)
+   **And** name + subtitle (W/L, winrate)
+   **And** optional 5 circles for last match results (green=win, red=loss)
+   **And** ELO on the right + delta (green/red)
+   **And** chevron or right arrow
+   **And** full width (`w-full`)
 
-2. **When** j'utilise ListRow (carte tournoi/league)
-   **Then** nom, date, statut (badge)
-   **And** métriques : Matchs, Joueurs, Format
-   **And** chevron droite
+2. **When** I use ListRow (tournament/league card)
+   **Then** name, date, status (badge)
+   **And** metrics: Matches, Players, Format
+   **And** right chevron
 
-3. Le composant supporte variants et est cliquable
+3. The component supports variants and is clickable
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Créer ListRow (variant player) (AC: 1)
-  - [x] Avatar/initiales
-  - [x] Rang pastille (or/argent/bronze pour 1,2,3)
-  - [x] Nom + sous-texte
+- [x] Task 1: Create ListRow (player variant) (AC: 1)
+  - [x] Avatar/initials
+  - [x] Rank badge (gold/silver/bronze for 1,2,3)
+  - [x] Name + subtitle
+  - [x] recentResults: 5 cercles vert/rouge (derniers matchs)
   - [x] ELO + delta
   - [x] Chevron
-- [x] Task 2: ListRow (variant tournament/league) (AC: 2)
-  - [x] Nom, date, badge statut
-  - [x] Métriques
+  - [x] Full width (w-full)
+- [x] Task 2: ListRow (tournament/league variant) (AC: 2)
+  - [x] Name, date, status badge
+  - [x] Metrics
   - [x] Chevron
-- [x] Task 3: Props et cliquabilité (AC: 3)
+- [x] Task 3: Props and clickability (AC: 3)
   - [x] onClick, variant
-  - [x] Export et tests
+  - [x] Export and tests
 - [x] Task 4: Design System showcase (Story 14-1b)
-  - [x] Ajouter section ListRow dans DesignSystemShowcase (variants player, tournament, league)
+  - [x] Add ListRow section in DesignSystemShowcase (player, tournament, league variants)
 
 ## Dev Notes
 
 - **Source:** design-system-convergence.md section 4.3
-- **Fichier:** `src/components/design-system/ListRow.tsx`
-- Props selon variant: player (avatar, rank, name, subtitle, elo, delta), tournament/league (name, date, status, metrics)
-- Référence: screens Frame 3 (Mes tournois), Frame 7 (Mes leagues)
+- **File:** `src/components/design-system/ListRow.tsx`
+- Props per variant: player (avatar, rank, name, subtitle, elo, delta, recentResults?), tournament/league (name, date, status, metrics)
+- Reference: screens Frame 3 (My tournaments), Frame 7 (My leagues)
 
 ### Project Structure Notes
 
@@ -67,12 +71,12 @@ So que les lignes de liste (joueur, tournoi, league) soient cohérentes.
 
 ### Completion Notes List
 
-- Implémentation ListRow avec variants player, tournament, league (design-system-convergence.md 4.3)
-- Props union typées : ListRowPlayerProps | ListRowTournamentProps | ListRowLeagueProps
-- Variant player : avatar/initiales, rang pastille (or/argent/bronze), nom, subtitle, ELO, delta (vert/rouge), chevron
-- Variant tournament/league : nom, date, badge statut, métriques (matchs, joueurs, format), chevron
-- onClick optionnel pour cliquabilité
-- 14 tests unitaires, section DesignSystemShowcase
+- ListRow implementation with player, tournament, league variants (design-system-convergence.md 4.3)
+- Typed props union: ListRowPlayerProps | ListRowTournamentProps | ListRowLeagueProps
+- Player variant: avatar/initials, rank badge (gold/silver/bronze), name, subtitle, recentResults (5 cercles vert/rouge), ELO, delta (green/red), chevron, full width
+- Tournament/league variant: name, date, status badge, metrics (matches, players, format), chevron
+- Optional onClick for clickability
+- 15 unit tests (incl. recentResults), DesignSystemShowcase section
 
 ### File List
 
@@ -84,4 +88,5 @@ So que les lignes de liste (joueur, tournoi, league) soient cohérentes.
 
 ## Change Log
 
-- 2026-02-13: Story 14-4 implémentée — composant ListRow avec variants player, tournament, league
+- 2026-02-13: Story 14-4 implemented — ListRow component with player, tournament, league variants
+- 2026-02-13: Ajout recentResults (5 cercles vert/rouge), full width (w-full)

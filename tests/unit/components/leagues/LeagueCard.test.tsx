@@ -1,41 +1,41 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BrowserRouter } from 'react-router-dom';
-import { LeagueCard } from '../../../../src/components/leagues/LeagueCard';
-import type { LeagueListItem } from '../../../../src/hooks/useLeaguesList';
+import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { BrowserRouter } from "react-router-dom";
+import { LeagueCard } from "../../../../src/components/leagues/LeagueCard";
+import type { LeagueListItem } from "../../../../src/hooks/useLeaguesList";
 
 const mockNavigate = vi.fn();
 
 // Mock dependencies
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
   return {
     ...actual,
     useNavigate: () => mockNavigate,
   };
 });
 
-vi.mock('../../../../src/context/AuthContext', () => ({
+vi.mock("../../../../src/context/AuthContext", () => ({
   useAuthContext: vi.fn(),
 }));
 
-vi.mock('../../../../src/hooks/useIdentity', () => ({
+vi.mock("../../../../src/hooks/useIdentity", () => ({
   useIdentity: vi.fn(),
 }));
 
-import { useAuthContext } from '../../../../src/context/AuthContext';
-import { useIdentity } from '../../../../src/hooks/useIdentity';
+import { useAuthContext } from "../../../../src/context/AuthContext";
+import { useIdentity } from "../../../../src/hooks/useIdentity";
 
-describe('LeagueCard', () => {
+describe("LeagueCard", () => {
   const mockLeague: LeagueListItem = {
-    id: 'league-1',
-    name: 'Test League',
-    status: 'active',
-    creator_user_id: 'user-1',
+    id: "league-1",
+    name: "Test League",
+    status: "active",
+    creator_user_id: "user-1",
     creator_anonymous_user_id: null,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-15T00:00:00Z',
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
     member_count: 5,
     tournament_count: 3,
   };
@@ -43,7 +43,7 @@ describe('LeagueCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useAuthContext).mockReturnValue({
-      user: { id: 'user-2', email: 'test@example.com', user_metadata: {} },
+      user: { id: "user-2", email: "test@example.com", user_metadata: {} },
       loading: false,
       signIn: vi.fn(),
       signOut: vi.fn(),
@@ -56,23 +56,28 @@ describe('LeagueCard', () => {
     });
   });
 
-  it('should render league information correctly', () => {
+  it("should render league information correctly", () => {
     render(
       <BrowserRouter>
         <LeagueCard league={mockLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    expect(screen.getByText('Test League')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('5 membres')).toBeInTheDocument();
-    expect(screen.getByText('3 tournois')).toBeInTheDocument();
-    expect(screen.getByText(/Dernière activité/)).toBeInTheDocument();
+    expect(screen.getByText("Test League")).toBeInTheDocument();
+    expect(screen.getByText("ACTIF")).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument();
+    expect(screen.getByText("Membres")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("Tournois")).toBeInTheDocument();
+    expect(screen.getByText(/Créée le/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /voir la league/i }),
+    ).toBeInTheDocument();
   });
 
-  it('should display owner badge when user is the creator', () => {
+  it("should display owner badge when user is the creator", () => {
     vi.mocked(useAuthContext).mockReturnValue({
-      user: { id: 'user-1', email: 'owner@example.com', user_metadata: {} },
+      user: { id: "user-1", email: "owner@example.com", user_metadata: {} },
       loading: false,
       signIn: vi.fn(),
       signOut: vi.fn(),
@@ -82,27 +87,27 @@ describe('LeagueCard', () => {
     render(
       <BrowserRouter>
         <LeagueCard league={mockLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    expect(screen.getByText('👑 Propriétaire')).toBeInTheDocument();
+    expect(screen.getByText("👑 Propriétaire")).toBeInTheDocument();
   });
 
-  it('should NOT display owner badge when user is not the creator', () => {
+  it("should NOT display owner badge when user is not the creator", () => {
     render(
       <BrowserRouter>
         <LeagueCard league={mockLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    expect(screen.queryByText('👑 Propriétaire')).not.toBeInTheDocument();
+    expect(screen.queryByText("👑 Propriétaire")).not.toBeInTheDocument();
   });
 
-  it('should display owner badge for anonymous user creator', () => {
+  it("should display owner badge for anonymous user creator", () => {
     const anonymousLeague: LeagueListItem = {
       ...mockLeague,
       creator_user_id: null,
-      creator_anonymous_user_id: 'anon-1',
+      creator_anonymous_user_id: "anon-1",
     };
 
     vi.mocked(useAuthContext).mockReturnValue({
@@ -114,7 +119,11 @@ describe('LeagueCard', () => {
     });
 
     vi.mocked(useIdentity).mockReturnValue({
-      localUser: { anonymousUserId: 'anon-1', pseudo: 'Anon User', createdAt: '' },
+      localUser: {
+        anonymousUserId: "anon-1",
+        pseudo: "Anon User",
+        createdAt: "",
+      },
       isLoading: false,
       createIdentity: vi.fn(),
       updateIdentity: vi.fn(),
@@ -125,42 +134,42 @@ describe('LeagueCard', () => {
     render(
       <BrowserRouter>
         <LeagueCard league={anonymousLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    expect(screen.getByText('👑 Propriétaire')).toBeInTheDocument();
+    expect(screen.getByText("👑 Propriétaire")).toBeInTheDocument();
   });
 
-  it('should display "Terminée" badge for finished league', () => {
+  it('should display "TERMINÉE" badge for finished league', () => {
     const finishedLeague: LeagueListItem = {
       ...mockLeague,
-      status: 'finished',
+      status: "finished",
     };
 
     render(
       <BrowserRouter>
         <LeagueCard league={finishedLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    expect(screen.getByText('Terminée')).toBeInTheDocument();
+    expect(screen.getByText("TERMINÉE")).toBeInTheDocument();
   });
 
-  it('should navigate to league detail page when clicked', async () => {
+  it("should navigate to league detail page when clicked", async () => {
     const user = userEvent.setup();
     render(
       <BrowserRouter>
         <LeagueCard league={mockLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    const card = screen.getByTestId('league-card');
+    const card = screen.getByTestId("league-card");
     await user.click(card);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/league/league-1');
+    expect(mockNavigate).toHaveBeenCalledWith("/league/league-1");
   });
 
-  it('should handle singular member count', () => {
+  it("should handle singular member count", () => {
     const singleMemberLeague: LeagueListItem = {
       ...mockLeague,
       member_count: 1,
@@ -169,13 +178,14 @@ describe('LeagueCard', () => {
     render(
       <BrowserRouter>
         <LeagueCard league={singleMemberLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    expect(screen.getByText('1 membre')).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("Membre")).toBeInTheDocument();
   });
 
-  it('should handle singular tournament count', () => {
+  it("should handle singular tournament count", () => {
     const singleTournamentLeague: LeagueListItem = {
       ...mockLeague,
       tournament_count: 1,
@@ -184,13 +194,14 @@ describe('LeagueCard', () => {
     render(
       <BrowserRouter>
         <LeagueCard league={singleTournamentLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    expect(screen.getByText('1 tournoi')).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("Tournoi")).toBeInTheDocument();
   });
 
-  it('should handle zero members and tournaments', () => {
+  it("should handle zero members and tournaments", () => {
     const emptyLeague: LeagueListItem = {
       ...mockLeague,
       member_count: 0,
@@ -200,51 +211,82 @@ describe('LeagueCard', () => {
     render(
       <BrowserRouter>
         <LeagueCard league={emptyLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    expect(screen.getByText('0 membres')).toBeInTheDocument();
-    expect(screen.getByText('0 tournois')).toBeInTheDocument();
+    const zeros = screen.getAllByText("0");
+    expect(zeros).toHaveLength(2);
+    expect(screen.getByText("Membres")).toBeInTheDocument();
+    expect(screen.getByText("Tournois")).toBeInTheDocument();
   });
 
-  it('should display correct styling for active league', () => {
+  it("should display correct styling for active league", () => {
     render(
       <BrowserRouter>
         <LeagueCard league={mockLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    const statusBadge = screen.getByText('Active');
-    expect(statusBadge).toHaveClass('bg-primary/20');
-    expect(statusBadge).toHaveClass('text-primary');
+    const statusBadge = screen.getByText("ACTIF");
+    expect(statusBadge).toHaveClass("bg-green-500/20");
+    expect(statusBadge).toHaveClass("text-green-400");
   });
 
-  it('should display correct styling for finished league', () => {
+  it("should display correct styling for finished league", () => {
     const finishedLeague: LeagueListItem = {
       ...mockLeague,
-      status: 'finished',
+      status: "finished",
     };
 
     render(
       <BrowserRouter>
         <LeagueCard league={finishedLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    const statusBadge = screen.getByText('Terminée');
-    expect(statusBadge).toHaveClass('bg-slate-700');
-    expect(statusBadge).toHaveClass('text-slate-300');
+    const statusBadge = screen.getByText("TERMINÉE");
+    expect(statusBadge).toHaveClass("bg-slate-700");
+    expect(statusBadge).toHaveClass("text-slate-300");
   });
 
-  it('should apply hover and cursor styles', () => {
+  it("should apply hover and cursor styles", () => {
     render(
       <BrowserRouter>
         <LeagueCard league={mockLeague} />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
 
-    const card = screen.getByTestId('league-card');
-    expect(card).toHaveClass('cursor-pointer');
-    expect(card).toHaveClass('hover:border-primary');
+    const card = screen.getByTestId("league-card");
+    expect(card).toHaveClass("cursor-pointer");
+    expect(card).toHaveClass("hover:border-primary");
+  });
+
+  it("should display 'Date inconnue' when createdAt is invalid", () => {
+    const invalidDateLeague: LeagueListItem = {
+      ...mockLeague,
+      createdAt: "",
+    };
+
+    render(
+      <BrowserRouter>
+        <LeagueCard league={invalidDateLeague} />
+      </BrowserRouter>,
+    );
+
+    expect(screen.getByText(/Date inconnue/)).toBeInTheDocument();
+  });
+
+  it("should use gradient-card and be keyboard accessible", () => {
+    render(
+      <BrowserRouter>
+        <LeagueCard league={mockLeague} />
+      </BrowserRouter>,
+    );
+
+    const card = screen.getByTestId("league-card");
+    expect(card).toHaveClass("bg-gradient-card");
+    expect(card).toHaveAttribute("role", "button");
+    expect(card).toHaveAttribute("tabindex", "0");
+    expect(card).toHaveAttribute("aria-label", "Voir la league Test League");
   });
 });

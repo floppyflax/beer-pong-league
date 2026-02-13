@@ -44,9 +44,9 @@ describe("navigationHelpers", () => {
       expect(shouldShowBottomMenu("/unknown")).toBe(false);
     });
 
-    it("should return false for sub-routes of tournament/league (invite, join)", () => {
-      expect(shouldShowBottomMenu("/tournament/123/invite")).toBe(false);
-      expect(shouldShowBottomMenu("/tournament/123/join")).toBe(false);
+    it("should return true for tournament invite/join sub-routes (Story 14-14, design-system 5.5)", () => {
+      expect(shouldShowBottomMenu("/tournament/123/invite")).toBe(true);
+      expect(shouldShowBottomMenu("/tournament/123/join")).toBe(true);
     });
   });
 
@@ -64,8 +64,19 @@ describe("navigationHelpers", () => {
 
     it("should return pb-36 for pages with BottomMenuSpecific", () => {
       expect(getContentPaddingBottom("/join")).toContain("pb-36");
-      expect(getContentPaddingBottom("/tournaments")).toContain("pb-36");
-      expect(getContentPaddingBottom("/leagues")).toContain("pb-36");
+      // Story 14-12: /tournaments uses FAB instead of BottomMenuSpecific → pb-20
+      // Story 14-16: /leagues uses FAB instead of BottomMenuSpecific → pb-20
+      expect(getContentPaddingBottom("/tournaments")).toContain("pb-20");
+      expect(getContentPaddingBottom("/leagues")).toContain("pb-20");
+    });
+
+    it("should return pb-20 for tournament invite/join sub-routes (Story 14-14)", () => {
+      expect(getContentPaddingBottom("/tournament/123/invite")).toContain(
+        "pb-20",
+      );
+      expect(getContentPaddingBottom("/tournament/123/join")).toContain(
+        "pb-20",
+      );
     });
   });
 
@@ -82,12 +93,12 @@ describe("navigationHelpers", () => {
       expect(shouldShowBackButton("/join")).toBe(true);
     });
 
-    it("should return true for tournaments route", () => {
-      expect(shouldShowBackButton("/tournaments")).toBe(true);
+    it("should return false for tournaments route (main nav, Story 14-12)", () => {
+      expect(shouldShowBackButton("/tournaments")).toBe(false);
     });
 
-    it("should return true for leagues route", () => {
-      expect(shouldShowBackButton("/leagues")).toBe(true);
+    it("should return false for leagues route (main nav, Story 14-16)", () => {
+      expect(shouldShowBackButton("/leagues")).toBe(false);
     });
 
     it("should return true for tournament detail pages", () => {

@@ -21,4 +21,10 @@ describe('extractCodeFromQR', () => {
     expect(extractCodeFromQR('abc123')).toBe('ABC123');
     expect(extractCodeFromQR('https://bpl.com?code=xyz789')).toBe('XYZ789');
   });
+
+  it('should return empty string for invalid QR (no valid 6-8 char code)', () => {
+    expect(extractCodeFromQR('https://example.com/tournament/123/join')).toBe('');
+    expect(extractCodeFromQR('ABC')).toBe('');
+    expect(extractCodeFromQR('join')).toBe('');
+  });
 });

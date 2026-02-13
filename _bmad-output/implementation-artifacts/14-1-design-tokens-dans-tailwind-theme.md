@@ -1,68 +1,68 @@
-# Story 14.1: Design tokens dans Tailwind / thème
+# Story 14.1: Design tokens in Tailwind / theme
 
 Status: done
 
 ## Story
 
 As a developer,
-I want design tokens centralisés (couleurs, typo, radius, espacements),
-So that l'application a une base visuelle cohérente et facile à maintenir.
+I want centralized design tokens (colors, typography, radius, spacing),
+So that the application has a consistent and maintainable visual base.
 
 ## Acceptance Criteria
 
-1. **Given** le design system (design-system-convergence.md section 3)
-   **When** j'implémente les tokens
-   **Then** les couleurs sont définies (fond slate-900/800/700, texte, accents primaire/succès/erreur/ELO)
+1. **Given** the design system (design-system-convergence.md section 3)
+   **When** I implement the tokens
+   **Then** colors are defined (background slate-900/800/700, text, primary/success/error/ELO accents)
 
-2. Les gradients sont définis (CTA, FAB, onglet actif)
+2. Gradients are defined (CTA, FAB, active tab)
 
-3. La typographie est définie (titres page, section, corps, labels, stats)
+3. Typography is defined (page titles, section titles, body, labels, stats)
 
-4. Les espacements sont définis (padding page, gap cartes, margin bottom nav)
+4. Spacing is defined (page padding, card gap, bottom nav margin)
 
-5. Les radius et bordures sont définis (cartes, boutons, inputs)
+5. Radius and borders are defined (cards, buttons, inputs)
 
-6. Les tokens sont dans `tailwind.config.js` ou fichier thème dédié
+6. Tokens are in `tailwind.config.js` or dedicated theme file
 
-7. Les tokens sont utilisables via classes Tailwind existantes ou variables CSS
+7. Tokens are usable via existing Tailwind classes or CSS variables
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Couleurs (AC: 1)
-  - [x] Définir fonds: slate-900, slate-800, slate-700
-  - [x] Définir texte: white, slate-300, slate-400, slate-500
-  - [x] Définir accents: primaire, succès, erreur, ELO, info
-  - [x] Définir sémantique: statut actif, terminé, delta ELO
+- [x] Task 1: Colors (AC: 1)
+  - [x] Define backgrounds: slate-900, slate-800, slate-700
+  - [x] Define text: white, slate-300, slate-400, slate-500
+  - [x] Define accents: primary, success, error, ELO, info
+  - [x] Define semantic: active status, finished, ELO delta
 - [x] Task 2: Gradients (AC: 2)
-  - [x] CTA principal: amber→yellow ou blue→violet
-  - [x] FAB / boutons: blue-500→violet-600
-  - [x] Onglet actif
-- [x] Task 3: Typographie (AC: 3)
-  - [x] Titres page: text-xl/2xl, font-bold
-  - [x] Titres section: text-lg font-bold
-  - [x] Corps, labels, stats
-- [x] Task 4: Espacements (AC: 4)
-  - [x] Padding page: p-4, p-6
-  - [x] Gap cartes: gap-4, gap-6
-  - [x] Margin bottom nav: pb-20, pb-24
-- [x] Task 5: Radius et bordures (AC: 5)
+  - [x] Primary CTA: amber→yellow or blue→violet
+  - [x] FAB / buttons: blue-500→violet-600
+  - [x] Active tab
+- [x] Task 3: Typography (AC: 3)
+  - [x] Page titles: text-xl/2xl, font-bold
+  - [x] Section titles: text-lg font-bold
+  - [x] Body, labels, stats
+- [x] Task 4: Spacing (AC: 4)
+  - [x] Page padding: p-4, p-6
+  - [x] Card gap: gap-4, gap-6
+  - [x] Bottom nav margin: pb-20, pb-24
+- [x] Task 5: Radius and borders (AC: 5)
   - [x] rounded-xl, rounded-lg
   - [x] border-slate-700
-- [x] Task 6: Intégration Tailwind (AC: 6, 7)
-  - [x] Mettre à jour tailwind.config.js
-  - [x] Vérifier cohérence avec screens Frame 1–11
+- [x] Task 6: Tailwind integration (AC: 6, 7)
+  - [x] Update tailwind.config.js
+  - [x] Verify consistency with screens Frame 1–11
 
 ## Dev Notes
 
-- **Source:** `_bmad-output/planning-artifacts/design-system-convergence.md` sections 3.1 à 3.6
-- Vérifier `tailwind.config.js` existant pour extensions (theme.extend)
-- Projet: Vite + React + Tailwind CSS
-- Ne pas casser les styles existants — migration progressive
+- **Source:** `_bmad-output/planning-artifacts/design-system-convergence.md` sections 3.1 to 3.6
+- Check existing `tailwind.config.js` for extensions (theme.extend)
+- Project: Vite + React + Tailwind CSS
+- Do not break existing styles — progressive migration
 
 ### Project Structure Notes
 
-- `tailwind.config.js` à la racine
-- Optionnel: `src/styles/design-tokens.css` pour variables CSS si besoin
+- `tailwind.config.js` at root
+- Optional: `src/styles/design-tokens.css` for CSS variables if needed
 
 ### References
 
@@ -79,17 +79,17 @@ Composer (dev-story workflow)
 
 ### Completion Notes List
 
-- Design tokens centralisés dans `tailwind.config.js` (theme.extend)
-- Couleurs: background (primary/secondary/tertiary), text (primary/secondary/tertiary/muted), accents (primary, success, error, elo, info), sémantique (status-active, status-finished, delta-positive/negative)
+- Design tokens centralized in `tailwind.config.js` (theme.extend)
+- Colors: background (primary/secondary/tertiary), text (primary/secondary/tertiary/muted), accents (primary, success, error, elo, info), semantic (status-active, status-finished, delta-positive/negative)
 - Gradients: gradient-cta, gradient-cta-alt, gradient-fab, gradient-tab-active
-- Typographie: page-title, section-title, body, label, stat
-- Espacements: page, page-lg, card-gap, bottom-nav, bottom-nav-lg
+- Typography: page-title, section-title, body, label, stat
+- Spacing: page, page-lg, card-gap, bottom-nav, bottom-nav-lg
 - Radius: card (rounded-xl), button (rounded-lg), input (rounded-xl)
-- Bordures: border-card, border-card-muted
-- Screens: sm/md/lg/xl alignés avec Frame 1–11
-- Variables CSS dans `src/styles/design-tokens.css` pour usage optionnel
-- primary conservé en amber pour migration progressive (compatibilité existante)
-- 9 tests unitaires validant la structure du thème
+- Borders: border-card, border-card-muted
+- Screens: sm/md/lg/xl aligned with Frame 1–11
+- CSS variables in `src/styles/design-tokens.css` for optional use
+- primary kept as amber for progressive migration (existing compatibility)
+- 9 unit tests validating theme structure
 
 ### File List
 
@@ -106,37 +106,38 @@ Composer (dev-story workflow)
 
 ### Summary
 
-- **Git vs Story:** File List cohérent avec les changements (tailwind.config.js, design-tokens.css, index.css, tests)
-- **ACs:** Tous implémentés
-- **Tasks:** Tous réalisés
+- **Git vs Story:** File List consistent with changes (tailwind.config.js, design-tokens.css, index.css, tests)
+- **ACs:** All implemented
+- **Tasks:** All completed
 
-### Action Items (résolus automatiquement)
+### Action Items (resolved automatically)
 
-- [x] **[HIGH]** Typographie: `page-title` et `page-title-lg` étaient identiques (1.5rem). Spec: text-xl mobile = 1.25rem, text-2xl desktop = 1.5rem. Corrigé: page-title = 1.25rem [tailwind.config.js]
-- [x] **[MEDIUM]** design-tokens.css: variables de gradient manquantes pour parité avec Tailwind. Ajout de --gradient-cta et --gradient-fab [src/styles/design-tokens.css]
-- [x] **[MEDIUM]** Tests: ajout d’assertions sur les tailles typo (page-title 1.25rem, page-title-lg 1.5rem) [tests/unit/config/tailwind-design-tokens.test.ts]
+- [x] **[HIGH]** Typography: `page-title` and `page-title-lg` were identical (1.5rem). Spec: text-xl mobile = 1.25rem, text-2xl desktop = 1.5rem. Fixed: page-title = 1.25rem [tailwind.config.js]
+- [x] **[MEDIUM]** design-tokens.css: missing gradient variables for parity with Tailwind. Added --gradient-cta and --gradient-fab [src/styles/design-tokens.css]
+- [x] **[MEDIUM]** Tests: added assertions on typography sizes (page-title 1.25rem, page-title-lg 1.5rem) [tests/unit/config/tailwind-design-tokens.test.ts]
 
 ### Code Review (AI) - 2026-02-13 (Batch)
 
 #### ✅ FIXED: design-tokens.css gradient parity (MEDIUM)
+
 **Issue:** --gradient-cta-alt and --gradient-tab-active missing from CSS variables.  
 **Fix:** Added both variables to design-tokens.css.  
 **File:** `src/styles/design-tokens.css`
 
-### Action Items (reste — LOW)
+### Action Items (remaining — LOW)
 
-- [ ] [AI-Review][LOW] Aucun composant n’utilise encore les nouveaux tokens (bg-background-primary, text-text-primary, etc.). Migration progressive prévue — documenter l’usage dans les Dev Notes ou un README design-tokens.
-- [ ] [AI-Review][LOW] Tests ne valident pas la sortie CSS réelle (computed styles). Les tests vérifient uniquement la structure du config. Optionnel: test d’intégration avec rendu DOM.
+- [ ] [AI-Review][LOW] No component uses the new tokens yet (bg-background-primary, text-text-primary, etc.). Progressive migration planned — document usage in Dev Notes or a design-tokens README.
+- [ ] [AI-Review][LOW] Tests do not validate actual CSS output (computed styles). Tests only verify config structure. Optional: integration test with DOM rendering.
 
 ### Review Notes
 
-- Tokens bien structurés, alignés avec design-system-convergence.md
-- primary conservé en amber pour compatibilité — choix pertinent
-- 9 tests unitaires passent
+- Tokens well structured, aligned with design-system-convergence.md
+- primary kept as amber for compatibility — relevant choice
+- 9 unit tests pass
 
 ---
 
 ## Change Log
 
-- 2026-02-13: Implémentation complète des design tokens (Story 14-1). Tokens dans tailwind.config.js + design-tokens.css. Tests unitaires ajoutés.
-- 2026-02-13: Code review — 3 issues corrigés (typographie page-title, gradients CSS, tests typo). 2 items LOW restants (doc usage, test CSS output).
+- 2026-02-13: Full implementation of design tokens (Story 14-1). Tokens in tailwind.config.js + design-tokens.css. Unit tests added.
+- 2026-02-13: Code review — 3 issues fixed (page-title typography, CSS gradients, typo tests). 2 LOW items remaining (usage doc, CSS output test).

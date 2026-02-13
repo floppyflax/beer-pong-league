@@ -1,48 +1,48 @@
-# Story 14.6: Composant FAB (Floating Action Button)
+# Story 14.6: FAB component (Floating Action Button)
 
 Status: review
 
 ## Story
 
 As a developer,
-I want un composant FAB réutilisable,
-So que les actions principales (Créer tournoi, Nouveau match) soient cohérentes.
+I want a reusable FAB component,
+So that primary actions (Create tournament, New match) are consistent.
 
 ## Acceptance Criteria
 
-1. **Given** le design system (sections 2.2, 4.5)
-   **When** j'utilise FAB
-   **Then** taille : 56px (mobile), 64px (desktop)
+1. **Given** the design system (sections 2.2, 4.5)
+   **When** I use FAB
+   **Then** size: 56px (mobile), 64px (desktop)
 
-2. Fond : gradient `from-blue-500 to-violet-600`
+2. Background: gradient `from-blue-500 to-violet-600`
 
-3. Icône : blanche, 24px
+3. Icon: white, 24px
 
-4. Ombre : `shadow-lg`
+4. Shadow: `shadow-lg`
 
-5. Position : `fixed bottom-20 right-4` (au-dessus bottom nav)
+5. Position: `fixed bottom-20 right-4` (above bottom nav)
 
-6. Props : icon, onClick, ariaLabel, variant? (primary, secondary)
+6. Props: icon, onClick, ariaLabel, variant? (primary, secondary)
 
-7. Le composant est exporté et documenté
+7. The component is exported and documented
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Créer FAB.tsx (AC: 1-6)
-  - [x] Créer `src/components/design-system/FAB.tsx`
+- [x] Task 1: Create FAB.tsx (AC: 1-6)
+  - [x] Create `src/components/design-system/FAB.tsx`
   - [x] Props: icon, onClick, ariaLabel, variant?
-  - [x] Styles gradient, taille responsive
-- [x] Task 2: Intégration BeerPongMatchIcon (AC: 7)
-  - [x] Documenter usage avec BeerPongMatchIcon pour "Nouveau match"
+  - [x] Gradient styles, responsive size
+- [x] Task 2: BeerPongMatchIcon integration (AC: 7)
+  - [x] Document usage with BeerPongMatchIcon for "New match"
 - [x] Task 3: Design System showcase (Story 14-1b)
-  - [x] Ajouter section FAB dans DesignSystemShowcase (variants primary/secondary)
+  - [x] Add FAB section in DesignSystemShowcase (primary/secondary variants)
 
 ## Dev Notes
 
 - **Source:** design-system-convergence.md sections 2.2, 4.5
-- **Fichier:** `src/components/design-system/FAB.tsx`
-- BeerPongMatchIcon déjà dans `src/components/icons/BeerPongMatchIcon.tsx`
-- Position fixed: bottom-20 right-4 (au-dessus bottom nav ~64px)
+- **File:** `src/components/design-system/FAB.tsx`
+- BeerPongMatchIcon already in `src/components/icons/BeerPongMatchIcon.tsx`
+- Fixed position: bottom-20 right-4 (above bottom nav ~64px)
 
 ### Project Structure Notes
 
@@ -61,11 +61,11 @@ So que les actions principales (Créer tournoi, Nouveau match) soient cohérente
 
 ### Completion Notes List
 
-- FAB.tsx créé avec props icon, onClick, ariaLabel, variant (primary/secondary), inline (showcase)
-- Gradient bg-gradient-fab (blue-500 → violet-600), taille w-14 h-14 (56px) md:w-16 md:h-16 (64px)
-- JSDoc documente usage BeerPongMatchIcon pour "Nouveau match"
-- DesignSystemShowcase: section FAB avec variants primary/secondary et BeerPongMatchIcon
-- 10 tests unitaires passent
+- FAB.tsx created with props icon, onClick, ariaLabel, variant (primary/secondary), inline (showcase)
+- Gradient bg-gradient-fab (blue-500 → violet-600), size w-14 h-14 (56px) md:w-16 md:h-16 (64px)
+- JSDoc documents BeerPongMatchIcon usage for "New match"
+- DesignSystemShowcase: FAB section with primary/secondary variants and BeerPongMatchIcon
+- 10 unit tests pass
 
 ### File List
 
@@ -76,4 +76,4 @@ So que les actions principales (Créer tournoi, Nouveau match) soient cohérente
 
 ## Change Log
 
-- 2026-02-13: Implémentation complète — FAB.tsx, tests, showcase, export barrel
+- 2026-02-13: Full implementation — FAB.tsx, tests, showcase, barrel export

@@ -1,28 +1,28 @@
-# Story 14.23: Page Rejoindre (scan + code)
+# Story 14.23: Join page (scan + code)
 
 Status: ready-for-dev
 
 ## Story
 
 As a user,
-I want la page Rejoindre (scan, code) alignée sur le design system,
-So que le flow d'entrée soit cohérent.
+I want the Join (scan, code) page aligned with the design system,
+So that the entry flow is consistent.
 
 ## Acceptance Criteria
 
-1. **Given** le design system
-   **When** je suis sur Rejoindre (scan + code)
-   **Then** la page correspond aux designs Frame 2
+1. **Given** the design system
+   **When** I am on Join (scan + code)
+   **Then** the page matches designs Frame 2
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Appliquer design system
-- [ ] Task 2: Alignement Frame 2
+- [ ] Task 1: Apply design system
+- [ ] Task 2: Frame 2 alignment
 
 ## Dev Notes
 
-- **Fichier:** `src/pages/Join.tsx`
-- Scan QR + saisie code
+- **File:** `src/pages/Join.tsx`
+- QR scan + code entry
 
 ### References
 

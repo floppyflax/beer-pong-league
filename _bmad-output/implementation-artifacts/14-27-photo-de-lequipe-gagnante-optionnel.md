@@ -1,40 +1,40 @@
-# Story 14.27: Photo de l'équipe gagnante (optionnel)
+# Story 14.27: Winning team photo (optional)
 
 Status: ready-for-dev
 
 ## Story
 
 As a player,
-I want ajouter optionnellement une photo de l'équipe gagnante,
-So que j'aie un souvenir du match.
+I want to optionally add a photo of the winning team,
+So that I have a souvenir of the match.
 
 ## Acceptance Criteria
 
-1. **Given** j'ai sélectionné le gagnant
-   **When** le formulaire affiche les options
-   **Then** bouton optionnel "Photo" (prise ou galerie)
+1. **Given** I have selected the winner
+   **When** the form displays the options
+   **Then** optional "Photo" button (camera or gallery)
 
-2. Photo uploadée vers Supabase Storage
+2. Photo uploaded to Supabase Storage
 
-3. URL stockée dans `photo_url`
+3. URL stored in `photo_url`
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Capture photo (AC: 1)
+- [ ] Task 1: Photo capture (AC: 1)
   - [ ] input type="file" accept="image/\*" capture="environment"
-  - [ ] Ou navigator.mediaDevices.getUserMedia
-  - [ ] Gestion permissions
-- [ ] Task 2: Upload Supabase Storage (AC: 2)
+  - [ ] Or navigator.mediaDevices.getUserMedia
+  - [ ] Permission handling
+- [ ] Task 2: Supabase Storage upload (AC: 2)
   - [ ] Bucket match-photos
-  - [ ] Upload après création match (matchId)
-  - [ ] Compression optionnelle mobile
-- [ ] Task 3: Persistance (AC: 3)
-  - [ ] URL publique dans matches.photo_url
+  - [ ] Upload after match creation (matchId)
+  - [ ] Optional mobile compression
+- [ ] Task 3: Persistence (AC: 3)
+  - [ ] Public URL in matches.photo_url
 
 ## Dev Notes
 
-- **Fichier:** `src/components/MatchRecordingForm.tsx`
-- Dépend: 14.24 (schema), 14.25 (choix gagnant)
+- **File:** `src/components/MatchRecordingForm.tsx`
+- Depends: 14.24 (schema), 14.25 (winner selection)
 - design-system-convergence sections 7.2, 7.3
 
 ### References

@@ -38,6 +38,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Une erreur est survenue';
       setError(message);
+    } finally {
       setIsLoading(false);
     }
   };
