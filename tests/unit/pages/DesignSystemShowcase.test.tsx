@@ -43,8 +43,12 @@ describe("DesignSystemShowcase", () => {
   it("should render gradient-card token and sample card (Story 14-29)", () => {
     renderWithRouter();
     expect(screen.getByText("gradient-card")).toBeInTheDocument();
+    const sampleCard = screen.getByText(
+      /Exemple de carte avec bg-gradient-card/,
+    );
+    expect(sampleCard).toBeInTheDocument();
     expect(
-      screen.getByText(/Exemple de carte avec bg-gradient-card/),
+      sampleCard.closest("[class*='bg-gradient-card']"),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Tournoi d'été · 8 joueurs · En cours/),
@@ -170,5 +174,11 @@ describe("DesignSystemShowcase", () => {
     fireEvent.click(tournamentsTab);
     expect(tournamentsTab).toHaveAttribute("aria-current", "page");
     expect(homeTab).not.toHaveAttribute("aria-current");
+  });
+
+  it("should display active tab with gradient in BottomTabMenu preview (AC6, Story 14-32)", () => {
+    renderWithRouter();
+    const homeTab = screen.getByLabelText("Home");
+    expect(homeTab).toHaveClass("bg-gradient-tab-active");
   });
 });

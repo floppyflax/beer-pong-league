@@ -132,22 +132,22 @@ development_status:
   14-4-composant-listrow: done # code review complete
   14-5-composant-infocard: done # code review complete
   14-6-composant-fab: done # code review complete
-  14-7-composant-banner: review
+  14-7-composant-banner: done
   14-8-composant-searchbar: done
   14-9-icone-identitaire-beerpongmatchicon: done
   14-10-regles-navigation-bottom-nav-toujours-visible: done
   14-10b-navigation-design-system-showcase: done
   14-11-bouton-fermer-modales-design-system: done
   # Phase 1b — Refinements design system (Frame 3)
-  14-29-token-gradient-card: review
-  14-30-segmentedtabs-variante-encapsulated: review
+  14-29-token-gradient-card: done
+  14-30-segmentedtabs-variante-encapsulated: done
   14-31-tournamentcard-refonte-design-system: done
-  14-32-bottomtabmenu-alignement-design-system: ready-for-dev
+  14-32-bottomtabmenu-alignement-design-system: done
   # Phase 2 — Flow tournoi
-  14-12-page-mes-tournois-refonte: review
-  14-13-page-dashboard-tournoi-refonte: review
+  14-12-page-mes-tournois-refonte: done
+  14-13-page-dashboard-tournoi-refonte: done
   14-14-page-inviter-des-joueurs-refonte: done
-  14-15-page-rejoindre-via-lien: review
+  14-15-page-rejoindre-via-lien: done
   # Phase 3 — Flow league
   14-16-page-mes-leagues-refonte: done
   14-17-page-dashboard-league-refonte: ready-for-dev

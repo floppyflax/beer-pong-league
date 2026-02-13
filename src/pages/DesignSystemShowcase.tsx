@@ -334,7 +334,7 @@ export function DesignSystemShowcase() {
               <GradientBar name="gradient-card" className="bg-gradient-card" />
             </div>
             <p className="text-body-sm text-slate-500 mt-2">
-              gradient-card : dégradé horizontal discret (slate-800 → slate-900)
+              gradient-card : dégradé horizontal discret (slate-700 → slate-800)
               pour cartes TournamentCard / LeagueCard (Frame 3).
             </p>
             <div className="mt-4 p-4 rounded-card border border-card bg-gradient-card">
@@ -607,8 +607,10 @@ export function DesignSystemShowcase() {
               BottomTabMenu
             </h3>
             <p className="text-body-sm text-slate-400 mb-3">
-              5 tabs (Home, Join, Tournaments, Leagues, Profile). Active state
-              with gradient. Min height 64px, touch target 48px+.
+              5 tabs (Accueil, Rejoindre, Tournois, Leagues, Profil). Active:
+              bg-gradient-tab-active + white text. Inactive: text-slate-400. Min
+              height 64px, touch target 48px+. Click tabs to see active/inactive
+              states.
             </p>
             <BottomTabMenuPreview />
           </div>

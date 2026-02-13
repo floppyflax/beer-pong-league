@@ -40,6 +40,7 @@ describe("Tailwind design tokens (Story 14-1)", () => {
     expect(theme?.backgroundImage?.["gradient-tab-active"]).toBeDefined();
   });
 
+  // Value from design-system-convergence.md section 3.2 — slate-700 → slate-800, to left
   it("should define gradient-card for TournamentCard/LeagueCard (design-system-convergence 3.2)", () => {
     expect(theme?.backgroundImage?.["gradient-card"]).toBeDefined();
     expect(theme?.backgroundImage?.["gradient-card"]).toBe(

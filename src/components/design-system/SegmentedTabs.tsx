@@ -31,7 +31,7 @@ export const SegmentedTabs = ({
   const isEncapsulated = variant === "encapsulated";
 
   const containerClass = isEncapsulated
-    ? "bg-slate-800 rounded-xl p-1 flex w-full border border-slate-700"
+    ? "bg-slate-800 rounded-xl p-1 flex w-full"
     : "flex gap-2";
 
   const getTabClass = (isActive: boolean) => {

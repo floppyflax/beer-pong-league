@@ -5,11 +5,11 @@
  * Design system: design-system-convergence.md section 4.6
  */
 
-import { CheckCircle, XCircle, X } from 'lucide-react';
-import { clsx } from 'clsx';
+import { CheckCircle, XCircle, X } from "lucide-react";
+import { clsx } from "clsx";
 
-export type BannerVariant = 'success' | 'error';
-export type BannerPosition = 'top' | 'inline';
+export type BannerVariant = "success" | "error";
+export type BannerPosition = "top" | "inline";
 
 export interface BannerProps {
   /** Message affiché dans la bannière */
@@ -26,14 +26,14 @@ const variantConfig: Record<
   BannerVariant,
   { bgClass: string; Icon: typeof CheckCircle }
 > = {
-  success: { bgClass: 'bg-success', Icon: CheckCircle },
-  error: { bgClass: 'bg-error', Icon: XCircle },
+  success: { bgClass: "bg-success", Icon: CheckCircle },
+  error: { bgClass: "bg-error", Icon: XCircle },
 };
 
 export function Banner({
   message,
   variant,
-  position = 'inline',
+  position = "inline",
   onDismiss,
 }: BannerProps) {
   const { bgClass, Icon } = variantConfig[variant];
@@ -43,9 +43,10 @@ export function Banner({
       data-testid="banner"
       role="alert"
       className={clsx(
-        'flex items-center gap-3 px-4 py-3 rounded-card text-white',
+        "flex items-center gap-3 px-4 py-3 rounded-card text-white",
         bgClass,
-        position === 'top' && 'fixed top-0 left-0 right-0 z-50'
+        position === "top" &&
+          "fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)]",
       )}
     >
       <Icon size={20} className="flex-shrink-0" aria-hidden />

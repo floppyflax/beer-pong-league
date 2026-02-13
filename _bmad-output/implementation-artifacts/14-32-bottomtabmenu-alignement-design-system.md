@@ -1,6 +1,6 @@
 # Story 14.32: BottomTabMenu alignement design system (Frame 3)
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -26,13 +26,13 @@ So that the active tab uses the blue-purple gradient and the bar is visually con
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Verify alignment (AC: 1, 2, 3, 4, 5)
-  - [ ] Audit BottomTabMenu styles
-  - [ ] Apply gradient-tab-active if not present
-  - [ ] Ensure inactive state text-slate-400
-- [ ] Task 2: Design System showcase (AC: 6)
-  - [ ] Verify Navigation section in DesignSystemShowcase (Story 14-10b)
-  - [ ] Add or refine demo if needed
+- [x] Task 1: Verify alignment (AC: 1, 2, 3, 4, 5)
+  - [x] Audit BottomTabMenu styles
+  - [x] Apply gradient-tab-active if not present
+  - [x] Ensure inactive state text-slate-400
+- [x] Task 2: Design System showcase (AC: 6)
+  - [x] Verify Navigation section in DesignSystemShowcase (Story 14-10b)
+  - [x] Add or refine demo if needed
 
 ## Dev Notes
 
@@ -49,8 +49,24 @@ So that the active tab uses the blue-purple gradient and the bar is visually con
 
 ### Agent Model Used
 
+Cursor Composer
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- 2026-02-13: Audit confirmed BottomTabMenu already aligned with design-system-convergence 2.1 (AC1–5): active tab uses bg-gradient-tab-active + text-white, inactive tabs text-slate-400, h-16 (64px), min-h-[48px] touch targets, 5 tabs with correct labels and icons. Added unit test for nav bar h-16 (AC3). Refined DesignSystemShowcase BottomTabMenu description to explicitly document active/inactive states per AC6.
+- 2026-02-13: Code review fixes: H1 route matching for nested routes (/tournament/:id, /league/:id, /player/:id). H2 focus-visible ring for WCAG 2.1. M1 keyboard activation tests (Enter/Space). M2 previewMode without previewOnTabClick no longer navigates. M3 DesignSystemShowcase gradient test for AC6.
+
 ### File List
+
+- src/components/navigation/BottomTabMenu.tsx
+- tests/unit/components/BottomTabMenu.test.tsx
+- src/pages/DesignSystemShowcase.tsx
+- tests/unit/pages/DesignSystemShowcase.test.tsx
+- _bmad-output/implementation-artifacts/sprint-status.yaml
+
+## Change Log
+
+- 2026-02-13: Story 14-32 implementation complete. BottomTabMenu verified aligned with design-system-convergence 2.1. Added h-16 test for AC3. Refined DesignSystemShowcase description for active/inactive states.
+- 2026-02-13: Code review complete. Fixed 5 issues: route matching for nested routes, focus-visible styles, keyboard tests, previewMode API, DesignSystemShowcase gradient test.

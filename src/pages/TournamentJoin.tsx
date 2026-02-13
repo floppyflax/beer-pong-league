@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { useRequireIdentity } from "../hooks/useRequireIdentity";
 import { CreateIdentityModal } from "../components/CreateIdentityModal";
@@ -10,10 +10,12 @@ import { HelpCard } from "../components/design-system/HelpCard";
 import { UserPlus, Users } from "lucide-react";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import toast from "react-hot-toast";
+import { getContentPaddingBottom } from "../utils/navigationHelpers";
 
 export const TournamentJoin = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     tournaments,
     leagues,
@@ -166,7 +168,9 @@ export const TournamentJoin = () => {
       />
 
       {/* Content */}
-      <div className="px-4 md:px-6 pb-20 lg:pb-6">
+      <div
+        className={`px-4 md:px-6 ${getContentPaddingBottom(location.pathname) || "pb-20 lg:pb-6"}`}
+      >
         <div className="max-w-md mx-auto space-y-6">
           {/* Tournament Card — même format que la page Mes tournois */}
           <TournamentCard tournament={tournament} interactive={false} />

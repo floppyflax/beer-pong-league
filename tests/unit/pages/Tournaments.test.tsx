@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
 import { Tournaments } from "../../../src/pages/Tournaments";
 import * as UseTournamentsList from "../../../src/hooks/useTournamentsList";
@@ -18,8 +18,9 @@ vi.mock("react-router-dom", async () => {
 
 vi.mock("../../../src/hooks/useTournamentsList");
 vi.mock("../../../src/hooks/usePremiumLimits");
+const mockReloadData = vi.fn();
 vi.mock("../../../src/context/LeagueContext", () => ({
-  useLeague: () => ({ reloadData: vi.fn() }),
+  useLeague: () => ({ reloadData: mockReloadData }),
 }));
 
 // Mock child components to simplify testing
@@ -99,6 +100,25 @@ describe("Tournaments Page", () => {
   const renderWithRouter = (component: React.ReactElement) => {
     return render(<BrowserRouter>{component}</BrowserRouter>);
   };
+
+  describe("Error State (H1)", () => {
+    it("should show error banner and retry button when load fails", () => {
+      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+        tournaments: [],
+        isLoading: false,
+        loadError: "Erreur réseau",
+      });
+
+      renderWithRouter(<Tournaments />);
+
+      expect(screen.getByRole("alert")).toHaveTextContent("Erreur réseau");
+      const retryButton = screen.getByRole("button", { name: /Réessayer/i });
+      expect(retryButton).toBeInTheDocument();
+
+      fireEvent.click(retryButton);
+      expect(mockReloadData).toHaveBeenCalled();
+    });
+  });
 
   describe("Loading State", () => {
     it("should show loading spinner while data is loading", () => {
@@ -251,6 +271,41 @@ describe("Tournaments Page", () => {
         expect(screen.getByText("Aucun résultat")).toBeInTheDocument();
       });
     });
+
+    it("should debounce search by 300ms (AC2, M2)", async () => {
+      vi.useFakeTimers();
+      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+        tournaments: mockTournaments,
+        isLoading: false,
+      });
+
+      renderWithRouter(<Tournaments />);
+
+      const searchInput = screen.getByPlaceholderText(
+        "Rechercher un tournoi...",
+      );
+
+      // Type "finished" - filter should NOT apply immediately
+      fireEvent.change(searchInput, { target: { value: "finished" } });
+
+      // Before 300ms: all 3 cards still visible (parent searchQuery not yet updated)
+      act(() => {
+        vi.advanceTimersByTime(299);
+      });
+      expect(screen.getByTestId("tournament-card-t1")).toBeInTheDocument();
+      expect(screen.getByTestId("tournament-card-t2")).toBeInTheDocument();
+      expect(screen.getByTestId("tournament-card-t3")).toBeInTheDocument();
+
+      // After 300ms: debounce fires, only t3 visible
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.queryByTestId("tournament-card-t1")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("tournament-card-t2")).not.toBeInTheDocument();
+      expect(screen.getByTestId("tournament-card-t3")).toBeInTheDocument();
+
+      vi.useRealTimers();
+    });
   });
 
   describe("Filter Tabs", () => {
@@ -400,6 +455,22 @@ describe("Tournaments Page", () => {
   });
 
   describe("Design System (Story 14-12)", () => {
+    it("should render FAB and header create action for responsive design (M3)", () => {
+      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+        tournaments: mockTournaments,
+        isLoading: false,
+      });
+
+      renderWithRouter(<Tournaments />);
+
+      // FAB: primary create action on mobile (design system 2.4)
+      expect(screen.getByTestId("fab")).toBeInTheDocument();
+      // Header: create action for desktop (hidden on mobile via lg:flex)
+      expect(
+        screen.getByRole("button", { name: /CRÉER TOURNOI/i }),
+      ).toBeInTheDocument();
+    });
+
     it("should render FAB for create tournament", () => {
       vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
         tournaments: mockTournaments,

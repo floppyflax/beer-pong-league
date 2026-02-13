@@ -79,8 +79,8 @@ describe('QRCodeDisplay - Story 3.2', () => {
         />
       );
 
-      // AC: QR code contains tournament join URL
-      const expectedUrl = `http://localhost:5173/tournament/join/${mockTournamentId}`;
+      // AC: QR code contains tournament join URL (route: /tournament/:id/join)
+      const expectedUrl = `http://localhost:5173/tournament/${mockTournamentId}/join`;
       expect(screen.getByText(expectedUrl)).toBeInTheDocument();
     });
 
@@ -92,8 +92,8 @@ describe('QRCodeDisplay - Story 3.2', () => {
         />
       );
 
-      // AC: Use full domain
-      const urlText = screen.getByText(/http:\/\/localhost:5173\/tournament\/join\//);
+      // AC: Use full domain (route: /tournament/:id/join)
+      const urlText = screen.getByText(/http:\/\/localhost:5173\/tournament\/.+\/join/);
       expect(urlText).toBeInTheDocument();
       expect(urlText.textContent).toMatch(/^http/);
     });
@@ -106,10 +106,10 @@ describe('QRCodeDisplay - Story 3.2', () => {
         />
       );
 
-      // AC: URL format is /tournament/join/:tournamentId
-      const urlText = screen.getByText(/tournament\/join/);
+      // AC: URL format is /tournament/:tournamentId/join
+      const urlText = screen.getByText(/tournament\/.+\/join/);
       expect(urlText).toBeInTheDocument();
-      expect(urlText.textContent).toContain(`/tournament/join/${mockTournamentId}`);
+      expect(urlText.textContent).toContain(`/tournament/${mockTournamentId}/join`);
     });
   });
 
@@ -236,7 +236,7 @@ describe('QRCodeDisplay - Story 3.2', () => {
 
       // AC: Renders correctly on dashboard
       expect(screen.getByText('Inviter des participants')).toBeInTheDocument();
-      expect(screen.getByText(/tournament\/join/)).toBeInTheDocument();
+      expect(screen.getByText(/tournament\/.+\/join/)).toBeInTheDocument();
     });
 
     it('should update when tournament changes', () => {
@@ -247,8 +247,8 @@ describe('QRCodeDisplay - Story 3.2', () => {
         />
       );
 
-      // Check initial URL
-      expect(screen.getByText(/tournament\/join\/old-id/)).toBeInTheDocument();
+      // Check initial URL (route: /tournament/:id/join)
+      expect(screen.getByText(/tournament\/old-id\/join/)).toBeInTheDocument();
 
       // Update tournament
       rerender(
@@ -259,7 +259,7 @@ describe('QRCodeDisplay - Story 3.2', () => {
       );
 
       // AC: Verify updates when tournament changes
-      expect(screen.getByText(/tournament\/join\/new-id/)).toBeInTheDocument();
+      expect(screen.getByText(/tournament\/new-id\/join/)).toBeInTheDocument();
       
       // Also verify full screen modal shows updated name
       const fullScreenButton = screen.getByRole('button', { name: /display qr code in full screen/i });

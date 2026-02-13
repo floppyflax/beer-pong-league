@@ -73,7 +73,7 @@ describe("SegmentedTabs", () => {
   });
 
   describe("variant encapsulated (Story 14-30)", () => {
-    it("should render encapsulated container with bg-slate-800 rounded-xl p-1 border", () => {
+    it("should render encapsulated container with bg-slate-800 rounded-xl p-1", () => {
       const { container } = render(
         <SegmentedTabs
           tabs={defaultTabs}
@@ -86,8 +86,6 @@ describe("SegmentedTabs", () => {
       expect(tablist).toHaveClass("bg-slate-800");
       expect(tablist).toHaveClass("rounded-xl");
       expect(tablist).toHaveClass("p-1");
-      expect(tablist).toHaveClass("border");
-      expect(tablist).toHaveClass("border-slate-700");
       expect(tablist).toHaveClass("w-full");
     });
 
@@ -144,8 +142,24 @@ describe("SegmentedTabs", () => {
         />,
       );
       const inactiveTab = screen.getByRole("tab", { name: "Actifs" });
+      expect(inactiveTab).toHaveClass("bg-transparent");
       expect(inactiveTab).toHaveClass("text-slate-400");
       expect(inactiveTab).not.toHaveClass("bg-gradient-tab-active");
+    });
+
+    it("should render empty container when tabs is empty in encapsulated", () => {
+      const { container } = render(
+        <SegmentedTabs
+          tabs={[]}
+          activeId=""
+          onChange={() => {}}
+          variant="encapsulated"
+        />,
+      );
+      const tablist = container.querySelector('[role="tablist"]');
+      expect(tablist).toBeInTheDocument();
+      expect(tablist).toHaveClass("bg-slate-800");
+      expect(screen.queryAllByRole("tab")).toHaveLength(0);
     });
 
     it("should remain backward compatible when variant is default or omitted", () => {

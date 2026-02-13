@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ContextualHeader } from "../components/navigation/ContextualHeader";
+import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { Plus } from "lucide-react";
-import { PaymentModal } from "../components/PaymentModal";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import { TournamentCard } from "../components/tournaments/TournamentCard";
-import { SearchBar, SegmentedTabs, FAB } from "../components/design-system";
-import { usePremiumLimits } from "../hooks/usePremiumLimits";
-import { useTournamentsList } from "../hooks/useTournamentsList";
-import { useLeague } from "../context/LeagueContext";
+import { PaymentModal } from "@/components/PaymentModal";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { TournamentCard } from "@/components/tournaments/TournamentCard";
+import { SearchBar, SegmentedTabs, FAB, Banner } from "@/components/design-system";
+import { usePremiumLimits } from "@/hooks/usePremiumLimits";
+import { useTournamentsList } from "@/hooks/useTournamentsList";
+import { useLeague } from "@/context/LeagueContext";
 
 /**
  * Tournaments Page
@@ -36,7 +36,7 @@ export const Tournaments: React.FC = () => {
 
   const { canCreateTournament, isAtTournamentLimit, refetchPremium } =
     usePremiumLimits();
-  const { tournaments, isLoading } = useTournamentsList();
+  const { tournaments, isLoading, loadError } = useTournamentsList();
   const { reloadData } = useLeague();
 
   const handlePaymentSuccess = () => {
@@ -85,7 +85,28 @@ export const Tournaments: React.FC = () => {
     );
   }
 
+  // Show error state when data load failed (H1: code review fix)
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-slate-900 lg:pb-8">
+        <ContextualHeader title="Mes Tournois" />
+        <div className="p-6">
+          <Banner message={loadError} variant="error" position="inline" />
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => reloadData()}
+              className="bg-primary hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl transition-all active:scale-95"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show empty state if no tournaments (design system 5.1: header + FAB)
+  // M1: SearchBar + SegmentedTabs included for layout consistency with populated state
   if (!tournaments || tournaments.length === 0) {
     return (
       <div className="min-h-screen bg-slate-900 lg:pb-8">
@@ -101,6 +122,27 @@ export const Tournaments: React.FC = () => {
             },
           ]}
         />
+
+        {/* Search Bar + SegmentedTabs (layout consistency) */}
+        <div className="p-6 pb-0">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Rechercher un tournoi..."
+          />
+        </div>
+        <div className="p-6 pb-4 border-b border-slate-800">
+          <SegmentedTabs
+            tabs={[
+              { id: "all", label: "Tous" },
+              { id: "active", label: "Actifs" },
+              { id: "finished", label: "Terminés" },
+            ]}
+            activeId={filter}
+            onChange={(id) => setFilter(id as FilterStatus)}
+            variant="encapsulated"
+          />
+        </div>
 
         {/* Empty State */}
         <div className="flex flex-col flex-grow px-4 py-6 min-h-[calc(100vh-8rem)]">
@@ -146,7 +188,7 @@ export const Tournaments: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 lg:pb-8">
-      {/* Contextual Header (Story 13.2) */}
+      {/* ContextualHeader (Story 13.2, layout Story 14-12) */}
       <ContextualHeader
         title="Mes Tournois"
         actions={[

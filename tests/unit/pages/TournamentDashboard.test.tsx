@@ -192,8 +192,9 @@ describe("TournamentDashboard - Story 8.3", () => {
   });
 
   // Task 4 - AC4: Display Match History with timestamps and ELO
+  // Note: These tests require loadTournamentParticipants to resolve before Match tab content renders.
+  // The async timing causes flakiness; consider using fake timers or mocking at a higher level.
   describe("Task 4 - Match History (AC4)", () => {
-    // TODO: Fix async loadTournamentParticipants timing in test - participants load correctly in app
     it.skip("should display match teams", async () => {
       render(
         <BrowserRouter>
@@ -201,7 +202,6 @@ describe("TournamentDashboard - Story 8.3", () => {
         </BrowserRouter>,
       );
 
-      // Wait for async loadTournamentParticipants to complete (first StatCard shows "2" for Joueurs)
       await waitFor(
         () => {
           const values = screen.getAllByTestId("statcard-value");

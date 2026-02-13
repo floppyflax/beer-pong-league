@@ -56,12 +56,36 @@ const tabs: Tab[] = [
   },
 ];
 
+/** Matches path to tab per design-system-convergence 2.1 (nested routes: /tournament/:id, /league/:id, /player/:id) */
+function isTabActive(pathname: string, tab: Tab): boolean {
+  switch (tab.id) {
+    case "home":
+      return pathname === "/";
+    case "join":
+      return pathname === "/join" || pathname.startsWith("/join/");
+    case "tournaments":
+      return (
+        pathname === "/tournaments" || pathname.startsWith("/tournament/")
+      );
+    case "leagues":
+      return pathname === "/leagues" || pathname.startsWith("/league/");
+    case "profile":
+      return (
+        pathname === "/user/profile" ||
+        pathname.startsWith("/user/profile") ||
+        pathname.startsWith("/player/")
+      );
+    default:
+      return pathname === tab.route;
+  }
+}
+
 interface BottomTabMenuProps {
   /** When true, uses absolute positioning for containment in preview frames (e.g. DesignSystemShowcase) */
   previewMode?: boolean;
   /** In preview mode: overrides active route for demo (avoids nested Router) */
   previewActiveRoute?: string;
-  /** In preview mode: called instead of navigate when tab is clicked */
+  /** In preview mode: called when tab is clicked. If omitted, clicks do nothing (no navigation). */
   previewOnTabClick?: (route: string) => void;
 }
 
@@ -78,8 +102,8 @@ export const BottomTabMenu: React.FC<BottomTabMenuProps> = ({
       : location.pathname;
 
   const handleTabClick = (route: string) => {
-    if (previewMode && previewOnTabClick) {
-      previewOnTabClick(route);
+    if (previewMode) {
+      previewOnTabClick?.(route);
     } else {
       navigate(route);
     }
@@ -97,7 +121,7 @@ export const BottomTabMenu: React.FC<BottomTabMenuProps> = ({
     >
       <div className="flex items-stretch h-16">
         {tabs.map((tab) => {
-          const isActive = currentPath === tab.route;
+          const isActive = isTabActive(currentPath, tab);
           const Icon = tab.icon;
 
           return (
@@ -108,6 +132,7 @@ export const BottomTabMenu: React.FC<BottomTabMenuProps> = ({
                 flex-1 flex flex-col items-center justify-center gap-1
                 border-t-2 transition-all duration-200
                 min-h-[48px] active:scale-95
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800
                 ${
                   isActive
                     ? "border-transparent bg-gradient-tab-active text-white"

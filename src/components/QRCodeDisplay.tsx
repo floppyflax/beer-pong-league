@@ -16,7 +16,7 @@ export const QRCodeDisplay = ({
   const [isFullScreen, setIsFullScreen] = useState(false);
   
   // Generate tournament join URL
-  const joinUrl = `${window.location.origin}/tournament/join/${tournamentId}`;
+  const joinUrl = `${window.location.origin}/tournament/${tournamentId}/join`;
   
   const handleFullScreen = () => {
     setIsFullScreen(true);

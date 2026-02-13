@@ -1,6 +1,6 @@
 # Story 14.15: Join page (via link)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -50,4 +50,17 @@ Composer (dev-story workflow)
 ### File List
 
 - src/pages/TournamentJoin.tsx
+- src/pages/TournamentDashboard.tsx (fix: join URL in QR codes)
+- src/components/QRCodeDisplay.tsx (fix: join URL)
 - tests/unit/pages/TournamentJoin.test.tsx
+
+### Senior Developer Review (AI)
+
+**Reviewer:** floppyflax  
+**Date:** 2026-02-13
+
+**Issues fixed:**
+1. **CRITICAL** TournamentDashboard + QRCodeDisplay: Wrong join URL (`/tournament/join/:id` → `/tournament/:id/join`)
+2. **CRITICAL** Added test for "join as existing player" flow
+3. **MEDIUM** TournamentJoin: Use `getContentPaddingBottom` instead of hardcoded padding
+4. **MEDIUM** Test describe block: Renamed from "Story 4.1" to "Story 4.1 + 14-15"

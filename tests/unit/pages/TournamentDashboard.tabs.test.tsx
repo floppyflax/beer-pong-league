@@ -79,6 +79,13 @@ vi.mock("../../../src/hooks/useDetailPagePermissions", () => ({
   useDetailPagePermissions: () => ({ isAdmin: false, canInvite: false }),
 }));
 
+vi.mock("../../../src/services/DatabaseService", () => ({
+  databaseService: {
+    loadTournamentParticipants: vi.fn().mockResolvedValue([]),
+    addLeaguePlayerToTournament: vi.fn().mockResolvedValue("new-tp-id"),
+  },
+}));
+
 describe("TournamentDashboard - Tab Navigation (Task 1)", () => {
   const renderDashboard = () => {
     return render(

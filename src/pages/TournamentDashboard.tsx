@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useLeague } from "../context/LeagueContext";
+import { useLeague } from "@/context/LeagueContext";
 import {
   Trophy,
   X,
@@ -13,26 +13,43 @@ import {
   UserPlus,
   Calendar,
 } from "lucide-react";
-import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
-import { EloChangeDisplay } from "../components/EloChangeDisplay";
-import { EmptyState } from "../components/EmptyState";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import { MatchRecordingForm } from "../components/MatchRecordingForm";
+import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
+import { EloChangeDisplay } from "@/components/EloChangeDisplay";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { MatchRecordingForm } from "@/components/MatchRecordingForm";
 import { QRCodeSVG } from "qrcode.react";
-import type { Match } from "../types";
-import { databaseService } from "../services/DatabaseService";
-import { useAuthContext } from "../context/AuthContext";
-import { useIdentity } from "../hooks/useIdentity";
+import type { Match } from "@/types";
+import { databaseService } from "@/services/DatabaseService";
+import { useAuthContext } from "@/context/AuthContext";
+import { useIdentity } from "@/hooks/useIdentity";
 import { toast } from "react-hot-toast";
-import { ContextualHeader } from "../components/navigation/ContextualHeader";
-import { useDetailPagePermissions } from "../hooks/useDetailPagePermissions";
+import { ContextualHeader } from "@/components/navigation/ContextualHeader";
+import { useDetailPagePermissions } from "@/hooks/useDetailPagePermissions";
 import {
   InfoCard,
   StatCard,
   SegmentedTabs,
   ListRow,
   FAB,
-} from "../components/design-system";
+} from "@/components/design-system";
+
+// Delta ELO du dernier match du joueur (AC5)
+function getDeltaFromLastMatch(
+  playerId: string,
+  matches: { date: string; teamA: string[]; teamB: string[]; eloChanges?: Record<string, number> }[],
+): number | undefined {
+  const sorted = [...matches].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+  for (const m of sorted) {
+    if (m.teamA.includes(playerId) || m.teamB.includes(playerId)) {
+      const change = m.eloChanges?.[playerId];
+      return change !== undefined ? change : undefined;
+    }
+  }
+  return undefined;
+}
 
 // Derniers 5 résultats (true=victoire, false=défaite), du plus récent au plus ancien
 function getLast5MatchResults(
@@ -289,9 +306,11 @@ export const TournamentDashboard = () => {
 
         // Show success toast (AC7)
         toast.success("Tu as quitté le tournoi");
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error leaving tournament:", error);
-        toast.error(error.message || "Erreur lors de la sortie du tournoi");
+        toast.error(
+          error instanceof Error ? error.message : "Erreur lors de la sortie du tournoi",
+        );
       }
     }
   };
@@ -306,7 +325,7 @@ export const TournamentDashboard = () => {
     } else {
       // TODO: For autonomous tournaments, create guest player directly
       // For now, add to league if exists
-      alert(
+      toast.error(
         "Pour ajouter des joueurs, associez d'abord ce tournoi à une League dans les paramètres.",
       );
       setShowAddPlayer(false);
@@ -541,7 +560,7 @@ export const TournamentDashboard = () => {
       )}
 
       {/* Content */}
-      <div className="flex-grow overflow-y-auto px-4 py-4 space-y-2 pb-32">
+      <div className="flex-grow overflow-y-auto px-4 py-4 space-y-2 pb-bottom-nav lg:pb-bottom-nav-lg">
         {activeTab === "classement" && (
           <>
             {ranking.length === 0 ? (
@@ -563,6 +582,7 @@ export const TournamentDashboard = () => {
                     player.id,
                     tournament.matches,
                   );
+                  const delta = getDeltaFromLastMatch(player.id, tournament.matches);
                   return (
                     <ListRow
                       key={player.id}
@@ -573,7 +593,7 @@ export const TournamentDashboard = () => {
                       )}%`}
                       elo={player.elo}
                       rank={index + 1}
-                      delta={undefined}
+                      delta={delta}
                       recentResults={recentResults}
                       onClick={() => navigate(`/player/${profileId}`)}
                     />
@@ -693,7 +713,7 @@ export const TournamentDashboard = () => {
               <div className="flex justify-center">
                 <div className="bg-white p-4 rounded-lg">
                   <QRCodeSVG
-                    value={`${window.location.origin}/tournament/join/${tournament.id}`}
+                    value={`${window.location.origin}/tournament/${tournament.id}/join`}
                     size={200}
                     level="H"
                     includeMargin={true}
@@ -1044,7 +1064,7 @@ export const TournamentDashboard = () => {
                   <div className="flex flex-col items-center">
                     <div className="bg-white p-3 rounded-lg">
                       <QRCodeSVG
-                        value={`${window.location.origin}/tournament/join/${tournament.id}`}
+                        value={`${window.location.origin}/tournament/${tournament.id}/join`}
                         size={150}
                         level="H"
                       />

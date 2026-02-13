@@ -1,6 +1,6 @@
 # Story 14.30: SegmentedTabs variante encapsulated
 
-Status: review
+Status: done
 
 ## Story
 
@@ -55,6 +55,7 @@ So that filters (Tous / Actifs / Terminés) appear in a single rounded block as 
 - Task 1: Added `variant?: 'default' | 'encapsulated'` to SegmentedTabs. Encapsulated: container `bg-slate-800 rounded-xl p-1 flex`, tabs without gap, active `bg-gradient-tab-active text-white rounded-lg`, inactive `bg-transparent text-slate-400`. Default variant unchanged (backward compatible).
 - Task 2: DesignSystemShowcase now demonstrates both default and encapsulated variants with interactive filter tabs.
 - Unit tests: 6 new tests for encapsulated variant in SegmentedTabs.test.tsx; DesignSystemShowcase test updated for duplicate filter tabs.
+- Code review (2026-02-13): Removed `border border-slate-700` from encapsulated container to match design-system-convergence 4.2. Added `bg-transparent` assertion in inactive tab test. Added empty tabs edge case test. Updated container test to remove border expectations.
 
 ### File List
 
@@ -67,3 +68,4 @@ So that filters (Tous / Actifs / Terminés) appear in a single rounded block as 
 ## Change Log
 
 - 2026-02-13: Story 14-30 implemented. SegmentedTabs variant encapsulated (Frame 3 Mes tournois). DesignSystemShowcase demonstrates both variants.
+- 2026-02-13: Code review complete. Fixed 3 MEDIUM issues: container aligned to spec (removed border), inactive tab test asserts bg-transparent, added empty tabs test.

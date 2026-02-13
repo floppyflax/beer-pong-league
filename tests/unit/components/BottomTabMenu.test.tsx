@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { BottomTabMenu } from "../../../src/components/navigation/BottomTabMenu";
 
 // Mock react-router-dom
@@ -119,6 +120,30 @@ describe("BottomTabMenu", () => {
       const homeButton = screen.getByLabelText("Home");
       expect(homeButton).toHaveClass("bg-gradient-tab-active");
     });
+
+    it("should highlight Tournaments tab when on /tournament/:id (nested route)", () => {
+      mockLocation.pathname = "/tournament/abc123";
+      render(<BottomTabMenu />);
+
+      const tournamentsButton = screen.getByLabelText("Tournaments");
+      expect(tournamentsButton).toHaveClass("bg-gradient-tab-active");
+    });
+
+    it("should highlight Leagues tab when on /league/:id (nested route)", () => {
+      mockLocation.pathname = "/league/xyz456";
+      render(<BottomTabMenu />);
+
+      const leaguesButton = screen.getByLabelText("Leagues");
+      expect(leaguesButton).toHaveClass("bg-gradient-tab-active");
+    });
+
+    it("should highlight Profile tab when on /player/:id (nested route)", () => {
+      mockLocation.pathname = "/player/user789";
+      render(<BottomTabMenu />);
+
+      const profileButton = screen.getByLabelText("Profile");
+      expect(profileButton).toHaveClass("bg-gradient-tab-active");
+    });
   });
 
   describe("Tab Navigation (AC3)", () => {
@@ -235,6 +260,14 @@ describe("BottomTabMenu", () => {
       });
     });
 
+    it("should have nav bar min height 64px (design-system-convergence 2.1)", () => {
+      const { container } = render(<BottomTabMenu />);
+
+      const nav = container.querySelector("nav");
+      const innerDiv = nav?.querySelector("div");
+      expect(innerDiv).toHaveClass("h-16");
+    });
+
     it("should have tap feedback (scale down on active)", () => {
       render(<BottomTabMenu />);
 
@@ -242,6 +275,38 @@ describe("BottomTabMenu", () => {
       buttons.forEach((button) => {
         expect(button).toHaveClass("active:scale-95");
       });
+    });
+
+    it("should have focus-visible ring for keyboard accessibility (WCAG 2.1)", () => {
+      render(<BottomTabMenu />);
+
+      const buttons = screen.getAllByRole("button");
+      buttons.forEach((button) => {
+        expect(button).toHaveClass("focus-visible:ring-2");
+        expect(button).toHaveClass("focus-visible:ring-primary");
+      });
+    });
+
+    it("should activate tab on Enter key press", async () => {
+      const user = userEvent.setup();
+      render(<BottomTabMenu />);
+
+      const joinButton = screen.getByLabelText("Join");
+      joinButton.focus();
+      await user.keyboard("{Enter}");
+
+      expect(mockNavigate).toHaveBeenCalledWith("/join");
+    });
+
+    it("should activate tab on Space key press", async () => {
+      const user = userEvent.setup();
+      render(<BottomTabMenu />);
+
+      const tournamentsButton = screen.getByLabelText("Tournaments");
+      tournamentsButton.focus();
+      await user.keyboard(" ");
+
+      expect(mockNavigate).toHaveBeenCalledWith("/tournaments");
     });
   });
 
@@ -320,6 +385,15 @@ describe("BottomTabMenu", () => {
       const tournamentsButton = screen.getByLabelText("Tournaments");
       fireEvent.click(tournamentsButton);
       expect(mockPreviewOnTabClick).toHaveBeenCalledWith("/tournaments");
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it("should not navigate when previewMode is true and previewOnTabClick is omitted", () => {
+      render(
+        <BottomTabMenu previewMode previewActiveRoute="/" />,
+      );
+      const tournamentsButton = screen.getByLabelText("Tournaments");
+      fireEvent.click(tournamentsButton);
       expect(mockNavigate).not.toHaveBeenCalled();
     });
   });

@@ -40,6 +40,8 @@ interface LeagueContextType {
   currentLeague: League | null;
   currentTournament: Tournament | null;
   isLoadingInitialData: boolean;
+  /** Error message when initial data load fails (e.g. network). Null when load succeeded. */
+  loadError: string | null;
   reloadData: () => Promise<void>;
   createLeague: (name: string, type: "event" | "season") => Promise<string>;
   createTournament: (
@@ -144,6 +146,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
   // Loading state for initial data fetch
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Extract primitive values to avoid unnecessary re-renders
   const userId = isAuthenticated && user ? user.id : undefined;
@@ -157,6 +160,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setIsLoadingInitialData(true);
+    setLoadError(null);
 
     try {
       // SECURITY: If user has no identity, clear all data and return empty
@@ -240,6 +244,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error('Error loading data from Supabase:', error);
+      setLoadError(
+        error instanceof Error ? error.message : 'Erreur lors du chargement des données'
+      );
       // On error, keep localStorage data (already loaded in initial state)
       console.log('⚠️ Using localStorage data as fallback');
     } finally {
@@ -1033,6 +1040,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         currentLeague,
         currentTournament,
         isLoadingInitialData,
+        loadError,
         reloadData: loadDataFromSupabase,
         createLeague,
         createTournament,

@@ -12,7 +12,7 @@ import type { Tournament } from '../types';
  * @returns Object with tournaments data and loading state
  */
 export const useTournamentsList = () => {
-  const { tournaments, isLoadingInitialData } = useLeague();
+  const { tournaments, isLoadingInitialData, loadError } = useLeague();
 
   // Filter and sort tournaments for current user
   // Note: LeagueContext already filters tournaments by user (creator or participant)
@@ -39,5 +39,6 @@ export const useTournamentsList = () => {
   return {
     tournaments: userTournaments,
     isLoading: isLoadingInitialData,
+    loadError: loadError ?? null,
   };
 };

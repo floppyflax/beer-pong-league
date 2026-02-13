@@ -49,32 +49,35 @@ const mockAddAnonymousPlayerToTournament = vi
   .fn()
   .mockResolvedValue("new-player-id");
 
-vi.mock("../../../src/context/LeagueContext", () => ({
-  useLeague: () => ({
-    tournaments: [mockTournament],
-    leagues: [],
-    addPlayerToTournament: mockAddPlayerToTournament,
-    addAnonymousPlayerToTournament: mockAddAnonymousPlayerToTournament,
-    isLoadingInitialData: false,
-  }),
-  LeagueProvider: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-}));
-
-// Mock tournament data
 const mockTournament = {
   id: "test-tournament-id",
   name: "Test Tournament",
   date: new Date().toISOString(),
   leagueId: null,
-  playerIds: [],
+  playerIds: [] as string[],
   matches: [],
   isFinished: false,
   format: "2v2" as const,
   creator_user_id: null,
   creator_anonymous_user_id: null,
 };
+
+const defaultLeagueContext = {
+  tournaments: [mockTournament],
+  leagues: [],
+  addPlayerToTournament: mockAddPlayerToTournament,
+  addAnonymousPlayerToTournament: mockAddAnonymousPlayerToTournament,
+  isLoadingInitialData: false,
+};
+
+const mockUseLeague = vi.fn(() => defaultLeagueContext);
+
+vi.mock("../../../src/context/LeagueContext", () => ({
+  useLeague: () => mockUseLeague(),
+  LeagueProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
 
 // Wrapper component with all providers
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -87,9 +90,10 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => (
   </BrowserRouter>
 );
 
-describe("TournamentJoin - Story 4.1", () => {
+describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseLeague.mockImplementation(() => defaultLeagueContext);
     mockEnsureIdentity.mockResolvedValue({
       type: "anonymous",
       anonymousUserId: "test-anon-id",
@@ -446,10 +450,67 @@ describe("TournamentJoin - Story 4.1", () => {
 describe("TournamentJoin - Story 14-15 (Design system alignment)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseLeague.mockImplementation(() => defaultLeagueContext);
     mockEnsureIdentity.mockResolvedValue({
       type: "anonymous",
       anonymousUserId: "test-anon-id",
     });
+  });
+
+  it("should allow joining as existing player when tournament has players", async () => {
+    const tournamentWithPlayers = {
+      ...mockTournament,
+      playerIds: ["player-1"],
+      leagueId: "league-1",
+    };
+    const leagueWithPlayers = {
+      id: "league-1",
+      name: "Test League",
+      type: "event" as const,
+      createdAt: new Date().toISOString(),
+      players: [{ id: "player-1", name: "Alice" }],
+    };
+
+    // Use mockImplementation so all renders get this data (React re-renders on click)
+    mockUseLeague.mockImplementation(() => ({
+      tournaments: [tournamentWithPlayers],
+      leagues: [leagueWithPlayers],
+      addPlayerToTournament: mockAddPlayerToTournament,
+      addAnonymousPlayerToTournament: mockAddAnonymousPlayerToTournament,
+      isLoadingInitialData: false,
+    }));
+
+    render(<TournamentJoin />, { wrapper: Wrapper });
+
+    // Should show "Sélectionner un joueur existant" section
+    expect(
+      screen.getByText(/sélectionner un joueur existant/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Alice")).toBeInTheDocument();
+
+    // Click on player card to select (PlayerCard renders as button when clickable)
+    const aliceButton = screen.getByRole("button", { name: /alice/i });
+    fireEvent.click(aliceButton);
+
+    // Should show "Rejoindre en tant que ce joueur" button (wait for state update)
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /rejoindre en tant que ce joueur/i }),
+      ).toBeInTheDocument();
+    });
+    const joinButton = screen.getByRole("button", {
+      name: /rejoindre en tant que ce joueur/i,
+    });
+    fireEvent.click(joinButton);
+
+    // AC: addPlayerToTournament called with correct args
+    await waitFor(() => {
+      expect(mockAddPlayerToTournament).toHaveBeenCalledWith(
+        "test-tournament-id",
+        "player-1",
+      );
+    });
+    expect(mockNavigate).toHaveBeenCalledWith("/tournament/test-tournament-id");
   });
 
   it("should use TournamentCard for tournament info", () => {
