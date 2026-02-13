@@ -177,6 +177,8 @@ class DatabaseService {
           confirmed_by_user_id: m.confirmed_by_user_id,
           confirmed_by_anonymous_user_id: m.confirmed_by_anonymous_user_id,
           confirmed_at: m.confirmed_at,
+          cups_remaining: m.cups_remaining ?? undefined,
+          photo_url: m.photo_url ?? undefined,
         });
       });
 
@@ -321,6 +323,8 @@ class DatabaseService {
           confirmed_by_user_id: m.confirmed_by_user_id,
           confirmed_by_anonymous_user_id: m.confirmed_by_anonymous_user_id,
           confirmed_at: m.confirmed_at,
+          cups_remaining: m.cups_remaining ?? undefined,
+          photo_url: m.photo_url ?? undefined,
         });
       });
 
@@ -444,6 +448,8 @@ class DatabaseService {
           confirmed_by_user_id: match.confirmed_by_user_id || null,
           confirmed_by_anonymous_user_id: match.confirmed_by_anonymous_user_id || null,
           confirmed_at: match.confirmed_at || null,
+          cups_remaining: match.cups_remaining ?? null,
+          photo_url: match.photo_url ?? null,
         }));
 
         const { error: matchesError } = await supabase!
@@ -520,6 +526,8 @@ class DatabaseService {
           confirmed_by_user_id: match.confirmed_by_user_id || null,
           confirmed_by_anonymous_user_id: match.confirmed_by_anonymous_user_id || null,
           confirmed_at: match.confirmed_at || null,
+          cups_remaining: match.cups_remaining ?? null,
+          photo_url: match.photo_url ?? null,
         }));
 
         const { error: matchesError } = await supabase!
@@ -1392,6 +1400,8 @@ class DatabaseService {
           created_at: match.date,
           created_by_user_id: userId || match.created_by_user_id || null,
           created_by_anonymous_user_id: anonymousUserId || match.created_by_anonymous_user_id || null,
+          cups_remaining: match.cups_remaining ?? null,
+          photo_url: match.photo_url ?? null,
         });
 
       if (matchError) throw matchError;
@@ -1523,6 +1533,8 @@ class DatabaseService {
           created_at: match.date,
           created_by_user_id: userId || match.created_by_user_id || null,
           created_by_anonymous_user_id: anonymousUserId || match.created_by_anonymous_user_id || null,
+          cups_remaining: match.cups_remaining ?? null,
+          photo_url: match.photo_url ?? null,
         });
 
       if (matchError) throw matchError;

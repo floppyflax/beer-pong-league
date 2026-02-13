@@ -188,6 +188,41 @@ describe("LeagueDashboard - Story 14-17", () => {
     });
   });
 
+  describe("Story 14-28 - Match history with photo and cups", () => {
+    it("should display photo thumbnail and cups badge when match has enriched data", () => {
+      const leagueWithEnrichedMatch = {
+        ...mockLeague,
+        matches: [
+          {
+            id: "match1",
+            date: new Date().toISOString(),
+            teamA: ["player1"],
+            teamB: ["player2"],
+            scoreA: 10,
+            scoreB: 8,
+            photo_url: "https://example.com/winner.jpg",
+            cups_remaining: 3,
+          },
+        ],
+      };
+      vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
+        ...vi.mocked(LeagueContext.useLeague)(),
+        leagues: [leagueWithEnrichedMatch],
+      } as unknown as ReturnType<typeof LeagueContext.useLeague>);
+
+      render(
+        <BrowserRouter>
+          <LeagueDashboard />
+        </BrowserRouter>,
+      );
+
+      fireEvent.click(screen.getByRole("tab", { name: "Matchs" }));
+
+      expect(screen.getByText(/3 gobelets restants/i)).toBeInTheDocument();
+      expect(screen.getByRole("img", { name: /photo de l'équipe gagnante/i })).toBeInTheDocument();
+    });
+  });
+
   describe("Add player validation", () => {
     it("should not add player with empty name", async () => {
       const addPlayerMock = vi.fn();

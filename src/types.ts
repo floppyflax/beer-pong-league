@@ -26,6 +26,9 @@ export interface Match {
   confirmed_by_user_id?: string | null; // User ID who confirmed the match
   confirmed_by_anonymous_user_id?: string | null; // Anonymous user ID who confirmed the match
   confirmed_at?: string | null; // When the match was confirmed
+  // Story 14-24: Enriched match data
+  cups_remaining?: number | null; // 1-10, winning team only
+  photo_url?: string | null; // Supabase Storage URL for winning team photo
 }
 
 export interface League {

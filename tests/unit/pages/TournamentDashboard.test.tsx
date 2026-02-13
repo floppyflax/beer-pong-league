@@ -79,6 +79,8 @@ describe("TournamentDashboard - Story 8.3", () => {
         scoreA: 10,
         scoreB: 8,
         eloChanges: { player1: 15, player2: -15 },
+        photo_url: "https://example.com/winner-photo.jpg",
+        cups_remaining: 4,
       },
     ],
     isFinished: false,
@@ -266,6 +268,23 @@ describe("TournamentDashboard - Story 8.3", () => {
         const aliceElement = screen.getByText(/🏆.*Alice/i);
         expect(aliceElement).toBeInTheDocument();
       });
+    });
+
+    // Story 14-28: Photo and cups in match history
+    it("should display photo thumbnail and cups badge when match has enriched data", async () => {
+      render(
+        <BrowserRouter>
+          <TournamentDashboard />
+        </BrowserRouter>,
+      );
+
+      const historyTab = screen.getByRole("tab", { name: "Matchs" });
+      fireEvent.click(historyTab);
+
+      await waitFor(() => {
+        expect(screen.getByText(/4 gobelets restants/i)).toBeInTheDocument();
+      });
+      expect(screen.getByRole("img", { name: /photo de l'équipe gagnante/i })).toBeInTheDocument();
     });
   });
 

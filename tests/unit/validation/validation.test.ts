@@ -161,6 +161,56 @@ describe('Match Schema Validation', () => {
     const result = matchSchema.safeParse(invalidMatch);
     expect(result.success).toBe(false);
   });
+
+  it('should validate match with optional cups_remaining and photo_url (Story 14-24)', () => {
+    const enrichedMatch = {
+      id: '123e4567-e89b-12d3-a456-426614174001',
+      date: '2026-01-27T10:00:00Z',
+      teamA: ['123e4567-e89b-12d3-a456-426614174000'],
+      teamB: ['123e4567-e89b-12d3-a456-426614174002'],
+      scoreA: 10,
+      scoreB: 8,
+      cups_remaining: 3,
+      photo_url: 'https://xxx.supabase.co/storage/v1/object/public/match-photos/abc.jpg',
+    };
+
+    const result = matchSchema.safeParse(enrichedMatch);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.cups_remaining).toBe(3);
+      expect(result.data.photo_url).toBe('https://xxx.supabase.co/storage/v1/object/public/match-photos/abc.jpg');
+    }
+  });
+
+  it('should reject cups_remaining outside 1-10', () => {
+    const invalidMatch = {
+      id: '123e4567-e89b-12d3-a456-426614174001',
+      date: '2026-01-27T10:00:00Z',
+      teamA: ['123e4567-e89b-12d3-a456-426614174000'],
+      teamB: ['123e4567-e89b-12d3-a456-426614174002'],
+      scoreA: 10,
+      scoreB: 8,
+      cups_remaining: 0,
+    };
+
+    const result = matchSchema.safeParse(invalidMatch);
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject invalid photo_url', () => {
+    const invalidMatch = {
+      id: '123e4567-e89b-12d3-a456-426614174001',
+      date: '2026-01-27T10:00:00Z',
+      teamA: ['123e4567-e89b-12d3-a456-426614174000'],
+      teamB: ['123e4567-e89b-12d3-a456-426614174002'],
+      scoreA: 10,
+      scoreB: 8,
+      photo_url: 'not-a-valid-url',
+    };
+
+    const result = matchSchema.safeParse(invalidMatch);
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('League Schema Validation', () => {

@@ -30,8 +30,7 @@ export function MatchRecordingForm({
   // Form state
   const [teamA, setTeamA] = useState<string[]>(Array(playersPerTeam).fill(""));
   const [teamB, setTeamB] = useState<string[]>(Array(playersPerTeam).fill(""));
-  const [teamAScore, setTeamAScore] = useState(10);
-  const [teamBScore, setTeamBScore] = useState(0);
+  const [winner, setWinner] = useState<"A" | "B" | null>(null);
 
   // Escape key closes form
   useEffect(() => {
@@ -120,22 +119,9 @@ export function MatchRecordingForm({
       newErrors.duplicate = "Un joueur ne peut pas être dans les deux équipes";
     }
 
-    // Validate scores
-    if (teamAScore < 0 || teamAScore > 10) {
-      newErrors.teamAScore = "Le score doit être entre 0 et 10";
-    }
-    if (teamBScore < 0 || teamBScore > 10) {
-      newErrors.teamBScore = "Le score doit être entre 0 et 10";
-    }
-
-    // At least one team must have score 10 (winner in beer pong)
-    if (teamAScore !== 10 && teamBScore !== 10) {
-      newErrors.scores = "Une équipe doit avoir 10 points pour gagner";
-    }
-
-    // Both teams can't have 10
-    if (teamAScore === 10 && teamBScore === 10) {
-      newErrors.scores = "Une seule équipe peut gagner (avoir 10 points)";
+    // Validate winner (mandatory - Story 14-25)
+    if (!winner) {
+      newErrors.winner = "Sélectionnez l'équipe gagnante";
     }
 
     setErrors(newErrors);
@@ -153,14 +139,17 @@ export function MatchRecordingForm({
     setIsSubmitting(true);
 
     try {
-      // Create match object
+      // Map winner to score format (10-0 or 0-10) for ELO and DB - Story 14-25
+      const scoreA = winner === "A" ? 10 : 0;
+      const scoreB = winner === "B" ? 10 : 0;
+
       const match: Match = {
         id: crypto.randomUUID(),
         date: new Date().toISOString(),
         teamA: teamA.filter((id) => id !== ""),
         teamB: teamB.filter((id) => id !== ""),
-        scoreA: teamAScore,
-        scoreB: teamBScore,
+        scoreA,
+        scoreB,
         status: "pending",
       };
 
@@ -239,34 +228,6 @@ export function MatchRecordingForm({
             );
           })}
 
-          <div className="mt-4">
-            <label className="block text-sm text-slate-400 mb-2">
-              Score Équipe A
-            </label>
-            <input
-              type="number"
-              value={teamAScore}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10) || 0;
-                setTeamAScore(Math.max(0, Math.min(10, value)));
-                if (errors.teamAScore) {
-                  setErrors((prev) => {
-                    const newErrors = { ...prev };
-                    delete newErrors.teamAScore;
-                    return newErrors;
-                  });
-                }
-              }}
-              min="0"
-              max="10"
-              className={`w-full px-4 py-3 bg-slate-700 text-white rounded-lg text-3xl text-center font-bold border ${
-                errors.teamAScore ? "border-red-500" : "border-slate-600"
-              }`}
-            />
-            {errors.teamAScore && (
-              <p className="text-red-500 text-sm mt-1">{errors.teamAScore}</p>
-            )}
-          </div>
         </div>
 
         <div className="text-center text-slate-500 font-bold text-xl">VS</div>
@@ -298,34 +259,58 @@ export function MatchRecordingForm({
             );
           })}
 
-          <div className="mt-4">
-            <label className="block text-sm text-slate-400 mb-2">
-              Score Équipe B
-            </label>
-            <input
-              type="number"
-              value={teamBScore}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10) || 0;
-                setTeamBScore(Math.max(0, Math.min(10, value)));
-                if (errors.teamBScore) {
+        </div>
+
+        {/* Who won? - Story 14-25 (design-system 7.4) */}
+        <div className="bg-slate-800 rounded-lg p-6">
+          <label className="block text-sm font-bold text-slate-400 mb-4">
+            Qui a gagné ?
+          </label>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setWinner("A");
+                if (errors.winner) {
                   setErrors((prev) => {
                     const newErrors = { ...prev };
-                    delete newErrors.teamBScore;
+                    delete newErrors.winner;
                     return newErrors;
                   });
                 }
               }}
-              min="0"
-              max="10"
-              className={`w-full px-4 py-3 bg-slate-700 text-white rounded-lg text-3xl text-center font-bold border ${
-                errors.teamBScore ? "border-red-500" : "border-slate-600"
+              className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all font-bold ${
+                winner === "A"
+                  ? "bg-amber-500/20 border-amber-500 text-amber-500"
+                  : "bg-slate-700 border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300"
               }`}
-            />
-            {errors.teamBScore && (
-              <p className="text-red-500 text-sm mt-1">{errors.teamBScore}</p>
-            )}
+            >
+              Équipe 1
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setWinner("B");
+                if (errors.winner) {
+                  setErrors((prev) => {
+                    const newErrors = { ...prev };
+                    delete newErrors.winner;
+                    return newErrors;
+                  });
+                }
+              }}
+              className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all font-bold ${
+                winner === "B"
+                  ? "bg-amber-500/20 border-amber-500 text-amber-500"
+                  : "bg-slate-700 border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300"
+              }`}
+            >
+              Équipe 2
+            </button>
           </div>
+          {errors.winner && (
+            <p className="text-red-500 text-sm mt-2">{errors.winner}</p>
+          )}
         </div>
 
         {/* Error messages */}
@@ -334,14 +319,11 @@ export function MatchRecordingForm({
         {errors.duplicate && (
           <p className="text-red-500 text-sm">{errors.duplicate}</p>
         )}
-        {errors.scores && (
-          <p className="text-red-500 text-sm">{errors.scores}</p>
-        )}
 
-        {/* Submit button */}
+        {/* Submit button - disabled until winner selected (Story 14-25 AC3) */}
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !winner}
           className="w-full px-8 py-4 bg-amber-500 text-slate-900 rounded-lg font-bold text-xl hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Enregistrement..." : "Enregistrer le Match"}

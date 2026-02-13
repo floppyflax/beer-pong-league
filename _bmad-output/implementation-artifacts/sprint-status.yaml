@@ -153,8 +153,8 @@ development_status:
   14-17-page-dashboard-league-refonte: done # Code review complete - 5 issues fixed (2 HIGH, 3 MEDIUM)
   14-18-page-creer-league-refonte: done
   # Phase 4 — Reste
-  14-19-page-creer-tournoi-refonte: review
-  14-20-page-profil-joueur-refonte: review
+  14-19-page-creer-tournoi-refonte: in-progress
+  14-20-page-profil-joueur-refonte: done
   14-21-page-mon-profil-refonte: done
   14-22-page-landing-refonte: done
   14-33-landing-frame1-no-scroll: done
@@ -162,9 +162,9 @@ development_status:
   14-23-page-rejoindre-scan-code: done
   14-35-profile-joueur-enrichi: ready-for-dev
   # Phase 5 — Flow match enrichi
-  14-24-schema-base-de-donnees-pour-match-enrichi: ready-for-dev
-  14-25-choix-de-lequipe-gagnante-obligatoire: ready-for-dev
+  14-24-schema-base-de-donnees-pour-match-enrichi: review
+  14-25-choix-de-lequipe-gagnante-obligatoire: review
   14-26-gobelets-restants-optionnel: ready-for-dev
   14-27-photo-de-lequipe-gagnante-optionnel: ready-for-dev
-  14-28-affichage-photo-et-gobelets-dans-lhistorique-des-matchs: ready-for-dev
+  14-28-affichage-photo-et-gobelets-dans-lhistorique-des-matchs: review
   epic-14-retrospective: optional

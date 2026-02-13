@@ -1,6 +1,6 @@
 # Story 14.20: Player profile page (overhaul)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -46,12 +46,24 @@ So that avatar, StatCards, streak and sections are consistent.
 - Task 2: Added avatar section with initials (getInitials), player name, league name. Streak card kept with design tokens (bg-green-500/20, bg-red-500/20, border).
 - Task 3: ContextualHeader with name + back. Content area uses pb-bottom-nav lg:pb-bottom-nav-lg for bottom nav clearance.
 - Task 4: Applied design tokens (bg-slate-900, bg-slate-800, border-slate-700/50, rounded-xl), section titles text-lg font-bold, consistent spacing.
+- Code review (2026-02-13): 6 fixes — removed dead edit modal, ListRow elo→matches, test assertion, error logging, getInitials util, streak=0 neutral state.
+- Code review 2026-02-13 (adversarial): MatchEnrichedDisplay added to Recent matches for consistency with TournamentDashboard/LeagueDashboard.
+
+### Senior Developer Review (AI)
+
+- **Reviewer:** floppyflax (AI) — 2026-02-13
+- **Outcome:** Approved (fixes applied)
+- **Findings:** 1 CRITICAL, 3 HIGH, 2 MEDIUM, 1 LOW. All CRITICAL and HIGH fixed automatically.
 
 ### File List
 
 - src/pages/PlayerProfile.tsx (modified)
+- src/components/design-system/ListRow.tsx (modified — getInitials from @/utils/string)
+- src/utils/string.ts (new — getInitials shared util)
 - tests/unit/pages/PlayerProfile.test.tsx (new)
+- tests/unit/utils/string.test.ts (new — getInitials unit tests)
 
 ## Change Log
 
 - 2026-02-13: Story 14-20 implementation — PlayerProfile refonte design system (StatCard, ListRow, avatar, streak, pb-bottom-nav)
+- 2026-02-13: Code review — 6 fixes (dead edit modal removed, ListRow elo→matches, test assertion, error logging, getInitials util, streak=0 neutral state)

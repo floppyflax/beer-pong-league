@@ -18,6 +18,7 @@ import { EloChangeDisplay } from "@/components/EloChangeDisplay";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { MatchRecordingForm } from "@/components/MatchRecordingForm";
+import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { QRCodeSVG } from "qrcode.react";
 import type { Match } from "@/types";
 import { databaseService } from "@/services/DatabaseService";
@@ -677,6 +678,11 @@ export const TournamentDashboard = () => {
                           })}
                         </div>
                       )}
+                    {/* Story 14-28: Photo thumbnail and cups badge */}
+                    <MatchEnrichedDisplay
+                      photoUrl={match.photo_url}
+                      cupsRemaining={match.cups_remaining}
+                    />
                   </div>
                 );
               })

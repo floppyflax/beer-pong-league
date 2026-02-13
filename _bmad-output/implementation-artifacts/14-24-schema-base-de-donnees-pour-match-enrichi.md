@@ -1,6 +1,6 @@
 # Story 14.24: Database schema for enriched match
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -22,15 +22,15 @@ So that matches can store this optional data.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Supabase migration (AC: 1, 2, 3)
-  - [ ] Create SQL migration
-  - [ ] cups_remaining INTEGER NULL
-  - [ ] photo_url TEXT NULL
-  - [ ] Rollback safe
-- [ ] Task 2: Zod and TypeScript (AC: 4)
-  - [ ] src/utils/validation.ts
-  - [ ] src/types.ts
-  - [ ] Extended Match type
+- [x] Task 1: Supabase migration (AC: 1, 2, 3)
+  - [x] Create SQL migration
+  - [x] cups_remaining INTEGER NULL
+  - [x] photo_url TEXT NULL
+  - [x] Rollback safe
+- [x] Task 2: Zod and TypeScript (AC: 4)
+  - [x] src/utils/validation.ts
+  - [x] src/types.ts
+  - [x] Extended Match type
 
 ## Dev Notes
 
@@ -46,8 +46,26 @@ So that matches can store this optional data.
 
 ### Agent Model Used
 
+Cursor / Composer
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Migration 008_add_match_enriched_fields.sql: added cups_remaining (INTEGER NULL, CHECK 1-10) and photo_url (TEXT NULL) to matches
+- Updated Match interface in src/types.ts with cups_remaining and photo_url
+- Updated matchSchema in src/utils/validation.ts with validation (cups_remaining 1-10, photo_url URL)
+- DatabaseService: map new fields on load (leagues/tournaments) and save (league/tournament/recordMatch/recordTournamentMatch)
+- Added 3 unit tests for enriched match validation
+
 ### File List
+
+- supabase/migrations/008_add_match_enriched_fields.sql
+- src/types.ts
+- src/utils/validation.ts
+- src/services/DatabaseService.ts
+- tests/unit/validation/validation.test.ts
+
+## Change Log
+
+- 2026-02-13: Story 14-24 implemented — migration, types, validation, DatabaseService mapping, unit tests

@@ -26,6 +26,7 @@ import {
   ListRow,
   FAB,
 } from "@/components/design-system";
+import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 
 // Delta ELO du dernier match du joueur (design system 4.3)
 // matches must be sorted by date desc (most recent first)
@@ -400,27 +401,34 @@ export const LeagueDashboard = () => {
                 return (
                   <div
                     key={match.id}
-                    className="bg-slate-800 p-4 rounded-xl border border-slate-700/50 flex justify-between items-center text-sm"
+                    className="bg-slate-800 p-4 rounded-xl border border-slate-700/50"
                   >
-                    <div
-                      className={`flex-1 text-right ${
-                        winnerA ? "text-white font-bold" : "text-slate-400"
-                      }`}
-                    >
-                      {winnerA && "🏆 "}
-                      {teamANames}
+                    <div className="flex justify-between items-center text-sm">
+                      <div
+                        className={`flex-1 text-right ${
+                          winnerA ? "text-white font-bold" : "text-slate-400"
+                        }`}
+                      >
+                        {winnerA && "🏆 "}
+                        {teamANames}
+                      </div>
+                      <div className="px-4 font-bold text-slate-500 text-xs">
+                        VS
+                      </div>
+                      <div
+                        className={`flex-1 text-left ${
+                          !winnerA ? "text-white font-bold" : "text-slate-400"
+                        }`}
+                      >
+                        {!winnerA && "🏆 "}
+                        {teamBNames}
+                      </div>
                     </div>
-                    <div className="px-4 font-bold text-slate-500 text-xs">
-                      VS
-                    </div>
-                    <div
-                      className={`flex-1 text-left ${
-                        !winnerA ? "text-white font-bold" : "text-slate-400"
-                      }`}
-                    >
-                      {!winnerA && "🏆 "}
-                      {teamBNames}
-                    </div>
+                    {/* Story 14-28: Photo thumbnail and cups badge */}
+                    <MatchEnrichedDisplay
+                      photoUrl={match.photo_url}
+                      cupsRemaining={match.cups_remaining}
+                    />
                   </div>
                 );
               })

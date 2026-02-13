@@ -16,25 +16,16 @@ import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { StatCard, ListRow } from "@/components/design-system";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { databaseService } from "@/services/DatabaseService";
-import { TrendingUp, TrendingDown, BarChart3, X } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { getInitials } from "@/utils/string";
+import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import type { Player } from "@/types";
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  const first = parts[0] || "";
-  return first.slice(0, 2).toUpperCase() || "?";
-}
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const { leagues, tournaments, updatePlayer } = useLeague();
+  const { leagues, tournaments } = useLeague();
   const navigate = useNavigate();
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [newName, setNewName] = useState("");
   const [fetchedPlayer, setFetchedPlayer] = useState<{
     player: Player;
     playerLeague: { id: string; name: string } | null;
@@ -42,16 +33,6 @@ export const PlayerProfile = () => {
   } | null>(null);
   const [playerNotFound, setPlayerNotFound] = useState(false);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(false);
-
-  // Escape key closes edit modal
-  useEffect(() => {
-    if (!showEditModal) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowEditModal(false);
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [showEditModal]);
 
   // Find player in leagues first (sync)
   let player: Player | null = null;
@@ -81,8 +62,8 @@ export const PlayerProfile = () => {
       .loadPlayerById(playerId)
       .then((result) => {
         if (cancelled) return;
-        setIsLoadingPlayer(false);
         if (!result) {
+          setIsLoadingPlayer(false);
           setPlayerNotFound(true);
           setFetchedPlayer(null);
           return;
@@ -107,6 +88,7 @@ export const PlayerProfile = () => {
               playerLeague: leagueName ? { id: leagueId!, name: leagueName } : null,
               playersMap: { ...playersMap },
             });
+            setIsLoadingPlayer(false);
           });
         } else {
           setFetchedPlayer({
@@ -114,10 +96,12 @@ export const PlayerProfile = () => {
             playerLeague: leagueName ? { id: leagueId!, name: leagueName } : null,
             playersMap,
           });
+          setIsLoadingPlayer(false);
         }
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
+          console.error("[PlayerProfile] loadPlayerById failed:", err);
           setIsLoadingPlayer(false);
           setPlayerNotFound(true);
         }
@@ -137,10 +121,11 @@ export const PlayerProfile = () => {
     ...leagues.flatMap((league) => league.matches),
     ...tournaments.flatMap((t) => t.matches),
   ];
-  const playerMatches = player
+  const currentPlayer = player;
+  const playerMatches = currentPlayer
     ? allMatches.filter(
         (match) =>
-          match.teamA.includes(player!.id) || match.teamB.includes(player!.id),
+          match.teamA.includes(currentPlayer.id) || match.teamB.includes(currentPlayer.id),
       )
     : [];
   const sortedMatches = [...playerMatches].sort(
@@ -148,7 +133,7 @@ export const PlayerProfile = () => {
   );
 
   const eloEvolution = useMemo(() => {
-    if (!player) return [];
+    if (!currentPlayer) return [];
     const evolution: { date: string; elo: number }[] = [];
     let currentElo = 1000;
     evolution.push({
@@ -156,13 +141,13 @@ export const PlayerProfile = () => {
       elo: currentElo,
     });
     sortedMatches.forEach((match) => {
-      if (match.eloChanges && match.eloChanges[player!.id] !== undefined) {
-        currentElo += match.eloChanges[player!.id];
+      if (currentPlayer && match.eloChanges && match.eloChanges[currentPlayer.id] !== undefined) {
+        currentElo += match.eloChanges[currentPlayer.id];
         evolution.push({ date: match.date, elo: currentElo });
       }
     });
     return evolution;
-  }, [sortedMatches, player]);
+  }, [sortedMatches, currentPlayer]);
 
   const playersMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -183,17 +168,18 @@ export const PlayerProfile = () => {
       { leagueName: string; matches: number; wins: number; losses: number; elo: number; winRate: number }
     > = {};
     leagues.forEach((league) => {
+      if (!currentPlayer) return;
       const leagueMatches = league.matches.filter(
         (match) =>
-          match.teamA.includes(player!.id) || match.teamB.includes(player!.id),
+          match.teamA.includes(currentPlayer.id) || match.teamB.includes(currentPlayer.id),
       );
       if (leagueMatches.length > 0) {
         const wins = leagueMatches.filter((match) => {
-          const isTeamA = match.teamA.includes(player!.id);
+          const isTeamA = match.teamA.includes(currentPlayer.id);
           const winner = match.scoreA > match.scoreB ? "A" : "B";
           return (isTeamA && winner === "A") || (!isTeamA && winner === "B");
         }).length;
-        const leaguePlayer = league.players.find((p) => p.id === player!.id);
+        const leaguePlayer = league.players.find((p) => p.id === currentPlayer.id);
         stats[league.id] = {
           leagueName: league.name,
           matches: leagueMatches.length,
@@ -205,7 +191,7 @@ export const PlayerProfile = () => {
       }
     });
     return stats;
-  }, [leagues, player]);
+  }, [leagues, currentPlayer]);
 
   // Early returns AFTER all hooks
   if (isLoadingPlayer && !player) {
@@ -235,7 +221,7 @@ export const PlayerProfile = () => {
   }
 
   const playerWins = playerMatches.filter((match) => {
-    const isTeamA = match.teamA.includes(player!.id);
+    const isTeamA = match.teamA.includes(currentPlayer.id);
     const winner = match.scoreA > match.scoreB ? "A" : "B";
     return (isTeamA && winner === "A") || (!isTeamA && winner === "B");
   }).length;
@@ -250,12 +236,12 @@ export const PlayerProfile = () => {
   const headToHead: Record<string, { wins: number; losses: number }> = {};
   playerMatches.forEach((match) => {
     const opponents = [
-      ...match.teamA.filter((id) => id !== player!.id),
-      ...match.teamB.filter((id) => id !== player!.id),
+      ...match.teamA.filter((id) => id !== currentPlayer.id),
+      ...match.teamB.filter((id) => id !== currentPlayer.id),
     ];
     const isWinner =
-      (match.teamA.includes(player!.id) && match.scoreA > match.scoreB) ||
-      (match.teamB.includes(player!.id) && match.scoreB > match.scoreA);
+      (match.teamA.includes(currentPlayer.id) && match.scoreA > match.scoreB) ||
+      (match.teamB.includes(currentPlayer.id) && match.scoreB > match.scoreA);
 
     opponents.forEach((opponentId) => {
       if (!headToHead[opponentId]) {
@@ -313,19 +299,23 @@ export const PlayerProfile = () => {
           className={`p-4 rounded-xl flex items-center gap-3 border ${
             player.streak > 0
               ? "bg-green-500/20 border-green-500/50"
-              : "bg-red-500/20 border-red-500/50"
+              : player.streak < 0
+                ? "bg-red-500/20 border-red-500/50"
+                : "bg-slate-800/50 border-slate-700/50"
           }`}
         >
           {player.streak > 0 ? (
             <TrendingUp className="text-green-500 flex-shrink-0" size={24} />
-          ) : (
+          ) : player.streak < 0 ? (
             <TrendingDown className="text-red-500 flex-shrink-0" size={24} />
-          )}
+          ) : null}
           <div className="min-w-0">
             <div className="font-bold text-white">
               {player.streak > 0
                 ? `${player.streak} victoires d'affilée`
-                : `${Math.abs(player.streak)} défaites d'affilée`}
+                : player.streak < 0
+                  ? `${Math.abs(player.streak)} défaites d'affilée`
+                  : "Aucune série"}
             </div>
             <div className="text-xs text-slate-400">Série actuelle</div>
           </div>
@@ -471,13 +461,15 @@ export const PlayerProfile = () => {
                 .slice(0, 5)
                 .map(([opponentId, stats]) => {
                   const opponentName = playersMap[opponentId] || `Joueur ${opponentId.slice(0, 8)}`;
+                  // rightLabel overrides elo display — elo unused in head-to-head context
                   return (
                     <ListRow
                       key={opponentId}
                       variant="player"
                       name={opponentName}
-                      subtitle={`${stats.wins}V - ${stats.losses}D • ${stats.wins + stats.losses} matchs`}
-                      elo={stats.wins}
+                      subtitle={`${stats.wins}V - ${stats.losses}D`}
+                      elo={0}
+                      rightLabel={`${stats.wins + stats.losses} matchs`}
                       onClick={() => navigate(`/player/${opponentId}`)}
                     />
                   );
@@ -493,7 +485,7 @@ export const PlayerProfile = () => {
           </h3>
           <div className="space-y-2">
             {playerMatches.slice(0, 10).map((match) => {
-              const isTeamA = match.teamA.includes(player!.id);
+              const isTeamA = match.teamA.includes(currentPlayer.id);
               const isWinner =
                 (isTeamA && match.scoreA > match.scoreB) ||
                 (!isTeamA && match.scoreB > match.scoreA);
@@ -533,18 +525,22 @@ export const PlayerProfile = () => {
                       {teamB}
                     </div>
                   </div>
-                  {match.eloChanges && match.eloChanges[player!.id] && (
+                  {match.eloChanges && match.eloChanges[currentPlayer.id] && (
                     <div
                       className={`text-xs mt-1 text-center ${
-                        match.eloChanges[player!.id] > 0
+                        match.eloChanges[currentPlayer.id] > 0
                           ? "text-green-500"
                           : "text-red-500"
                       }`}
                     >
-                      {match.eloChanges[player!.id] > 0 ? "+" : ""}
-                      {match.eloChanges[player!.id]} ELO
+                      {match.eloChanges[currentPlayer.id] > 0 ? "+" : ""}
+                      {match.eloChanges[currentPlayer.id]} ELO
                     </div>
                   )}
+                  <MatchEnrichedDisplay
+                    photoUrl={match.photo_url}
+                    cupsRemaining={match.cups_remaining}
+                  />
                 </div>
               );
             })}
@@ -556,53 +552,6 @@ export const PlayerProfile = () => {
           </div>
         </section>
       </div>
-
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">
-                Modifier le nom
-              </h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
-                aria-label="Fermer"
-              >
-                <X size={20} className="text-slate-400" />
-              </button>
-            </div>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 mb-4 text-white focus:ring-2 focus:ring-primary outline-none"
-              autoFocus
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={() => {
-                  if (playerLeague && newName.trim()) {
-                    updatePlayer(playerLeague.id, player!.id, newName.trim());
-                    setShowEditModal(false);
-                  }
-                }}
-                disabled={!newName.trim()}
-                className="flex-1 bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-3 rounded-xl"
-              >
-                Sauvegarder
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

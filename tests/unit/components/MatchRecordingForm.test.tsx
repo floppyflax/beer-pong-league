@@ -15,7 +15,7 @@ vi.mock("react-hot-toast", () => ({
 describe("MatchRecordingForm - Story 5.1", () => {
   const mockParticipants: Player[] = [
     {
-      id: "player-1",
+      id: "11111111-1111-4111-8111-111111111111",
       name: "Alice",
       elo: 1500,
       wins: 0,
@@ -24,7 +24,7 @@ describe("MatchRecordingForm - Story 5.1", () => {
       streak: 0,
     },
     {
-      id: "player-2",
+      id: "22222222-2222-4222-8222-222222222222",
       name: "Bob",
       elo: 1500,
       wins: 0,
@@ -33,7 +33,7 @@ describe("MatchRecordingForm - Story 5.1", () => {
       streak: 0,
     },
     {
-      id: "player-3",
+      id: "33333333-3333-4333-8333-333333333333",
       name: "Charlie",
       elo: 1500,
       wins: 0,
@@ -42,7 +42,7 @@ describe("MatchRecordingForm - Story 5.1", () => {
       streak: 0,
     },
     {
-      id: "player-4",
+      id: "44444444-4444-4444-8444-444444444444",
       name: "Diana",
       elo: 1500,
       wins: 0,
@@ -69,7 +69,7 @@ describe("MatchRecordingForm - Story 5.1", () => {
   });
 
   describe("Task 1: Create MatchRecordingForm component", () => {
-    it("should render the form with team selection and score inputs", () => {
+    it("should render the form with team selection and winner choice (Story 14-25)", () => {
       render(<MatchRecordingForm {...defaultProps} />);
 
       // AC: Form displayed
@@ -79,9 +79,10 @@ describe("MatchRecordingForm - Story 5.1", () => {
       expect(screen.getByText("Équipe A")).toBeInTheDocument();
       expect(screen.getByText("Équipe B")).toBeInTheDocument();
 
-      // AC: Form allows entry of scores
-      expect(screen.getByLabelText(/score équipe a/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/score équipe b/i)).toBeInTheDocument();
+      // AC: Form shows "Who won?" with Team 1 / Team 2 (Story 14-25)
+      expect(screen.getByText("Qui a gagné ?")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Équipe 1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Équipe 2" })).toBeInTheDocument();
     });
 
     it("should display player dropdowns for each team position", () => {
@@ -137,7 +138,7 @@ describe("MatchRecordingForm - Story 5.1", () => {
       const teamBSelect = selects[1];
 
       // Select Alice for team A
-      fireEvent.change(teamASelect, { target: { value: "player-1" } });
+      fireEvent.change(teamASelect, { target: { value: "11111111-1111-4111-8111-111111111111" } });
 
       // Alice should not be available in team B dropdown
       await waitFor(() => {
@@ -145,8 +146,7 @@ describe("MatchRecordingForm - Story 5.1", () => {
         const aliceOption = teamBOptions.find(
           (opt) => opt.textContent === "Alice",
         );
-        expect(aliceOption).not.toBeInTheDocument() ||
-          expect(aliceOption).toHaveAttribute("disabled");
+        expect(aliceOption).toBeUndefined();
       });
     });
 
@@ -158,7 +158,7 @@ describe("MatchRecordingForm - Story 5.1", () => {
       const teamASecondSelect = selects[1];
 
       // Select Alice for first position in team A
-      fireEvent.change(teamAFirstSelect, { target: { value: "player-1" } });
+      fireEvent.change(teamAFirstSelect, { target: { value: "11111111-1111-4111-8111-111111111111" } });
 
       // Alice should not be available in second position dropdown
       await waitFor(() => {
@@ -168,50 +168,40 @@ describe("MatchRecordingForm - Story 5.1", () => {
         const aliceOption = secondOptions.find(
           (opt) => opt.textContent === "Alice",
         );
-        expect(aliceOption).not.toBeInTheDocument() ||
-          expect(aliceOption).toHaveAttribute("disabled");
+        expect(aliceOption).toBeUndefined();
       });
     });
   });
 
-  describe("Task 3: Implement score entry", () => {
-    it("should have score inputs with default values", () => {
+  describe("Task 3: Winner selection (Story 14-25)", () => {
+    it("should have winner unselected by default", () => {
       render(<MatchRecordingForm {...defaultProps} />);
 
-      const scoreAInput = screen.getByLabelText(
-        /score équipe a/i,
-      ) as HTMLInputElement;
-      const scoreBInput = screen.getByLabelText(
-        /score équipe b/i,
-      ) as HTMLInputElement;
+      const team1Button = screen.getByRole("button", { name: "Équipe 1" });
+      const team2Button = screen.getByRole("button", { name: "Équipe 2" });
 
-      // AC: Default scores: 0 (or 10 for team A as per beer pong)
-      expect(scoreAInput.value).toBe("10");
-      expect(scoreBInput.value).toBe("0");
+      // Neither should show selected state (amber border)
+      expect(team1Button).not.toHaveClass("border-amber-500");
+      expect(team2Button).not.toHaveClass("border-amber-500");
     });
 
-    it("should validate scores are in 0-10 range", async () => {
-      render(<MatchRecordingForm {...defaultProps} />);
+    it("should disable submit until winner selected (Story 14-25 AC3)", () => {
+      render(<MatchRecordingForm {...defaultProps} format="1v1" />);
 
-      const scoreAInput = screen.getByLabelText(
-        /score équipe a/i,
-      ) as HTMLInputElement;
+      const selects = screen.getAllByRole("combobox");
+      fireEvent.change(selects[0], { target: { value: "11111111-1111-4111-8111-111111111111" } });
+      fireEvent.change(selects[1], { target: { value: "22222222-2222-4222-8222-222222222222" } });
+      // Do not select winner
 
-      // Try to set score above 10
-      fireEvent.change(scoreAInput, { target: { value: "11" } });
-
-      // Input should clamp to 10
-      await waitFor(() => {
-        expect(parseInt(scoreAInput.value, 10)).toBeLessThanOrEqual(10);
-      });
+      const submitButton = screen.getByRole("button", { name: /enregistrer/i });
+      expect(submitButton).toBeDisabled();
     });
 
-    it("should have large, touch-friendly inputs", () => {
+    it("should have touch-friendly winner buttons", () => {
       render(<MatchRecordingForm {...defaultProps} />);
 
-      const scoreInput = screen.getByLabelText(/score équipe a/i);
-      // Check for large text size class (text-3xl)
-      expect(scoreInput).toHaveClass("text-3xl");
+      const team1Button = screen.getByRole("button", { name: "Équipe 1" });
+      expect(team1Button).toHaveClass("p-4");
     });
   });
 
@@ -236,12 +226,15 @@ describe("MatchRecordingForm - Story 5.1", () => {
     it("should validate correct number of players selected", async () => {
       render(<MatchRecordingForm {...defaultProps} format="2v2" />);
 
+      // Select winner to enable submit button
+      fireEvent.click(screen.getByRole("button", { name: "Équipe 1" }));
       const submitButton = screen.getByRole("button", { name: /enregistrer/i });
       fireEvent.click(submitButton);
 
       // Should show validation error if not all players selected
       await waitFor(() => {
-        expect(screen.getByText(/sélectionnez.*joueur/i)).toBeInTheDocument();
+        const errors = screen.getAllByText(/sélectionnez.*joueur/i);
+        expect(errors.length).toBeGreaterThan(0);
       });
     });
   });
@@ -250,51 +243,44 @@ describe("MatchRecordingForm - Story 5.1", () => {
     it("should validate team composition", async () => {
       render(<MatchRecordingForm {...defaultProps} format="2v2" />);
 
+      // Select winner to enable submit button
+      fireEvent.click(screen.getByRole("button", { name: "Équipe 1" }));
       const submitButton = screen.getByRole("button", { name: /enregistrer/i });
       fireEvent.click(submitButton);
 
-      // AC: Validates input (scores, player selection)
+      // AC: Validates input (player selection)
       await waitFor(() => {
-        expect(screen.getByText(/sélectionnez.*joueur/i)).toBeInTheDocument();
+        const errors = screen.getAllByText(/sélectionnez.*joueur/i);
+        expect(errors.length).toBeGreaterThan(0);
       });
     });
 
-    it("should validate scores", async () => {
+    it("should require winner selection before submit", () => {
       render(<MatchRecordingForm {...defaultProps} format="1v1" />);
 
       const selects = screen.getAllByRole("combobox");
-      const scoreAInput = screen.getByLabelText(/score équipe a/i);
-      const scoreBInput = screen.getByLabelText(/score équipe b/i);
+      fireEvent.change(selects[0], { target: { value: "11111111-1111-4111-8111-111111111111" } });
+      fireEvent.change(selects[1], { target: { value: "22222222-2222-4222-8222-222222222222" } });
+      // Submit button disabled without winner
+      expect(screen.getByRole("button", { name: /enregistrer/i })).toBeDisabled();
 
-      // Select players
-      fireEvent.change(selects[0], { target: { value: "player-1" } });
-      fireEvent.change(selects[1], { target: { value: "player-2" } });
-
-      // Set invalid scores (both not 10)
-      fireEvent.change(scoreAInput, { target: { value: "5" } });
-      fireEvent.change(scoreBInput, { target: { value: "5" } });
-
-      const submitButton = screen.getByRole("button", { name: /enregistrer/i });
-      fireEvent.click(submitButton);
-
-      // Should show validation error
-      await waitFor(() => {
-        expect(
-          screen.getByText(/équipe doit avoir 10 points/i),
-        ).toBeInTheDocument();
-      });
+      // Select winner enables submit
+      fireEvent.click(screen.getByRole("button", { name: "Équipe 1" }));
+      expect(screen.getByRole("button", { name: /enregistrer/i })).not.toBeDisabled();
     });
 
     it("should display validation errors", async () => {
       render(<MatchRecordingForm {...defaultProps} format="1v1" />);
 
+      // Select winner to enable submit (teams still empty)
+      fireEvent.click(screen.getByRole("button", { name: "Équipe 1" }));
       const submitButton = screen.getByRole("button", { name: /enregistrer/i });
       fireEvent.click(submitButton);
 
       // AC: Display validation errors
       await waitFor(() => {
         const errorMessages = screen.queryAllByText(
-          /sélectionnez|score|joueur/i,
+          /sélectionnez|joueur/i,
         );
         expect(errorMessages.length).toBeGreaterThan(0);
       });
@@ -302,28 +288,23 @@ describe("MatchRecordingForm - Story 5.1", () => {
   });
 
   describe("Task 6: Implement match submission", () => {
-    it("should call onSuccess with match data when form is valid", async () => {
+    it("should call onSuccess with match data when form is valid (Story 14-25)", async () => {
       render(<MatchRecordingForm {...defaultProps} format="1v1" />);
 
       const selects = screen.getAllByRole("combobox");
-      const scoreAInput = screen.getByLabelText(/score équipe a/i);
-      const scoreBInput = screen.getByLabelText(/score équipe b/i);
-
-      // Fill form
-      fireEvent.change(selects[0], { target: { value: "player-1" } });
-      fireEvent.change(selects[1], { target: { value: "player-2" } });
-      fireEvent.change(scoreAInput, { target: { value: "10" } });
-      fireEvent.change(scoreBInput, { target: { value: "0" } });
+      fireEvent.change(selects[0], { target: { value: "11111111-1111-4111-8111-111111111111" } });
+      fireEvent.change(selects[1], { target: { value: "22222222-2222-4222-8222-222222222222" } });
+      fireEvent.click(screen.getByRole("button", { name: "Équipe 1" }));
 
       const submitButton = screen.getByRole("button", { name: /enregistrer/i });
       fireEvent.click(submitButton);
 
-      // AC: Submits match
+      // AC: Submits match with winner mapped to scores (10-0)
       await waitFor(() => {
         expect(mockOnSuccess).toHaveBeenCalled();
         const matchArg = mockOnSuccess.mock.calls[0][0] as Match;
-        expect(matchArg.teamA).toContain("player-1");
-        expect(matchArg.teamB).toContain("player-2");
+        expect(matchArg.teamA).toContain("11111111-1111-4111-8111-111111111111");
+        expect(matchArg.teamB).toContain("22222222-2222-4222-8222-222222222222");
         expect(matchArg.scoreA).toBe(10);
         expect(matchArg.scoreB).toBe(0);
       });
@@ -333,14 +314,9 @@ describe("MatchRecordingForm - Story 5.1", () => {
       render(<MatchRecordingForm {...defaultProps} format="1v1" />);
 
       const selects = screen.getAllByRole("combobox");
-      const scoreAInput = screen.getByLabelText(/score équipe a/i);
-      const scoreBInput = screen.getByLabelText(/score équipe b/i);
-
-      // Fill form
-      fireEvent.change(selects[0], { target: { value: "player-1" } });
-      fireEvent.change(selects[1], { target: { value: "player-2" } });
-      fireEvent.change(scoreAInput, { target: { value: "10" } });
-      fireEvent.change(scoreBInput, { target: { value: "0" } });
+      fireEvent.change(selects[0], { target: { value: "11111111-1111-4111-8111-111111111111" } });
+      fireEvent.change(selects[1], { target: { value: "22222222-2222-4222-8222-222222222222" } });
+      fireEvent.click(screen.getByRole("button", { name: "Équipe 1" }));
 
       const submitButton = screen.getByRole("button", { name: /enregistrer/i });
       fireEvent.click(submitButton);
@@ -364,19 +340,13 @@ describe("MatchRecordingForm - Story 5.1", () => {
   });
 
   describe("Task 7: Optimize for speed", () => {
-    it("should pre-fill default scores", () => {
+    it("should have winner selection for quick validation (Story 14-25)", () => {
       render(<MatchRecordingForm {...defaultProps} />);
 
-      const scoreAInput = screen.getByLabelText(
-        /score équipe a/i,
-      ) as HTMLInputElement;
-      const scoreBInput = screen.getByLabelText(
-        /score équipe b/i,
-      ) as HTMLInputElement;
-
-      // AC: Pre-fill defaults
-      expect(scoreAInput.value).toBe("10");
-      expect(scoreBInput.value).toBe("0");
+      // AC: Winner choice replaces score entry for faster recording
+      expect(screen.getByText("Qui a gagné ?")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Équipe 1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Équipe 2" })).toBeInTheDocument();
     });
 
     it("should have large, easy-to-tap buttons", () => {

@@ -54,6 +54,9 @@ export const matchSchema = z.object({
   confirmed_by_user_id: z.string().uuid('User ID must be a valid UUID').nullable().optional(),
   confirmed_by_anonymous_user_id: z.string().uuid('Anonymous user ID must be a valid UUID').nullable().optional(),
   confirmed_at: z.string().datetime('Confirmed at must be a valid ISO 8601 datetime').nullable().optional(),
+  // Story 14-24: Enriched match data
+  cups_remaining: z.number().int('Cups remaining must be an integer').min(1, 'Cups remaining must be 1-10').max(10, 'Cups remaining must be 1-10').nullable().optional(),
+  photo_url: z.string().url('Photo URL must be a valid URL').nullable().optional(),
 });
 
 export type Match = z.infer<typeof matchSchema>;

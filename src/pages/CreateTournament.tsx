@@ -10,7 +10,7 @@
  * Also: Freemium limit enforcement, unique code generation, QR code for sharing.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
@@ -19,9 +19,16 @@ import { premiumService } from "@/services/PremiumService";
 import { databaseService } from "@/services/DatabaseService";
 import { generateTournamentCode } from "@/utils/tournamentCode";
 import { PaymentModal } from "@/components/PaymentModal";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import toast from "react-hot-toast";
-import { Info } from "lucide-react";
+import { Info, X } from "lucide-react";
+
+/** Value used for "unlimited" players when hasPlayerLimit is false (design-system) */
+const UNLIMITED_PLAYERS = 999;
+
+/** Premium price for display (e.g. limit-reached modal) */
+const PREMIUM_PRICE = '3€';
 
 interface FormatOption {
   value: '2v2' | '1v1' | 'libre';
@@ -59,7 +66,12 @@ const FORMAT_OPTIONS: FormatOption[] = [
   },
 ];
 
-export const CreateTournament = () => {
+interface CreateTournamentProps {
+  /** Skip premium check (testing only) — bypasses loading state */
+  skipPremiumCheck?: boolean;
+}
+
+export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentProps = {}) => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
@@ -84,12 +96,7 @@ export const CreateTournament = () => {
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Check premium status and limits on mount
-  useEffect(() => {
-    checkPremiumStatus();
-  }, [user, localUser]);
-
-  const checkPremiumStatus = async () => {
+  const checkPremiumStatus = useCallback(async () => {
     setIsLoadingPremium(true);
     
     try {
@@ -109,16 +116,9 @@ export const CreateTournament = () => {
       setCanCreate(result.allowed);
       setRemainingTournaments(result.remaining || 0);
       
-      // If limit reached, show error and optionally open payment modal
+      // If limit reached, show LimitReached modal (design-system 6.2) — no toast, no auto-redirect
       if (!result.allowed) {
-        toast.error(result.message || 'Limite de tournois atteinte');
-        // Optionally open payment modal (AC8)
-        // setShowPaymentModal(true);
-        
-        // Redirect to home after a delay
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
+        // Modal with Passer à Premium / Plus tard will be shown
       }
     } catch (error) {
       console.error('Error checking premium status:', error);
@@ -126,7 +126,19 @@ export const CreateTournament = () => {
     } finally {
       setIsLoadingPremium(false);
     }
-  };
+  }, [user?.id, localUser?.anonymousUserId]);
+
+  // Check premium status and limits on mount (skip when skipPremiumCheck for testing)
+  useEffect(() => {
+    if (skipPremiumCheck) {
+      setIsLoadingPremium(false);
+      setIsPremium(false);
+      setCanCreate(true);
+      setRemainingTournaments(2);
+      return;
+    }
+    checkPremiumStatus();
+  }, [skipPremiumCheck, checkPremiumStatus]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -138,11 +150,13 @@ export const CreateTournament = () => {
       newErrors.name = 'Le nom ne peut pas dépasser 50 caractères';
     }
     
-    // Player limit validation (required if toggle is ON)
+    // Player limit validation (required if toggle is ON, max 100)
     if (hasPlayerLimit) {
       const limitNum = parseInt(playerLimit);
       if (!playerLimit || isNaN(limitNum) || limitNum < 2) {
         newErrors.playerLimit = 'Au moins 2 joueurs requis';
+      } else if (limitNum > 100) {
+        newErrors.playerLimit = 'Maximum 100 joueurs';
       }
     }
     
@@ -151,22 +165,19 @@ export const CreateTournament = () => {
   };
 
   const generateUniqueCode = async (): Promise<string> => {
-    let attempts = 0;
     const maxAttempts = 10;
-    
-    while (attempts < maxAttempts) {
+
+    for (let attempts = 0; attempts < maxAttempts; attempts++) {
       const code = generateTournamentCode();
       const exists = await databaseService.tournamentCodeExists(code);
-      
+
       if (!exists) {
         return code;
       }
-      
-      attempts++;
     }
-    
-    // Fallback: append timestamp if still colliding (very unlikely)
-    return generateTournamentCode() + Date.now().toString(36).slice(-2).toUpperCase();
+
+    // DB constraint: join_code must be exactly 6 chars — no fallback to 8 chars
+    throw new Error('Impossible de générer un code unique. Réessayez.');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -202,7 +213,7 @@ export const CreateTournament = () => {
         formatType: selectedFormat.formatType,
         team1Size: selectedFormat.team1Size,
         team2Size: selectedFormat.team2Size,
-        maxPlayers: maxPlayersValue || 999, // Use 999 as "unlimited" if null
+        maxPlayers: maxPlayersValue || UNLIMITED_PLAYERS,
         isPrivate,
         creatorUserId: user?.id || null,
         creatorAnonymousUserId: localUser?.anonymousUserId || null,
@@ -218,7 +229,11 @@ export const CreateTournament = () => {
       navigate(`/tournament/${tournamentId}`);
     } catch (error) {
       console.error('Error creating tournament:', error);
-      toast.error('Erreur lors de la création du tournoi');
+      const message =
+        error instanceof Error && error.message.includes('code unique')
+          ? error.message
+          : 'Erreur lors de la création du tournoi';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -229,39 +244,15 @@ export const CreateTournament = () => {
     return (
       <div className="min-h-screen bg-slate-900 p-4 flex items-center justify-center">
         <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Vérification du statut...</p>
+          <LoadingSpinner size={48} />
+          <p className="mt-4">Vérification du statut...</p>
         </div>
       </div>
     );
   }
 
-  // If limit reached, show message (will redirect soon)
-  if (!canCreate) {
-    return (
-      <div className="min-h-screen bg-slate-900 p-4 flex items-center justify-center">
-        <div className="text-white text-center max-w-md">
-          <div className="bg-slate-800 rounded-2xl p-8 border border-slate-700">
-            <h2 className="text-2xl font-bold mb-4">Limite atteinte</h2>
-            <p className="text-slate-300 mb-6">
-              Tu as créé {tournamentCount} tournoi{tournamentCount > 1 ? 's' : ''}.
-              Passe Premium pour créer des tournois illimités !
-            </p>
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white font-bold py-3 rounded-xl transition-all"
-            >
-              ✨ PASSER PREMIUM - 3€
-            </button>
-          </div>
-        </div>
-        <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-        />
-      </div>
-    );
-  }
+  // Limit reached: show centered modal per design-system 6.2 (Message + Passer à Premium / Plus tard, X)
+  const showLimitReachedModal = !canCreate;
 
   return (
     <div className="h-full flex flex-col bg-slate-900 min-h-screen">
@@ -271,6 +262,40 @@ export const CreateTournament = () => {
         showBackButton={true}
         onBack={() => navigate("/")}
       />
+
+      {/* Limit reached modal - design-system 6.2: Centré, Message + Passer à Premium / Plus tard, X */}
+      {showLimitReachedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 max-w-md w-full relative shadow-xl">
+            <button
+              onClick={() => navigate("/")}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-1 rounded-lg"
+              aria-label="Fermer"
+            >
+              <X size={24} />
+            </button>
+            <h2 className="text-2xl font-bold text-white mb-4 pr-10">Limite atteinte</h2>
+            <p className="text-slate-300 mb-6">
+              Tu as créé {tournamentCount} tournoi{tournamentCount > 1 ? "s" : ""}. Passe Premium
+              pour créer des tournois illimités !
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white font-bold py-3 rounded-xl transition-all"
+              >
+                {`✨ PASSER PREMIUM - ${PREMIUM_PRICE}`}
+              </button>
+              <button
+                onClick={() => navigate("/")}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 rounded-xl transition-all"
+              >
+                Plus tard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contenu scrollable avec réserve pour CTA sticky (design-system 5.3) */}
       <div className="flex-grow overflow-y-auto p-4 md:p-6 pb-24">
@@ -302,7 +327,8 @@ export const CreateTournament = () => {
           </div>
         )}
 
-        {/* Form - AC2: Fields with labels, inline validation */}
+        {/* Form - AC2: Fields with labels, inline validation (hidden when limit reached) */}
+        {!showLimitReachedModal && (
         <form
           id="create-tournament-form"
           onSubmit={handleSubmit}
@@ -419,6 +445,7 @@ export const CreateTournament = () => {
                   type="number"
                   value={playerLimit}
                   onChange={(e) => setPlayerLimit(e.target.value)}
+                  onBlur={() => validateForm()}
                   placeholder="Ex: 16"
                   min={2}
                   max={100}
@@ -432,7 +459,6 @@ export const CreateTournament = () => {
                   aria-describedby={
                     errors.playerLimit ? "playerLimit-error" : undefined
                   }
-                  autoFocus
                 />
                 {errors.playerLimit && (
                   <p
@@ -474,6 +500,7 @@ export const CreateTournament = () => {
           </div>
 
         </form>
+        )}
 
         {/* Payment Modal (AC8) */}
         <PaymentModal
@@ -482,7 +509,8 @@ export const CreateTournament = () => {
         />
       </div>
 
-      {/* CTA sticky au-dessus du bottom nav (design-system 5.3) - AC3 */}
+      {/* CTA sticky au-dessus du bottom nav (design-system 5.3) - AC3 (hidden when limit reached) */}
+      {!showLimitReachedModal && (
       <div className="fixed bottom-16 inset-x-0 z-20 bg-slate-900 border-t border-slate-800 p-4 md:p-6">
         <button
           type="submit"
@@ -493,6 +521,7 @@ export const CreateTournament = () => {
           {isSubmitting ? "CRÉATION..." : "CRÉER LE TOURNOI"}
         </button>
       </div>
+      )}
     </div>
   );
 };

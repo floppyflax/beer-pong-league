@@ -6,6 +6,7 @@
  */
 
 import { ChevronRight } from 'lucide-react';
+import { getInitials } from '@/utils/string';
 
 export interface ListRowPlayerProps {
   variant: 'player';
@@ -13,8 +14,10 @@ export interface ListRowPlayerProps {
   name: string;
   /** Sous-texte (ex: W/L, winrate) */
   subtitle: string;
-  /** ELO */
+  /** ELO (ou valeur affichée à droite si rightLabel fourni) */
   elo: number;
+  /** Libellé personnalisé à droite (ex: "5 matchs") — remplace l'affichage ELO */
+  rightLabel?: string;
   /** Rang (1=or, 2=argent, 3=bronze) */
   rank?: number;
   /** Delta ELO (positif=vert, négatif=rouge) */
@@ -56,15 +59,6 @@ export type ListRowProps =
   | ListRowPlayerProps
   | ListRowTournamentProps
   | ListRowLeagueProps;
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  const first = parts[0] || '';
-  return first.slice(0, 2).toUpperCase() || '?';
-}
 
 function getRankBadgeClass(rank: number): string {
   switch (rank) {
@@ -158,9 +152,11 @@ export function ListRow(props: ListRowProps) {
           </div>
         </div>
 
-        {/* ELO + delta */}
+        {/* ELO/rightLabel + delta */}
         <div className="flex-shrink-0 flex items-center gap-2">
-          <span className="text-base font-bold text-primary">{props.elo}</span>
+          <span className="text-base font-bold text-primary">
+            {props.rightLabel ?? props.elo}
+          </span>
           {props.delta !== undefined && (
             <span
               className={`text-sm font-medium ${deltaClass}`}
