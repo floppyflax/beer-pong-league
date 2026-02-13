@@ -10,7 +10,7 @@
  * Also: Freemium limit enforcement, unique code generation, QR code for sharing.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
@@ -96,6 +96,9 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Limit modal: ref for focus trap
+  const limitModalRef = useRef<HTMLDivElement>(null);
+
   const checkPremiumStatus = useCallback(async () => {
     setIsLoadingPremium(true);
     
@@ -139,6 +142,28 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
     }
     checkPremiumStatus();
   }, [skipPremiumCheck, checkPremiumStatus]);
+
+  // Limit modal: Escape key closes (UX spec), focus trap when open
+  const showLimitReachedModal = !canCreate;
+  useEffect(() => {
+    if (!showLimitReachedModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        navigate("/");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showLimitReachedModal, navigate]);
+
+  useEffect(() => {
+    if (!showLimitReachedModal || !limitModalRef.current) return;
+    const firstFocusable = limitModalRef.current.querySelector<HTMLElement>(
+      'button[aria-label="Fermer"], button'
+    );
+    firstFocusable?.focus();
+  }, [showLimitReachedModal]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -251,9 +276,6 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
     );
   }
 
-  // Limit reached: show centered modal per design-system 6.2 (Message + Passer à Premium / Plus tard, X)
-  const showLimitReachedModal = !canCreate;
-
   return (
     <div className="h-full flex flex-col bg-slate-900 min-h-screen">
       {/* Contextual Header - AC1: title + back */}
@@ -265,8 +287,16 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
 
       {/* Limit reached modal - design-system 6.2: Centré, Message + Passer à Premium / Plus tard, X */}
       {showLimitReachedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 max-w-md w-full relative shadow-xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="limit-modal-title"
+        >
+          <div
+            ref={limitModalRef}
+            className="bg-slate-800 rounded-2xl p-6 border border-slate-700 max-w-md w-full relative shadow-xl"
+          >
             <button
               onClick={() => navigate("/")}
               className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-1 rounded-lg"
@@ -274,7 +304,7 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
             >
               <X size={24} />
             </button>
-            <h2 className="text-2xl font-bold text-white mb-4 pr-10">Limite atteinte</h2>
+            <h2 id="limit-modal-title" className="text-2xl font-bold text-white mb-4 pr-10">Limite atteinte</h2>
             <p className="text-slate-300 mb-6">
               Tu as créé {tournamentCount} tournoi{tournamentCount > 1 ? "s" : ""}. Passe Premium
               pour créer des tournois illimités !
