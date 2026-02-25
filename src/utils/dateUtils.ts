@@ -16,3 +16,20 @@ export const formatRelativeTime = (dateString: string): string => {
   if (diffDays < 7) return `Il y a ${diffDays}j`;
   return date.toLocaleDateString('fr-FR');
 };
+
+/**
+ * Format a date as "Membre depuis X" (e.g. "Membre depuis 2 mois")
+ */
+export const formatJoinedSince = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  const diffMonths = Math.floor(diffDays / 30);
+  const diffYears = Math.floor(diffDays / 365);
+
+  if (diffDays < 1) return 'Membre depuis aujourd\'hui';
+  if (diffDays < 30) return `Membre depuis ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+  if (diffMonths < 12) return `Membre depuis ${diffMonths} mois`;
+  return `Membre depuis ${diffYears} an${diffYears > 1 ? 's' : ''}`;
+};
