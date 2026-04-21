@@ -27,31 +27,34 @@ describe('AnonymousUserService', () => {
       const mockData = { id: 'test-anon-123', pseudo: 'TestUser' };
       const mockSingle = vi.fn().mockResolvedValue({ data: mockData, error: null });
       const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
-      const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
-      const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
-      
+      const mockUpsert = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockFrom = vi.fn().mockReturnValue({ upsert: mockUpsert });
+
       vi.mocked(supabase!.from).mockImplementation(mockFrom);
 
       const result = await anonymousUserService.createAnonymousUser(mockLocalUser);
 
       expect(supabase!.from).toHaveBeenCalledWith('anonymous_users');
-      expect(mockInsert).toHaveBeenCalledWith({
-        id: mockLocalUser.anonymousUserId,
-        pseudo: mockLocalUser.pseudo,
-        device_fingerprint: mockLocalUser.deviceFingerprint,
-      });
+      expect(mockUpsert).toHaveBeenCalledWith(
+        {
+          id: mockLocalUser.anonymousUserId,
+          pseudo: mockLocalUser.pseudo,
+          device_fingerprint: mockLocalUser.deviceFingerprint,
+        },
+        { onConflict: 'id', ignoreDuplicates: false }
+      );
       expect(result).toEqual(mockData);
     });
 
     it('should return null on error', async () => {
-      const mockSingle = vi.fn().mockResolvedValue({ 
-        data: null, 
-        error: new Error('Insert failed') 
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: new Error('Insert failed')
       });
       const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
-      const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
-      const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
-      
+      const mockUpsert = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockFrom = vi.fn().mockReturnValue({ upsert: mockUpsert });
+
       vi.mocked(supabase!.from).mockImplementation(mockFrom);
 
       const result = await anonymousUserService.createAnonymousUser(mockLocalUser);
@@ -163,15 +166,15 @@ describe('AnonymousUserService', () => {
       const mockGetEq = vi.fn().mockReturnValue({ single: mockGetSingle });
       const mockGetSelect = vi.fn().mockReturnValue({ eq: mockGetEq });
 
-      // Mock createAnonymousUser
+      // Mock createAnonymousUser (uses upsert, not insert)
       const mockCreateData = { id: 'test-anon-123', pseudo: 'TestUser' };
       const mockCreateSingle = vi.fn().mockResolvedValue({ data: mockCreateData, error: null });
       const mockCreateSelect = vi.fn().mockReturnValue({ single: mockCreateSingle });
-      const mockInsert = vi.fn().mockReturnValue({ select: mockCreateSelect });
+      const mockUpsert = vi.fn().mockReturnValue({ select: mockCreateSelect });
 
       const mockFrom = vi.fn()
         .mockReturnValueOnce({ select: mockGetSelect })  // First call for getAnonymousUser
-        .mockReturnValueOnce({ insert: mockInsert });    // Second call for createAnonymousUser
+        .mockReturnValueOnce({ upsert: mockUpsert });    // Second call for createAnonymousUser
       
       vi.mocked(supabase!.from).mockImplementation(mockFrom);
 
