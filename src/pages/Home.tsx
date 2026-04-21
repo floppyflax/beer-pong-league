@@ -7,8 +7,8 @@ import { useHomeData } from "../hooks/useHomeData";
 import { usePremium } from "../hooks/usePremium";
 import { usePremiumLimits } from "../hooks/usePremiumLimits";
 import { ContextualHeader } from "../components/navigation/ContextualHeader";
-import { LastTournamentCard } from "../components/home/LastTournamentCard";
-import { LastLeagueCard } from "../components/home/LastLeagueCard";
+import { LastActivityCard } from "../components/design-system/LastActivityCard";
+import { ScreenLayout } from "../components/design-system/ScreenLayout";
 import { PersonalStatsSummary } from "../components/home/PersonalStatsSummary";
 import { PaymentModal } from "../components/PaymentModal";
 
@@ -52,81 +52,94 @@ export const Home = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center flex-grow">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">
-            Erreur lors du chargement des données
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-primary hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg"
-          >
-            Réessayer
-          </button>
+      <ScreenLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <p className="text-ruby mb-4 font-archivo font-extrabold uppercase tracking-tight">
+              Erreur lors du chargement des données
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-cup-red text-ink border-[1.5px] border-cup-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-2 px-4 rounded-full transition-[transform,box-shadow,filter] duration-75"
+            >
+              Réessayer
+            </button>
+          </div>
         </div>
-      </div>
+      </ScreenLayout>
     );
   }
 
   return (
     <>
-      <div className="min-h-screen bg-slate-900 text-white">
-        {/* Contextual Header (Story 13.2) */}
-        <ContextualHeader title="🍺 BPL" />
+      <ScreenLayout header={<ContextualHeader title="🍺 BPL" />}>
+        <div className="mb-8">
+          <h2 className="text-2xl md:text-3xl font-archivo font-extrabold uppercase tracking-tight text-ink mb-2">
+            👋 Salut{" "}
+            {localUser?.pseudo ?? user?.email?.split("@")[0] ?? "Champion"}
+          </h2>
+          <p className="text-ink-soft">Voici ton activité récente</p>
+        </div>
 
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Welcome Message */}
-          <div className="mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-              👋 Salut{" "}
-              {localUser?.pseudo ?? user?.email?.split("@")[0] ?? "Champion"}
-            </h2>
-            <p className="text-slate-400">Voici ton activité récente</p>
-          </div>
-
-          {/* Dashboard */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - 2/3 width on desktop */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Last Tournament */}
-              <div>
-                <h2 className="text-xl font-bold text-white mb-4">
-                  Mon dernier tournoi
-                </h2>
-                <LastTournamentCard
-                  tournament={lastTournament}
-                  isLoading={isLoading}
-                />
-              </div>
-
-              {/* Last League */}
-              <div>
-                <h2 className="text-xl font-bold text-white mb-4">
-                  Ma dernière league
-                </h2>
-                <LastLeagueCard
-                  league={lastLeague}
-                  isLoading={isLoading}
-                  onEmptyAction={handleCreateLeague}
-                  emptyActionLocked={isAtLeagueLimit}
-                />
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div>
+              <h2 className="text-xl font-archivo font-extrabold uppercase tracking-tight text-ink mb-4">
+                Mon dernier tournoi
+              </h2>
+              <LastActivityCard
+                kind="tournament"
+                activity={
+                  lastTournament
+                    ? {
+                        id: lastTournament.id,
+                        name: lastTournament.name,
+                        count: lastTournament.playerCount,
+                        updatedAt: lastTournament.updatedAt,
+                        finished: lastTournament.isFinished,
+                      }
+                    : undefined
+                }
+                isLoading={isLoading}
+              />
             </div>
 
-            {/* Right Column - 1/3 width on desktop with sticky positioning */}
-            <div className="lg:col-span-1">
-              <div className="lg:sticky lg:top-6">
-                <PersonalStatsSummary
-                  stats={personalStats}
-                  isLoading={isLoading}
-                  isPremium={isPremium}
-                  onUpgradeClick={handleUpgradeClick}
-                />
-              </div>
+            <div>
+              <h2 className="text-xl font-archivo font-extrabold uppercase tracking-tight text-ink mb-4">
+                Ma dernière league
+              </h2>
+              <LastActivityCard
+                kind="league"
+                activity={
+                  lastLeague
+                    ? {
+                        id: lastLeague.id,
+                        name: lastLeague.name,
+                        count: lastLeague.memberCount,
+                        updatedAt: lastLeague.updatedAt,
+                        finished: lastLeague.status === "finished",
+                      }
+                    : undefined
+                }
+                isLoading={isLoading}
+                onEmptyAction={handleCreateLeague}
+                emptyActionLocked={isAtLeagueLimit}
+              />
+            </div>
+          </div>
+
+          <div className="lg:col-span-1">
+            <div className="lg:sticky lg:top-6">
+              <PersonalStatsSummary
+                stats={personalStats}
+                isLoading={isLoading}
+                isPremium={isPremium}
+                onUpgradeClick={handleUpgradeClick}
+              />
             </div>
           </div>
         </div>
-      </div>
+      </ScreenLayout>
 
       {/* Payment Modal */}
       <PaymentModal

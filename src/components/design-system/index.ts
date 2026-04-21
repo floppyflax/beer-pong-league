@@ -38,3 +38,11 @@ export type {
   PlayerCardCompactProps,
   PlayerCardFullProps,
 } from "./PlayerCard";
+export { LastActivityCard } from "./LastActivityCard";
+export type {
+  LastActivityCardProps,
+  LastActivity,
+  LastActivityKind,
+} from "./LastActivityCard";
+export { ScreenLayout } from "./ScreenLayout";
+export type { ScreenLayoutProps } from "./ScreenLayout";
