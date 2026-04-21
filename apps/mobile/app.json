@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "ELO Fight",
+    "slug": "elofight",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "elofight",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.elofight.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "L'appareil photo est utilisé pour scanner les QR codes et prendre des photos finish.",
+        "NSPhotoLibraryUsageDescription": "L'accès à la galerie permet de sélectionner des photos finish."
+      }
+    },
+    "android": {
+      "package": "com.elofight.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["CAMERA"]
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-image-picker",
+      "expo-secure-store"
+    ]
+  }
+}

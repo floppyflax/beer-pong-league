@@ -1,6 +1,6 @@
 # Story 14.28: Display photo and cups in match history
 
-Status: review
+Status: done
 
 ## Story
 
@@ -50,7 +50,8 @@ Cursor / Composer
 
 - Created MatchEnrichedDisplay component: photo thumbnail (lazy loading, click-to-enlarge modal), cups badge ("X gobelet(s) restant(s)")
 - Integrated in TournamentDashboard and LeagueDashboard match lists
-- 9 unit tests for MatchEnrichedDisplay, integration tests for both dashboards
+- 12 unit tests for MatchEnrichedDisplay, integration tests for both dashboards
+- Code review 2026-02-16: Fixed 5 MEDIUM issues (Escape key, backdrop click, image error handling, scroll lock, focus management)
 
 ### File List
 
@@ -61,6 +62,22 @@ Cursor / Composer
 - tests/unit/pages/TournamentDashboard.test.tsx
 - tests/unit/pages/LeagueDashboard.test.tsx
 
+## Senior Developer Review (AI)
+
+**Reviewer:** floppyflax on 2026-02-16
+
+**Findings addressed:**
+
+- Escape key closes modal
+- Backdrop click closes modal
+- Image error handling (onError → placeholder "Erreur")
+- Body scroll lock when modal open
+- Focus management (focus close button on open, return to trigger on close)
+- formatCupsBadge helper for maintainability
+
+**Outcome:** Approved — 5 MEDIUM issues fixed automatically
+
 ## Change Log
 
+- 2026-02-16: Code review — 5 MEDIUM issues fixed (Escape, backdrop click, image error, scroll lock, focus)
 - 2026-02-13: Story 14-28 implemented — MatchEnrichedDisplay component, integration in TournamentDashboard and LeagueDashboard, unit and integration tests

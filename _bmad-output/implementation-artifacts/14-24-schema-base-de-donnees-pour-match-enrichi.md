@@ -1,6 +1,6 @@
 # Story 14.24: Database schema for enriched match
 
-Status: review
+Status: done
 
 ## Story
 
@@ -57,11 +57,13 @@ Cursor / Composer
 - Updated matchSchema in src/utils/validation.ts with validation (cups_remaining 1-10, photo_url URL)
 - DatabaseService: map new fields on load (leagues/tournaments) and save (league/tournament/recordMatch/recordTournamentMatch)
 - Added 3 unit tests for enriched match validation
+- **Code review (2026-02-16):** Regenerated src/types/supabase.ts with cups_remaining, photo_url, status; added Zod refine for cups_remaining (winning team only); documented rollback in migration; added tests for cups_remaining>10, null values, tie rejection
 
 ### File List
 
 - supabase/migrations/008_add_match_enriched_fields.sql
 - src/types.ts
+- src/types/supabase.ts
 - src/utils/validation.ts
 - src/services/DatabaseService.ts
 - tests/unit/validation/validation.test.ts
@@ -69,3 +71,4 @@ Cursor / Composer
 ## Change Log
 
 - 2026-02-13: Story 14-24 implemented — migration, types, validation, DatabaseService mapping, unit tests
+- 2026-02-16: Code review — Supabase types regenerated, Zod semantic validation (cups_remaining winning team only), migration rollback docs, 4 additional unit tests

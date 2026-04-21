@@ -1,0 +1,557 @@
+/**
+ * CreateTournament Page - Story 14.19
+ *
+ * Tournament creation form aligned with design system (design-system-convergence 5.3).
+ * - Header: title + back
+ * - Fields with labels, inline validation
+ * - Primary CTA sticky at bottom
+ * - Matches Frame 10
+ *
+ * Also: Freemium limit enforcement, unique code generation, QR code for sharing.
+ */
+
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthContext } from "@/context/AuthContext";
+import { useIdentity } from "@/hooks/useIdentity";
+import { useLeague } from "@/context/LeagueContext";
+import { premiumService } from "@/services/PremiumService";
+import { databaseService } from "@/services/DatabaseService";
+import { generateTournamentCode } from "@/utils/tournamentCode";
+import { PaymentModal } from "@/components/PaymentModal";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { ContextualHeader } from "@/components/navigation/ContextualHeader";
+import toast from "react-hot-toast";
+import { Info, X } from "lucide-react";
+
+/** Value used for "unlimited" players when hasPlayerLimit is false (design-system) */
+const UNLIMITED_PLAYERS = 999;
+
+/** Premium price for display (e.g. limit-reached modal) */
+const PREMIUM_PRICE = '3€';
+
+interface FormatOption {
+  value: '2v2' | '1v1' | 'libre';
+  label: string;
+  description: string;
+  formatType: 'fixed' | 'free';
+  team1Size: number | null;
+  team2Size: number | null;
+}
+
+const FORMAT_OPTIONS: FormatOption[] = [
+  {
+    value: '2v2',
+    label: '2v2 Strict',
+    description: 'Équipes de 2 joueurs',
+    formatType: 'fixed',
+    team1Size: 2,
+    team2Size: 2,
+  },
+  {
+    value: '1v1',
+    label: '1v1 Strict',
+    description: 'Duel individuel',
+    formatType: 'fixed',
+    team1Size: 1,
+    team2Size: 1,
+  },
+  {
+    value: 'libre',
+    label: 'Libre',
+    description: 'Équipes flexibles (1v2, 2v3...)',
+    formatType: 'free',
+    team1Size: null,
+    team2Size: null,
+  },
+];
+
+interface CreateTournamentProps {
+  /** Skip premium check (testing only) — bypasses loading state */
+  skipPremiumCheck?: boolean;
+}
+
+export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentProps = {}) => {
+  const navigate = useNavigate();
+  const { user } = useAuthContext();
+  const { localUser } = useIdentity();
+  const { reloadData } = useLeague();
+  
+  // Premium status and limits
+  const [isLoadingPremium, setIsLoadingPremium] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [tournamentCount, setTournamentCount] = useState(0);
+  const [canCreate, setCanCreate] = useState(false);
+  const [remainingTournaments, setRemainingTournaments] = useState(0);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  
+  // Form state
+  const [name, setName] = useState("");
+  const [format, setFormat] = useState<'2v2' | '1v1' | 'libre'>('2v2');
+  const [hasPlayerLimit, setHasPlayerLimit] = useState(false);
+  const [playerLimit, setPlayerLimit] = useState<string>("16");
+  const [isPrivate, setIsPrivate] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Limit modal: ref for focus trap
+  const limitModalRef = useRef<HTMLDivElement>(null);
+
+  const checkPremiumStatus = useCallback(async () => {
+    setIsLoadingPremium(true);
+    
+    try {
+      const userId = user?.id || null;
+      const anonymousUserId = localUser?.anonymousUserId || null;
+      
+      // Get premium status
+      const premiumStatus = await premiumService.isPremium(userId, anonymousUserId);
+      setIsPremium(premiumStatus);
+      
+      // Get tournament count
+      const count = await premiumService.getTournamentCount(userId, anonymousUserId);
+      setTournamentCount(count);
+      
+      // Check if can create
+      const result = await premiumService.canCreateTournament(userId, anonymousUserId);
+      setCanCreate(result.allowed);
+      setRemainingTournaments(result.remaining || 0);
+      
+      // If limit reached, show LimitReached modal (design-system 6.2) — no toast, no auto-redirect
+      if (!result.allowed) {
+        // Modal with Passer à Premium / Plus tard will be shown
+      }
+    } catch (error) {
+      console.error('Error checking premium status:', error);
+      toast.error('Erreur lors de la vérification du statut premium');
+    } finally {
+      setIsLoadingPremium(false);
+    }
+  }, [user?.id, localUser?.anonymousUserId]);
+
+  // Check premium status and limits on mount (skip when skipPremiumCheck for testing)
+  useEffect(() => {
+    if (skipPremiumCheck) {
+      setIsLoadingPremium(false);
+      setIsPremium(false);
+      setCanCreate(true);
+      setRemainingTournaments(2);
+      return;
+    }
+    checkPremiumStatus();
+  }, [skipPremiumCheck, checkPremiumStatus]);
+
+  // Limit modal: Escape key closes (UX spec), focus trap when open
+  const showLimitReachedModal = !canCreate;
+  useEffect(() => {
+    if (!showLimitReachedModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        navigate("/");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showLimitReachedModal, navigate]);
+
+  useEffect(() => {
+    if (!showLimitReachedModal || !limitModalRef.current) return;
+    const firstFocusable = limitModalRef.current.querySelector<HTMLElement>(
+      'button[aria-label="Fermer"], button'
+    );
+    firstFocusable?.focus();
+  }, [showLimitReachedModal]);
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    // Name required and max 50 chars (AC2, AC3)
+    if (!name.trim()) {
+      newErrors.name = 'Le nom du tournoi est requis';
+    } else if (name.length > 50) {
+      newErrors.name = 'Le nom ne peut pas dépasser 50 caractères';
+    }
+    
+    // Player limit validation (required if toggle is ON, max 100)
+    if (hasPlayerLimit) {
+      const limitNum = parseInt(playerLimit);
+      if (!playerLimit || isNaN(limitNum) || limitNum < 2) {
+        newErrors.playerLimit = 'Au moins 2 joueurs requis';
+      } else if (limitNum > 100) {
+        newErrors.playerLimit = 'Maximum 100 joueurs';
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const generateUniqueCode = async (): Promise<string> => {
+    const maxAttempts = 10;
+
+    for (let attempts = 0; attempts < maxAttempts; attempts++) {
+      const code = generateTournamentCode();
+      const exists = await databaseService.tournamentCodeExists(code);
+
+      if (!exists) {
+        return code;
+      }
+    }
+
+    // DB constraint: join_code must be exactly 6 chars — no fallback to 8 chars
+    throw new Error('Impossible de générer un code unique. Réessayez.');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+      toast.error('Veuillez corriger les erreurs dans le formulaire');
+      return;
+    }
+    
+    // Double-check if can create (safeguard, AC8)
+    if (!canCreate) {
+      toast.error('Limite de tournois atteinte. Passez Premium pour créer sans limite !');
+      setShowPaymentModal(true);
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Generate unique tournament code (AC4)
+      const joinCode = await generateUniqueCode();
+      
+      // Get selected format configuration
+      const selectedFormat = FORMAT_OPTIONS.find(f => f.value === format)!;
+      
+      // Create tournament in database (AC6)
+      const maxPlayersValue = hasPlayerLimit ? parseInt(playerLimit) : null;
+      const tournamentId = await databaseService.createTournament({
+        name: name.trim(),
+        joinCode,
+        formatType: selectedFormat.formatType,
+        team1Size: selectedFormat.team1Size,
+        team2Size: selectedFormat.team2Size,
+        maxPlayers: maxPlayersValue || UNLIMITED_PLAYERS,
+        isPrivate,
+        creatorUserId: user?.id || null,
+        creatorAnonymousUserId: localUser?.anonymousUserId || null,
+      });
+      
+      // Success toast (AC7)
+      toast.success('Tournoi créé ! 🎉');
+      
+      // Reload context data to include the new tournament (AC7)
+      await reloadData();
+      
+      // Navigate to tournament dashboard (AC7)
+      navigate(`/tournament/${tournamentId}`);
+    } catch (error) {
+      console.error('Error creating tournament:', error);
+      const message =
+        error instanceof Error && error.message.includes('code unique')
+          ? error.message
+          : 'Erreur lors de la création du tournoi';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Show loading state while checking premium status
+  if (isLoadingPremium) {
+    return (
+      <div className="min-h-screen bg-slate-900 p-4 flex items-center justify-center">
+        <div className="text-white text-center">
+          <LoadingSpinner size={48} />
+          <p className="mt-4">Vérification du statut...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col bg-slate-900 min-h-screen">
+      {/* Contextual Header - AC1: title + back */}
+      <ContextualHeader
+        title="Créer un Tournoi"
+        showBackButton={true}
+        onBack={() => navigate("/")}
+      />
+
+      {/* Limit reached modal - design-system 6.2: Centré, Message + Passer à Premium / Plus tard, X */}
+      {showLimitReachedModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="limit-modal-title"
+        >
+          <div
+            ref={limitModalRef}
+            className="bg-slate-800 rounded-2xl p-6 border border-slate-700 max-w-md w-full relative shadow-xl"
+          >
+            <button
+              onClick={() => navigate("/")}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-1 rounded-lg"
+              aria-label="Fermer"
+            >
+              <X size={24} />
+            </button>
+            <h2 id="limit-modal-title" className="text-2xl font-bold text-white mb-4 pr-10">Limite atteinte</h2>
+            <p className="text-slate-300 mb-6">
+              Tu as créé {tournamentCount} tournoi{tournamentCount > 1 ? "s" : ""}. Passe Premium
+              pour créer des tournois illimités !
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white font-bold py-3 rounded-xl transition-all"
+              >
+                {`✨ PASSER PREMIUM - ${PREMIUM_PRICE}`}
+              </button>
+              <button
+                onClick={() => navigate("/")}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 rounded-xl transition-all"
+              >
+                Plus tard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contenu scrollable avec réserve pour CTA sticky (design-system 5.3) */}
+      <div className="flex-grow overflow-y-auto p-4 md:p-6 pb-24">
+
+        {/* Premium status badge */}
+        {!isPremium && (
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Info size={20} className="text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-white text-sm font-medium">
+                  {remainingTournaments} tournoi{remainingTournaments > 1 ? "s" : ""} restant
+                  {remainingTournaments > 1 ? "s" : ""} sur 2 (gratuit)
+                </p>
+                <p className="text-slate-400 text-xs mt-1">
+                  Passe Premium pour créer des tournois illimités
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isPremium && (
+          <div className="bg-gradient-to-r from-amber-500/20 to-yellow-600/20 border border-amber-500/30 rounded-xl p-4 mb-6">
+            <p className="text-amber-200 text-sm font-medium flex items-center gap-2">
+              <span>✨</span>
+              Tournois illimités - Premium actif
+            </p>
+          </div>
+        )}
+
+        {/* Form - AC2: Fields with labels, inline validation (hidden when limit reached) */}
+        {!showLimitReachedModal && (
+        <form
+          id="create-tournament-form"
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-6"
+          noValidate
+        >
+          {/* Field 1: Tournament Name (AC2) */}
+          <div className="space-y-2">
+            <label
+              htmlFor="name"
+              className="text-sm font-medium text-slate-400 block"
+            >
+              Nom du tournoi *
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => validateForm()}
+              placeholder="Ex: Summer Cup 2026"
+              className={`w-full bg-slate-800 border rounded-xl p-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+                errors.name
+                  ? "border-red-500 focus:ring-red-500/50"
+                  : "border-slate-700 focus:ring-primary"
+              }`}
+              maxLength={50}
+              autoFocus
+              aria-label="Nom du tournoi"
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? "name-error" : undefined}
+            />
+            {errors.name && (
+              <p id="name-error" className="text-sm text-red-400" role="alert">
+                {errors.name}
+              </p>
+            )}
+            <p className="text-slate-500 text-xs">{name.length}/50 caractères</p>
+          </div>
+
+          {/* Field 2: Format (AC2) */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-400 block">
+              Format du match *
+            </label>
+            <div className="space-y-2">
+              {FORMAT_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                    format === option.value
+                      ? "border-primary bg-primary/10"
+                      : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="format"
+                    value={option.value}
+                    checked={format === option.value}
+                    onChange={(e) => setFormat(e.target.value as '2v2' | '1v1' | 'libre')}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="text-white font-medium">{option.label}</div>
+                    <div className="text-slate-400 text-sm">{option.description}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Field 3: Player Limit Toggle + Input (AC2) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-xl">
+              <div className="flex-1">
+                <div className="text-white font-medium">Limiter le nombre de joueurs</div>
+                <div className="text-slate-400 text-sm mt-1">
+                  Par défaut : aucune limite
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setHasPlayerLimit(!hasPlayerLimit);
+                  if (!hasPlayerLimit) {
+                    setPlayerLimit("16"); // Reset to default when enabling
+                  }
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  hasPlayerLimit ? 'bg-primary' : 'bg-slate-600'
+                }`}
+                aria-label="Limiter le nombre de joueurs"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    hasPlayerLimit ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Show input only when limit is enabled */}
+            {hasPlayerLimit && (
+              <div className="space-y-2">
+                <label
+                  htmlFor="playerLimit"
+                  className="text-sm font-medium text-slate-400 block"
+                >
+                  Nombre maximum de joueurs *
+                </label>
+                <input
+                  id="playerLimit"
+                  type="number"
+                  value={playerLimit}
+                  onChange={(e) => setPlayerLimit(e.target.value)}
+                  onBlur={() => validateForm()}
+                  placeholder="Ex: 16"
+                  min={2}
+                  max={100}
+                  className={`w-full bg-slate-800 border rounded-xl p-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+                    errors.playerLimit
+                      ? "border-red-500 focus:ring-red-500/50"
+                      : "border-slate-700 focus:ring-primary"
+                  }`}
+                  aria-label="Nombre maximum de joueurs"
+                  aria-invalid={!!errors.playerLimit}
+                  aria-describedby={
+                    errors.playerLimit ? "playerLimit-error" : undefined
+                  }
+                />
+                {errors.playerLimit && (
+                  <p
+                    id="playerLimit-error"
+                    className="text-sm text-red-400"
+                    role="alert"
+                  >
+                    {errors.playerLimit}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Field 4: Private Toggle (AC2) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-xl">
+              <div className="flex-1">
+                <div className="text-white font-medium">🔒 Tournoi privé</div>
+                <div className="text-slate-400 text-sm mt-1">
+                  Seuls ceux qui ont le code peuvent rejoindre
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPrivate(!isPrivate)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  isPrivate ? 'bg-primary' : 'bg-slate-600'
+                }`}
+                aria-label="Tournoi privé"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isPrivate ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+        </form>
+        )}
+
+        {/* Payment Modal (AC8) */}
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+        />
+      </div>
+
+      {/* CTA sticky au-dessus du bottom nav (design-system 5.3) - AC3 (hidden when limit reached) */}
+      {!showLimitReachedModal && (
+      <div className="fixed bottom-16 inset-x-0 z-20 bg-slate-900 border-t border-slate-800 p-4 md:p-6">
+        <button
+          type="submit"
+          form="create-tournament-form"
+          disabled={!name.trim() || isSubmitting}
+          className="w-full bg-gradient-cta hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]"
+        >
+          {isSubmitting ? "CRÉATION..." : "CRÉER LE TOURNOI"}
+        </button>
+      </div>
+      )}
+    </div>
+  );
+};

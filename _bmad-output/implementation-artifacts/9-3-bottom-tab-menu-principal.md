@@ -1,6 +1,6 @@
 # Story 9.3: Bottom Tab Menu Principal (Mobile)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -18,15 +18,17 @@ The Bottom Tab Menu Principal is the primary navigation for mobile users. It's a
 **Key Requirements:**
 - Fixed bottom position
 - 5 tabs with icons + labels
-- Active state highlighted (orange)
+- Active state highlighted (gradient per design-system-convergence 2.1)
 - Touch-friendly (44px minimum)
 - Only visible on mobile (< 1024px)
+
+**Superseded by:** design-system-convergence.md §2.1, Story 14-10 (visibility), Story 14-32 (gradient active state)
 
 ## Acceptance Criteria
 
 ### AC1: Component Structure
 1. **Given** app renders on mobile device
-   **When** on a main page (/, /join, /tournaments, /leagues, /profile)
+   **When** on a main page (/, /join, /tournaments, /leagues, /user/profile)
    **Then** display bottom tab menu fixed at bottom
    **And** show 5 tabs: Home | Rejoindre | Tournois | Leagues | Profil
    **And** each tab has icon (24x24px) + label (10px)
@@ -35,8 +37,8 @@ The Bottom Tab Menu Principal is the primary navigation for mobile users. It's a
 2. **Given** user is on a specific page
    **When** viewing bottom tab menu
    **Then** highlight corresponding tab:
-   - Active: Orange color (#f59e0b) + orange top border (2px)
-   - Inactive: Gray color (#94a3b8)
+   - Active: `bg-gradient-tab-active` (blue-violet gradient per design-system-convergence 2.1) + white text
+   - Inactive: Gray color (#94a3b8 / text-slate-400)
    **And** active tab label is white
    **And** inactive tab labels are gray
 
@@ -48,23 +50,21 @@ The Bottom Tab Menu Principal is the primary navigation for mobile users. It's a
    - Rejoindre → `/join`
    - Tournois → `/tournaments`
    - Leagues → `/leagues`
-   - Profil → `/profile`
+   - Profil → `/user/profile`
    **And** update active tab state
    **And** smooth transition (200ms)
 
 ### AC4: Visibility Rules
-4. **Given** user navigates through app
-   **Then** show bottom tab menu on:
-   - `/` (Home)
-   - `/profile`
+4. **Given** user navigates through app (and has identity — not on landing)
+   **Then** show bottom tab menu on (per design-system-convergence 2.1):
+   - Core routes: `/`, `/join`, `/tournaments`, `/leagues`, `/user/profile`, `/create-league`, `/create-tournament`
+   - Detail pages: `/tournament/:id`, `/league/:id`, `/player/:id`, `/tournament/:id/invite`, `/tournament/:id/join`
    **And** HIDE bottom tab menu on:
-   - `/join` (has Bottom Menu Spécifique - Story 9.4)
-   - `/tournaments` (has Bottom Menu Spécifique - Story 9.4)
-   - `/leagues` (has Bottom Menu Spécifique - Story 9.4)
-   - `/tournament/:id` (detail pages)
-   - `/league/:id` (detail pages)
-   - `/auth` routes
-   - `/display` routes (full-screen)
+   - Landing (visitor without identity)
+   - Display views: `/tournament/:id/display`, `/league/:id/display`
+   - Auth routes: `/auth/*`
+   - Payment routes: `/payment-success`, `/payment-cancel`
+   - Design system dev page: `/design-system`
 
 ### AC5: Responsive Behavior
 5. **Given** viewport width changes
@@ -102,8 +102,8 @@ The Bottom Tab Menu Principal is the primary navigation for mobile users. It's a
 ### Task 3: Visibility logic (1h)
 - [x] Create helper: `shouldShowBottomMenu(pathname)`
 - [x] Check pathname against allowed routes
-- [x] Conditionally render based on visibility rules
-- [x] Test on detail pages (should be hidden)
+- [x] Conditionally render based on visibility rules (design-system 2.1)
+- [x] Test on detail pages (visible per design-system)
 
 ### Task 4: Responsive hiding (1h)
 - [x] Add `hidden lg:hidden` classes (mobile only)
@@ -128,7 +128,7 @@ The Bottom Tab Menu Principal is the primary navigation for mobile users. It's a
 ### Task 7: Integration tests (1h)
 - [x] Test navigation between tabs
 - [x] Test active state updates on route change
-- [x] Test menu hidden on detail pages
+- [x] Test menu visible on core and detail routes, hidden on display/auth
 
 ### Review Follow-ups (AI Code Review - Fixed 7 issues, 5 remaining)
 
@@ -142,7 +142,7 @@ The Bottom Tab Menu Principal is the primary navigation for mobile users. It's a
 - [x] [AI-Review][MEDIUM] AC2 primary color (#f59e0b) verified in tailwind.config.js:10 ✅ [VERIFIED]
 
 **🟡 REMAINING MEDIUM:**
-- [ ] [AI-Review][MEDIUM] Missing test verification for AC2 "2px top border" requirement beyond class name check [tests/unit/components/BottomTabMenu.test.tsx]
+- [x] [AI-Review][MEDIUM] AC2 "2px top border" — N/A: design-system 2.1 uses gradient, not border [RESOLVED 2026-02-16]
 
 **🟢 REMAINING LOW:**
 - [ ] [AI-Review][LOW] Add error boundary/handling for navigation failures in handleTabClick [src/components/navigation/BottomTabMenu.tsx]
@@ -299,18 +299,19 @@ Claude Sonnet 4.5 (Cursor Agent Mode)
    
 2. **Active State Management:**
    - Uses `useLocation()` to detect current route
-   - Highlights active tab with primary color and 2px top border
-   - Inactive tabs show gray color with hover effects
+   - Highlights active tab with `bg-gradient-tab-active` (design-system-convergence 2.1)
+   - Inactive tabs show gray color (text-slate-400) with hover effects
    
 3. **Navigation:**
    - Uses `useNavigate()` for tab clicks
-   - Smooth transitions with Tailwind's transition classes
+   - Smooth transitions with Tailwind's transition classes (duration-200)
    - Touch feedback with `active:scale-95`
    
-4. **Visibility Logic:**
+4. **Visibility Logic (design-system-convergence 2.1, Story 14-10):**
    - Created `shouldShowBottomMenu()` helper in `navigationHelpers.ts`
-   - Shows on main routes: /, /join, /tournaments, /leagues, /profile
-   - Hides on detail pages, auth routes, and display routes
+   - Shows on core routes: /, /join, /tournaments, /leagues, /user/profile, /create-league, /create-tournament
+   - Shows on detail pages: /tournament/:id, /league/:id, /player/:id, invite/join sub-routes
+   - Hides on: landing (no identity), display views, auth, payment, design-system
    
 5. **Responsive Behavior:**
    - Hidden on desktop with `lg:hidden` class
@@ -323,26 +324,47 @@ Claude Sonnet 4.5 (Cursor Agent Mode)
    - Touch targets meet 48px minimum (using `min-h-[48px]`)
 
 **Test Coverage:**
-- Component unit tests: 28/28 passing (BottomTabMenu.test.tsx)
-- Helper unit tests: 29/29 passing (navigationHelpers.test.ts)
-- Integration tests: 12/12 passing (BottomTabMenu.integration.test.tsx)
-- **Total: 69/69 tests passing (100%)**
+- Component unit tests: 39/39 passing (BottomTabMenu.test.tsx)
+- Helper unit tests: 33/33 passing (navigationHelpers.test.ts)
+- Integration tests: 13/13 passing (BottomTabMenu.integration.test.tsx)
+- **Total: 85/85 tests passing (100%)**
 
 **Notable Decisions:**
 - Used French labels (ACCUEIL, REJOINDRE, TOURNOIS, LEAGUES, PROFIL) for consistency with UX docs
 - Used QrCode icon instead of Target for "Rejoindre" (more intuitive for join action)
 - Integrated directly into App.tsx for global availability
 - Component is self-contained and manages its own navigation state
-- Bottom Tab Menu is hidden on `/join`, `/tournaments`, `/leagues` to avoid overlap with Bottom Menu Spécifique (Story 9.4)
+- Visibility follows design-system-convergence 2.1: menu shown on all core + detail routes (Story 14-10)
 
 ### File List
 
 **New Files Created:**
 - `src/components/navigation/BottomTabMenu.tsx` - Main component implementation
 - `src/utils/navigationHelpers.ts` - Visibility logic helper
-- `tests/unit/components/BottomTabMenu.test.tsx` - Component unit tests (27 tests)
-- `tests/unit/utils/navigationHelpers.test.ts` - Helper unit tests (19 tests)
-- `tests/integration/BottomTabMenu.integration.test.tsx` - Integration tests (11 tests)
+- `tests/unit/components/BottomTabMenu.test.tsx` - Component unit tests (39 tests)
+- `tests/unit/utils/navigationHelpers.test.ts` - Helper unit tests (33 tests)
+- `tests/integration/BottomTabMenu.integration.test.tsx` - Integration tests (13 tests)
 
 **Modified Files:**
 - `src/App.tsx` - Added BottomTabMenu integration with conditional rendering
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-02-16  
+**Outcome:** Approved — All issues fixed (story updated, tests corrected)
+
+**Summary:** Implementation aligned with design-system-convergence 2.1. Story ACs were outdated; auto-fix updated AC2, AC3, AC4 to match implementation. Integration test now uses real display routes.
+
+**Findings (all resolved):**
+- AC2, AC3, AC4 updated to design-system-convergence
+- Integration test: `/display/123` → `/tournament/:id/display`, `/league/:id/display`
+- Dev Agent Record and test count (85) corrected
+
+**Full report:** `CODE-REVIEW-9-3-bottom-tab-menu-principal.md`
+
+## Change Log
+
+| Date | Author | Change |
+|------|--------|--------|
+| 2026-02-16 | AI Code Review | Adversarial review: 2 HIGH, 4 MEDIUM, 3 LOW. Story ACs outdated vs design-system-convergence. Status → in-progress. |
+| 2026-02-16 | AI Auto-fix | AC2, AC3, AC4 updated to design-system-convergence 2.1. Integration test: display routes fixed (/tournament/:id/display, /league/:id/display). Dev Agent Record corrected. Status → done. |

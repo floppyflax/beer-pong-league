@@ -1,0 +1,72 @@
+import { useAuthContext } from "../context/AuthContext";
+import { useLeague } from "../context/LeagueContext";
+import { useIdentity } from "./useIdentity";
+import { usePremium } from "./usePremium";
+
+/**
+ * Premium Limits Hook
+ *
+ * Manages premium feature limits for tournaments and leagues
+ *
+ * Free user limits:
+ * - Tournaments: 2 active tournaments max
+ * - Leagues: 1 active league max
+ *
+ * Premium users: Unlimited
+ *
+ * @returns Object with limit information and creation flags
+ */
+
+export interface PremiumLimitsResult {
+  canCreateTournament: boolean;
+  canCreateLeague: boolean;
+  tournamentCount: number;
+  leagueCount: number;
+  limits: {
+    tournaments: number;
+    leagues: number;
+  };
+  isPremium: boolean;
+  isAtTournamentLimit: boolean;
+  isAtLeagueLimit: boolean;
+  /** Call after payment success to refresh premium status */
+  refetchPremium: () => void;
+}
+
+export const usePremiumLimits = (): PremiumLimitsResult => {
+  const { user } = useAuthContext();
+  const { localUser } = useIdentity();
+  const { tournaments = [], leagues = [] } = useLeague();
+  const { isPremium, refetch: refetchPremium } = usePremium(
+    user?.id ?? null,
+    localUser?.anonymousUserId ?? null,
+  );
+
+  // Count active tournaments and leagues
+  const activeTournaments = tournaments.filter((t) => !t.isFinished).length;
+  const activeLeagues = leagues.filter(
+    (l) => !("status" in l) || (l as { status?: string }).status === "active",
+  ).length;
+
+  // Define limits
+  const limits = {
+    tournaments: isPremium ? Infinity : 2,
+    leagues: isPremium ? Infinity : 1,
+  };
+
+  // Check if at limit
+  const isAtTournamentLimit = activeTournaments >= limits.tournaments;
+  const isAtLeagueLimit = activeLeagues >= limits.leagues;
+
+  return {
+    canCreateTournament: !isAtTournamentLimit,
+    canCreateLeague: !isAtLeagueLimit,
+    tournamentCount: activeTournaments,
+    leagueCount: activeLeagues,
+    limits,
+    isPremium,
+    isAtTournamentLimit,
+    isAtLeagueLimit,
+    refetchPremium,
+  };
+};
