@@ -29,7 +29,7 @@ describe('ListRow (Story 14-4)', () => {
       );
       const badge = screen.getByText('1');
       expect(badge).toBeInTheDocument();
-      expect(badge).toHaveClass('bg-amber-500');
+      expect(badge).toHaveClass('bg-gold');
     });
 
     it('should display rank badge with silver for rank 2', () => {
@@ -43,7 +43,7 @@ describe('ListRow (Story 14-4)', () => {
         />
       );
       const badge = screen.getByText('2');
-      expect(badge).toHaveClass('bg-slate-400');
+      expect(badge).toHaveClass('bg-ink-soft');
     });
 
     it('should display rank badge with bronze for rank 3', () => {
@@ -57,7 +57,7 @@ describe('ListRow (Story 14-4)', () => {
         />
       );
       const badge = screen.getByText('3');
-      expect(badge).toHaveClass('bg-amber-700');
+      expect(badge).toHaveClass('bg-cup-red-deep');
     });
 
     it('should display name and subtitle', () => {
@@ -85,7 +85,7 @@ describe('ListRow (Story 14-4)', () => {
       );
       expect(screen.getByText('1000')).toBeInTheDocument();
       const delta = screen.getByText('+25');
-      expect(delta).toHaveClass('text-green-500');
+      expect(delta).toHaveClass('text-lime');
     });
 
     it('should display ELO and negative delta in red', () => {
@@ -99,7 +99,7 @@ describe('ListRow (Story 14-4)', () => {
         />
       );
       const delta = screen.getByText('-15');
-      expect(delta).toHaveClass('text-red-500');
+      expect(delta).toHaveClass('text-ruby');
     });
 
     it('should display chevron', () => {
@@ -128,11 +128,11 @@ describe('ListRow (Story 14-4)', () => {
       expect(container).toBeInTheDocument();
       const circles = container.querySelectorAll('div[class*="rounded-full"]');
       expect(circles).toHaveLength(5);
-      expect(circles[0]).toHaveClass('bg-green-500');
-      expect(circles[1]).toHaveClass('bg-red-500');
-      expect(circles[2]).toHaveClass('bg-green-500');
-      expect(circles[3]).toHaveClass('bg-green-500');
-      expect(circles[4]).toHaveClass('bg-red-500');
+      expect(circles[0]).toHaveClass('bg-lime');
+      expect(circles[1]).toHaveClass('bg-ruby');
+      expect(circles[2]).toHaveClass('bg-lime');
+      expect(circles[3]).toHaveClass('bg-lime');
+      expect(circles[4]).toHaveClass('bg-ruby');
     });
   });
 

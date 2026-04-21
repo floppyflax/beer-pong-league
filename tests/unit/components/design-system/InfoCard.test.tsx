@@ -3,17 +3,17 @@ import { render, screen } from '@testing-library/react';
 import { Calendar, Users, LayoutGrid } from 'lucide-react';
 import { InfoCard } from '../../../../src/components/design-system/InfoCard';
 
-describe('InfoCard (Story 14-5)', () => {
-  it('should have structure: bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 (AC: 1)', () => {
+describe('InfoCard (Story 14-5, Epic 15 Arcade palette)', () => {
+  it('should have structure: bg-paper rounded-card p-4 border border-card (AC: 1)', () => {
     const { container } = render(
       <InfoCard title="Mon Tournoi" statusBadge="En cours" infos={[]} />
     );
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass('bg-slate-800/50');
-    expect(card).toHaveClass('rounded-xl');
+    expect(card).toHaveClass('bg-paper');
+    expect(card).toHaveClass('rounded-card');
     expect(card).toHaveClass('p-4');
     expect(card).toHaveClass('border');
-    expect(card).toHaveClass('border-slate-700/50');
+    expect(card).toHaveClass('border-card');
   });
 
   it('should display title and status badge (AC: 2)', () => {
@@ -52,7 +52,7 @@ describe('InfoCard (Story 14-5)', () => {
     );
   });
 
-  it('should apply status-active variant for active badge', () => {
+  it('should apply status-active variant (cup-red) for active badge', () => {
     render(
       <InfoCard
         title="T"
@@ -62,11 +62,11 @@ describe('InfoCard (Story 14-5)', () => {
       />
     );
     const badge = screen.getByText('En cours');
-    expect(badge).toHaveClass('bg-amber-500/20');
-    expect(badge).toHaveClass('text-amber-500');
+    expect(badge).toHaveClass('bg-cup-red/20');
+    expect(badge).toHaveClass('text-cup-red');
   });
 
-  it('should apply status-finished variant for finished badge', () => {
+  it('should apply status-finished variant (lime) for finished badge', () => {
     render(
       <InfoCard
         title="T"
@@ -76,11 +76,11 @@ describe('InfoCard (Story 14-5)', () => {
       />
     );
     const badge = screen.getByText('Terminé');
-    expect(badge).toHaveClass('bg-green-500/20');
-    expect(badge).toHaveClass('text-green-500');
+    expect(badge).toHaveClass('bg-lime/20');
+    expect(badge).toHaveClass('text-lime');
   });
 
-  it('should apply status-cancelled variant for cancelled badge', () => {
+  it('should apply status-cancelled variant (ink-mute) for cancelled badge', () => {
     render(
       <InfoCard
         title="T"
@@ -90,8 +90,8 @@ describe('InfoCard (Story 14-5)', () => {
       />
     );
     const badge = screen.getByText('Annulé');
-    expect(badge).toHaveClass('bg-red-500/20');
-    expect(badge).toHaveClass('text-red-500');
+    expect(badge).toHaveClass('bg-ink-mute/20');
+    expect(badge).toHaveClass('text-ink-mute');
   });
 
   it('should have data-testid infocard', () => {

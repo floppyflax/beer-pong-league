@@ -20,13 +20,13 @@ describe("SearchBar (Story 14-8)", () => {
     expect(container?.querySelector("svg")).toBeInTheDocument();
   });
 
-  it("should have input with bg-slate-800 border border-slate-700 rounded-lg pl-12 (AC: 2)", () => {
+  it("should have input with bg-paper border border-card rounded-md pl-12 (AC: 2, Arcade)", () => {
     render(<SearchBar value="" onChange={() => {}} />);
     const input = screen.getByRole("searchbox");
-    expect(input).toHaveClass("bg-slate-800");
+    expect(input).toHaveClass("bg-paper");
     expect(input).toHaveClass("border");
-    expect(input).toHaveClass("border-slate-700");
-    expect(input).toHaveClass("rounded-lg");
+    expect(input).toHaveClass("border-card");
+    expect(input).toHaveClass("rounded-md");
     expect(input).toHaveClass("pl-12");
   });
 

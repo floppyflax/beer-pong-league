@@ -17,8 +17,8 @@ describe("PlayerCard", () => {
       );
 
       const card = screen.getByTestId("playercard-compact");
-      expect(card).toHaveClass("border-primary");
-      expect(card).toHaveClass("bg-primary/20");
+      expect(card).toHaveClass("border-cup-red");
+      expect(card).toHaveClass("bg-cup-red/15");
     });
 
     it("should call onClick when clicked", () => {

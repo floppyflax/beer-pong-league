@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Plus } from 'lucide-react';
 import { FAB } from '../../../../src/components/design-system/FAB';
 
-describe('FAB (Story 14-6)', () => {
+describe('FAB (Story 14-6, Epic 15 Arcade palette)', () => {
   it('should render with icon and call onClick when clicked (AC: 6)', async () => {
     const onClick = vi.fn();
     render(
@@ -33,20 +33,20 @@ describe('FAB (Story 14-6)', () => {
     expect(button).toHaveClass('md:h-16');
   });
 
-  it('should have gradient background (AC: 2)', () => {
+  it('should have lime neon background for primary variant (AC: 2)', () => {
     const { container } = render(
       <FAB icon={Plus} onClick={() => {}} ariaLabel="Test" variant="primary" />
     );
     const button = container.querySelector('button');
-    expect(button).toHaveClass('bg-gradient-fab');
+    expect(button).toHaveClass('bg-lime');
   });
 
-  it('should have shadow-lg (AC: 4)', () => {
+  it('should have shadow-fab neon glow (AC: 4)', () => {
     const { container } = render(
       <FAB icon={Plus} onClick={() => {}} ariaLabel="Test" />
     );
     const button = container.querySelector('button');
-    expect(button).toHaveClass('shadow-lg');
+    expect(button).toHaveClass('shadow-fab');
   });
 
   it('should have fixed position bottom-20 right-4 (AC: 5)', () => {
@@ -59,30 +59,30 @@ describe('FAB (Story 14-6)', () => {
     expect(button).toHaveClass('right-4');
   });
 
-  it('should render icon with white color and 24px (AC: 3)', () => {
+  it('should render icon with cream color on primary variant (AC: 3)', () => {
     const { container } = render(
       <FAB icon={Plus} onClick={() => {}} ariaLabel="Test" />
     );
     const svg = container.querySelector('svg');
     expect(svg).toBeInTheDocument();
-    const iconWrapper = container.querySelector('[data-testid="fab-icon"]');
-    expect(iconWrapper).toHaveClass('text-white');
+    // Primary renders the Icon with text-cream (dark on neon lime)
+    expect(svg).toHaveClass('text-cream');
   });
 
-  it('should apply primary variant (gradient) by default', () => {
+  it('should apply primary variant (lime) by default', () => {
     const { container } = render(
       <FAB icon={Plus} onClick={() => {}} ariaLabel="Test" />
     );
     const button = container.querySelector('button');
-    expect(button).toHaveClass('bg-gradient-fab');
+    expect(button).toHaveClass('bg-lime');
   });
 
-  it('should apply secondary variant (muted style)', () => {
+  it('should apply secondary variant (muted paper style)', () => {
     const { container } = render(
       <FAB icon={Plus} onClick={() => {}} ariaLabel="Test" variant="secondary" />
     );
     const button = container.querySelector('button');
-    expect(button).toHaveClass('bg-slate-700');
+    expect(button).toHaveClass('bg-paper');
   });
 
   it('should use relative position when inline prop is true (showcase mode)', () => {

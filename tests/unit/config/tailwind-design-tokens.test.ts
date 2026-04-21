@@ -1,22 +1,42 @@
 import { describe, it, expect } from "vitest";
 import tailwindConfig from "../../../tailwind.config.js";
 
-describe("Tailwind design tokens (Story 14-1)", () => {
+describe("Tailwind design tokens (Epic 15 — Arcade palette)", () => {
   const theme = tailwindConfig.theme?.extend;
 
-  it("should define background colors (AC: 1)", () => {
+  it("should define legacy background color aliases (AC: 1)", () => {
     expect(theme?.colors?.background).toBeDefined();
-    expect(theme?.colors?.background?.primary).toBe("#0f172a");
-    expect(theme?.colors?.background?.secondary).toBe("#1e293b");
-    expect(theme?.colors?.background?.tertiary).toBe("#334155");
+    // Arcade: remapped to new dark surfaces
+    expect(theme?.colors?.background?.primary).toBe("#0B0D14");
+    expect(theme?.colors?.background?.secondary).toBe("#141826");
+    expect(theme?.colors?.background?.tertiary).toBeDefined();
   });
 
-  it("should define text colors (AC: 1)", () => {
+  it("should define legacy text color aliases (AC: 1)", () => {
     expect(theme?.colors?.text).toBeDefined();
-    expect(theme?.colors?.text?.primary).toBe("#ffffff");
+    // Arcade ink primary
+    expect(theme?.colors?.text?.primary).toBe("#F4F2E8");
     expect(theme?.colors?.text?.secondary).toBeDefined();
     expect(theme?.colors?.text?.tertiary).toBeDefined();
     expect(theme?.colors?.text?.muted).toBeDefined();
+  });
+
+  it("should define new Arcade surfaces (cream, paper)", () => {
+    expect(theme?.colors?.cream).toBe("#0B0D14");
+    expect(theme?.colors?.["cream-deep"]).toBe("#050710");
+    expect(theme?.colors?.paper).toBe("#141826");
+  });
+
+  it("should define new Arcade ink colors", () => {
+    expect(theme?.colors?.ink).toBe("#F4F2E8");
+    expect(theme?.colors?.["ink-soft"]).toBe("#B8B4A3");
+    expect(theme?.colors?.["ink-mute"]).toBe("#6B6A5E");
+  });
+
+  it("should define new Arcade cup brand colors", () => {
+    expect(theme?.colors?.["cup-red"]).toBe("#FF4438");
+    expect(theme?.colors?.["cup-blue"]).toBe("#3B8EFF");
+    expect(theme?.colors?.["cup-green"]).toBe("#B8FF3D");
   });
 
   it("should define accent colors: primary, success, error, ELO, info (AC: 1)", () => {
@@ -34,28 +54,39 @@ describe("Tailwind design tokens (Story 14-1)", () => {
     expect(theme?.colors?.["delta-negative"]).toBeDefined();
   });
 
+  it("should define signal colors (lime, gold, ruby)", () => {
+    expect(theme?.colors?.lime).toBe("#B8FF3D");
+    expect(theme?.colors?.gold).toBe("#FFB800");
+    expect(theme?.colors?.ruby).toBe("#FF4438");
+  });
+
   it("should define gradients: CTA, FAB, tab-active (AC: 2)", () => {
     expect(theme?.backgroundImage?.["gradient-cta"]).toBeDefined();
     expect(theme?.backgroundImage?.["gradient-fab"]).toBeDefined();
     expect(theme?.backgroundImage?.["gradient-tab-active"]).toBeDefined();
   });
 
-  // Value from design-system-convergence.md section 3.2 — slate-700 → slate-800, to left
-  it("should define gradient-card for TournamentCard/LeagueCard (design-system-convergence 3.2)", () => {
+  it("should define gradient-card for card components", () => {
     expect(theme?.backgroundImage?.["gradient-card"]).toBeDefined();
-    expect(theme?.backgroundImage?.["gradient-card"]).toBe(
-      "linear-gradient(to left, rgba(51, 65, 85, 0.98), rgba(30, 41, 59, 0.98))",
-    );
+    // Arcade: paper → cream-deep ink wash
+    expect(theme?.backgroundImage?.["gradient-card"]).toContain("#141826");
+    expect(theme?.backgroundImage?.["gradient-card"]).toContain("#0B0D14");
   });
 
   it("should define typography tokens with correct mobile/desktop sizes (AC: 3)", () => {
     expect(theme?.fontSize?.["page-title"]).toBeDefined();
-    expect(theme?.fontSize?.["page-title"]?.[0]).toBe("1.25rem"); // text-xl mobile
-    expect(theme?.fontSize?.["page-title-lg"]?.[0]).toBe("1.5rem"); // text-2xl desktop
+    expect(theme?.fontSize?.["page-title"]?.[0]).toBe("1.25rem");
+    expect(theme?.fontSize?.["page-title-lg"]?.[0]).toBe("1.5rem");
     expect(theme?.fontSize?.["section-title"]).toBeDefined();
     expect(theme?.fontSize?.["body"]).toBeDefined();
     expect(theme?.fontSize?.["label"]).toBeDefined();
     expect(theme?.fontSize?.["stat"]).toBeDefined();
+  });
+
+  it("should define Arcade display font sizes", () => {
+    expect(theme?.fontSize?.["display-sm"]).toBeDefined();
+    expect(theme?.fontSize?.["display-md"]).toBeDefined();
+    expect(theme?.fontSize?.["display-lg"]).toBeDefined();
   });
 
   it("should define spacing tokens: page, card-gap, bottom-nav (AC: 4)", () => {
@@ -66,11 +97,18 @@ describe("Tailwind design tokens (Story 14-1)", () => {
     expect(theme?.spacing?.["bottom-nav-lg"]).toBe("6rem");
   });
 
-  it("should define radius and borders (AC: 5)", () => {
-    expect(theme?.borderRadius?.["card"]).toBe("0.75rem");
-    expect(theme?.borderRadius?.["button"]).toBe("0.5rem");
-    expect(theme?.borderRadius?.["input"]).toBe("0.75rem");
+  it("should define radius and borders (AC: 5) — Arcade sharper radii", () => {
+    // Arcade sharper: card 10px (was 12px), button 6px (was 8px), input 6px (was 12px)
+    expect(theme?.borderRadius?.["card"]).toBe("10px");
+    expect(theme?.borderRadius?.["button"]).toBe("6px");
+    expect(theme?.borderRadius?.["input"]).toBe("6px");
     expect(theme?.borderColor?.["card"]).toBeDefined();
+  });
+
+  it("should define Arcade font families (Space Grotesk + JetBrains Mono)", () => {
+    expect(theme?.fontFamily?.sans?.[0]).toBe("Space Grotesk");
+    expect(theme?.fontFamily?.mono?.[0]).toBe("JetBrains Mono");
+    expect(theme?.fontFamily?.archivo?.[0]).toBe("Archivo");
   });
 
   it("should define screens for Frame 1–11 consistency (AC: 6)", () => {

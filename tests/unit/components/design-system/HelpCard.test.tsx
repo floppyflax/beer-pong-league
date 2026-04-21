@@ -36,13 +36,13 @@ describe("HelpCard", () => {
     expect(container.querySelector('[data-testid="helpcard"]')).toBeInTheDocument();
   });
 
-  it("should have light blue styling (aide/tuto variant)", () => {
+  it("should have cup-blue styling (aide/tuto variant, Arcade palette)", () => {
     const { container } = render(
       <HelpCard title="T" steps={[]} />
     );
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass("bg-blue-500/20");
-    expect(card).toHaveClass("border-blue-400/50");
+    expect(card).toHaveClass("bg-cup-blue/10");
+    expect(card).toHaveClass("border-cup-blue/30");
   });
 
   it("should support children for custom content", () => {
