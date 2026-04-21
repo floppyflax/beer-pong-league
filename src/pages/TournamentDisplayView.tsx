@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { databaseService } from "../services/DatabaseService";
 import { TrendingUp, TrendingDown, Zap, Calendar } from "lucide-react";
@@ -8,6 +8,8 @@ import type { Player } from "../types";
 
 export const TournamentDisplayView = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const variant = searchParams.get("variant") === "drama" ? "drama" : "split";
   const { tournaments, leagues, getTournamentLocalRanking } = useLeague();
   const navigate = useNavigate();
 
@@ -152,8 +154,100 @@ export const TournamentDisplayView = () => {
     return "Joueur";
   };
 
+  if (variant === "drama") {
+    const liveMatch = recentMatches[0];
+    const teamANames = liveMatch
+      ? liveMatch.teamA.map((pid) => getPlayerName(pid)).join(" & ")
+      : "Équipe A";
+    const teamBNames = liveMatch
+      ? liveMatch.teamB.map((pid) => getPlayerName(pid)).join(" & ")
+      : "Équipe B";
+    const scoreA = liveMatch?.scoreA ?? 0;
+    const scoreB = liveMatch?.scoreB ?? 0;
+    return (
+      <div className="h-screen w-screen bg-ink text-cream overflow-hidden relative select-none fixed inset-0 font-sans">
+        <div className="absolute inset-0">
+          <div
+            className="absolute top-0 left-0 w-[60%] h-full bg-cup-red"
+            style={{ clipPath: "polygon(0 0, 100% 0, 70% 100%, 0 100%)" }}
+          />
+          <div
+            className="absolute top-0 right-0 w-[60%] h-full bg-cup-blue"
+            style={{ clipPath: "polygon(30% 0, 100% 0, 100% 100%, 0 100%)" }}
+          />
+        </div>
+        <div className="relative z-10 h-full flex flex-col">
+          <div className="flex items-center px-10 py-5 justify-between">
+            <div className="font-archivo font-extrabold uppercase tracking-tight text-cream text-lg">
+              Ponglo
+            </div>
+            <div className="text-center font-mono text-[11px] tracking-[0.2em] uppercase opacity-80">
+              <span className="text-lime font-bold">● LIVE</span> · {tournament.name}
+            </div>
+            <span className="font-mono text-xs">
+              {new Date().toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+          <div className="flex-1 grid grid-cols-2 items-center">
+            <div className="px-10 pb-10 text-center">
+              <div className="font-mono text-[10px] tracking-[0.3em] opacity-60 mb-5">
+                ÉQUIPE A
+              </div>
+              <div
+                className="font-archivo font-black text-cream"
+                style={{
+                  fontSize: 220,
+                  lineHeight: 1,
+                  letterSpacing: "-8px",
+                  textShadow: "0 4px 40px rgba(0,0,0,0.3)",
+                }}
+              >
+                {scoreA}
+              </div>
+              <div className="font-archivo font-black text-2xl uppercase tracking-tight mt-3 text-cream">
+                {teamANames}
+              </div>
+            </div>
+            <div className="px-10 pb-10 text-center">
+              <div className="font-mono text-[10px] tracking-[0.3em] opacity-60 mb-5">
+                ÉQUIPE B
+              </div>
+              <div
+                className="font-archivo font-black text-cream"
+                style={{
+                  fontSize: 220,
+                  lineHeight: 1,
+                  letterSpacing: "-8px",
+                  textShadow: "0 4px 40px rgba(0,0,0,0.3)",
+                }}
+              >
+                {scoreB}
+              </div>
+              <div className="font-archivo font-black text-2xl uppercase tracking-tight mt-3 text-cream">
+                {teamBNames}
+              </div>
+            </div>
+          </div>
+          <div className="px-10 py-3.5 bg-black/35 flex justify-between font-mono text-xs tracking-wider uppercase">
+            <span>
+              Code ·{" "}
+              <span className="text-lime font-bold">
+                {tournament.joinCode || "—"}
+              </span>
+            </span>
+            <span className="opacity-70">{tournament.matches.length} matchs joués</span>
+            <span className="opacity-70">Appuyez sur ESC pour quitter</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-ink overflow-hidden relative select-none fixed inset-0">
+    <div className="h-screen w-screen bg-cream-deep text-ink overflow-hidden relative select-none fixed inset-0">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-4 md:p-6 bg-cream/80 backdrop-blur-md border-b border-card/50 z-20">
         <div className="flex items-center justify-between w-full px-4 md:px-8">
@@ -207,12 +301,12 @@ export const TournamentDisplayView = () => {
                 return (
                   <div
                     key={player.id}
-                    className={`bg-paper/90 backdrop-blur-sm p-3 md:p-5 rounded-xl md:rounded-2xl border-2 transition-all duration-700 ${
+                    className={`bg-paper/90 backdrop-blur-sm p-3 md:p-5 rounded-card border-2 transition-all duration-700 ${
                       isHighlighted
-                        ? "border-cup-red shadow-2xl shadow-primary/50 scale-[1.02]"
+                        ? "border-cup-red shadow-2xl shadow-cup-red/50 scale-[1.02]"
                         : "border-card/50"
-                    } ${isWinner ? "ring-4 ring-green-500/30" : ""} ${
-                      isLoser ? "ring-4 ring-red-500/30" : ""
+                    } ${isWinner ? "ring-4 ring-lime/30" : ""} ${
+                      isLoser ? "ring-4 ring-ruby/30" : ""
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 md:gap-4">
