@@ -394,7 +394,7 @@ export const PlayerProfile = () => {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold text-white truncate">
+            <h2 className="text-lg font-bold text-ink truncate">
               {player.name}
             </h2>
             {playerLeague && (
@@ -442,7 +442,7 @@ export const PlayerProfile = () => {
             <TrendingDown className="text-ruby flex-shrink-0" size={24} />
           ) : null}
           <div className="min-w-0">
-            <div className="font-bold text-white">
+            <div className="font-bold text-ink">
               {player.streak >= 3
                 ? "En feu !"
                 : player.streak > 0
@@ -465,7 +465,7 @@ export const PlayerProfile = () => {
         {/* ELO Evolution Chart — Story 14-35: Recharts area chart */}
         {eloEvolution.length > 1 && (
           <section>
-            <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-white">
+            <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-ink">
               <BarChart3 size={20} className="text-ink-soft" />
               Évolution ELO
             </h3>
@@ -553,7 +553,7 @@ export const PlayerProfile = () => {
         {/* Stats par league */}
         {Object.keys(statsByLeague).length > 0 && (
           <section>
-            <h3 className="text-lg font-bold mb-3 text-white">
+            <h3 className="text-lg font-bold mb-3 text-ink">
               Statistiques par League
             </h3>
             <div className="space-y-2">
@@ -564,7 +564,7 @@ export const PlayerProfile = () => {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <div className="font-bold text-white">
+                      <div className="font-bold text-ink">
                         {stats.leagueName}
                       </div>
                       <div className="text-xs text-ink-soft">
@@ -593,7 +593,7 @@ export const PlayerProfile = () => {
         {/* Head-to-Head — ListRow (AC5) */}
         {Object.keys(headToHead).length > 0 && (
           <section>
-            <h3 className="text-lg font-bold mb-3 text-white">
+            <h3 className="text-lg font-bold mb-3 text-ink">
               Tête-à-tête
             </h3>
             <div className="space-y-2">
@@ -626,7 +626,7 @@ export const PlayerProfile = () => {
 
         {/* Recent Matches — Story 14-35: relative time, league/tournament, badge Victoire/Défaite, delta ELO */}
         <section>
-          <h3 className="text-lg font-bold mb-3 text-white">
+          <h3 className="text-lg font-bold mb-3 text-ink">
             Matchs récents
           </h3>
           <div className="space-y-2">
@@ -676,7 +676,7 @@ export const PlayerProfile = () => {
                   <div className="flex justify-between items-center text-sm">
                     <div
                       className={`flex-1 truncate ${
-                        isTeamA && isWinner ? "text-white font-bold" : "text-ink-soft"
+                        isTeamA && isWinner ? "text-ink font-bold" : "text-ink-soft"
                       }`}
                     >
                       {teamA}
@@ -684,7 +684,7 @@ export const PlayerProfile = () => {
                     <div className="px-3 text-ink-mute flex-shrink-0">VS</div>
                     <div
                       className={`flex-1 text-right truncate ${
-                        !isTeamA && isWinner ? "text-white font-bold" : "text-ink-soft"
+                        !isTeamA && isWinner ? "text-ink font-bold" : "text-ink-soft"
                       }`}
                     >
                       {teamB}

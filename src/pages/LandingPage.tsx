@@ -40,7 +40,7 @@ export const LandingPage = () => {
   };
 
   return (
-    <div className="h-screen min-h-[568px] max-h-[932px] overflow-hidden flex flex-col bg-slate-950 relative">
+    <div className="h-screen min-h-[568px] max-h-[932px] overflow-hidden flex flex-col bg-cream-deep relative">
       {/* Background: gradient + subtle mesh */}
       <div
         className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950/40"
@@ -62,36 +62,36 @@ export const LandingPage = () => {
           {/* Hero: icon (trophy + star) + PongELO + tagline (Frame 1) */}
           <div className="text-center space-y-2">
             <div
-              className="relative inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-500 text-white mb-2"
+              className="relative inline-flex items-center justify-center w-14 h-14 rounded-full bg-gold text-ink mb-2"
               aria-hidden="true"
             >
               <Trophy size={28} strokeWidth={2.5} />
               <Star
                 size={14}
-                className="absolute -top-0.5 -right-0.5 text-amber-300 fill-amber-300"
+                className="absolute -top-0.5 -right-0.5 text-gold fill-gold"
                 strokeWidth={2.5}
               />
             </div>
-            <h1 className="text-2xl font-bold text-amber-400">PongELO</h1>
-            <p className="text-slate-300 text-sm">
+            <h1 className="text-2xl font-bold text-gold">PongELO</h1>
+            <p className="text-ink-soft text-sm">
               Ton classement ELO entre amis
             </p>
           </div>
 
           {/* Participer card — gradient + transparence, titre centré */}
-          <div className="bg-gradient-card-transparent rounded-xl p-4 border border-slate-700/50 space-y-3 backdrop-blur-sm">
+          <div className="bg-gradient-card-transparent rounded-xl p-4 border border-card/50 space-y-3 backdrop-blur-sm">
             <div className="flex flex-col items-center text-center gap-2">
               <div className="w-10 h-10 rounded-full bg-blue-500/80 flex items-center justify-center">
-                <LayoutGrid size={20} className="text-white" />
+                <LayoutGrid size={20} className="text-ink" />
               </div>
-              <h2 className="text-xl font-bold text-white">Participer</h2>
+              <h2 className="text-xl font-bold text-ink">Participer</h2>
             </div>
-            <p className="text-slate-400 text-sm text-center">
+            <p className="text-ink-soft text-sm text-center">
               Rejoins un tournoi en cours
             </p>
             <button
               onClick={handleJoinTournament}
-              className="w-full bg-gradient-cta-alt hover:opacity-95 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+              className="w-full bg-gradient-cta-alt hover:opacity-95 text-ink font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
               aria-label="Rejoindre un tournoi"
             >
               <ChevronRight size={20} aria-hidden="true" />
@@ -100,20 +100,20 @@ export const LandingPage = () => {
           </div>
 
           {/* Organiser card — gradient + transparence, titre centré */}
-          <div className="bg-gradient-card-transparent rounded-xl p-4 border border-slate-700/50 space-y-3 backdrop-blur-sm">
+          <div className="bg-gradient-card-transparent rounded-xl p-4 border border-card/50 space-y-3 backdrop-blur-sm">
             <div className="flex flex-col items-center text-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center">
-                <Crown size={20} className="text-white" />
+              <div className="w-10 h-10 rounded-full bg-gold flex items-center justify-center">
+                <Crown size={20} className="text-ink" />
               </div>
-              <h2 className="text-xl font-bold text-white">Organiser</h2>
+              <h2 className="text-xl font-bold text-ink">Organiser</h2>
             </div>
-            <p className="text-slate-400 text-sm text-center">
+            <p className="text-ink-soft text-sm text-center">
               Crée tes propres compétitions
             </p>
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleCreateTournament}
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                className="w-full bg-gold hover:brightness-110 text-ink font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
                 aria-label="Créer un tournoi"
               >
                 <Trophy size={18} aria-hidden="true" />
@@ -121,7 +121,7 @@ export const LandingPage = () => {
               </button>
               <button
                 onClick={handleCreateLeague}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                className="w-full bg-lime hover:bg-green-600 text-ink font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
                 aria-label="Créer une league"
               >
                 <Award size={18} aria-hidden="true" />
@@ -134,7 +134,7 @@ export const LandingPage = () => {
           <div className="text-center pt-1">
             <button
               onClick={handleSignIn}
-              className="text-slate-400 hover:text-white text-sm underline underline-offset-2 transition-colors"
+              className="text-ink-soft hover:text-ink text-sm underline underline-offset-2 transition-colors"
               aria-label="Se connecter"
             >
               Déjà membre ? Se connecter

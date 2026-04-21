@@ -64,28 +64,28 @@ export const UserProfile = () => {
       {/* Content: p-4 mobile, p-6 desktop (design system 3.4) */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
         {/* User status badge */}
-        <div className="text-xs text-slate-400 text-center">
+        <div className="text-xs text-ink-soft text-center">
           {isAuthenticated ? "Compte authentifié" : "Mode local"}
         </div>
 
-        {/* Profile Info card (bg-slate-800, design system 3.7) */}
-        <div className="bg-slate-800 rounded-xl p-4 md:p-6 border border-slate-700/50">
+        {/* Profile Info card (bg-paper, design system 3.7) */}
+        <div className="bg-paper rounded-xl p-4 md:p-6 border border-card/50">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-gradient-tab-active rounded-full flex items-center justify-center shrink-0">
-              <User size={32} className="text-white" />
+              <User size={32} className="text-ink" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-xl font-bold text-white truncate">
+              <h3 className="text-xl font-bold text-ink truncate">
                 {displayName}
               </h3>
               {isAuthenticated && user && (
-                <div className="text-sm text-slate-400 flex items-center gap-2 mt-1 truncate">
+                <div className="text-sm text-ink-soft flex items-center gap-2 mt-1 truncate">
                   <Mail size={14} className="shrink-0" />
                   <span className="truncate">{user.email}</span>
                 </div>
               )}
               {!isAuthenticated && localUser && (
-                <div className="text-sm text-slate-400 flex items-center gap-2 mt-1">
+                <div className="text-sm text-ink-soft flex items-center gap-2 mt-1">
                   <span>📱 Mode local</span>
                 </div>
               )}
@@ -111,7 +111,7 @@ export const UserProfile = () => {
         {/* My Leagues */}
         {userStats.userLeagues.length > 0 && (
           <div>
-            <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-ink mb-3 flex items-center gap-2">
               <Trophy size={20} className="text-info" />
               Mes Leagues
             </h3>
@@ -128,10 +128,10 @@ export const UserProfile = () => {
                       navigate(`/league/${league.id}`);
                     }
                   }}
-                  className="bg-gradient-card rounded-xl p-4 border border-slate-700/50 hover:border-slate-600 cursor-pointer transition-colors"
+                  className="bg-gradient-card rounded-xl p-4 border border-card/50 hover:border-card-muted cursor-pointer transition-colors"
                 >
-                  <div className="font-bold text-white">{league.name}</div>
-                  <div className="text-xs text-slate-400 mt-1">
+                  <div className="font-bold text-ink">{league.name}</div>
+                  <div className="text-xs text-ink-soft mt-1">
                     {league.players.length} joueurs • {league.matches.length}{" "}
                     matchs
                   </div>
@@ -144,7 +144,7 @@ export const UserProfile = () => {
         {/* My Tournaments */}
         {userStats.userTournaments.length > 0 && (
           <div>
-            <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-ink mb-3 flex items-center gap-2">
               <Calendar size={20} className="text-info" />
               Mes Tournois
             </h3>
@@ -161,17 +161,17 @@ export const UserProfile = () => {
                       navigate(`/tournament/${tournament.id}`);
                     }
                   }}
-                  className="bg-gradient-card rounded-xl p-4 border border-slate-700/50 hover:border-slate-600 cursor-pointer transition-colors"
+                  className="bg-gradient-card rounded-xl p-4 border border-card/50 hover:border-card-muted cursor-pointer transition-colors"
                 >
-                  <div className="font-bold text-white flex items-center gap-2">
+                  <div className="font-bold text-ink flex items-center gap-2">
                     {tournament.name}
                     {tournament.isFinished && (
-                      <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">
+                      <span className="text-xs bg-cream-deep text-ink-soft px-2 py-1 rounded">
                         Terminé
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-slate-400 mt-1">
+                  <div className="text-xs text-ink-soft mt-1">
                     {tournament.date
                       ? new Date(tournament.date).toLocaleDateString("fr-FR")
                       : "—"}{" "}
@@ -196,7 +196,7 @@ export const UserProfile = () => {
                 }
               }}
               disabled={isDisconnecting}
-              className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-500 font-bold py-3 rounded-xl border border-red-500/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-ruby/20 hover:bg-ruby/30 text-ruby font-bold py-3 rounded-xl border border-red-500/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LogOut size={18} />
               <span>{isDisconnecting ? "Déconnexion…" : "Déconnexion"}</span>

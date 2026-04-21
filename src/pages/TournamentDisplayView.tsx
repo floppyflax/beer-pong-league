@@ -129,7 +129,7 @@ export const TournamentDisplayView = () => {
 
   if (!tournament) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-900 text-white">
+      <div className="h-screen flex items-center justify-center bg-cream text-ink">
         <p>Tournoi introuvable.</p>
       </div>
     );
@@ -153,14 +153,14 @@ export const TournamentDisplayView = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white overflow-hidden relative select-none fixed inset-0">
+    <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-ink overflow-hidden relative select-none fixed inset-0">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 p-4 md:p-6 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50 z-20">
+      <div className="absolute top-0 left-0 right-0 p-4 md:p-6 bg-cream/80 backdrop-blur-md border-b border-card/50 z-20">
         <div className="flex items-center justify-between w-full px-4 md:px-8">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl md:text-4xl font-black mb-1 md:mb-2 truncate">{tournament.name}</h1>
             <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-              <div className="flex items-center gap-2 text-slate-400">
+              <div className="flex items-center gap-2 text-ink-soft">
                 <Calendar size={16} className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 <span className="text-xs md:text-sm uppercase tracking-wider font-bold">
                   {new Date(tournament.date).toLocaleDateString("fr-FR", {
@@ -174,11 +174,11 @@ export const TournamentDisplayView = () => {
                 <Zap size={16} className="animate-pulse w-3.5 h-3.5 md:w-4 md:h-4" />
                 <span className="text-xs md:text-sm font-bold">LIVE</span>
               </div>
-              <span className="text-xs md:text-sm text-slate-400">
+              <span className="text-xs md:text-sm text-ink-soft">
                 {tournament.matches.length} matchs
               </span>
               {tournament.isFinished && (
-                <span className="text-[10px] md:text-xs bg-green-500/20 text-green-500 px-2 md:px-3 py-0.5 md:py-1 rounded-full font-bold">
+                <span className="text-[10px] md:text-xs bg-lime/20 text-lime px-2 md:px-3 py-0.5 md:py-1 rounded-full font-bold">
                   Terminé
                 </span>
               )}
@@ -207,10 +207,10 @@ export const TournamentDisplayView = () => {
                 return (
                   <div
                     key={player.id}
-                    className={`bg-slate-800/90 backdrop-blur-sm p-3 md:p-5 rounded-xl md:rounded-2xl border-2 transition-all duration-700 ${
+                    className={`bg-paper/90 backdrop-blur-sm p-3 md:p-5 rounded-xl md:rounded-2xl border-2 transition-all duration-700 ${
                       isHighlighted
-                        ? "border-primary shadow-2xl shadow-primary/50 scale-[1.02]"
-                        : "border-slate-700/50"
+                        ? "border-cup-red shadow-2xl shadow-primary/50 scale-[1.02]"
+                        : "border-card/50"
                     } ${isWinner ? "ring-4 ring-green-500/30" : ""} ${
                       isLoser ? "ring-4 ring-red-500/30" : ""
                     }`}
@@ -220,31 +220,31 @@ export const TournamentDisplayView = () => {
                         <div
                           className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center font-black text-lg md:text-2xl rounded-lg md:rounded-xl flex-shrink-0 ${
                             index === 0
-                              ? "bg-yellow-500 text-slate-900"
+                              ? "bg-gold text-cream"
                               : index === 1
-                              ? "bg-slate-300 text-slate-900"
+                              ? "bg-ink-soft text-cream"
                               : index === 2
-                              ? "bg-amber-700 text-white"
-                              : "bg-slate-700 text-slate-300"
+                              ? "bg-gold text-ink"
+                              : "bg-cream-deep text-ink-soft"
                           }`}
                         >
                           {index + 1}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-lg md:text-2xl font-black mb-0.5 md:mb-1 truncate">{player.name}</div>
-                          <div className="text-sm md:text-base text-slate-400">
+                          <div className="text-sm md:text-base text-ink-soft">
                             {player.wins}V - {player.losses}D
                           </div>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-2xl md:text-4xl font-black text-primary">
+                        <div className="text-2xl md:text-4xl font-black text-cup-red">
                           {player.elo}
                         </div>
                         {eloChange !== 0 && (
                           <div
                             className={`text-sm md:text-base font-bold flex items-center justify-end gap-1 mt-0.5 md:mt-1 ${
-                              eloChange > 0 ? "text-green-500" : "text-red-500"
+                              eloChange > 0 ? "text-lime" : "text-ruby"
                             }`}
                           >
                             {eloChange > 0 ? (
@@ -275,21 +275,21 @@ export const TournamentDisplayView = () => {
                 {remainingPlayers.map((player, index) => (
                   <div
                     key={player.id}
-                    className="bg-slate-800/60 backdrop-blur-sm p-3 rounded-lg border border-slate-700/50"
+                    className="bg-paper/60 backdrop-blur-sm p-3 rounded-lg border border-card/50"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 flex items-center justify-center font-bold text-lg bg-slate-700 text-slate-300 rounded">
+                        <div className="w-10 h-10 flex items-center justify-center font-bold text-lg bg-cream-deep text-ink-soft rounded">
                           {index + 11}
                         </div>
                         <div>
                           <div className="text-lg font-bold">{player.name}</div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-ink-soft">
                             {player.wins}V - {player.losses}D
                           </div>
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-primary">
+                      <div className="text-2xl font-black text-cup-red">
                         {player.elo}
                       </div>
                     </div>
@@ -303,7 +303,7 @@ export const TournamentDisplayView = () => {
         {/* Right: Match Feed + QR Code */}
         <div className="w-full lg:w-96 flex flex-col gap-4 md:gap-6 lg:gap-8 flex-shrink-0">
           {/* Match Feed */}
-          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 md:p-5 border border-slate-700/50">
+          <div className="bg-paper/90 backdrop-blur-sm rounded-xl p-4 md:p-5 border border-card/50">
             <h3 className="text-lg md:text-xl font-black mb-3 md:mb-4">Derniers matchs</h3>
             <div className="space-y-2">
               {recentMatches.map((match, index) => {
@@ -320,11 +320,11 @@ export const TournamentDisplayView = () => {
                     key={match.id}
                     className={`p-3 md:p-4 rounded-lg md:rounded-xl border-2 transition-all ${
                       index === 0
-                        ? "bg-primary/20 border-primary/50 shadow-lg"
-                        : "bg-slate-700/40 border-slate-700/50"
+                        ? "bg-cup-red/20 border-cup-red/50 shadow-lg"
+                        : "bg-cream-deep/40 border-card/50"
                     }`}
                   >
-                    <div className="text-xs md:text-sm text-slate-400 mb-1 md:mb-2 font-bold">
+                    <div className="text-xs md:text-sm text-ink-soft mb-1 md:mb-2 font-bold">
                       {new Date(match.date).toLocaleTimeString("fr-FR", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -332,13 +332,13 @@ export const TournamentDisplayView = () => {
                     </div>
                     <div className="text-sm md:text-base">
                       <div
-                        className={winnerA ? "font-black text-white text-base md:text-lg truncate" : "text-slate-300 truncate"}
+                        className={winnerA ? "font-black text-ink text-base md:text-lg truncate" : "text-ink-soft truncate"}
                       >
                         {teamANames}
                       </div>
-                      <div className="text-slate-500 text-center my-1 md:my-2 font-bold">VS</div>
+                      <div className="text-ink-mute text-center my-1 md:my-2 font-bold">VS</div>
                       <div
-                        className={!winnerA ? "font-black text-white text-base md:text-lg truncate" : "text-slate-300 truncate"}
+                        className={!winnerA ? "font-black text-ink text-base md:text-lg truncate" : "text-ink-soft truncate"}
                       >
                         {teamBNames}
                       </div>
@@ -350,7 +350,7 @@ export const TournamentDisplayView = () => {
           </div>
 
           {/* QR Code */}
-          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-slate-700/50 flex flex-col items-center">
+          <div className="bg-paper/90 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-card/50 flex flex-col items-center">
             <h3 className="text-lg md:text-xl font-black mb-3 md:mb-4 text-center">
               Rejoins le tournoi !
             </h3>
@@ -358,7 +358,7 @@ export const TournamentDisplayView = () => {
               <QRCodeSVG value={joinUrl} size={150} className="md:hidden" />
               <QRCodeSVG value={joinUrl} size={200} className="hidden md:block" />
             </div>
-            <p className="text-xs md:text-sm text-slate-400 text-center font-medium">
+            <p className="text-xs md:text-sm text-ink-soft text-center font-medium">
               Scanne avec ton téléphone
             </p>
           </div>
@@ -366,7 +366,7 @@ export const TournamentDisplayView = () => {
       </div>
 
       {/* Exit hint */}
-      <div className="absolute bottom-2 md:bottom-4 right-2 md:right-4 text-[10px] md:text-xs text-slate-500">
+      <div className="absolute bottom-2 md:bottom-4 right-2 md:right-4 text-[10px] md:text-xs text-ink-mute">
         Appuyez sur ESC pour quitter
       </div>
     </div>

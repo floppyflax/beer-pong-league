@@ -71,14 +71,14 @@ export const TournamentInvite = () => {
 
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">
+          <h1 className="text-2xl font-bold text-ink mb-4">
             Tournoi introuvable
           </h1>
           <button
             onClick={() => navigate("/")}
-            className="px-4 py-2 bg-primary hover:bg-primary/80 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-cup-red hover:bg-cup-red/80 text-ink rounded-lg transition-colors"
           >
             Retour à l&apos;accueil
           </button>
@@ -88,7 +88,7 @@ export const TournamentInvite = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-cream">
       <ContextualHeader
         title="Inviter des joueurs"
         showBackButton={true}
@@ -100,9 +100,9 @@ export const TournamentInvite = () => {
         <TournamentCard tournament={tournament} />
 
         {/* QR code section (AC 3) — large, readable */}
-        <div className="mt-6 bg-slate-800 rounded-xl p-6 md:p-8 border border-slate-700/50">
+        <div className="mt-6 bg-paper rounded-xl p-6 md:p-8 border border-card/50">
           <div className="flex flex-col items-center">
-            <h3 className="text-lg font-bold text-white mb-4 text-center">
+            <h3 className="text-lg font-bold text-ink mb-4 text-center">
               Scanne le QR code
             </h3>
             <div className="bg-white p-4 md:p-6 rounded-xl mb-4 shadow-lg">
@@ -119,23 +119,23 @@ export const TournamentInvite = () => {
                 aria-label="QR code pour rejoindre le tournoi"
               />
             </div>
-            <p className="text-sm text-slate-400 text-center">
+            <p className="text-sm text-ink-soft text-center">
               Scanne avec ton téléphone pour rejoindre
             </p>
           </div>
         </div>
 
         {/* Link + Copy / Share (AC 4) */}
-        <div className="mt-6 bg-slate-800 rounded-xl p-6 md:p-8 border border-slate-700/50">
-          <h3 className="text-lg font-bold text-white mb-4 text-center">
+        <div className="mt-6 bg-paper rounded-xl p-6 md:p-8 border border-card/50">
+          <h3 className="text-lg font-bold text-ink mb-4 text-center">
             Ou partage le lien
           </h3>
           <div className="flex flex-col md:flex-row gap-3">
-            <div className="flex-1 bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
-              <p className="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wide">
+            <div className="flex-1 bg-cream/50 rounded-xl p-4 border border-card/50">
+              <p className="text-xs text-ink-mute mb-1 font-medium uppercase tracking-wide">
                 Lien d&apos;invitation
               </p>
-              <p className="text-sm md:text-base text-white font-mono break-all">
+              <p className="text-sm md:text-base text-ink font-mono break-all">
                 {inviteUrl}
               </p>
             </div>
@@ -145,8 +145,8 @@ export const TournamentInvite = () => {
                 aria-label={copied ? "Lien copié" : "Copier le lien d'invitation"}
                 className={`px-4 md:px-6 py-3 rounded-lg font-bold text-sm md:text-base transition-all flex items-center gap-2 ${
                   copied
-                    ? "bg-green-500/20 text-green-400 border border-green-500/50"
-                    : "bg-primary/20 hover:bg-primary/30 text-primary border border-primary/50"
+                    ? "bg-lime/20 text-lime border border-green-500/50"
+                    : "bg-cup-red/20 hover:bg-cup-red/30 text-cup-red border border-cup-red/50"
                 }`}
               >
                 {copied ? (
@@ -167,7 +167,7 @@ export const TournamentInvite = () => {
                   <button
                     onClick={handleShare}
                     aria-label="Partager le lien d'invitation"
-                    className="px-4 md:px-6 py-3 rounded-lg font-bold text-sm md:text-base bg-slate-700/50 hover:bg-slate-700 text-white border border-slate-600/50 transition-all flex items-center gap-2"
+                    className="px-4 md:px-6 py-3 rounded-lg font-bold text-sm md:text-base bg-cream-deep/50 hover:bg-cream-deep text-ink border border-card-muted/50 transition-all flex items-center gap-2"
                   >
                     <Share2 size={18} />
                     <span className="hidden md:inline">Partager</span>

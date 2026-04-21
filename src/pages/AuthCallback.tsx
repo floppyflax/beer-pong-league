@@ -108,10 +108,10 @@ export const AuthCallback = () => {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4 animate-bounce">🍺</div>
-          <div className="text-slate-400">Connexion en cours...</div>
+          <div className="text-ink-soft">Connexion en cours...</div>
         </div>
       </div>
     );
@@ -119,14 +119,14 @@ export const AuthCallback = () => {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-slate-800 rounded-2xl p-6 border border-red-500/50 max-w-sm w-full text-center">
-          <div className="text-red-500 text-4xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-white mb-2">Erreur de connexion</h2>
-          <p className="text-slate-400 mb-6">{error || 'Une erreur est survenue'}</p>
+      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
+        <div className="bg-paper rounded-2xl p-6 border border-red-500/50 max-w-sm w-full text-center">
+          <div className="text-ruby text-4xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-ink mb-2">Erreur de connexion</h2>
+          <p className="text-ink-soft mb-6">{error || 'Une erreur est survenue'}</p>
           <button
             onClick={() => navigate('/')}
-            className="w-full bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-xl"
+            className="w-full bg-cup-red hover:brightness-110 text-ink font-bold py-3 rounded-xl"
           >
             Retour à l'accueil
           </button>
@@ -136,11 +136,11 @@ export const AuthCallback = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="text-center">
         <div className="text-4xl mb-4">✅</div>
-        <div className="text-white font-bold text-xl mb-2">Connexion réussie !</div>
-        <div className="text-slate-400">Redirection en cours...</div>
+        <div className="text-ink font-bold text-xl mb-2">Connexion réussie !</div>
+        <div className="text-ink-soft">Redirection en cours...</div>
       </div>
     </div>
   );

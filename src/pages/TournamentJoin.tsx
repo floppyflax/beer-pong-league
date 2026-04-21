@@ -139,7 +139,7 @@ export const TournamentJoin = () => {
 
   if (isLoadingInitialData) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-cream flex items-center justify-center">
         <LoadingSpinner size={48} />
       </div>
     );
@@ -147,19 +147,19 @@ export const TournamentJoin = () => {
 
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">
+          <h1 className="text-2xl font-bold text-ink mb-4">
             Tournoi introuvable
           </h1>
-          <p className="text-slate-400 mb-4">Redirection en cours...</p>
+          <p className="text-ink-soft mb-4">Redirection en cours...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-cream">
       {/* Contextual Header (Story 13.2) */}
       <ContextualHeader
         title={tournament.name}
@@ -180,14 +180,14 @@ export const TournamentJoin = () => {
             <>
               {/* Existing Players */}
               {tournamentPlayers.length > 0 && (
-                <div className="bg-gradient-card rounded-xl p-4 md:p-6 border border-slate-700/50">
+                <div className="bg-gradient-card rounded-xl p-4 md:p-6 border border-card/50">
                   <div className="flex items-center gap-3 mb-4">
-                    <Users size={20} className="text-primary" />
-                    <h2 className="text-lg font-bold text-white">
+                    <Users size={20} className="text-cup-red" />
+                    <h2 className="text-lg font-bold text-ink">
                       Sélectionner un joueur existant
                     </h2>
                   </div>
-                  <p className="text-sm text-slate-400 mb-4">
+                  <p className="text-sm text-ink-soft mb-4">
                     Cliquez sur votre nom pour rejoindre le tournoi.
                   </p>
                   <div className="space-y-2 mb-4">
@@ -205,7 +205,7 @@ export const TournamentJoin = () => {
                     <button
                       onClick={handleJoinAsExistingPlayer}
                       disabled={isJoining}
-                      className="w-full bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-cup-blue to-violet-600 hover:from-blue-600 hover:to-violet-700 text-ink font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isJoining
                         ? "Rejoindre..."
@@ -216,20 +216,20 @@ export const TournamentJoin = () => {
               )}
 
               {/* Create New Player */}
-              <div className="bg-gradient-card rounded-xl p-4 md:p-6 border border-slate-700/50">
+              <div className="bg-gradient-card rounded-xl p-4 md:p-6 border border-card/50">
                 <div className="flex items-center gap-3 mb-4">
-                  <UserPlus size={20} className="text-primary" />
-                  <h2 className="text-lg font-bold text-white">
+                  <UserPlus size={20} className="text-cup-red" />
+                  <h2 className="text-lg font-bold text-ink">
                     Créer un nouveau joueur
                   </h2>
                 </div>
-                <p className="text-sm text-slate-400 mb-4">
+                <p className="text-sm text-ink-soft mb-4">
                   Crée un nouveau joueur pour ce tournoi. Tu pourras associer ce
                   joueur à ton compte plus tard.
                 </p>
                 <button
                   onClick={() => setShowCreatePlayer(true)}
-                  className="w-full bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 text-white font-bold py-3 px-4 rounded-xl transition-colors"
+                  className="w-full bg-gradient-to-r from-cup-blue to-violet-600 hover:from-blue-600 hover:to-violet-700 text-ink font-bold py-3 px-4 rounded-xl transition-colors"
                 >
                   Créer un nouveau joueur
                 </button>
@@ -237,14 +237,14 @@ export const TournamentJoin = () => {
             </>
           ) : (
             /* Create Player Form */
-            <div className="bg-gradient-card rounded-xl p-4 md:p-6 border border-slate-700/50">
+            <div className="bg-gradient-card rounded-xl p-4 md:p-6 border border-card/50">
               <div className="flex items-center gap-3 mb-4">
-                <UserPlus size={20} className="text-primary" />
-                <h2 className="text-lg font-bold text-white">Nouveau joueur</h2>
+                <UserPlus size={20} className="text-cup-red" />
+                <h2 className="text-lg font-bold text-ink">Nouveau joueur</h2>
               </div>
               <form onSubmit={handleCreateNewPlayer} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
                     Nom du joueur
                   </label>
                   <input
@@ -252,7 +252,7 @@ export const TournamentJoin = () => {
                     value={newPlayerName}
                     onChange={(e) => setNewPlayerName(e.target.value)}
                     placeholder="Ton pseudo"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary text-base"
+                    className="w-full bg-paper border border-card rounded-xl px-4 py-3 text-ink placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-lime/30 text-base"
                     required
                     autoFocus
                     minLength={1}
@@ -260,7 +260,7 @@ export const TournamentJoin = () => {
                     autoComplete="name"
                   />
                   {newPlayerName.length > 0 && (
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-ink-soft mt-1">
                       {newPlayerName.trim().length}/100 caractères
                     </p>
                   )}
@@ -272,7 +272,7 @@ export const TournamentJoin = () => {
                       setShowCreatePlayer(false);
                       setNewPlayerName("");
                     }}
-                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                    className="flex-1 bg-cream-deep hover:bg-paper text-ink font-bold py-3 px-4 rounded-lg transition-colors"
                   >
                     Annuler
                   </button>
@@ -283,7 +283,7 @@ export const TournamentJoin = () => {
                       !newPlayerName.trim() ||
                       newPlayerName.trim().length > 100
                     }
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg min-h-[44px]"
+                    className="flex-1 bg-gradient-to-r from-cup-blue to-violet-600 hover:from-blue-600 hover:to-violet-700 text-ink font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg min-h-[44px]"
                   >
                     {isJoining ? "Rejoindre..." : "Rejoindre"}
                   </button>
