@@ -1,36 +1,52 @@
 /**
- * Design tokens — variables CSS
- * Source: design-system-convergence.md section 3
+ * Design tokens CSS — PONGLO Arcade system
+ * Source: /tmp/bpl-design/tokens.js (system: arcade)
  *
- * Usage:
- * - CSS: var(--color-primary), var(--spacing-page), etc.
- * - Tailwind: bg-background-primary, text-text-primary, p-page, rounded-card, etc.
- *
- * Migration progressive: Préférer les classes Tailwind du thème (tailwind.config.js)
- * pour les nouveaux composants. Les variables CSS sont disponibles pour les cas
- * où Tailwind ne suffit pas (ex: styles dynamiques, media queries complexes).
+ * Ces variables sont utilisées pour les cas où Tailwind ne suffit pas
+ * (styles dynamiques, CSS vanilla, animations personnalisées).
+ * Pour les composants courants, privilégier les classes Tailwind
+ * (`bg-cream`, `text-ink`, `bg-paper`, `rounded-card`, etc.).
  */
 
 :root {
-  /* Couleurs — fonds */
-  --color-bg-primary: #0f172a; /* slate-900 */
-  --color-bg-secondary: #1e293b; /* slate-800 */
-  --color-bg-tertiary: #334155; /* slate-700 */
+  /* ---------- Surfaces (dark night) ---------- */
+  --color-cream: #0b0d14; /* app background */
+  --color-cream-deep: #050710; /* deeper panels */
+  --color-paper: #141826; /* cards */
 
-  /* Couleurs — texte */
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #cbd5e1; /* slate-300 */
-  --color-text-tertiary: #94a3b8; /* slate-400 */
-  --color-text-muted: #64748b; /* slate-500 */
+  /* ---------- Text / ink ---------- */
+  --color-ink: #f4f2e8; /* primary text */
+  --color-ink-soft: #b8b4a3; /* secondary text */
+  --color-ink-mute: #6b6a5e; /* tertiary text */
 
-  /* Couleurs — accents */
-  --color-primary: #f59e0b; /* amber-500 */
-  --color-success: #22c55e; /* green-500 */
-  --color-error: #ef4444; /* red-500 */
-  --color-elo: #f59e0b; /* amber-500 */
-  --color-info: #3b82f6; /* blue-500 */
+  /* ---------- Brand cups ---------- */
+  --color-cup-red: #ff4438;
+  --color-cup-red-deep: #c42418;
+  --color-cup-blue: #3b8eff;
+  --color-cup-blue-deep: #0052d4;
+  --color-cup-green: #b8ff3d;
+  --color-cup-green-deep: #8bcc1f;
 
-  /* Espacements */
+  /* ---------- Signals ---------- */
+  --color-lime: #b8ff3d;
+  --color-gold: #ffb800;
+  --color-ruby: #ff4438;
+
+  /* ---------- Legacy aliases (Epic 14 compat) ---------- */
+  --color-bg-primary: #0b0d14;
+  --color-bg-secondary: #141826;
+  --color-bg-tertiary: #1f2433;
+  --color-text-primary: #f4f2e8;
+  --color-text-secondary: #b8b4a3;
+  --color-text-tertiary: #8a8878;
+  --color-text-muted: #6b6a5e;
+  --color-primary: #ff4438;
+  --color-success: #b8ff3d;
+  --color-error: #ff4438;
+  --color-elo: #b8ff3d;
+  --color-info: #3b8eff;
+
+  /* ---------- Spacing ---------- */
   --spacing-page: 1rem;
   --spacing-page-lg: 1.5rem;
   --spacing-card-gap: 1rem;
@@ -38,28 +54,34 @@
   --spacing-bottom-nav: 5rem;
   --spacing-bottom-nav-lg: 6rem;
 
-  /* Radius */
-  --radius-card: 0.75rem;
-  --radius-button: 0.5rem;
-  --radius-input: 0.75rem;
+  /* ---------- Radius (Arcade sharp) ---------- */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-card: 10px;
+  --radius-button: 6px;
+  --radius-input: 6px;
 
-  /* Bordures */
-  --border-card: 1px solid #334155;
-  --border-card-muted: 1px solid rgba(51, 65, 85, 0.5);
+  /* ---------- Borders ---------- */
+  --border-card: 1px solid rgba(244, 242, 232, 0.14);
+  --border-card-muted: 1px solid rgba(244, 242, 232, 0.06);
 
-  /* Gradients (parité avec Tailwind) */
-  --gradient-cta: linear-gradient(to right, #f59e0b, #eab308);
-  --gradient-cta-alt: linear-gradient(to right, #3b82f6, #7c3aed);
-  --gradient-fab: linear-gradient(to right, #3b82f6, #7c3aed);
-  --gradient-tab-active: linear-gradient(to right, #3b82f6, #7c3aed);
-  --gradient-card: linear-gradient(
-    to left,
-    rgba(51, 65, 85, 0.85),
-    rgba(30, 41, 59, 0.85)
-  );
-  --gradient-card-transparent: linear-gradient(
-    to left,
-    rgba(51, 65, 85, 0.7),
-    rgba(30, 41, 59, 0.7)
-  );
+  /* ---------- Shadows (neon glow) ---------- */
+  --shadow-card: 0 0 0 1px rgba(244, 242, 232, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-card-lg: 0 0 0 1px rgba(244, 242, 232, 0.08),
+    0 20px 60px rgba(0, 0, 0, 0.6), 0 0 60px rgba(227, 34, 42, 0.18);
+  --shadow-fab: 0 0 0 1px rgba(244, 242, 232, 0.08),
+    0 10px 30px rgba(0, 0, 0, 0.6), 0 0 30px rgba(184, 255, 61, 0.25);
+  --shadow-glow-red: 0 0 24px rgba(255, 68, 56, 0.4);
+  --shadow-glow-blue: 0 0 24px rgba(59, 142, 255, 0.4);
+  --shadow-glow-lime: 0 0 24px rgba(184, 255, 61, 0.4);
+
+  /* ---------- Typography ---------- */
+  --font-sans: "Space Grotesk", "Archivo", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Archivo", system-ui, sans-serif;
+  --font-archivo: "Archivo", "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }

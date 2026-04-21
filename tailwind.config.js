@@ -1,53 +1,93 @@
 /** @type {import('tailwindcss').Config} */
+// PONGLO — Arcade design system (dark + neon + Space Grotesk + JetBrains Mono)
+// Reference: /tmp/bpl-design/tokens.js (system: arcade)
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
-      // --- Task 1: Couleurs (AC: 1) ---
+      // -------------------------------------------------------------
+      // Palette Arcade
+      // -------------------------------------------------------------
       colors: {
-        // Fond principal et surfaces
+        // Surfaces (dark night / under the neons)
+        cream: "#0B0D14", // app background
+        "cream-deep": "#050710", // deeper panels
+        paper: "#141826", // cards
+        // Text / ink (inverted for dark)
+        ink: "#F4F2E8", // primary text
+        "ink-soft": "#B8B4A3", // secondary text
+        "ink-mute": "#6B6A5E", // tertiary text
+        // Brand cups
+        "cup-red": "#FF4438",
+        "cup-red-deep": "#C42418",
+        "cup-blue": "#3B8EFF",
+        "cup-blue-deep": "#0052D4",
+        "cup-green": "#B8FF3D",
+        "cup-green-deep": "#8BCC1F",
+        // Aliases Ponglo
+        forest: "#3B8EFF",
+        "forest-deep": "#0052D4",
+        terracotta: "#FF4438",
+        "terracotta-deep": "#C42418",
+        // Signals
+        lime: "#B8FF3D",
+        gold: "#FFB800",
+        ruby: "#FF4438",
+
+        // -----------------------------------------------------------
+        // Legacy aliases (Epic 14 compat — remap onto Arcade palette)
+        // Kept to keep the app compiling during the reskin. These WILL
+        // be removed once all components are migrated.
+        // -----------------------------------------------------------
         background: {
-          primary: "#0f172a", // slate-900
-          secondary: "#1e293b", // slate-800
-          tertiary: "#334155", // slate-700
+          primary: "#0B0D14", // → cream
+          secondary: "#141826", // → paper
+          tertiary: "#1F2433", // slightly lighter paper
         },
-        // Texte
         text: {
-          primary: "#ffffff", // white
-          secondary: "#cbd5e1", // slate-300
-          tertiary: "#94a3b8", // slate-400
-          muted: "#64748b", // slate-500
+          primary: "#F4F2E8", // → ink
+          secondary: "#B8B4A3", // → ink-soft
+          tertiary: "#8A8878",
+          muted: "#6B6A5E", // → ink-mute
         },
-        // Accents (primary=amber pour migration progressive; gradient-cta pour nouveau design)
-        primary: "#f59e0b", // amber-500 (legacy + landing)
-        success: "#22c55e", // green-500
-        error: "#ef4444", // red-500
-        elo: "#f59e0b", // amber-500 (ELO highlight)
-        info: "#3b82f6", // blue-500
-        // Sémantique
-        "status-active": "#f59e0b", // amber-500
-        "status-finished": "#22c55e", // green-500
-        "delta-positive": "#22c55e", // green-500
-        "delta-negative": "#ef4444", // red-500
-        // Legacy aliases (migration progressive)
-        secondary: "#1e293b",
-        accent: "#ef4444",
+        primary: "#FF4438", // → terracotta (was amber)
+        success: "#B8FF3D", // → lime
+        error: "#FF4438", // → ruby
+        elo: "#B8FF3D", // → lime (ELO highlight)
+        info: "#3B8EFF", // → cup-blue
+        "status-active": "#FF4438",
+        "status-finished": "#B8FF3D",
+        "delta-positive": "#B8FF3D",
+        "delta-negative": "#FF4438",
+        secondary: "#141826",
+        accent: "#FF4438",
       },
-      // --- Task 2: Gradients (AC: 2) ---
-      backgroundImage: {
-        "gradient-cta": "linear-gradient(to right, #f59e0b, #eab308)", // amber-500 → yellow-500
-        "gradient-cta-alt": "linear-gradient(to right, #3b82f6, #7c3aed)", // blue-500 → violet-600
-        "gradient-fab": "linear-gradient(to right, #3b82f6, #7c3aed)", // blue-500 → violet-600
-        "gradient-tab-active": "linear-gradient(to right, #3b82f6, #7c3aed)",
-        "gradient-card":
-          "linear-gradient(to left, rgba(51, 65, 85, 0.85), rgba(30, 41, 59, 0.85))", // slate-700 → slate-800, avec transparence
-        "gradient-card-transparent":
-          "linear-gradient(to left, rgba(51, 65, 85, 0.7), rgba(30, 41, 59, 0.7))", // variante plus transparente (landing, overlays)
+
+      // -------------------------------------------------------------
+      // Typography — Space Grotesk (body/display) + JetBrains Mono
+      //               Archivo kept as display fallback
+      // -------------------------------------------------------------
+      fontFamily: {
+        sans: ["Space Grotesk", "Archivo", "system-ui", "sans-serif"],
+        display: ["Space Grotesk", "Archivo", "system-ui", "sans-serif"],
+        archivo: ["Archivo", "Space Grotesk", "system-ui", "sans-serif"],
+        mono: [
+          "JetBrains Mono",
+          "ui-monospace",
+          "SF Mono",
+          "Menlo",
+          "monospace",
+        ],
       },
-      // --- Task 3: Typographie (AC: 3) ---
       fontSize: {
-        "page-title": ["1.25rem", { lineHeight: "1.75rem", fontWeight: "700" }], // text-xl mobile
-        "page-title-lg": ["1.5rem", { lineHeight: "2rem", fontWeight: "700" }], // text-2xl desktop
+        "page-title": [
+          "1.25rem",
+          { lineHeight: "1.75rem", fontWeight: "700" },
+        ],
+        "page-title-lg": [
+          "1.5rem",
+          { lineHeight: "2rem", fontWeight: "700" },
+        ],
         "section-title": [
           "1.125rem",
           { lineHeight: "1.75rem", fontWeight: "700" },
@@ -56,18 +96,35 @@ export default {
         "body-sm": ["0.875rem", { lineHeight: "1.25rem" }],
         label: ["0.875rem", { lineHeight: "1.25rem", fontWeight: "500" }],
         stat: ["1.5rem", { lineHeight: "2rem", fontWeight: "700" }],
+        // Arcade display — for huge ELO numbers, scoreboard
+        "display-sm": [
+          "2rem",
+          { lineHeight: "2rem", fontWeight: "700", letterSpacing: "-0.02em" },
+        ],
+        "display-md": [
+          "2.75rem",
+          {
+            lineHeight: "2.75rem",
+            fontWeight: "800",
+            letterSpacing: "-0.03em",
+          },
+        ],
+        "display-lg": [
+          "4rem",
+          { lineHeight: "3.75rem", fontWeight: "900", letterSpacing: "-0.04em" },
+        ],
       },
-      fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-      },
-      // --- Task 4: Espacements (AC: 4) ---
+
+      // -------------------------------------------------------------
+      // Spacing (kept from Epic 14 — these are layout tokens)
+      // -------------------------------------------------------------
       spacing: {
-        page: "1rem", // p-4 mobile
-        "page-lg": "1.5rem", // p-6 desktop
-        "card-gap": "1rem", // gap-4
-        "card-gap-lg": "1.5rem", // gap-6
-        "bottom-nav": "5rem", // pb-20
-        "bottom-nav-lg": "6rem", // pb-24
+        page: "1rem",
+        "page-lg": "1.5rem",
+        "card-gap": "1rem",
+        "card-gap-lg": "1.5rem",
+        "bottom-nav": "5rem",
+        "bottom-nav-lg": "6rem",
       },
       padding: {
         page: "1rem",
@@ -83,31 +140,53 @@ export default {
         "bottom-nav": "5rem",
         "bottom-nav-lg": "6rem",
       },
-      // --- Task 5: Radius et bordures (AC: 5) ---
+
+      // -------------------------------------------------------------
+      // Radius — Arcade sharp
+      // xs:2, sm:4, md:6, lg:10, xl:14, full:9999
+      // -------------------------------------------------------------
       borderRadius: {
-        card: "0.75rem", // rounded-xl (12px)
-        button: "0.5rem", // rounded-lg (8px)
-        input: "0.75rem", // rounded-xl
+        xs: "2px",
+        sm: "4px",
+        md: "6px",
+        lg: "10px",
+        xl: "14px",
+        // Legacy component radius (remapped sharper)
+        card: "10px", // was 12px
+        button: "6px", // was 8px
+        input: "6px", // was 12px
       },
       borderColor: {
-        card: "#334155", // slate-700
-        "card-muted": "rgba(51, 65, 85, 0.5)", // slate-700/50
+        card: "rgba(244, 242, 232, 0.14)", // ink with alpha
+        "card-muted": "rgba(244, 242, 232, 0.06)",
       },
       borderWidth: {
         card: "1px",
       },
-      // --- Task 6: Screens (Frame 1–11 cohérence) ---
+
+      // -------------------------------------------------------------
+      // Screens
+      // -------------------------------------------------------------
       screens: {
         sm: "640px",
         md: "768px",
         lg: "1024px",
         xl: "1440px",
       },
-      // Élévations (design-system 3.6)
+
+      // -------------------------------------------------------------
+      // Shadows — Arcade neon (glow + hairline ink outline)
+      // -------------------------------------------------------------
       boxShadow: {
-        card: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-        fab: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-        modal: "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+        card: "0 0 0 1px rgba(244,242,232,0.06), 0 8px 24px rgba(0,0,0,0.5)",
+        "card-lg":
+          "0 0 0 1px rgba(244,242,232,0.08), 0 20px 60px rgba(0,0,0,0.6), 0 0 60px rgba(227,34,42,0.18)",
+        fab: "0 0 0 1px rgba(244,242,232,0.08), 0 10px 30px rgba(0,0,0,0.6), 0 0 30px rgba(184,255,61,0.25)",
+        modal:
+          "0 0 0 1px rgba(244,242,232,0.1), 0 25px 60px -12px rgba(0,0,0,0.8)",
+        "glow-red": "0 0 24px rgba(255,68,56,0.4)",
+        "glow-blue": "0 0 24px rgba(59,142,255,0.4)",
+        "glow-lime": "0 0 24px rgba(184,255,61,0.4)",
       },
     },
   },
