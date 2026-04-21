@@ -102,7 +102,9 @@ describe("Join Page", () => {
 
     it("should render instructions", () => {
       renderJoinPage();
-      expect(screen.getByText(/Scannez le QR code/i)).toBeInTheDocument();
+      expect(
+        screen.getAllByText(/Scanne le QR code/i).length,
+      ).toBeGreaterThanOrEqual(1);
     });
 
     it("should render bottom menu with 2 actions", () => {
@@ -239,16 +241,16 @@ describe("Join Page", () => {
         screen.getAllByText("Rejoindre un Tournoi").length,
       ).toBeGreaterThanOrEqual(1);
       expect(
-        screen.getByText(/Scannez le QR code affiché par l'organisateur/i),
-      ).toBeInTheDocument();
+        screen.getAllByText(/Scanne le QR code affiché par l'organisateur/i).length,
+      ).toBeGreaterThanOrEqual(1);
     });
 
     it("should display HelpCard in empty state", () => {
       renderJoinPage();
       expect(screen.getByText("Comment ça marche ?")).toBeInTheDocument();
       expect(
-        screen.getByText(/Scanne le QR code affiché par l'organisateur/i),
-      ).toBeInTheDocument();
+        screen.getAllByText(/Scanne le QR code affiché par l'organisateur/i).length,
+      ).toBeGreaterThanOrEqual(1);
     });
   });
 

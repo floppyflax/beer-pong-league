@@ -76,6 +76,21 @@ vi.mock("../../../src/components/design-system", () => ({
       FAB
     </button>
   ),
+  ScreenLayout: ({
+    header,
+    overlay,
+    children,
+  }: {
+    header?: React.ReactNode;
+    overlay?: React.ReactNode;
+    children: React.ReactNode;
+  }) => (
+    <div data-testid="screen-layout">
+      {header}
+      <main>{children}</main>
+      {overlay}
+    </div>
+  ),
 }));
 
 vi.mock("../../../src/components/PaymentModal", () => ({

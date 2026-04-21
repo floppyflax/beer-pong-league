@@ -119,11 +119,12 @@ describe("TournamentDashboard - Tab Navigation (Task 1)", () => {
       expect(classementTab).toHaveAttribute("aria-selected", "true");
     });
 
-    it("should highlight active tab with gradient (SegmentedTabs encapsulated)", () => {
+    it("should highlight active tab (SegmentedTabs encapsulated)", () => {
       renderDashboard();
 
       const classementTab = screen.getByRole("tab", { name: "Classement" });
-      expect(classementTab).toHaveClass("bg-gradient-tab-active");
+      expect(classementTab).toHaveClass("bg-cup-red");
+      expect(classementTab).toHaveClass("text-ink");
     });
 
     it("should switch to Matchs tab when clicked", () => {

@@ -14,6 +14,22 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BrowserRouter, MemoryRouter, Route, Routes } from "react-router-dom";
+
+// Mock recharts to avoid "Cannot find module 'react-dom'" resolution error
+// that occurs when recharts is hoisted in the parent node_modules (monorepo/worktree).
+vi.mock("recharts", () => ({
+  LineChart: ({ children }: any) => <div data-testid="line-chart">{children}</div>,
+  Line: () => null,
+  AreaChart: ({ children }: any) => <div data-testid="area-chart">{children}</div>,
+  Area: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+  CartesianGrid: () => null,
+  Tooltip: () => null,
+  ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
+  Legend: () => null,
+}));
+
 import { PlayerProfile } from "@/pages/PlayerProfile";
 import "@testing-library/jest-dom";
 
@@ -91,6 +107,8 @@ vi.mock("@/services/DatabaseService", () => ({
   databaseService: {
     loadPlayerById: vi.fn().mockResolvedValue(null),
     loadTournamentParticipants: vi.fn().mockResolvedValue([]),
+    loadPlayerEnrichment: vi.fn().mockResolvedValue(null),
+    loadAvatarUrlsForPlayerIds: vi.fn().mockResolvedValue(new Map()),
   },
 }));
 

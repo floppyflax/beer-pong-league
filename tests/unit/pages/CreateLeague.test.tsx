@@ -258,7 +258,8 @@ describe("CreateLeague - Story 14.18", () => {
       const { container } = render(<CreateLeague />, { wrapper: Wrapper });
       const form = container.querySelector("form");
       expect(form).toBeInTheDocument();
-      expect(container.querySelector(".bg-slate-900")).toBeInTheDocument();
+      // Arcade palette: ScreenLayout uses bg-cream as canvas background
+      expect(container.querySelector(".bg-cream")).toBeInTheDocument();
     });
 
     it("should have CTA sticky above bottom nav (fixed bottom-16)", () => {
