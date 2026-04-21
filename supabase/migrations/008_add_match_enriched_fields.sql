@@ -2,6 +2,11 @@
 -- Migration: Add enriched match fields (cups_remaining, photo_url)
 -- Story: 14-24
 -- Description: Add optional cups_remaining (1-10) and photo_url for winning team
+--
+-- Rollback (manual): To reverse this migration, run:
+--   ALTER TABLE public.matches DROP CONSTRAINT IF EXISTS matches_cups_remaining_range;
+--   ALTER TABLE public.matches DROP COLUMN IF EXISTS cups_remaining;
+--   ALTER TABLE public.matches DROP COLUMN IF EXISTS photo_url;
 -- ============================================
 
 ALTER TABLE public.matches

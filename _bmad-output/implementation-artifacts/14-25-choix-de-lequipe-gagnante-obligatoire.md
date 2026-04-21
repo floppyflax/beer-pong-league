@@ -1,6 +1,6 @@
 # Story 14.25: Winning team selection (mandatory)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -52,13 +52,29 @@ So that I can validate a match quickly.
 - Winner mapped to score format 10-0 or 0-10 for ELO and DB compatibility
 - Submit button disabled until winner selected (AC3)
 - TournamentDashboard handleMatchFormSuccess unchanged: derives winner from match.scoreA/scoreB
-- All 21 unit tests updated and passing
+- All 22 unit tests updated and passing
+- Code review 2026-02-16: 6 issues fixed — design-system 7.4 (Équipe A/B → Équipe 1/2), GAME_MAX_SCORE constant, Équipe 2 mapping test, test describe Story 14-25, aria-pressed on winner buttons
 
 ### File List
 
 - src/components/MatchRecordingForm.tsx
 - tests/unit/components/MatchRecordingForm.test.tsx
 
+### Senior Developer Review (AI)
+
+**Reviewer:** floppyflax on 2026-02-16
+
+**Findings:** 7 issues (1 HIGH, 3 MEDIUM, 3 LOW). All HIGH and MEDIUM fixed automatically.
+
+- Design-system 7.4: Équipe A/B → Équipe 1/2 (headers + validation messages)
+- GAME_MAX_SCORE constant extracted
+- Test for Équipe 2 winner mapping added
+- Test describe updated to Story 5.1, 14-25
+- aria-pressed on winner buttons for accessibility
+
+**Outcome:** Approved. Status → done.
+
 ## Change Log
 
 - 2026-02-13: Story 14-25 implementation complete — winner selection replaces score inputs
+- 2026-02-16: Code review complete — 6 issues fixed (design-system 7.4, GAME_MAX_SCORE, tests, aria-pressed). Status → done.

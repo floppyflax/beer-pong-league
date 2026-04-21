@@ -105,7 +105,7 @@ development_status:
   epic-9: in-progress
   9-1-landing-page-non-connected: done
   9-2-responsive-navigation-infrastructure: done
-  9-3-bottom-tab-menu-principal: review
+  9-3-bottom-tab-menu-principal: done # Code review 2026-02-16: Story ACs updated to design-system-convergence, integration test fixed
   9-4-bottom-menu-specifique: done # Code review complete - 8 issues fixed (4 CRITICAL, 4 HIGH)
   9-5-contextual-action-bar: done # Code review complete - 9 issues fixed (2 CRITICAL, 2 HIGH, 4 MEDIUM, 1 LOW)
   9-6-desktop-sidebar-navigation: done # Code review complete - 8 issues fixed (3 CRITICAL, 5 HIGH)
@@ -160,11 +160,11 @@ development_status:
   14-33-landing-frame1-no-scroll: done
   14-34-bouton-deconnexion-complete: done
   14-23-page-rejoindre-scan-code: done
-  14-35-profile-joueur-enrichi: review
+  14-35-profile-joueur-enrichi: done
   # Phase 5 — Flow match enrichi
-  14-24-schema-base-de-donnees-pour-match-enrichi: review
-  14-25-choix-de-lequipe-gagnante-obligatoire: review
+  14-24-schema-base-de-donnees-pour-match-enrichi: done
+  14-25-choix-de-lequipe-gagnante-obligatoire: done # Code review 2026-02-16: 6 issues fixed
   14-26-gobelets-restants-optionnel: ready-for-dev
   14-27-photo-de-lequipe-gagnante-optionnel: ready-for-dev
-  14-28-affichage-photo-et-gobelets-dans-lhistorique-des-matchs: review
+  14-28-affichage-photo-et-gobelets-dans-lhistorique-des-matchs: done
   epic-14-retrospective: optional
