@@ -99,6 +99,16 @@ Légende : [x] livré · [~] en cours · [ ] backlog
 - [ ] Recherche globale (joueurs, ligues, tournois).
 - [ ] Animations (confettis victoires, transitions).
 
+### UX / Design (Epic 15 · Ponglo Arcade)
+- [x] Tokens Arcade (`cream/paper/ink` + `cup-red/cup-blue/lime/gold/ruby`).
+- [x] Typographies Space Grotesk + Archivo + JetBrains Mono.
+- [x] Primitives Ponglo (`PongloWordmark`, `PButton`, `EloDelta`, `PRankBadge`).
+- [x] `ScreenLayout` wrapper (header + max-width + overlay factorisés).
+- [x] Showcase `/design-system` mis à jour (palette Arcade + primitives).
+- [x] Reskin pages mobile (Home, Leagues, Tournaments, Join, Create*, Dashboards, PlayerProfile, UserProfile, Payment*, Landing).
+- [x] Display TV — variant `Split` (classement + match feed + QR).
+- [x] Display TV — variant `Drama` (score géant `?variant=drama`).
+
 ### Tests & qualité
 - [x] 47 tests unitaires Vitest (services, hooks, utils, composants).
 - [x] 18 tests d'intégration (auth flow, identity merge).

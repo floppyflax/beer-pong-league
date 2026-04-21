@@ -76,10 +76,16 @@ Les migrations vivent dans `supabase/migrations/` : `001_initial_schema.sql` et 
 
 ## Composants
 
-Pas de design system dédié : UI construite en Tailwind + lucide-react.
+### Design system Ponglo Arcade (Epic 15)
+- Palette Arcade définie dans `tailwind.config.js` : `cream` (background deep navy `#0B0D14`), `paper`, `ink`/`ink-soft`/`ink-mute`, brand `cup-red` / `cup-blue` / `lime`, signals `gold` / `ruby`.
+- Typo : `Space Grotesk` (body), `Archivo` (display, labels uppercase), `JetBrains Mono` (chiffres, codes).
+- Composants dans `src/components/design-system/` — APIs stables : `Banner`, `HelpCard`, `PlayerCard`, `StatCard`, `InfoCard`, `FAB`, `ListRow`, `SegmentedTabs`, `SearchBar`, `ScreenLayout` (wrapper header + max-width + overlay), `LastActivityCard` (carte générique leagues/tournaments).
+- Primitives Ponglo dans `src/components/ponglo/` : `PongloWordmark`, `PButton` (variants `primary` / `accent` / `lime` / `dark` / `ghost`), `EloDelta` (badge `+14`/`-12`), `PRankBadge` (tiers par ELO).
+- Showcase vivant : route `/design-system` (`src/pages/DesignSystemShowcase.tsx`).
 
 ### Layout et shell
 - `components/layout/MenuDrawer` — drawer de navigation principal.
+- `components/design-system/ScreenLayout` — wrapper standard (header `ContextualHeader` + max-width narrow/wide/full + overlay pour CTAs sticky et modales).
 
 ### Modals
 - `AuthModal` — email + OTP (et password en dev pour comptes de test).
@@ -113,7 +119,7 @@ Pas d'API REST maison : tout passe par le client `@supabase/supabase-js` export�
 Accès CRUD via `.from(table).select/insert/update/upsert/delete`. RLS Postgres appliquée avec la publishable key + JWT utilisateur.
 
 ### Couche services
-- **`DatabaseService`** — leagues, tournaments, matches, players, ELO.
+- **`DatabaseService`** — façade qui ré-exporte les repositories (`src/services/repositories/`) : `LeaguesRepository`, `TournamentsRepository`, `PlayersRepository`, `MatchesRepository`, `DataTransformer` (normalized ↔ nested).
 - **`AuthService`** — wrappers Supabase Auth, détection des comptes de test en dev.
 - **`AnonymousUserService`** — création et lookup d'utilisateurs anonymes + fingerprint.
 - **`LocalUserService`** — persistance locale du profil actif.

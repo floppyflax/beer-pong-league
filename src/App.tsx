@@ -158,15 +158,15 @@ function HeaderUserInfo() {
     <div className="flex items-center gap-2">
       <button
         onClick={() => navigate("/user/profile")}
-        className="flex items-center gap-2 px-2 py-1 bg-primary/20 rounded-lg hover:bg-primary/30 transition-colors cursor-pointer"
+        className="flex items-center gap-2 px-2 py-1 bg-cup-red/20 rounded-lg hover:bg-cup-red/30 transition-colors cursor-pointer"
       >
-        <User size={16} className="text-primary" />
-        <span className="text-xs text-primary font-medium">{displayName}</span>
+        <User size={16} className="text-cup-red" />
+        <span className="text-xs text-cup-red font-medium">{displayName}</span>
       </button>
       {isAuthenticated && (
         <button
           onClick={signOut}
-          className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+          className="p-2 hover:bg-cream-deep rounded-lg transition-colors"
           title="Déconnexion"
         >
           <LogOut size={18} />
@@ -212,11 +212,11 @@ function AppContent() {
   const showBackBtn = shouldShowBackButton(location.pathname);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col">
+    <div className="min-h-screen bg-cream text-ink flex flex-col">
       {showHeader && (
         <>
           <MenuDrawer isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
-          <header className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-10">
+          <header className="p-4 bg-paper border-b border-card flex justify-between items-center sticky top-0 z-10">
             {/* Left navigation: Back button OR Hamburger menu - hidden on desktop (lg and above) */}
             <div className="lg:hidden">
               {showBackBtn ? (
@@ -224,7 +224,7 @@ function AppContent() {
               ) : (
                 <button
                   onClick={() => setMenuOpen(true)}
-                  className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-cream-deep rounded-lg transition-colors"
                   aria-label="Open menu"
                 >
                   <Menu size={24} />
@@ -235,26 +235,26 @@ function AppContent() {
             <nav className="hidden lg:flex items-center gap-6">
               <Link
                 to="/"
-                className="text-slate-300 hover:text-primary transition-colors"
+                className="text-ink-soft hover:text-cup-red transition-colors"
               >
                 Accueil
               </Link>
               <Link
                 to="/create-league"
-                className="text-slate-300 hover:text-primary transition-colors"
+                className="text-ink-soft hover:text-cup-red transition-colors"
               >
                 Nouvelle League
               </Link>
               <Link
                 to="/create-tournament"
-                className="text-slate-300 hover:text-primary transition-colors"
+                className="text-ink-soft hover:text-cup-red transition-colors"
               >
                 Nouveau Tournoi
               </Link>
             </nav>
             <Link
               to="/"
-              className="text-xl font-bold text-primary flex items-center gap-2"
+              className="text-xl font-bold text-cup-red flex items-center gap-2"
             >
               <span>🍺</span> BPL
             </Link>
