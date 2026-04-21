@@ -1,157 +1,238 @@
-import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { BottomMenuSpecific } from "@/components/navigation/BottomMenuSpecific";
-import { ContextualHeader } from "@/components/navigation/ContextualHeader";
+import { Camera, ChevronLeft } from "lucide-react";
 import { QRScanner } from "@/components/join/QRScanner";
-import { CodeInputModal } from "@/components/join/CodeInputModal";
-import { HelpCard } from "@/components/design-system/HelpCard";
-import { ScreenLayout } from "@/components/design-system/ScreenLayout";
 import { useJoinTournament } from "@/hooks/useJoinTournament";
 import { extractCodeFromQR } from "@/utils/extractCodeFromQR";
-import { getContentPaddingBottom } from "@/utils/navigationHelpers";
-import { Camera, Hash, Target } from "lucide-react";
+import { PButton } from "@/components/ponglo/PButton";
 
-/**
- * Join Page
- *
- * Page for users to join tournaments via QR code scanning or manual code entry.
- * Story 14-23: Aligned with design system Frame 2.
- */
+const CODE_LENGTH = 6;
+const CODE_REGEX = /^[A-Z0-9]{6,8}$/;
+
 export const Join = () => {
-  const location = useLocation();
+  const navigate = useNavigate();
   const [showScanner, setShowScanner] = useState(false);
-  const [showCodeInput, setShowCodeInput] = useState(false);
+  const [code, setCode] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { joinByCode } = useJoinTournament();
 
-  const handleScanCode = async (scannedCode: string) => {
-    setShowScanner(false);
-    const code = extractCodeFromQR(scannedCode);
-    if (!code) {
-      setShowCodeInput(true);
-      return;
-    }
+  const handleCodeChange = (value: string) => {
+    const filtered = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    setCode(filtered);
+  };
+
+  const handleSubmit = async () => {
+    if (!CODE_REGEX.test(code) || isJoining) return;
+    setIsJoining(true);
     try {
-      await handleJoinByCode(code);
+      await joinByCode(code);
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
           : "Erreur lors de la jonction au tournoi";
       toast.error(message);
-      setShowCodeInput(true);
+    } finally {
+      setIsJoining(false);
     }
   };
 
-  const handleJoinByCode = async (code: string) => {
+  const handleScanCode = async (scannedCode: string) => {
+    setShowScanner(false);
+    const extracted = extractCodeFromQR(scannedCode);
+    if (!extracted) {
+      toast.error("QR invalide. Saisis le code manuellement.");
+      inputRef.current?.focus();
+      return;
+    }
+    setCode(extracted.toUpperCase());
+    setIsJoining(true);
     try {
-      await joinByCode(code);
-      // Navigation happens inside the hook
-      setShowCodeInput(false);
+      await joinByCode(extracted);
     } catch (err) {
-      // Re-throw so CodeInputModal can display error inline (AC3/AC4)
-      throw err;
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Erreur lors de la jonction au tournoi";
+      toast.error(message);
+    } finally {
+      setIsJoining(false);
     }
   };
 
-  const paddingBottomClass =
-    getContentPaddingBottom(location.pathname) || "pb-36 lg:pb-6";
+  const isValid = CODE_REGEX.test(code);
 
   return (
-    <ScreenLayout
-      header={
-        <ContextualHeader
-          title="Rejoindre un Tournoi"
-          showBackButton={true}
-          onBack={() => window.history.back()}
-        />
-      }
-      maxWidth="narrow"
-      contentClassName={paddingBottomClass}
-      overlay={
-        <>
-          <BottomMenuSpecific
-            variant="gradient"
-            actions={[
-              {
-                label: "SCANNER QR",
-                icon: <Camera size={20} />,
-                onClick: () => setShowScanner(true),
-              },
-              {
-                label: "SAISIR CODE",
-                icon: <Hash size={20} />,
-                onClick: () => setShowCodeInput(true),
-              },
-            ]}
-          />
-          {showScanner && (
-            <QRScanner
-              onScan={handleScanCode}
-              onClose={() => setShowScanner(false)}
-              onFallbackToCodeInput={() => {
-                setShowScanner(false);
-                setShowCodeInput(true);
-              }}
-            />
-          )}
-          {showCodeInput && (
-            <CodeInputModal
-              onSubmit={handleJoinByCode}
-              onClose={() => setShowCodeInput(false)}
-            />
-          )}
-        </>
-      }
-    >
-      <div className="space-y-6">
-        <div className="bg-paper rounded-card p-6 border border-card text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-cup-blue/15 rounded-full flex items-center justify-center border border-cup-blue/30">
-              <Target size={40} className="text-cup-blue" />
-            </div>
-          </div>
-          <p className="text-ink-soft leading-relaxed">
-            Scanne le QR code affiché par l'organisateur ou saisis le code
-            manuellement pour rejoindre un tournoi existant.
-          </p>
+    <div className="min-h-screen bg-cream text-ink flex flex-col relative">
+      {/* Top nav */}
+      <div className="flex items-center gap-2.5 px-[18px] pt-14 pb-3.5">
+        <button
+          onClick={() => navigate(-1)}
+          aria-label="Retour"
+          className="w-9 h-9 rounded-full border-[1.5px] border-card flex items-center justify-center hover:bg-paper transition-colors"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div className="flex-1 font-archivo font-extrabold uppercase text-[17px] tracking-[-0.3px]">
+          Rejoindre
+        </div>
+      </div>
 
-          <div className="hidden lg:flex gap-3 mt-6">
-            <button
-              onClick={() => setShowScanner(true)}
-              className="flex-1 bg-cup-blue text-ink border-[1.5px] border-cup-blue-deep shadow-[0_3px_0_#0052D4] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#0052D4] font-archivo font-bold uppercase tracking-tight py-3 px-4 rounded-full transition-[transform,box-shadow,filter] duration-75 flex items-center justify-center gap-3"
-              aria-label="Scanner un QR code"
-            >
-              <Camera size={22} />
-              <span>Scanner QR</span>
-            </button>
-            <button
-              onClick={() => setShowCodeInput(true)}
-              className="flex-1 bg-paper text-ink border-[1.5px] border-card hover:border-card-muted font-archivo font-bold uppercase tracking-tight py-3 px-4 rounded-full transition-colors flex items-center justify-center gap-3"
-              aria-label="Saisir un code"
-            >
-              <Hash size={22} />
-              <span>Saisir code</span>
-            </button>
+      {/* Content */}
+      <div className="flex-1 px-6 pb-[120px] flex flex-col">
+        {/* Headline */}
+        <h1
+          className="font-archivo font-black uppercase text-ink"
+          style={{
+            fontSize: 34,
+            lineHeight: 0.95,
+            letterSpacing: "-1.2px",
+            textWrap: "balance",
+          }}
+        >
+          Scanne le QR
+          <br />
+          ou tape le code.
+        </h1>
+
+        {/* Scanner CTA card */}
+        <button
+          onClick={() => setShowScanner(true)}
+          className="mt-6 relative w-full aspect-square bg-ink rounded-xl p-5 flex items-center justify-center overflow-hidden group"
+          aria-label="Ouvrir le scanner QR"
+        >
+          {/* deco QR pattern */}
+          <div
+            className="absolute inset-5 rounded-md bg-cream grid pointer-events-none"
+            style={{
+              gridTemplateColumns: "repeat(21, 1fr)",
+              gap: 1,
+            }}
+            aria-hidden
+          >
+            {Array.from({ length: 441 }).map((_, i) => {
+              const r = Math.floor(i / 21);
+              const c = i % 21;
+              const corner =
+                (r < 7 && c < 7) || (r < 7 && c > 13) || (r > 13 && c < 7);
+              const cornerCenter =
+                corner &&
+                ((r >= 2 && r <= 4 && c >= 2 && c <= 4) ||
+                  (r >= 2 && r <= 4 && c >= 16 && c <= 18) ||
+                  (r >= 16 && r <= 18 && c >= 2 && c <= 4));
+              const cornerRing =
+                corner &&
+                !cornerCenter &&
+                ((r === 1 || r === 5 || c === 1 || c === 5) ||
+                  (r === 1 || r === 5 || c === 15 || c === 19) ||
+                  (r === 15 || r === 19));
+              const fill =
+                cornerCenter ||
+                cornerRing ||
+                ((i * 7 + r * c) % 3 === 0);
+              return (
+                <span
+                  key={i}
+                  className={fill ? "bg-ink" : ""}
+                  style={{ borderRadius: 1 }}
+                />
+              );
+            })}
+          </div>
+          {/* center badge: camera */}
+          <div className="relative z-10 w-16 h-16 rounded-md bg-cream flex items-center justify-center shadow-card">
+            <Camera size={32} className="text-ink" />
+          </div>
+          <span className="absolute bottom-3 left-0 right-0 text-center font-archivo font-bold uppercase text-[12px] tracking-[1px] text-cream">
+            Ouvrir le scanner
+          </span>
+        </button>
+
+        {/* separator */}
+        <div className="text-center mt-4 font-mono text-xs text-ink-mute uppercase tracking-[1px]">
+          — ou —
+        </div>
+
+        {/* Code input (6 slots, driven by hidden input) */}
+        <div className="mt-3">
+          <label
+            htmlFor="tournament-code"
+            className="block font-mono text-[10px] tracking-[1.5px] uppercase text-ink-mute mb-2"
+          >
+            Code d'accès
+          </label>
+          <div
+            className="relative"
+            onClick={() => inputRef.current?.focus()}
+          >
+            <input
+              ref={inputRef}
+              id="tournament-code"
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              spellCheck={false}
+              value={code}
+              onChange={(e) => handleCodeChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && isValid) handleSubmit();
+              }}
+              className="absolute inset-0 opacity-0 w-full h-full"
+              aria-label="Code du tournoi (6 à 8 caractères)"
+              maxLength={8}
+              disabled={isJoining}
+            />
+            <div className="flex gap-2">
+              {Array.from({ length: CODE_LENGTH }).map((_, i) => {
+                const ch = code[i] ?? "";
+                const isFocused = code.length === i;
+                return (
+                  <div
+                    key={i}
+                    className={`flex-1 aspect-[0.8] bg-paper rounded-md flex items-center justify-center font-archivo font-black text-[28px] text-ink border-2 transition-colors ${
+                      isFocused
+                        ? "border-forest"
+                        : ch
+                          ? "border-card"
+                          : "border-card-muted"
+                    }`}
+                  >
+                    {ch}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        <HelpCard
-          title="Comment ça marche ?"
-          steps={[
-            {
-              number: 1,
-              text: "Scanne le QR code affiché par l'organisateur ou demande le code",
-            },
-            { number: 2, text: "Saisis le code si tu ne peux pas scanner" },
-            {
-              number: 3,
-              text: "Tu rejoins le tournoi et accèdes au classement",
-            },
-          ]}
-          successMessage="C'est parti pour la compétition !"
-        />
+        <div className="flex-1" />
       </div>
-    </ScreenLayout>
+
+      {/* Sticky bottom CTA */}
+      <div className="absolute left-0 right-0 bottom-0 px-6 pt-4 pb-10 bg-gradient-to-t from-cream via-cream to-transparent">
+        <PButton
+          variant="primary"
+          size="lg"
+          full
+          onClick={handleSubmit}
+          disabled={!isValid || isJoining}
+        >
+          {isJoining ? "Vérification…" : "Rejoindre le tournoi"}
+        </PButton>
+      </div>
+
+      {showScanner && (
+        <QRScanner
+          onScan={handleScanCode}
+          onClose={() => setShowScanner(false)}
+          onFallbackToCodeInput={() => {
+            setShowScanner(false);
+            inputRef.current?.focus();
+          }}
+        />
+      )}
+    </div>
   );
 };

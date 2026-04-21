@@ -1,38 +1,24 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Trophy,
-  Star,
-  LayoutGrid,
-  Crown,
-  Award,
-  ChevronRight,
-} from "lucide-react";
 import { AuthModal } from "../components/AuthModal";
+import { PongloWordmark } from "../components/ponglo/Wordmark";
+import { PButton } from "../components/ponglo/PButton";
 
 /**
- * LandingPage Component
- *
- * Landing page for non-authenticated users (Story 14.33).
- * No header, no bottom nav. Frame 1 (PongELO) layout.
- * Fits on one phone screen without scroll.
+ * LandingPage — Ponglo Arcade auth/onboarding screen.
+ * Ref: /tmp/bpl-design/mobile-screens-1.jsx > ScreenAuth
  */
 export const LandingPage = () => {
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const handleJoinTournament = () => {
+  const handleCreateAccount = () => {
+    setShowAuthModal(true);
+    sessionStorage.setItem("authReturnTo", "/home");
+  };
+
+  const handleJoinByCode = () => {
     navigate("/join");
-  };
-
-  const handleCreateTournament = () => {
-    setShowAuthModal(true);
-    sessionStorage.setItem("authReturnTo", "/create-tournament");
-  };
-
-  const handleCreateLeague = () => {
-    setShowAuthModal(true);
-    sessionStorage.setItem("authReturnTo", "/create-league");
   };
 
   const handleSignIn = () => {
@@ -40,107 +26,74 @@ export const LandingPage = () => {
   };
 
   return (
-    <div className="h-screen min-h-[568px] max-h-[932px] overflow-hidden flex flex-col bg-cream-deep relative">
-      {/* Background: gradient + subtle mesh */}
-      <div
-        className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950/40"
+    <div className="min-h-screen flex flex-col bg-forest relative overflow-hidden">
+      {/* Decorative cup pattern */}
+      <svg
+        className="absolute inset-0 w-full h-full opacity-[0.05] pointer-events-none"
+        viewBox="0 0 400 800"
+        preserveAspectRatio="xMidYMid slice"
         aria-hidden
-      />
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `radial-gradient(at 40% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-            radial-gradient(at 80% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%),
-            radial-gradient(at 0% 50%, rgba(59, 130, 246, 0.08) 0px, transparent 50%)`,
-        }}
-        aria-hidden
-      />
+      >
+        {Array.from({ length: 40 }).map((_, i) => (
+          <circle
+            key={i}
+            cx={(i * 67) % 400}
+            cy={(i * 93) % 800}
+            r="18"
+            fill="#F4F2E8"
+          />
+        ))}
+      </svg>
 
-      {/* Compact content - fits on one screen (responsive spacing for 568px viewport) */}
-      <div className="relative flex-1 flex flex-col justify-center px-4 py-3 sm:py-4 overflow-hidden min-h-0">
-        <div className="flex-shrink-0 max-w-md mx-auto w-full space-y-3 sm:space-y-4">
-          {/* Hero: icon (trophy + star) + PongELO + tagline (Frame 1) */}
-          <div className="text-center space-y-2">
-            <div
-              className="relative inline-flex items-center justify-center w-14 h-14 rounded-full bg-gold text-ink mb-2"
-              aria-hidden="true"
-            >
-              <Trophy size={28} strokeWidth={2.5} />
-              <Star
-                size={14}
-                className="absolute -top-0.5 -right-0.5 text-gold fill-gold"
-                strokeWidth={2.5}
-              />
-            </div>
-            <h1 className="text-2xl font-bold text-gold">PongELO</h1>
-            <p className="text-ink-soft text-sm">
-              Ton classement ELO entre amis
-            </p>
-          </div>
+      {/* Wordmark */}
+      <div className="relative z-10 pt-14 px-6 pb-5">
+        <PongloWordmark size={22} color="#F4F2E8" />
+      </div>
 
-          {/* Participer card — gradient + transparence, titre centré */}
-          <div className="bg-gradient-card-transparent rounded-xl p-4 border border-card/50 space-y-3 backdrop-blur-sm">
-            <div className="flex flex-col items-center text-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-blue-500/80 flex items-center justify-center">
-                <LayoutGrid size={20} className="text-ink" />
-              </div>
-              <h2 className="text-xl font-bold text-ink">Participer</h2>
-            </div>
-            <p className="text-ink-soft text-sm text-center">
-              Rejoins un tournoi en cours
-            </p>
-            <button
-              onClick={handleJoinTournament}
-              className="w-full bg-gradient-cta-alt hover:opacity-95 text-ink font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-              aria-label="Rejoindre un tournoi"
-            >
-              <ChevronRight size={20} aria-hidden="true" />
-              Rejoindre un tournoi
-            </button>
-          </div>
+      {/* Hero */}
+      <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-2">
+        <h1
+          className="font-archivo font-black uppercase text-ink"
+          style={{
+            fontSize: "clamp(40px, 12vw, 52px)",
+            lineHeight: 0.92,
+            letterSpacing: "-1.8px",
+            textWrap: "balance",
+          }}
+        >
+          Le beer pong.
+          <br />
+          Enfin avec un
+          <br />
+          <span className="text-lime">vrai classement.</span>
+        </h1>
+        <p className="mt-[18px] text-[15px] leading-[1.4] text-ink/70">
+          Ligues, tournois, ELO. Pour les amis, les assos, les semi-pros du
+          mercredi soir.
+        </p>
+      </div>
 
-          {/* Organiser card — gradient + transparence, titre centré */}
-          <div className="bg-gradient-card-transparent rounded-xl p-4 border border-card/50 space-y-3 backdrop-blur-sm">
-            <div className="flex flex-col items-center text-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gold flex items-center justify-center">
-                <Crown size={20} className="text-ink" />
-              </div>
-              <h2 className="text-xl font-bold text-ink">Organiser</h2>
-            </div>
-            <p className="text-ink-soft text-sm text-center">
-              Crée tes propres compétitions
-            </p>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleCreateTournament}
-                className="w-full bg-gold hover:brightness-110 text-ink font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
-                aria-label="Créer un tournoi"
-              >
-                <Trophy size={18} aria-hidden="true" />
-                Créer un tournoi
-              </button>
-              <button
-                onClick={handleCreateLeague}
-                className="w-full bg-lime hover:bg-green-600 text-ink font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
-                aria-label="Créer une league"
-              >
-                <Award size={18} aria-hidden="true" />
-                Créer une league
-              </button>
-            </div>
-          </div>
-
-          {/* Footer: login link */}
-          <div className="text-center pt-1">
-            <button
-              onClick={handleSignIn}
-              className="text-ink-soft hover:text-ink text-sm underline underline-offset-2 transition-colors"
-              aria-label="Se connecter"
-            >
-              Déjà membre ? Se connecter
-            </button>
-          </div>
-        </div>
+      {/* CTAs */}
+      <div className="relative z-10 px-6 pt-5 pb-12 flex flex-col gap-2.5">
+        <PButton variant="lime" size="lg" full onClick={handleCreateAccount}>
+          Créer un compte
+        </PButton>
+        <PButton
+          variant="ghost"
+          size="md"
+          full
+          onClick={handleJoinByCode}
+          className="!text-ink !border-[rgba(244,242,232,0.25)]"
+        >
+          J'ai un code de tournoi →
+        </PButton>
+        <button
+          onClick={handleSignIn}
+          className="text-center mt-1.5 text-[13px] text-ink/60 hover:text-ink/80 transition-colors"
+        >
+          Déjà membre ?{" "}
+          <span className="text-lime font-bold">Se connecter</span>
+        </button>
       </div>
 
       <AuthModal
