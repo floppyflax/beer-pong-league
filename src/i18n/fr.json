@@ -1,0 +1,175 @@
+{
+  "common": {
+    "appName": "Beer Pong ELO",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "continue": "Continuer",
+    "loading": "Chargement…",
+    "error": "Une erreur est survenue",
+    "success": "Opération réussie",
+    "retry": "Réessayer",
+    "yes": "Oui",
+    "no": "Non",
+    "search": "Rechercher",
+    "empty": "Aucun résultat",
+    "seeAll": "Tout voir",
+    "copied": "Copié",
+    "share": "Partager"
+  },
+
+  "auth": {
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "signUp": "Créer un compte",
+    "email": "Email",
+    "emailPlaceholder": "toi@exemple.com",
+    "password": "Mot de passe",
+    "sendOTP": "Recevoir un code",
+    "otpSent": "Code envoyé",
+    "otpPlaceholder": "123456",
+    "continueWithoutAccount": "Continuer sans compte",
+    "mergeAccount": "Fusionner mon compte anonyme",
+    "welcomeBack": "Bon retour",
+    "welcome": "Bienvenue sur Beer Pong ELO"
+  },
+
+  "nav": {
+    "home": "Accueil",
+    "leagues": "Ligues",
+    "tournaments": "Tournois",
+    "profile": "Profil",
+    "history": "Historique",
+    "settings": "Paramètres"
+  },
+
+  "league": {
+    "title": "Ligue",
+    "titlePlural": "Ligues",
+    "create": "Créer une ligue",
+    "createSuccess": "Ligue « {name} » créée",
+    "createError": "Erreur lors de la création de la ligue",
+    "noLeagues": "Aucune ligue pour le moment",
+    "joinLeague": "Rejoindre une ligue",
+    "members": "Membres",
+    "matchesPlayed": "Matchs joués",
+    "season": "Saison",
+    "code": "Code ligue"
+  },
+
+  "tournament": {
+    "title": "Tournoi",
+    "titlePlural": "Tournois",
+    "create": "Créer un tournoi",
+    "createSuccess": "Tournoi « {name} » créé",
+    "createError": "Erreur lors de la création du tournoi",
+    "noTournaments": "Aucun tournoi pour le moment",
+    "joinTournament": "Rejoindre un tournoi",
+    "bracket": "Bracket",
+    "round": "Tour",
+    "quarterFinal": "Quarts de finale",
+    "semiFinal": "Demi-finales",
+    "final": "Finale",
+    "teams": "Équipes",
+    "remaining": "Restants",
+    "status": {
+      "pending": "En attente",
+      "inProgress": "En cours",
+      "finished": "Terminé"
+    },
+    "code": "Code tournoi"
+  },
+
+  "match": {
+    "title": "Match",
+    "titlePlural": "Matchs",
+    "record": "Enregistrer un match",
+    "recordSuccess": "Match enregistré",
+    "recordError": "Erreur lors de l'enregistrement du match",
+    "live": "Live",
+    "score": "Score",
+    "home": "Domicile",
+    "away": "Extérieur",
+    "winner": "Vainqueur",
+    "format1v1": "1v1",
+    "format2v2": "2v2",
+    "format3v3": "3v3",
+    "confirmMatch": "Confirmer le match",
+    "rejectMatch": "Contester le match",
+    "awaitingConfirmation": "En attente de confirmation"
+  },
+
+  "player": {
+    "title": "Joueur",
+    "titlePlural": "Joueurs",
+    "add": "Ajouter un joueur",
+    "name": "Nom du joueur",
+    "namePlaceholder": "Léo",
+    "elo": "ELO",
+    "rank": "Rang",
+    "wins": "V",
+    "losses": "D",
+    "winrate": "Winrate",
+    "streak": "Série",
+    "matches": "Matchs"
+  },
+
+  "ranking": {
+    "title": "Classement",
+    "leaderboard": "Leaderboard",
+    "position": "Position",
+    "delta": "Évolution",
+    "noRanking": "Pas encore de classement"
+  },
+
+  "profile": {
+    "title": "Profil",
+    "edit": "Modifier le profil",
+    "displayName": "Nom affiché",
+    "avatar": "Avatar",
+    "stats": "Statistiques",
+    "achievements": "Succès",
+    "history": "Historique",
+    "last5": "5 derniers"
+  },
+
+  "premium": {
+    "title": "Premium",
+    "upgrade": "Passer Premium",
+    "limitReached": "Limite atteinte",
+    "limitTournaments": "Tu as atteint la limite de 2 tournois (plan gratuit)",
+    "limitPlayers": "Tu as atteint la limite de 6 joueurs (plan gratuit)",
+    "limitLeagues": "Les ligues sont réservées aux comptes Premium",
+    "features": {
+      "tournaments": "Tournois illimités",
+      "leagues": "Ligues illimitées",
+      "players": "Joueurs illimités par tournoi",
+      "priority": "Support prioritaire"
+    }
+  },
+
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "nameRequired": "Le nom est requis",
+    "nameMinLength": "Le nom doit contenir au moins {min} caractères",
+    "nameMaxLength": "Le nom doit contenir au plus {max} caractères",
+    "emailInvalid": "Email invalide",
+    "codeInvalid": "Code invalide",
+    "numberInvalid": "Nombre invalide",
+    "scoreInvalid": "Score invalide"
+  },
+
+  "display": {
+    "title": "Affichage TV",
+    "split": "Split",
+    "drama": "Drama",
+    "topRanking": "Top ELO",
+    "liveMatch": "Match en cours"
+  }
+}
