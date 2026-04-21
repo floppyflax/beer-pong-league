@@ -96,7 +96,7 @@ export const LeagueDashboard = () => {
           action={
             <button
               onClick={() => navigate("/")}
-              className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+              className="px-4 py-2 bg-cup-red text-ink rounded-lg font-bold hover:brightness-110 transition-colors"
             >
               Retour à l'accueil
             </button>
@@ -186,8 +186,7 @@ export const LeagueDashboard = () => {
   };
 
   return (
-    <div className="h-full flex flex-col relative">
-      {/* AC1: Header: name + back + actions (Invite, menu) */}
+    <div className="min-h-screen bg-cream text-ink flex flex-col relative">
       <ContextualHeader
         title={league.name}
         showBackButton={true}
@@ -293,7 +292,7 @@ export const LeagueDashboard = () => {
                 action={
                   <button
                     onClick={() => setShowAddPlayer(true)}
-                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+                    className="px-4 py-2 bg-cup-red text-ink rounded-lg font-bold hover:brightness-110 transition-colors"
                   >
                     <Plus size={16} className="inline mr-2" />
                     Ajouter un joueur
@@ -338,7 +337,7 @@ export const LeagueDashboard = () => {
                 action={
                   <button
                     onClick={() => setShowRecordMatch(true)}
-                    className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+                    className="px-4 py-2 bg-cup-red text-ink rounded-lg font-bold hover:brightness-110 transition-colors"
                   >
                     <Plus size={16} className="inline mr-2" />
                     Enregistrer un match
@@ -360,23 +359,23 @@ export const LeagueDashboard = () => {
                 return (
                   <div
                     key={match.id}
-                    className="bg-slate-800 p-4 rounded-xl border border-slate-700/50"
+                    className="bg-paper p-4 rounded-xl border border-card/50"
                   >
                     <div className="flex justify-between items-center text-sm">
                       <div
                         className={`flex-1 text-right ${
-                          winnerA ? "text-white font-bold" : "text-slate-400"
+                          winnerA ? "text-ink font-bold" : "text-ink-soft"
                         }`}
                       >
                         {winnerA && "🏆 "}
                         {teamANames}
                       </div>
-                      <div className="px-4 font-bold text-slate-500 text-xs">
+                      <div className="px-4 font-bold text-ink-mute text-xs">
                         VS
                       </div>
                       <div
                         className={`flex-1 text-left ${
-                          !winnerA ? "text-white font-bold" : "text-slate-400"
+                          !winnerA ? "text-ink font-bold" : "text-ink-soft"
                         }`}
                       >
                         {!winnerA && "🏆 "}
@@ -397,11 +396,11 @@ export const LeagueDashboard = () => {
         {activeTab === "parametres" && (
           <div className="space-y-4">
             {/* League info */}
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-              <h3 className="font-bold text-white mb-4">Informations</h3>
+            <div className="bg-paper p-4 rounded-xl border border-card/50">
+              <h3 className="font-bold text-ink mb-4">Informations</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm text-slate-400">
+                  <label className="text-sm text-ink-soft">
                     Nom de la League
                   </label>
                   <input
@@ -410,11 +409,11 @@ export const LeagueDashboard = () => {
                     onChange={(e) =>
                       updateLeague(league.id, e.target.value, league.type)
                     }
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-cream-deep border border-card-muted rounded-lg p-2 mt-1 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400">Type</label>
+                  <label className="text-sm text-ink-soft">Type</label>
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() =>
@@ -422,8 +421,8 @@ export const LeagueDashboard = () => {
                       }
                       className={`flex-1 py-2 rounded-lg font-bold text-sm ${
                         league.type === "event"
-                          ? "bg-primary text-white"
-                          : "bg-slate-700 text-slate-300"
+                          ? "bg-cup-red text-ink"
+                          : "bg-cream-deep text-ink"
                       }`}
                     >
                       Continue
@@ -434,8 +433,8 @@ export const LeagueDashboard = () => {
                       }
                       className={`flex-1 py-2 rounded-lg font-bold text-sm ${
                         league.type === "season"
-                          ? "bg-primary text-white"
-                          : "bg-slate-700 text-slate-300"
+                          ? "bg-cup-red text-ink"
+                          : "bg-cream-deep text-ink"
                       }`}
                     >
                       Par Saison
@@ -446,8 +445,8 @@ export const LeagueDashboard = () => {
             </div>
 
             {/* Tournaments */}
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-              <h3 className="font-bold text-white mb-4">Tournois</h3>
+            <div className="bg-paper p-4 rounded-xl border border-card/50">
+              <h3 className="font-bold text-ink mb-4">Tournois</h3>
               {league.tournaments && league.tournaments.length > 0 ? (
                 <div className="space-y-2">
                   {tournaments
@@ -456,30 +455,30 @@ export const LeagueDashboard = () => {
                       <div
                         key={tournament.id}
                         onClick={() => navigate(`/tournament/${tournament.id}`)}
-                        className="bg-slate-700/50 p-3 rounded-xl flex justify-between items-center hover:border-slate-600 cursor-pointer transition-colors border border-transparent"
+                        className="bg-cream-deep/50 p-3 rounded-xl flex justify-between items-center hover:border-card-muted cursor-pointer transition-colors border border-transparent"
                       >
                         <div className="flex-1">
-                          <div className="font-bold text-white flex items-center gap-2">
+                          <div className="font-bold text-ink flex items-center gap-2">
                             {tournament.name}
                             {tournament.isFinished && (
-                              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-0.5 rounded">
+                              <span className="text-xs bg-lime/20 text-lime px-2 py-0.5 rounded">
                                 Terminé
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-ink-soft">
                             {new Date(tournament.date).toLocaleDateString(
                               "fr-FR",
                             )}{" "}
                             • {tournament.matches.length} matchs
                           </div>
                         </div>
-                        <div className="text-slate-500">→</div>
+                        <div className="text-ink-mute">→</div>
                       </div>
                     ))}
                 </div>
               ) : (
-                <p className="text-slate-400 text-sm mb-4">
+                <p className="text-ink-soft text-sm mb-4">
                   Aucun tournoi associé.
                 </p>
               )}
@@ -487,7 +486,7 @@ export const LeagueDashboard = () => {
                 onClick={() =>
                   navigate(`/create-tournament?leagueId=${league.id}`)
                 }
-                className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg"
+                className="w-full bg-cream-deep hover:bg-cream-deep text-ink font-bold py-3 rounded-lg"
               >
                 <Plus size={16} className="inline mr-2" />
                 Créer un tournoi
@@ -495,10 +494,10 @@ export const LeagueDashboard = () => {
             </div>
 
             {/* Players */}
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-              <h3 className="font-bold text-white mb-4">Joueurs</h3>
+            <div className="bg-paper p-4 rounded-xl border border-card/50">
+              <h3 className="font-bold text-ink mb-4">Joueurs</h3>
               {sortedPlayers.length === 0 ? (
-                <p className="text-slate-400 text-sm mb-4">
+                <p className="text-ink-soft text-sm mb-4">
                   Aucun joueur dans cette ligue.
                 </p>
               ) : (
@@ -506,16 +505,16 @@ export const LeagueDashboard = () => {
                   {sortedPlayers.map((player) => (
                     <div
                       key={player.id}
-                      className="bg-slate-700/50 p-3 rounded-xl flex items-center justify-between border border-transparent"
+                      className="bg-cream-deep/50 p-3 rounded-xl flex items-center justify-between border border-transparent"
                     >
                       <div
                         onClick={() => navigate(`/player/${player.id}`)}
                         className="flex-1 flex items-center gap-4 cursor-pointer"
                       >
-                        <div className="font-bold text-white">
+                        <div className="font-bold text-ink">
                           {player.name}
                         </div>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-ink-soft">
                           {player.elo} ELO • {player.wins}V - {player.losses}D
                         </div>
                       </div>
@@ -525,7 +524,7 @@ export const LeagueDashboard = () => {
                             e.stopPropagation();
                             // FUTURE: Implement edit player modal
                           }}
-                          className="p-2 hover:bg-slate-600 rounded-lg"
+                          className="p-2 hover:bg-cream-deep rounded-lg"
                           aria-label="Modifier"
                         >
                           <Edit size={16} />
@@ -541,7 +540,7 @@ export const LeagueDashboard = () => {
                               deletePlayer(league.id, player.id);
                             }
                           }}
-                          className="p-2 hover:bg-red-500/20 text-red-500 rounded-lg"
+                          className="p-2 hover:bg-ruby/20 text-ruby rounded-lg"
                           aria-label="Supprimer"
                         >
                           <Trash2 size={16} />
@@ -553,7 +552,7 @@ export const LeagueDashboard = () => {
               )}
               <button
                 onClick={() => setShowAddPlayer(true)}
-                className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg mt-4"
+                className="w-full bg-cream-deep hover:bg-cream-deep text-ink font-bold py-3 rounded-lg mt-4"
               >
                 <Plus size={16} className="inline mr-2" />
                 Ajouter un joueur
@@ -561,8 +560,8 @@ export const LeagueDashboard = () => {
             </div>
 
             {/* Actions */}
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-              <h3 className="font-bold text-white mb-4">Actions</h3>
+            <div className="bg-paper p-4 rounded-xl border border-card/50">
+              <h3 className="font-bold text-ink mb-4">Actions</h3>
               <div className="space-y-2">
                 <button
                   onClick={() => {
@@ -577,13 +576,13 @@ export const LeagueDashboard = () => {
                     link.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg"
+                  className="w-full bg-cream-deep hover:bg-cream-deep text-ink font-bold py-3 rounded-lg"
                 >
                   Exporter les données (JSON)
                 </button>
                 <button
                   onClick={handleDeleteLeague}
-                  className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-500 font-bold py-3 rounded-lg border border-red-500/50"
+                  className="w-full bg-ruby/20 hover:bg-ruby/30 text-ruby font-bold py-3 rounded-lg border border-ruby/50"
                 >
                   Supprimer la League
                 </button>
@@ -603,15 +602,15 @@ export const LeagueDashboard = () => {
       {/* Add Player Modal */}
       {showAddPlayer && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
+          <div className="bg-cream w-full max-w-sm rounded-2xl p-6 border border-card">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Nouveau Joueur</h3>
               <button
                 onClick={() => setShowAddPlayer(false)}
-                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                className="p-2 hover:bg-paper rounded-lg transition-colors"
                 aria-label="Fermer"
               >
-                <X size={24} className="text-slate-400" />
+                <X size={24} className="text-ink-soft" />
               </button>
             </div>
             <form onSubmit={handleAddPlayer}>
@@ -620,12 +619,12 @@ export const LeagueDashboard = () => {
                 value={newPlayerName}
                 onChange={(e) => setNewPlayerName(e.target.value)}
                 placeholder="Nom du joueur"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 mb-4 text-white focus:ring-2 focus:ring-primary outline-none"
+                className="w-full bg-paper border border-card rounded-xl p-4 mb-4 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
                 autoFocus
               />
               <button
                 type="submit"
-                className="w-full bg-primary font-bold py-4 rounded-xl text-white"
+                className="w-full bg-cup-red font-bold py-4 rounded-xl text-ink"
               >
                 AJOUTER
               </button>
@@ -641,16 +640,16 @@ export const LeagueDashboard = () => {
             <h3 className="text-xl font-bold">Nouveau Match</h3>
             <button
               onClick={() => setShowRecordMatch(false)}
-              className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-paper rounded-lg transition-colors"
               aria-label="Fermer"
             >
-              <X size={24} className="text-slate-400" />
+              <X size={24} className="text-ink-soft" />
             </button>
           </div>
 
           <div className="flex-grow space-y-8">
             <div>
-              <div className="text-sm font-bold text-primary uppercase mb-2">
+              <div className="text-sm font-bold text-cup-red uppercase mb-2">
                 Équipe 1
               </div>
               <div className="flex flex-wrap gap-2">
@@ -661,8 +660,8 @@ export const LeagueDashboard = () => {
                     disabled={selectedPlayersB.includes(player.id)}
                     className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
                       selectedPlayersA.includes(player.id)
-                        ? "bg-primary border-primary text-white"
-                        : "bg-slate-800 border-slate-700 text-slate-400"
+                        ? "bg-cup-red border-primary text-ink"
+                        : "bg-paper border-card text-ink-soft"
                     } ${
                       selectedPlayersB.includes(player.id) ? "opacity-20" : ""
                     }`}
@@ -673,7 +672,7 @@ export const LeagueDashboard = () => {
               </div>
             </div>
 
-            <div className="text-center text-slate-500 font-bold">VS</div>
+            <div className="text-center text-ink-mute font-bold">VS</div>
 
             <div>
               <div className="text-sm font-bold text-accent uppercase mb-2">
@@ -687,8 +686,8 @@ export const LeagueDashboard = () => {
                     disabled={selectedPlayersA.includes(player.id)}
                     className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
                       selectedPlayersB.includes(player.id)
-                        ? "bg-accent border-accent text-white"
-                        : "bg-slate-800 border-slate-700 text-slate-400"
+                        ? "bg-accent border-accent text-ink"
+                        : "bg-paper border-card text-ink-soft"
                     } ${
                       selectedPlayersA.includes(player.id) ? "opacity-20" : ""
                     }`}
@@ -701,7 +700,7 @@ export const LeagueDashboard = () => {
 
             {selectedPlayersA.length > 0 && selectedPlayersB.length > 0 && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="text-center text-sm text-slate-400 mb-4">
+                <div className="text-center text-sm text-ink-soft mb-4">
                   QUI A GAGNÉ ?
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -709,8 +708,8 @@ export const LeagueDashboard = () => {
                     onClick={() => setMatchWinner("A")}
                     className={`p-6 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
                       matchWinner === "A"
-                        ? "bg-primary/20 border-primary text-primary"
-                        : "bg-slate-800 border-slate-700 opacity-50 hover:opacity-100"
+                        ? "bg-cup-red/20 border-primary text-cup-red"
+                        : "bg-paper border-card opacity-50 hover:opacity-100"
                     }`}
                   >
                     <Trophy size={32} />
@@ -721,7 +720,7 @@ export const LeagueDashboard = () => {
                     className={`p-6 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
                       matchWinner === "B"
                         ? "bg-accent/20 border-accent text-accent"
-                        : "bg-slate-800 border-slate-700 opacity-50 hover:opacity-100"
+                        : "bg-paper border-card opacity-50 hover:opacity-100"
                     }`}
                   >
                     <Trophy size={32} />

@@ -229,7 +229,7 @@ export const TournamentDashboard = () => {
           action={
             <button
               onClick={() => navigate("/")}
-              className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-amber-600 transition-colors"
+              className="px-4 py-2 bg-cup-red text-ink rounded-lg font-bold hover:brightness-110 transition-colors"
             >
               Retour à l'accueil
             </button>
@@ -388,8 +388,7 @@ export const TournamentDashboard = () => {
   };
 
   return (
-    <div className="h-full flex flex-col relative">
-      {/* Story 13.2 - Contextual Header with back button and actions */}
+    <div className="min-h-screen bg-cream text-ink flex flex-col relative">
       <ContextualHeader
         title={tournament.name}
         showBackButton={true}
@@ -502,9 +501,9 @@ export const TournamentDashboard = () => {
       </div>
 
       {!tournament.leagueId && activeTab === "classement" && (
-        <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/50 rounded-lg mx-4 my-2 flex items-center gap-2 text-sm">
-          <LinkIcon size={16} className="text-amber-500" />
-          <span className="text-amber-500">
+        <div className="px-4 py-2 bg-gold/20 border border-gold/50 rounded-lg mx-4 my-2 flex items-center gap-2 text-sm">
+          <LinkIcon size={16} className="text-gold" />
+          <span className="text-gold">
             Tournoi autonome. Associe-le à une League pour suivre le classement
             global.
           </span>
@@ -513,13 +512,13 @@ export const TournamentDashboard = () => {
 
       {/* Ranking Mode Switch */}
       {tournament.leagueId && activeTab === "classement" && (
-        <div className="px-4 py-2 bg-slate-800/50 flex gap-2">
+        <div className="px-4 py-2 bg-paper/50 flex gap-2">
           <button
             onClick={() => setRankingMode("local")}
             className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
               rankingMode === "local"
-                ? "bg-primary text-white"
-                : "bg-slate-700 text-slate-400"
+                ? "bg-cup-red text-ink"
+                : "bg-cream-deep text-ink-soft"
             }`}
           >
             Classement Tournoi
@@ -528,8 +527,8 @@ export const TournamentDashboard = () => {
             onClick={() => setRankingMode("global")}
             className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
               rankingMode === "global"
-                ? "bg-primary text-white"
-                : "bg-slate-700 text-slate-400"
+                ? "bg-cup-red text-ink"
+                : "bg-cream-deep text-ink-soft"
             }`}
           >
             Classement League
@@ -604,24 +603,24 @@ export const TournamentDashboard = () => {
                 return (
                   <div
                     key={match.id}
-                    className="bg-slate-800 p-4 rounded-xl border border-slate-700/50"
+                    className="bg-paper p-4 rounded-xl border border-card/50"
                   >
                     {/* Match teams and winner - Task 4 AC4 */}
                     <div className="flex justify-between items-center text-sm mb-2">
                       <div
                         className={`flex-1 text-right ${
-                          winnerA ? "text-white font-bold" : "text-slate-400"
+                          winnerA ? "text-ink font-bold" : "text-ink-soft"
                         }`}
                       >
                         {winnerA && "🏆 "}
                         {teamANames}
                       </div>
-                      <div className="px-4 font-bold text-slate-500 text-xs">
+                      <div className="px-4 font-bold text-ink-mute text-xs">
                         VS
                       </div>
                       <div
                         className={`flex-1 text-left ${
-                          !winnerA ? "text-white font-bold" : "text-slate-400"
+                          !winnerA ? "text-ink font-bold" : "text-ink-soft"
                         }`}
                       >
                         {!winnerA && "🏆 "}
@@ -629,7 +628,7 @@ export const TournamentDashboard = () => {
                       </div>
                     </div>
                     {/* Task 4 - AC4: Timestamp display */}
-                    <div className="text-xs text-slate-500 mb-2">
+                    <div className="text-xs text-ink-mute mb-2">
                       {getRelativeTimestamp(match.date)}
                     </div>
                     {/* Task 4 - AC4: ELO changes for players */}
@@ -644,8 +643,8 @@ export const TournamentDashboard = () => {
                                 key={player.id}
                                 className={`px-2 py-0.5 rounded ${
                                   change > 0
-                                    ? "bg-green-500/20 text-green-400"
-                                    : "bg-red-500/20 text-red-400"
+                                    ? "bg-lime/20 text-lime"
+                                    : "bg-ruby/20 text-ruby"
                                 }`}
                               >
                                 {player.name}: {change > 0 ? "+" : ""}
@@ -669,24 +668,24 @@ export const TournamentDashboard = () => {
         {activeTab === "settings" && (
           <div className="space-y-4">
             {/* Invitation Section - Prominent */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700/50">
-              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+            <div className="bg-paper rounded-xl p-6 border border-card/50">
+              <h3 className="text-xl font-bold text-ink mb-2 flex items-center gap-2">
                 <Share2 size={20} />
                 Inviter des participants
               </h3>
 
-              <p className="text-slate-400 mb-4 text-sm">
+              <p className="text-ink-soft mb-4 text-sm">
                 Scannez ce QR code ou saisissez le code pour rejoindre le
                 tournoi
               </p>
 
               {/* Join Code Display */}
               {tournament.joinCode && (
-                <div className="bg-slate-700 rounded-lg p-4 mb-4 text-center">
-                  <div className="text-sm text-slate-400 mb-1">
+                <div className="bg-cream-deep rounded-lg p-4 mb-4 text-center">
+                  <div className="text-sm text-ink-soft mb-1">
                     Code du tournoi
                   </div>
-                  <div className="text-3xl font-mono font-bold text-primary">
+                  <div className="text-3xl font-mono font-bold text-cup-red">
                     {tournament.joinCode}
                   </div>
                 </div>
@@ -709,7 +708,7 @@ export const TournamentDashboard = () => {
                   onClick={() =>
                     navigate(`/tournament/${tournament.id}/invite`)
                   }
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-amber-600 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-cup-red text-ink rounded-xl font-semibold hover:brightness-110 transition-colors"
                 >
                   <Share2 size={20} />
                   Afficher en plein écran
@@ -717,11 +716,11 @@ export const TournamentDashboard = () => {
               </div>
             </div>
 
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-              <h3 className="font-bold text-white mb-4">Informations</h3>
+            <div className="bg-paper p-4 rounded-xl border border-card/50">
+              <h3 className="font-bold text-ink mb-4">Informations</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm text-slate-400">
+                  <label className="text-sm text-ink-soft">
                     Nom du Tournoi
                   </label>
                   <input
@@ -734,11 +733,11 @@ export const TournamentDashboard = () => {
                         tournament.date,
                       )
                     }
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-cream-deep border border-card-muted rounded-lg p-2 mt-1 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400">Date</label>
+                  <label className="text-sm text-ink-soft">Date</label>
                   <input
                     type="date"
                     value={tournament.date}
@@ -749,11 +748,11 @@ export const TournamentDashboard = () => {
                         e.target.value,
                       )
                     }
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-cream-deep border border-card-muted rounded-lg p-2 mt-1 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400">Format</label>
+                  <label className="text-sm text-ink-soft">Format</label>
                   <select
                     value={tournament.format}
                     onChange={(e) =>
@@ -765,7 +764,7 @@ export const TournamentDashboard = () => {
                         e.target.value as "1v1" | "2v2" | "3v3" | "libre",
                       )
                     }
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-cream-deep border border-card-muted rounded-lg p-2 mt-1 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
                   >
                     <option value="1v1">1v1 (Solo)</option>
                     <option value="2v2">2v2 (Équipes de 2)</option>
@@ -777,18 +776,18 @@ export const TournamentDashboard = () => {
             </div>
 
             {/* Link to League */}
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+            <div className="bg-paper p-4 rounded-xl border border-card/50">
+              <h3 className="font-bold text-ink mb-4 flex items-center gap-2">
                 <LinkIcon size={18} />
                 Association à une League
               </h3>
               {tournament.leagueId ? (
                 <div className="space-y-3">
-                  <div className="text-sm text-slate-400">
+                  <div className="text-sm text-ink-soft">
                     Ce tournoi est associé à :
                   </div>
-                  <div className="bg-slate-700 p-3 rounded-lg">
-                    <div className="font-bold text-white">
+                  <div className="bg-cream-deep p-3 rounded-lg">
+                    <div className="font-bold text-ink">
                       {league?.name || "League introuvable"}
                     </div>
                   </div>
@@ -802,21 +801,21 @@ export const TournamentDashboard = () => {
                         associateTournamentToLeague(tournament.id, "");
                       }
                     }}
-                    className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-lg text-sm"
+                    className="w-full bg-cream-deep hover:bg-cream-deep text-ink font-bold py-2 rounded-lg text-sm"
                   >
                     Dissocier de la League
                   </button>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="text-sm text-slate-400 mb-3">
+                  <div className="text-sm text-ink-soft mb-3">
                     Associe ce tournoi à une league pour suivre le classement
                     global ET ajouter rapidement les joueurs de la league.
                   </div>
                   <select
                     value={selectedLeagueId}
                     onChange={(e) => setSelectedLeagueId(e.target.value)}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-cream-deep border border-card-muted rounded-lg p-3 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
                   >
                     <option value="">Sélectionner une League</option>
                     {leagues.map((l) => (
@@ -828,7 +827,7 @@ export const TournamentDashboard = () => {
                   {selectedLeagueId && (
                     <button
                       onClick={handleLinkToLeague}
-                      className="w-full bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-lg"
+                      className="w-full bg-cup-red hover:brightness-110 text-ink font-bold py-3 rounded-lg"
                     >
                       Associer à cette League
                     </button>
@@ -838,15 +837,15 @@ export const TournamentDashboard = () => {
             </div>
 
             {/* Anti-Cheat Mode */}
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-              <h3 className="font-bold text-white mb-4">Mode Anti-Triche</h3>
+            <div className="bg-paper p-4 rounded-xl border border-card/50">
+              <h3 className="font-bold text-ink mb-4">Mode Anti-Triche</h3>
               <div className="space-y-3">
-                <div className="text-sm text-slate-400 mb-3">
+                <div className="text-sm text-ink-soft mb-3">
                   Lorsque activé, chaque match doit être confirmé par
                   l'adversaire pour éviter la triche.
                 </div>
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-white font-medium">
+                  <span className="text-ink font-medium">
                     Anti-triche activé
                   </span>
                   <input
@@ -860,21 +859,21 @@ export const TournamentDashboard = () => {
                         e.target.checked,
                       )
                     }
-                    className="w-6 h-6 rounded bg-slate-700 border-slate-600 text-primary focus:ring-2 focus:ring-primary"
+                    className="w-6 h-6 rounded bg-cream-deep border-card-muted text-cup-red focus:ring-2 focus:ring-lime/30"
                   />
                 </label>
               </div>
             </div>
 
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-              <h3 className="font-bold text-white mb-4">Actions</h3>
+            <div className="bg-paper p-4 rounded-xl border border-card/50">
+              <h3 className="font-bold text-ink mb-4">Actions</h3>
               <div className="space-y-2">
                 <button
                   onClick={() => toggleTournamentStatus(tournament.id)}
                   className={`w-full py-3 rounded-lg font-bold transition-all border ${
                     tournament.isFinished
-                      ? "bg-amber-500/20 text-amber-500 border-amber-500/50 hover:bg-amber-500/30"
-                      : "bg-green-500/20 text-green-500 border-green-500/50 hover:bg-green-500/30"
+                      ? "bg-gold/20 text-gold border-gold/50 hover:bg-gold/25"
+                      : "bg-lime/20 text-lime border-green-500/50 hover:bg-lime/30"
                   }`}
                 >
                   {tournament.isFinished
@@ -895,7 +894,7 @@ export const TournamentDashboard = () => {
 
                 <button
                   onClick={handleDeleteTournament}
-                  className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-500 font-bold py-3 rounded-lg border border-red-500/50"
+                  className="w-full bg-ruby/20 hover:bg-ruby/30 text-ruby font-bold py-3 rounded-lg border border-ruby/50"
                 >
                   Supprimer le Tournoi
                 </button>
@@ -929,30 +928,30 @@ export const TournamentDashboard = () => {
       {/* Add Player Modal - 3 options */}
       {showAddPlayer && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 w-full max-w-md rounded-2xl border border-slate-700 overflow-hidden">
+          <div className="bg-cream w-full max-w-md rounded-2xl border border-card overflow-hidden">
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-slate-700">
+            <div className="flex justify-between items-center p-6 border-b border-card">
               <h3 className="text-xl font-bold">Ajouter un joueur</h3>
               <button
                 onClick={() => {
                   setShowAddPlayer(false);
                   setAddPlayerTab("pseudo"); // Reset tab on close
                 }}
-                className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                className="p-2 hover:bg-paper rounded-lg transition-colors"
                 aria-label="Fermer"
               >
-                <X size={24} className="text-slate-400" />
+                <X size={24} className="text-ink-soft" />
               </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-700">
+            <div className="flex border-b border-card">
               <button
                 onClick={() => setAddPlayerTab("pseudo")}
                 className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
                   addPlayerTab === "pseudo"
-                    ? "border-primary text-white"
-                    : "border-transparent text-slate-500 hover:text-slate-300"
+                    ? "border-primary text-ink"
+                    : "border-transparent text-ink-mute hover:text-ink"
                 }`}
               >
                 Pseudo
@@ -961,8 +960,8 @@ export const TournamentDashboard = () => {
                 onClick={() => setAddPlayerTab("invitation")}
                 className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
                   addPlayerTab === "invitation"
-                    ? "border-primary text-white"
-                    : "border-transparent text-slate-500 hover:text-slate-300"
+                    ? "border-primary text-ink"
+                    : "border-transparent text-ink-mute hover:text-ink"
                 }`}
               >
                 Invitation
@@ -972,10 +971,10 @@ export const TournamentDashboard = () => {
                 disabled={!tournament.leagueId}
                 className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
                   addPlayerTab === "league"
-                    ? "border-primary text-white"
+                    ? "border-primary text-ink"
                     : tournament.leagueId
-                      ? "border-transparent text-slate-500 hover:text-slate-300"
-                      : "border-transparent text-slate-600 cursor-not-allowed"
+                      ? "border-transparent text-ink-mute hover:text-ink"
+                      : "border-transparent text-ink-mute cursor-not-allowed"
                 }`}
               >
                 Depuis ligue
@@ -988,7 +987,7 @@ export const TournamentDashboard = () => {
               {addPlayerTab === "pseudo" && (
                 <form onSubmit={handleAddPlayerByPseudo} className="space-y-4">
                   <div>
-                    <label className="text-sm text-slate-400 mb-2 block">
+                    <label className="text-sm text-ink-soft mb-2 block">
                       Pseudo du joueur
                     </label>
                     <input
@@ -996,13 +995,13 @@ export const TournamentDashboard = () => {
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
                       placeholder="Nom du joueur"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-primary outline-none"
+                      className="w-full bg-paper border border-card rounded-xl p-4 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
                       autoFocus
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full bg-primary hover:bg-amber-600 font-bold py-4 rounded-xl text-white transition-colors"
+                    className="w-full bg-cup-red hover:brightness-110 font-bold py-4 rounded-xl text-ink transition-colors"
                   >
                     AJOUTER
                   </button>
@@ -1017,9 +1016,9 @@ export const TournamentDashboard = () => {
                   </h4>
 
                   {tournament.joinCode && (
-                    <div className="bg-slate-800 p-4 rounded-xl text-center">
-                      <div className="text-sm text-slate-400 mb-2">Code</div>
-                      <div className="text-2xl font-mono font-bold text-primary mb-4">
+                    <div className="bg-paper p-4 rounded-xl text-center">
+                      <div className="text-sm text-ink-soft mb-2">Code</div>
+                      <div className="text-2xl font-mono font-bold text-cup-red mb-4">
                         {tournament.joinCode}
                       </div>
                     </div>
@@ -1028,19 +1027,19 @@ export const TournamentDashboard = () => {
                   <div className="space-y-2">
                     <button
                       onClick={handleCopyCode}
-                      className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                      className="w-full bg-paper hover:bg-cream-deep text-ink font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                     >
                       📋 Copier le code
                     </button>
                     <button
                       onClick={handleShareLink}
-                      className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                      className="w-full bg-paper hover:bg-cream-deep text-ink font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                     >
                       📱 Partager le lien
                     </button>
                   </div>
 
-                  <div className="text-center text-sm text-slate-400 my-4">
+                  <div className="text-center text-sm text-ink-soft my-4">
                     ou
                   </div>
 
@@ -1057,7 +1056,7 @@ export const TournamentDashboard = () => {
                         setShowAddPlayer(false);
                         setActiveTab("settings");
                       }}
-                      className="mt-3 text-sm text-primary hover:text-amber-600 transition-colors"
+                      className="mt-3 text-sm text-cup-red hover:brightness-110 transition-colors"
                     >
                       Afficher en grand
                     </button>
@@ -1071,7 +1070,7 @@ export const TournamentDashboard = () => {
                   {tournament.leagueId && league ? (
                     <>
                       <div>
-                        <label className="text-sm text-slate-400 mb-2 block">
+                        <label className="text-sm text-ink-soft mb-2 block">
                           Sélectionne un joueur
                         </label>
                         <select
@@ -1079,7 +1078,7 @@ export const TournamentDashboard = () => {
                           onChange={(e) =>
                             setSelectedLeaguePlayerId(e.target.value)
                           }
-                          className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-primary outline-none"
+                          className="w-full bg-paper border border-card rounded-xl p-4 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
                         >
                           <option value="">Choisir un joueur...</option>
                           {league.players
@@ -1099,14 +1098,14 @@ export const TournamentDashboard = () => {
                       <button
                         onClick={handleAddPlayerFromLeague}
                         disabled={!selectedLeaguePlayerId}
-                        className="w-full bg-primary hover:bg-amber-600 font-bold py-4 rounded-xl text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-cup-red hover:brightness-110 font-bold py-4 rounded-xl text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         AJOUTER
                       </button>
                     </>
                   ) : (
                     <div className="text-center py-8">
-                      <div className="text-slate-400 mb-4">
+                      <div className="text-ink-soft mb-4">
                         Associe ce tournoi à une ligue dans les paramètres
                       </div>
                       <button
@@ -1114,7 +1113,7 @@ export const TournamentDashboard = () => {
                           setShowAddPlayer(false);
                           setActiveTab("settings");
                         }}
-                        className="bg-primary hover:bg-amber-600 font-bold py-3 px-6 rounded-xl text-white transition-colors"
+                        className="bg-cup-red hover:brightness-110 font-bold py-3 px-6 rounded-xl text-ink transition-colors"
                       >
                         Aller aux paramètres
                       </button>
