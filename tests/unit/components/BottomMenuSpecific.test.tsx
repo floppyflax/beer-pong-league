@@ -1,7 +1,21 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { BottomMenuSpecific } from '../../../src/components/navigation/BottomMenuSpecific';
 import { Camera, Hash } from 'lucide-react';
+
+// Mock AuthContext + useIdentity so BottomMenuSpecific can render without full providers
+vi.mock('../../../src/context/AuthContext', () => ({
+  useAuthContext: () => ({ user: null, isAuthenticated: false }),
+}));
+
+vi.mock('../../../src/hooks/useIdentity', () => ({
+  useIdentity: () => ({ localUser: null }),
+}));
+
+// Wrap renders in a MemoryRouter because the component uses useLocation
+const render: typeof rtlRender = ((ui: any, options?: any) =>
+  rtlRender(<MemoryRouter>{ui}</MemoryRouter>, options)) as typeof rtlRender;
 
 describe('BottomMenuSpecific', () => {
   describe('Component Structure (AC1)', () => {
@@ -228,10 +242,10 @@ describe('BottomMenuSpecific', () => {
       );
       
       const bottomBar = container.firstChild as Element;
-      expect(bottomBar).toHaveClass('bg-slate-900/80');
+      expect(bottomBar).toHaveClass('bg-cream/80');
       expect(bottomBar).toHaveClass('backdrop-blur-md');
       expect(bottomBar).toHaveClass('border-t');
-      expect(bottomBar).toHaveClass('border-slate-800');
+      expect(bottomBar).toHaveClass('border-card');
     });
 
     it('should have correct z-index', () => {
@@ -252,9 +266,9 @@ describe('BottomMenuSpecific', () => {
       );
       
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('bg-primary');
-      expect(button).toHaveClass('hover:bg-amber-600');
-      expect(button).toHaveClass('text-white');
+      expect(button).toHaveClass('bg-cup-red');
+      expect(button).toHaveClass('hover:brightness-110');
+      expect(button).toHaveClass('text-ink');
       expect(button).toHaveClass('font-bold');
       expect(button).toHaveClass('rounded-xl');
       expect(button).toHaveClass('shadow-lg');

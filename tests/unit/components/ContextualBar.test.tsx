@@ -175,7 +175,7 @@ describe('ContextualBar', () => {
 
       expect(wrapper).toHaveClass('fixed');
       expect(wrapper).toHaveClass('bottom-0');
-      expect(wrapper).toHaveClass('bg-slate-900/80');
+      expect(wrapper).toHaveClass('bg-cream/80');
       expect(wrapper).toHaveClass('backdrop-blur-md');
       expect(wrapper).toHaveClass('border-t');
     });
@@ -269,8 +269,8 @@ describe('ContextualBar', () => {
 
       const button = screen.getByText('NOUVEAU MATCH').closest('button');
       
-      expect(button).toHaveClass('bg-primary');
-      expect(button).toHaveClass('text-white');
+      expect(button).toHaveClass('bg-cup-red');
+      expect(button).toHaveClass('text-ink');
       expect(button).toHaveClass('font-bold');
       expect(button).toHaveClass('rounded-xl');
     });

@@ -56,9 +56,9 @@ describe('Sidebar', () => {
       expect(aside).toHaveClass('left-0');
       expect(aside).toHaveClass('w-60'); // 240px
       expect(aside).toHaveClass('h-screen'); // Full height
-      expect(aside).toHaveClass('bg-slate-800');
+      expect(aside).toHaveClass('bg-paper');
       expect(aside).toHaveClass('border-r');
-      expect(aside).toHaveClass('border-slate-700');
+      expect(aside).toHaveClass('border-card');
     });
 
     it('should hide sidebar on mobile (responsive)', () => {
@@ -129,9 +129,9 @@ describe('Sidebar', () => {
       );
 
       const homeButton = screen.getByText('Home').closest('button');
-      expect(homeButton).toHaveClass('bg-slate-700');
-      expect(homeButton).toHaveClass('text-primary');
-      expect(homeButton).toHaveClass('border-primary');
+      expect(homeButton).toHaveClass('bg-cream-deep');
+      expect(homeButton).toHaveClass('text-cup-red');
+      expect(homeButton).toHaveClass('border-cup-red');
       expect(homeButton).toHaveClass('font-bold');
     });
 
@@ -145,8 +145,8 @@ describe('Sidebar', () => {
       );
 
       const joinButton = screen.getByText('Rejoindre').closest('button');
-      expect(joinButton).toHaveClass('bg-slate-700');
-      expect(joinButton).toHaveClass('text-primary');
+      expect(joinButton).toHaveClass('bg-cream-deep');
+      expect(joinButton).toHaveClass('text-cup-red');
     });
 
     it('should highlight Tournois when on /tournaments route', () => {
@@ -159,8 +159,8 @@ describe('Sidebar', () => {
       );
 
       const tournamentsButton = screen.getByText('Tournois').closest('button');
-      expect(tournamentsButton).toHaveClass('bg-slate-700');
-      expect(tournamentsButton).toHaveClass('text-primary');
+      expect(tournamentsButton).toHaveClass('bg-cream-deep');
+      expect(tournamentsButton).toHaveClass('text-cup-red');
     });
 
     it('should highlight Leagues when on /leagues route', () => {
@@ -173,8 +173,8 @@ describe('Sidebar', () => {
       );
 
       const leaguesButton = screen.getByText('Leagues').closest('button');
-      expect(leaguesButton).toHaveClass('bg-slate-700');
-      expect(leaguesButton).toHaveClass('text-primary');
+      expect(leaguesButton).toHaveClass('bg-cream-deep');
+      expect(leaguesButton).toHaveClass('text-cup-red');
     });
 
     it('should highlight Profil when on /profile route', () => {
@@ -187,8 +187,8 @@ describe('Sidebar', () => {
       );
 
       const profileButton = screen.getByText('Profil').closest('button');
-      expect(profileButton).toHaveClass('bg-slate-700');
-      expect(profileButton).toHaveClass('text-primary');
+      expect(profileButton).toHaveClass('bg-cream-deep');
+      expect(profileButton).toHaveClass('text-cup-red');
     });
 
     it('should show inactive styling for non-active items', () => {
@@ -201,8 +201,8 @@ describe('Sidebar', () => {
       );
 
       const joinButton = screen.getByText('Rejoindre').closest('button');
-      expect(joinButton).toHaveClass('text-slate-400');
-      expect(joinButton).not.toHaveClass('bg-slate-700');
+      expect(joinButton).toHaveClass('text-ink-soft');
+      expect(joinButton).not.toHaveClass('bg-cream-deep');
       expect(joinButton).not.toHaveClass('font-bold');
     });
 
@@ -218,8 +218,8 @@ describe('Sidebar', () => {
       const homeButton = screen.getByText('Home').closest('button');
       const joinButton = screen.getByText('Rejoindre').closest('button');
 
-      expect(homeButton).toHaveClass('text-slate-400');
-      expect(joinButton).toHaveClass('text-slate-400');
+      expect(homeButton).toHaveClass('text-ink-soft');
+      expect(joinButton).toHaveClass('text-ink-soft');
     });
   });
 
@@ -426,8 +426,8 @@ describe('Sidebar', () => {
       );
 
       const joinButton = screen.getByText('Rejoindre').closest('button');
-      expect(joinButton).toHaveClass('hover:text-white');
-      expect(joinButton).toHaveClass('hover:bg-slate-700/50');
+      expect(joinButton).toHaveClass('hover:text-ink');
+      expect(joinButton).toHaveClass('hover:bg-cream-deep/50');
     });
 
     it('should have transition animations', () => {

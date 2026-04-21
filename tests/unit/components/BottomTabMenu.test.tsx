@@ -65,7 +65,7 @@ describe("BottomTabMenu", () => {
 
       const homeButton = screen.getByLabelText("Home");
       expect(homeButton).toHaveClass("bg-gradient-tab-active");
-      expect(homeButton).toHaveClass("text-white");
+      expect(homeButton).toHaveClass("text-ink");
     });
 
     it("should highlight join tab when on join route", () => {
@@ -74,7 +74,7 @@ describe("BottomTabMenu", () => {
 
       const joinButton = screen.getByLabelText("Join");
       expect(joinButton).toHaveClass("bg-gradient-tab-active");
-      expect(joinButton).toHaveClass("text-white");
+      expect(joinButton).toHaveClass("text-ink");
     });
 
     it("should highlight tournaments tab when on tournaments route", () => {
@@ -83,7 +83,7 @@ describe("BottomTabMenu", () => {
 
       const tournamentsButton = screen.getByLabelText("Tournaments");
       expect(tournamentsButton).toHaveClass("bg-gradient-tab-active");
-      expect(tournamentsButton).toHaveClass("text-white");
+      expect(tournamentsButton).toHaveClass("text-ink");
     });
 
     it("should highlight leagues tab when on leagues route", () => {
@@ -92,7 +92,7 @@ describe("BottomTabMenu", () => {
 
       const leaguesButton = screen.getByLabelText("Leagues");
       expect(leaguesButton).toHaveClass("bg-gradient-tab-active");
-      expect(leaguesButton).toHaveClass("text-white");
+      expect(leaguesButton).toHaveClass("text-ink");
     });
 
     it("should highlight profile tab when on profile route", () => {
@@ -101,7 +101,7 @@ describe("BottomTabMenu", () => {
 
       const profileButton = screen.getByLabelText("Profile");
       expect(profileButton).toHaveClass("bg-gradient-tab-active");
-      expect(profileButton).toHaveClass("text-white");
+      expect(profileButton).toHaveClass("text-ink");
     });
 
     it("should show inactive style for non-active tabs", () => {
@@ -110,7 +110,7 @@ describe("BottomTabMenu", () => {
 
       const joinButton = screen.getByLabelText("Join");
       expect(joinButton).toHaveClass("border-transparent");
-      expect(joinButton).toHaveClass("text-slate-400");
+      expect(joinButton).toHaveClass("text-ink-soft");
     });
 
     it("should have gradient background for active tab (design-system-convergence 2.1)", () => {
@@ -322,7 +322,7 @@ describe("BottomTabMenu", () => {
       const { container } = render(<BottomTabMenu />);
 
       const nav = container.querySelector("nav");
-      expect(nav).toHaveClass("bg-slate-800");
+      expect(nav).toHaveClass("bg-paper");
     });
 
     it("should have top border", () => {
@@ -330,7 +330,7 @@ describe("BottomTabMenu", () => {
 
       const nav = container.querySelector("nav");
       expect(nav).toHaveClass("border-t");
-      expect(nav).toHaveClass("border-slate-700");
+      expect(nav).toHaveClass("border-card");
     });
 
     it("should use uppercase labels", () => {

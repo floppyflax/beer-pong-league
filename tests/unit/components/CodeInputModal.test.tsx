@@ -123,20 +123,20 @@ describe('CodeInputModal', () => {
     expect(input.value).toBe('ABC123');
   });
 
-  it('should accept valid 5-character code', async () => {
+  it('should accept valid 6-character code (min length)', async () => {
     const user = userEvent.setup();
     mockOnSubmit.mockResolvedValue(undefined);
-    
+
     render(<CodeInputModal onSubmit={mockOnSubmit} onClose={mockOnClose} />);
 
     const input = screen.getByPlaceholderText(/Ex: ABC123/i);
     const submitButton = screen.getByRole('button', { name: /Rejoindre/i });
 
-    await user.type(input, 'ABC12');
+    await user.type(input, 'ABC123');
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(mockOnSubmit).toHaveBeenCalledWith('ABC12');
+      expect(mockOnSubmit).toHaveBeenCalledWith('ABC123');
     });
   });
 

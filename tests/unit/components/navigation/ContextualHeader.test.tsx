@@ -358,9 +358,9 @@ describe('ContextualHeader', () => {
       expect(header).toHaveClass('top-0');
       expect(header).toHaveClass('z-30');
       expect(header).toHaveClass('h-16');
-      expect(header).toHaveClass('bg-slate-900');
+      expect(header).toHaveClass('bg-cream');
       expect(header).toHaveClass('border-b');
-      expect(header).toHaveClass('border-slate-800');
+      expect(header).toHaveClass('border-card');
     });
   });
 
@@ -377,7 +377,7 @@ describe('ContextualHeader', () => {
       render(<ContextualHeader title="Test" actions={actions} />);
       
       const button = screen.getByRole('button', { name: 'CRÉER' });
-      expect(button).toHaveClass('bg-primary');
+      expect(button).toHaveClass('bg-cup-red');
     });
 
     it('applies secondary variant classes', () => {
@@ -392,7 +392,7 @@ describe('ContextualHeader', () => {
       render(<ContextualHeader title="Test" actions={actions} />);
       
       const button = screen.getByRole('button', { name: 'INVITER' });
-      expect(button).toHaveClass('bg-slate-700');
+      expect(button).toHaveClass('bg-cream-deep');
     });
 
     it('applies ghost variant classes', () => {
@@ -407,7 +407,7 @@ describe('ContextualHeader', () => {
       render(<ContextualHeader title="Test" actions={actions} />);
       
       const button = screen.getByRole('button', { name: 'OPTIONS' });
-      expect(button).toHaveClass('text-slate-400');
+      expect(button).toHaveClass('text-ink-soft');
     });
   });
 
