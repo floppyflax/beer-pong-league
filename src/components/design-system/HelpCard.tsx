@@ -35,14 +35,17 @@ export function HelpCard({
     <div
       role="region"
       aria-labelledby={titleId}
-      className="bg-blue-500/20 rounded-xl p-4 md:p-6 border-2 border-blue-400/50"
+      className="bg-cup-blue/10 rounded-card p-4 md:p-6 border border-cup-blue/30"
       data-testid="helpcard"
     >
       <div className="flex items-start gap-3 mb-4">
-        <div className="shrink-0 w-10 h-10 rounded-full bg-blue-400/30 flex items-center justify-center">
-          <HelpCircle size={22} className="text-blue-300" aria-hidden />
+        <div className="shrink-0 w-10 h-10 rounded-full bg-cup-blue/20 flex items-center justify-center">
+          <HelpCircle size={22} className="text-cup-blue" aria-hidden />
         </div>
-        <h4 id={titleId} className="text-base font-bold text-blue-200 pt-1.5">
+        <h4
+          id={titleId}
+          className="text-base font-archivo font-extrabold uppercase tracking-tight text-ink pt-1.5"
+        >
           {title}
         </h4>
       </div>
@@ -50,10 +53,10 @@ export function HelpCard({
       {children ? (
         children
       ) : (
-        <ul className="text-sm text-slate-200 space-y-3">
+        <ul className="text-sm text-ink-soft space-y-3">
           {steps.map((step, index) => (
             <li key={`${step.number}-${index}`} className="flex items-start gap-3">
-              <span className="shrink-0 w-6 h-6 rounded-full bg-blue-500/50 flex items-center justify-center text-xs font-bold text-white">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-cup-blue flex items-center justify-center text-xs font-mono font-bold text-ink">
                 {step.number}
               </span>
               <span className="pt-0.5">{step.text}</span>
@@ -63,10 +66,10 @@ export function HelpCard({
             <li className="flex items-start gap-3 pt-1">
               <CheckCircle
                 size={20}
-                className="shrink-0 text-green-400 mt-0.5"
+                className="shrink-0 text-lime mt-0.5"
                 aria-hidden
               />
-              <span className="text-green-300 font-medium pt-0.5">
+              <span className="text-lime font-medium pt-0.5">
                 {successMessage}
               </span>
             </li>

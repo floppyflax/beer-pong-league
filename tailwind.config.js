@@ -175,6 +175,28 @@ export default {
       },
 
       // -------------------------------------------------------------
+      // Background images — Arcade gradients (remapped from Epic 14)
+      // Legacy class names kept for compatibility during reskin.
+      // -------------------------------------------------------------
+      backgroundImage: {
+        // Cards : subtle ink wash (paper → cream-deep)
+        "gradient-card": "linear-gradient(180deg, #141826 0%, #0B0D14 100%)",
+        "gradient-card-transparent":
+          "linear-gradient(180deg, rgba(20,24,38,0.8) 0%, rgba(11,13,20,0.6) 100%)",
+        // CTA buttons : terracotta → deep
+        "gradient-cta":
+          "linear-gradient(135deg, #FF4438 0%, #C42418 100%)",
+        "gradient-cta-alt":
+          "linear-gradient(135deg, #3B8EFF 0%, #0052D4 100%)",
+        // FAB : lime neon glow
+        "gradient-fab":
+          "linear-gradient(135deg, #B8FF3D 0%, #8BCC1F 100%)",
+        // Tabs actif : terracotta
+        "gradient-tab-active":
+          "linear-gradient(135deg, #FF4438 0%, #C42418 100%)",
+      },
+
+      // -------------------------------------------------------------
       // Shadows — Arcade neon (glow + hairline ink outline)
       // -------------------------------------------------------------
       boxShadow: {

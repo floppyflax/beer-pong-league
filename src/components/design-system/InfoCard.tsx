@@ -32,9 +32,9 @@ export interface InfoCardProps {
 }
 
 const statusVariantClasses: Record<InfoCardStatusVariant, string> = {
-  active: 'bg-amber-500/20 text-amber-500',
-  finished: 'bg-green-500/20 text-green-500',
-  cancelled: 'bg-red-500/20 text-red-500',
+  active: 'bg-cup-red/20 text-cup-red',
+  finished: 'bg-lime/20 text-lime',
+  cancelled: 'bg-ink-mute/20 text-ink-mute',
 };
 
 export function InfoCard({
@@ -48,13 +48,15 @@ export function InfoCard({
 
   return (
     <div
-      className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50"
+      className="bg-paper rounded-card p-4 border border-card"
       data-testid="infocard"
     >
       <div className="flex items-center gap-4 text-sm">
-        <h2 className="text-white font-bold text-base">{title}</h2>
+        <h2 className="text-ink font-archivo font-extrabold uppercase tracking-tight text-base">
+          {title}
+        </h2>
         <span
-          className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${badgeClasses}`}
+          className={`text-[10px] uppercase font-archivo font-extrabold tracking-[0.6px] px-2 py-0.5 rounded-sm ${badgeClasses}`}
         >
           {statusBadge}
         </span>
@@ -63,12 +65,12 @@ export function InfoCard({
       {children ? (
         children
       ) : infos.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 mt-2">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-ink-soft mt-2">
           {infos.map((item, index) => {
             const Icon = item.icon;
             return (
               <div key={index} className="flex items-center gap-1">
-                <Icon size={14} className="text-slate-500 shrink-0" />
+                <Icon size={14} className="text-ink-mute shrink-0" />
                 <span>{item.text}</span>
               </div>
             );

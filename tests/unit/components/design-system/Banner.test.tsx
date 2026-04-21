@@ -9,16 +9,16 @@ describe('Banner (Story 14-7)', () => {
     expect(screen.getByText('Tournoi rejoint ! Redirection…')).toBeInTheDocument();
   });
 
-  it('should have green background for success variant (AC: 1)', () => {
+  it('should have lime background for success variant (Arcade)', () => {
     const { container } = render(<Banner message="Succès" variant="success" />);
     const banner = container.firstChild as HTMLElement;
-    expect(banner).toHaveClass('bg-success');
+    expect(banner).toHaveClass('bg-lime');
   });
 
-  it('should have red background for error variant (AC: 1)', () => {
+  it('should have ruby background for error variant (Arcade)', () => {
     const { container } = render(<Banner message="Erreur" variant="error" />);
     const banner = container.firstChild as HTMLElement;
-    expect(banner).toHaveClass('bg-error');
+    expect(banner).toHaveClass('bg-ruby');
   });
 
   it('should render icon + text (AC: 2)', () => {

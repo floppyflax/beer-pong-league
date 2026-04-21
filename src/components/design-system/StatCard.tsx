@@ -10,9 +10,9 @@ import type { ReactNode } from "react";
 export type StatCardVariant = "primary" | "success" | "accent";
 
 const variantColorMap: Record<StatCardVariant, string> = {
-  primary: "text-info", // bleu
-  success: "text-success", // vert
-  accent: "text-primary", // ambre/jaune
+  primary: "text-cup-blue",
+  success: "text-lime",
+  accent: "text-cup-red",
 };
 
 export interface StatCardProps {
@@ -25,21 +25,21 @@ export interface StatCardProps {
 }
 
 export function StatCard({ value, label, variant }: StatCardProps) {
-  const valueColor = variant ? variantColorMap[variant] : "text-text-primary";
+  const valueColor = variant ? variantColorMap[variant] : "text-ink";
 
   return (
     <div
-      className="bg-slate-800/90 backdrop-blur-sm p-3 rounded-xl text-center border border-slate-700/50"
+      className="bg-paper p-3 rounded-card text-center border border-card"
       data-testid="statcard"
     >
       <div
-        className={`text-2xl font-bold ${valueColor}`}
+        className={`text-stat font-mono font-bold tabular-nums ${valueColor}`}
         data-testid="statcard-value"
       >
         {value}
       </div>
       <div
-        className="text-[10px] text-slate-400 uppercase font-bold"
+        className="text-[10px] text-ink-mute uppercase font-archivo font-extrabold tracking-[0.6px]"
         data-testid="statcard-label"
       >
         {label}

@@ -56,15 +56,18 @@ export function FAB({
         ${positionClasses}
         w-14 h-14 md:w-16 md:h-16
         flex items-center justify-center
-        rounded-full shadow-lg
-        transition-opacity hover:opacity-90 active:opacity-80
-        focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background-primary
-        ${isPrimary ? 'bg-gradient-fab' : 'bg-slate-700'}
+        rounded-full
+        transition-[transform,box-shadow,filter] duration-100
+        hover:brightness-110 active:translate-y-[2px]
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-cream
+        ${isPrimary
+          ? 'bg-lime text-cream border-[1.5px] border-[#8BCC1F] shadow-fab'
+          : 'bg-paper text-ink border-[1.5px] border-card'}
       `}
       data-testid="fab"
     >
-      <span className="text-white" data-testid="fab-icon">
-        <Icon size={24} className="text-white" />
+      <span data-testid="fab-icon">
+        <Icon size={24} className={isPrimary ? 'text-cream' : 'text-ink'} />
       </span>
     </button>
   );

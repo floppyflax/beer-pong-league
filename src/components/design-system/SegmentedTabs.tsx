@@ -31,20 +31,21 @@ export const SegmentedTabs = ({
   const isEncapsulated = variant === "encapsulated";
 
   const containerClass = isEncapsulated
-    ? "bg-slate-800 rounded-xl p-1 flex w-full"
+    ? "bg-paper rounded-card p-1 flex w-full border border-card"
     : "flex gap-2";
 
   const getTabClass = (isActive: boolean) => {
-    const base = "px-4 py-2 rounded-lg font-semibold transition-colors";
+    const base =
+      "px-4 py-2 rounded-sm font-archivo font-extrabold uppercase tracking-tight text-sm transition-colors";
     if (isEncapsulated) {
       const encapsulatedBase = `${base} flex-1 text-center`;
       return isActive
-        ? `${encapsulatedBase} bg-gradient-tab-active text-white`
-        : `${encapsulatedBase} bg-transparent text-slate-400 hover:text-slate-300`;
+        ? `${encapsulatedBase} bg-cup-red text-ink shadow-glow-red`
+        : `${encapsulatedBase} bg-transparent text-ink-soft hover:text-ink`;
     }
     return isActive
-      ? `${base} bg-gradient-tab-active text-white`
-      : `${base} bg-slate-800 text-slate-400 hover:bg-slate-700`;
+      ? `${base} bg-cup-red text-ink`
+      : `${base} bg-paper text-ink-soft border border-card hover:border-card-muted hover:text-ink`;
   };
 
   return (

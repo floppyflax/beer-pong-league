@@ -39,14 +39,14 @@ export function PlayerCard(props: PlayerCardProps) {
 
   if (props.variant === "compact") {
     const baseClasses =
-      "flex items-center gap-3 p-4 rounded-xl border transition-all text-left w-full";
+      "flex items-center gap-3 p-4 rounded-card border transition-colors text-left w-full";
     const stateClasses = props.selected
-      ? "bg-primary/20 border-primary text-white"
-      : "bg-slate-800 border-slate-700/50 text-slate-300 hover:border-slate-600";
+      ? "bg-cup-red/15 border-cup-red text-ink"
+      : "bg-paper border-card text-ink-soft hover:border-card-muted hover:text-ink";
 
     const content = (
       <>
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold overflow-hidden">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-cream-deep flex items-center justify-center text-sm font-mono font-bold overflow-hidden border border-card">
           {props.avatarUrl ? (
             <img
               src={props.avatarUrl}
@@ -54,10 +54,10 @@ export function PlayerCard(props: PlayerCardProps) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-slate-300">{initials}</span>
+            <span className="text-ink-soft">{initials}</span>
           )}
         </div>
-        <span className="font-medium truncate flex-1">{props.name}</span>
+        <span className="font-semibold truncate flex-1">{props.name}</span>
       </>
     );
 
@@ -87,9 +87,9 @@ export function PlayerCard(props: PlayerCardProps) {
   // variant full
   const fullProps = props as PlayerCardFullProps;
   const baseClasses =
-    "flex items-center gap-3 p-4 bg-slate-800 rounded-xl border border-slate-700/50 transition-all text-left w-full";
+    "flex items-center gap-3 p-4 bg-paper rounded-card border border-card transition-colors text-left w-full";
   const clickableClasses = fullProps.onClick
-    ? " cursor-pointer hover:border-slate-600"
+    ? " cursor-pointer hover:border-card-muted"
     : "";
 
   const Wrapper = fullProps.onClick ? "button" : "div";
@@ -103,7 +103,7 @@ export function PlayerCard(props: PlayerCardProps) {
       data-testid="playercard-full"
       {...wrapperProps}
     >
-      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold overflow-hidden">
+      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-cream-deep flex items-center justify-center text-sm font-mono font-bold overflow-hidden border border-card">
         {fullProps.avatarUrl ? (
           <img
             src={fullProps.avatarUrl}
@@ -111,21 +111,21 @@ export function PlayerCard(props: PlayerCardProps) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <span className="text-slate-300">{initials}</span>
+          <span className="text-ink-soft">{initials}</span>
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-base font-semibold text-white truncate">
+        <div className="text-base font-archivo font-extrabold uppercase tracking-tight text-ink truncate">
           {fullProps.name}
         </div>
         {fullProps.subtitle && (
-          <div className="text-sm text-slate-400 truncate">
+          <div className="text-sm text-ink-soft truncate">
             {fullProps.subtitle}
           </div>
         )}
       </div>
       {fullProps.elo !== undefined && (
-        <div className="flex-shrink-0 text-base font-bold text-primary">
+        <div className="flex-shrink-0 text-base font-mono font-bold tabular-nums text-lime">
           {fullProps.elo}
         </div>
       )}
