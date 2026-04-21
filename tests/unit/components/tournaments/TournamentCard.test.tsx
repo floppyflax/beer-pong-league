@@ -94,13 +94,13 @@ describe("TournamentCard", () => {
     expect(screen.getByTestId("tournament-card-chevron")).toBeInTheDocument();
   });
 
-  it("should use bg-gradient-card and border-slate-700/50", () => {
+  it("should use bg-gradient-card and border-card/50", () => {
     const { getByTestId } = renderWithRouter(
       <TournamentCard tournament={mockActiveTournament} />,
     );
     const card = getByTestId("tournament-card");
     expect(card).toHaveClass("bg-gradient-card");
-    expect(card).toHaveClass("border-slate-700/50");
+    expect(card).toHaveClass("border-card/50");
   });
 
   it("should have hover and active styles", () => {
@@ -108,7 +108,7 @@ describe("TournamentCard", () => {
       <TournamentCard tournament={mockActiveTournament} />,
     );
     const card = getByTestId("tournament-card");
-    expect(card).toHaveClass("hover:border-primary");
+    expect(card).toHaveClass("hover:border-cup-red");
     expect(card).toHaveClass("active:scale-95");
   });
 

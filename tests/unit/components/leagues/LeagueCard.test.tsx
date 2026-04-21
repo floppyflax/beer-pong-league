@@ -245,8 +245,8 @@ describe("LeagueCard", () => {
     );
 
     const statusBadge = screen.getByText("TERMINÉE");
-    expect(statusBadge).toHaveClass("bg-slate-700");
-    expect(statusBadge).toHaveClass("text-slate-300");
+    expect(statusBadge).toHaveClass("bg-cream-deep");
+    expect(statusBadge).toHaveClass("text-ink-soft");
   });
 
   it("should apply hover and cursor styles", () => {
@@ -258,7 +258,7 @@ describe("LeagueCard", () => {
 
     const card = screen.getByTestId("league-card");
     expect(card).toHaveClass("cursor-pointer");
-    expect(card).toHaveClass("hover:border-primary");
+    expect(card).toHaveClass("hover:border-cup-red");
   });
 
   it("should display 'Date inconnue' when createdAt is invalid", () => {

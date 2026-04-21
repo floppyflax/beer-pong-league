@@ -126,54 +126,53 @@ describe('PersonalStatsSummary', () => {
       averageElo: 1250,
     };
 
-    it('should display total matches (not locked)', () => {
+    it('should show premium paywall heading', () => {
       render(
         <BrowserRouter>
           <PersonalStatsSummary stats={stats} isLoading={false} isPremium={false} />
         </BrowserRouter>
       );
 
-      expect(screen.getByText('42')).toBeInTheDocument();
-      expect(screen.getByText(/Matchs joués/i)).toBeInTheDocument();
+      expect(screen.getByText(/Fonctionnalité Premium/i)).toBeInTheDocument();
     });
 
-    it('should show blurred/locked win rate and ELO', () => {
+    it('should show lock icon on paywall', () => {
       render(
         <BrowserRouter>
           <PersonalStatsSummary stats={stats} isLoading={false} isPremium={false} />
         </BrowserRouter>
       );
 
-      // Check for lock icons or blurred content
-      expect(screen.getAllByText('🔒')).toHaveLength(2); // For win rate and ELO
+      // New design: single lock icon on the paywall
+      expect(screen.getByText('🔒')).toBeInTheDocument();
     });
 
-    it('should show "Passer Premium" button', () => {
+    it('should show "PASSER AU PREMIUM" button', () => {
       render(
         <BrowserRouter>
           <PersonalStatsSummary stats={stats} isLoading={false} isPremium={false} />
         </BrowserRouter>
       );
 
-      expect(screen.getByText(/Passer Premium/i)).toBeInTheDocument();
+      expect(screen.getByText(/PASSER AU PREMIUM/i)).toBeInTheDocument();
     });
 
-    it('should call onUpgradeClick when clicking "Passer Premium"', async () => {
+    it('should call onUpgradeClick when clicking "PASSER AU PREMIUM"', async () => {
       const user = userEvent.setup();
       const mockOnUpgrade = vi.fn();
 
       render(
         <BrowserRouter>
-          <PersonalStatsSummary 
-            stats={stats} 
-            isLoading={false} 
+          <PersonalStatsSummary
+            stats={stats}
+            isLoading={false}
             isPremium={false}
             onUpgradeClick={mockOnUpgrade}
           />
         </BrowserRouter>
       );
 
-      const button = screen.getByText(/Passer Premium/i);
+      const button = screen.getByText(/PASSER AU PREMIUM/i);
       await user.click(button);
 
       expect(mockOnUpgrade).toHaveBeenCalledOnce();
@@ -194,11 +193,11 @@ describe('PersonalStatsSummary', () => {
         </BrowserRouter>
       );
 
-      const card = container.querySelector('.bg-slate-800');
+      const card = container.querySelector('.bg-paper');
       expect(card).toBeInTheDocument();
       expect(card).toHaveClass('rounded-xl');
       expect(card).toHaveClass('border');
-      expect(card).toHaveClass('border-slate-700');
+      expect(card).toHaveClass('border-card');
     });
 
     it('should show section header', () => {
