@@ -336,10 +336,10 @@ export const PlayerProfile = () => {
   if (!player && playerNotFound) {
     return (
       <div className="p-4 text-center">
-        <p className="text-slate-400">Joueur introuvable.</p>
+        <p className="text-ink-soft">Joueur introuvable.</p>
         <button
           onClick={() => navigate(-1)}
-          className="text-primary mt-4 font-semibold"
+          className="text-cup-red mt-4 font-semibold"
         >
           Retour
         </button>
@@ -370,7 +370,7 @@ export const PlayerProfile = () => {
   const joinedAt = fetchedPlayer?.joinedAt ?? enrichment?.joinedAt ?? null;
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="min-h-screen bg-cream text-ink flex flex-col">
       {/* AC1: Header — nom + retour */}
       <ContextualHeader
         title={player.name}
@@ -381,7 +381,7 @@ export const PlayerProfile = () => {
       {/* AC1, AC2: Avatar (photo or initials) + infos + Membre depuis */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-xl font-bold text-slate-300 overflow-hidden">
+          <div className="flex-shrink-0 w-16 h-16 rounded-full bg-cream-deep flex items-center justify-center text-xl font-bold text-ink-soft overflow-hidden">
             {avatarUrl && !avatarLoadError ? (
               <img
                 src={avatarUrl}
@@ -398,12 +398,12 @@ export const PlayerProfile = () => {
               {player.name}
             </h2>
             {playerLeague && (
-              <p className="text-sm text-slate-400 truncate">
+              <p className="text-sm text-ink-soft truncate">
                 {playerLeague.name}
               </p>
             )}
             {joinedAt && (
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-ink-mute mt-0.5">
                 {formatJoinedSince(joinedAt)}
               </p>
             )}
@@ -426,20 +426,20 @@ export const PlayerProfile = () => {
         <div
           className={`p-4 rounded-xl flex items-center gap-3 border ${
             player.streak >= 3
-              ? "bg-amber-500/20 border-amber-500/50"
+              ? "bg-gold/20 border-gold/50"
               : player.streak > 0
-                ? "bg-green-500/20 border-green-500/50"
+                ? "bg-lime/20 border-green-500/50"
                 : player.streak < 0
-                  ? "bg-red-500/20 border-red-500/50"
-                  : "bg-slate-800/50 border-slate-700/50"
+                  ? "bg-ruby/20 border-red-500/50"
+                  : "bg-paper/50 border-card/50"
           }`}
         >
           {player.streak >= 3 ? (
-            <Flame className="text-amber-500 flex-shrink-0" size={24} />
+            <Flame className="text-gold flex-shrink-0" size={24} />
           ) : player.streak > 0 ? (
-            <TrendingUp className="text-green-500 flex-shrink-0" size={24} />
+            <TrendingUp className="text-lime flex-shrink-0" size={24} />
           ) : player.streak < 0 ? (
-            <TrendingDown className="text-red-500 flex-shrink-0" size={24} />
+            <TrendingDown className="text-ruby flex-shrink-0" size={24} />
           ) : null}
           <div className="min-w-0">
             <div className="font-bold text-white">
@@ -451,7 +451,7 @@ export const PlayerProfile = () => {
                     ? `${Math.abs(player.streak)} défaites d'affilée`
                     : "Aucune série"}
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-ink-soft">
               {player.streak >= 3
                 ? `${player.streak} victoires d'affilée`
                 : "Série actuelle"}
@@ -466,10 +466,10 @@ export const PlayerProfile = () => {
         {eloEvolution.length > 1 && (
           <section>
             <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-white">
-              <BarChart3 size={20} className="text-slate-400" />
+              <BarChart3 size={20} className="text-ink-soft" />
               Évolution ELO
             </h3>
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+            <div className="bg-paper p-4 rounded-xl border border-card/50">
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
@@ -543,7 +543,7 @@ export const PlayerProfile = () => {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-              <div className="mt-2 text-xs text-slate-400 text-center">
+              <div className="mt-2 text-xs text-ink-soft text-center">
                 {eloEvolution.length} points de données
               </div>
             </div>
@@ -560,29 +560,29 @@ export const PlayerProfile = () => {
               {Object.entries(statsByLeague).map(([leagueId, stats]) => (
                 <div
                   key={leagueId}
-                  className="bg-slate-800 p-4 rounded-xl border border-slate-700/50"
+                  className="bg-paper p-4 rounded-xl border border-card/50"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <div className="font-bold text-white">
                         {stats.leagueName}
                       </div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-ink-soft">
                         {stats.matches} matchs
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-primary">
+                      <div className="font-bold text-cup-red">
                         {stats.elo} ELO
                       </div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-ink-soft">
                         {stats.winRate}% win rate
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-4 text-sm">
-                    <span className="text-green-500">{stats.wins}V</span>
-                    <span className="text-red-500">{stats.losses}D</span>
+                    <span className="text-lime">{stats.wins}V</span>
+                    <span className="text-ruby">{stats.losses}D</span>
                   </div>
                 </div>
               ))}
@@ -650,24 +650,24 @@ export const PlayerProfile = () => {
               return (
                 <div
                   key={match.id}
-                  className={`bg-slate-800 p-4 rounded-xl border border-slate-700/50 ${
+                  className={`bg-paper p-4 rounded-xl border border-card/50 ${
                     isWinner ? "border-green-500/50" : "border-red-500/50"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-ink-mute">
                       {formatRelativeTime(match.date)}
                     </span>
                     {contextName && (
-                      <span className="text-xs text-slate-400 truncate max-w-[60%]">
+                      <span className="text-xs text-ink-soft truncate max-w-[60%]">
                         {contextName}
                       </span>
                     )}
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
                         isWinner
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-red-500/20 text-red-400"
+                          ? "bg-lime/20 text-lime"
+                          : "bg-ruby/20 text-ruby"
                       }`}
                     >
                       {isWinner ? "Victoire" : "Défaite"}
@@ -676,15 +676,15 @@ export const PlayerProfile = () => {
                   <div className="flex justify-between items-center text-sm">
                     <div
                       className={`flex-1 truncate ${
-                        isTeamA && isWinner ? "text-white font-bold" : "text-slate-400"
+                        isTeamA && isWinner ? "text-white font-bold" : "text-ink-soft"
                       }`}
                     >
                       {teamA}
                     </div>
-                    <div className="px-3 text-slate-500 flex-shrink-0">VS</div>
+                    <div className="px-3 text-ink-mute flex-shrink-0">VS</div>
                     <div
                       className={`flex-1 text-right truncate ${
-                        !isTeamA && isWinner ? "text-white font-bold" : "text-slate-400"
+                        !isTeamA && isWinner ? "text-white font-bold" : "text-ink-soft"
                       }`}
                     >
                       {teamB}
@@ -693,7 +693,7 @@ export const PlayerProfile = () => {
                   {deltaElo !== undefined && (
                     <div
                       className={`text-xs mt-1 text-center font-medium ${
-                        deltaElo > 0 ? "text-green-500" : "text-red-500"
+                        deltaElo > 0 ? "text-lime" : "text-ruby"
                       }`}
                     >
                       {deltaElo > 0 ? "+" : ""}
@@ -708,7 +708,7 @@ export const PlayerProfile = () => {
               );
             })}
             {playerMatchesWithContext.length === 0 && (
-              <p className="text-slate-500 text-center py-4">
+              <p className="text-ink-mute text-center py-4">
                 Aucun match enregistré
               </p>
             )}
