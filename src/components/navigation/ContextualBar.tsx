@@ -30,7 +30,7 @@ export const ContextualBar = ({ actions }: ContextualBarProps) => {
             onClick={action.onClick}
             disabled={action.disabled}
             aria-label={action.label}
-            className="px-4 py-2 bg-primary hover:bg-amber-600 text-white font-bold rounded-lg flex items-center gap-2 transition-all disabled:opacity-50"
+            className="px-4 py-2 bg-cup-red hover:brightness-110 text-ink font-bold rounded-lg flex items-center gap-2 transition-all disabled:opacity-50"
           >
             {action.icon}
             <span>{action.label}</span>
@@ -43,7 +43,7 @@ export const ContextualBar = ({ actions }: ContextualBarProps) => {
   // Mobile: Fixed bottom bar (z-40 to avoid conflicts with modals at z-50)
   return (
     <div 
-      className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 z-40"
+      className="fixed bottom-0 left-0 right-0 p-4 bg-cream/80 backdrop-blur-md border-t border-card z-40"
       role="toolbar"
       aria-label="Actions contextuelles"
     >
@@ -59,7 +59,7 @@ export const ContextualBar = ({ actions }: ContextualBarProps) => {
             aria-label={action.label}
             className={`${
               visibleActions.length === 1 ? 'w-full' : 'flex-1'
-            } bg-primary hover:bg-amber-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50`}
+            } bg-cup-red hover:brightness-110 text-ink font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50`}
           >
             {action.icon}
             <span className="text-sm uppercase">{action.label}</span>

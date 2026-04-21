@@ -16,7 +16,7 @@ interface TournamentCardProps {
  * - Header: [Title bold white] [Badge ACTIF / TERMINÉ]
  * - Middle: Date
  * - Bottom: 3 columns (Matchs, Joueurs, Format) + chevron navigation
- * - Container: bg-gradient-card, rounded-xl p-6, border-slate-700/50
+ * - Container: bg-gradient-card, rounded-xl p-6, border-card/50
  *
  * Clicks navigate to /tournament/:id (keyboard accessible: Enter/Space)
  */
@@ -56,8 +56,8 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({
       : tournament.format.toUpperCase().replace("V", "v");
 
   const containerClasses = interactive
-    ? "bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 cursor-pointer transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/20 active:scale-95"
-    : "bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-slate-700/50";
+    ? "bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-card/50 cursor-pointer transition-all hover:border-cup-red hover:shadow-lg hover:shadow-primary/20 active:scale-95"
+    : "bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-card/50";
 
   return (
     <div
@@ -73,13 +73,13 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({
     >
       {/* Header: Title + Badge */}
       <div className="flex items-start justify-between gap-3 mb-2">
-        <h3 className="text-lg font-bold text-white truncate flex-1 min-w-0">
+        <h3 className="text-lg font-bold text-ink truncate flex-1 min-w-0">
           {tournament.name}
         </h3>
         <span
           className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 ${
             tournament.isFinished
-              ? "bg-slate-700 text-slate-300"
+              ? "bg-cream-deep text-ink-soft"
               : "bg-green-500/20 text-green-400"
           }`}
         >
@@ -88,27 +88,27 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({
       </div>
 
       {/* Middle: Date */}
-      <p className="text-sm text-slate-400 mb-4">{tournamentDate}</p>
+      <p className="text-sm text-ink-soft mb-4">{tournamentDate}</p>
 
       {/* Bottom: 3 stats columns + chevron (decorative, no nested button) */}
       <div className="flex items-end justify-between gap-4">
         <div className="flex gap-6 flex-1 min-w-0">
           <div>
-            <p className="text-lg font-bold text-white">{matchCount}</p>
-            <p className="text-xs text-slate-400">Matchs</p>
+            <p className="text-lg font-bold text-ink">{matchCount}</p>
+            <p className="text-xs text-ink-soft">Matchs</p>
           </div>
           <div>
-            <p className="text-lg font-bold text-white">{playerCount}</p>
-            <p className="text-xs text-slate-400">Joueurs</p>
+            <p className="text-lg font-bold text-ink">{playerCount}</p>
+            <p className="text-xs text-ink-soft">Joueurs</p>
           </div>
           <div>
             <p className="text-lg font-bold text-blue-400">{formatLabel}</p>
-            <p className="text-xs text-slate-400">Format</p>
+            <p className="text-xs text-ink-soft">Format</p>
           </div>
         </div>
         {interactive ? (
           <span
-            className="shrink-0 w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white"
+            className="shrink-0 w-10 h-10 rounded-full bg-cream-deep flex items-center justify-center text-ink"
             aria-hidden
             data-testid="tournament-card-chevron"
           >

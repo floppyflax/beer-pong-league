@@ -54,14 +54,14 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
   const isValid = /^[A-Z0-9]{6,8}$/.test(code);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl">
+    <div className="fixed inset-0 bg-cream/95 z-50 flex items-center justify-center p-4">
+      <div className="bg-paper rounded-xl p-6 w-full max-w-md border border-card shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Saisir le Code</h2>
+          <h2 className="text-xl font-bold text-ink">Saisir le Code</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors p-2"
+            className="text-ink-soft hover:text-ink transition-colors p-2"
             aria-label="Fermer"
             disabled={isLoading}
           >
@@ -70,7 +70,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
         </div>
 
         {/* Description */}
-        <p className="text-slate-400 text-sm mb-4">
+        <p className="text-ink-soft text-sm mb-4">
           Entrez le code du tournoi (6 à 8 caractères alphanumériques)
         </p>
 
@@ -82,7 +82,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
           onKeyDown={handleKeyDown}
           placeholder="Ex: ABC123"
           maxLength={8}
-          className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-lg text-white text-center text-2xl font-bold tracking-wider uppercase focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          className="w-full px-4 py-4 bg-cream border border-card rounded-lg text-ink text-center text-2xl font-bold tracking-wider uppercase focus:border-cup-red focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           autoFocus
           disabled={isLoading}
           aria-label="Code du tournoi"
@@ -90,7 +90,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
 
         {/* Character counter */}
         <div className="text-right mt-2">
-          <span className={`text-sm ${code.length >= 6 && code.length <= 8 ? 'text-green-500' : 'text-slate-500'}`}>
+          <span className={`text-sm ${code.length >= 6 && code.length <= 8 ? 'text-green-500' : 'text-ink-mute'}`}>
             {code.length}/8
           </span>
         </div>
@@ -104,7 +104,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
         <button
           onClick={handleSubmit}
           disabled={!isValid || isLoading}
-          className="w-full mt-6 py-4 bg-primary hover:bg-amber-600 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+          className="w-full mt-6 py-4 bg-cup-red hover:brightness-110 text-ink font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
         >
           {isLoading ? (
             <div className="flex items-center justify-center gap-2">
@@ -117,7 +117,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
         </button>
 
         {/* Help text */}
-        <p className="text-slate-500 text-xs text-center mt-4">
+        <p className="text-ink-mute text-xs text-center mt-4">
           Le code vous a été partagé par l'organisateur du tournoi
         </p>
       </div>

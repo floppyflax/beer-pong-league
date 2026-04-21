@@ -8,7 +8,7 @@ interface LoadingSpinnerProps {
 export const LoadingSpinner = ({ size = 24, className = "" }: LoadingSpinnerProps) => {
   return (
     <div data-testid="loading-spinner" className={`flex items-center justify-center ${className}`}>
-      <Loader2 size={size} className="animate-spin text-primary" />
+      <Loader2 size={size} className="animate-spin text-cup-red" />
     </div>
   );
 };

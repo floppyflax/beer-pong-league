@@ -31,7 +31,7 @@ export function MatchEnrichedDisplay({
           <button
             type="button"
             onClick={() => setShowEnlarged(true)}
-            className="block rounded-lg overflow-hidden border border-slate-600 hover:border-slate-500 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+            className="block rounded-lg overflow-hidden border border-card-muted hover:border-card-muted transition-colors focus:outline-none focus:ring-2 focus:ring-lime"
             aria-label="Agrandir la photo"
           >
             <img
@@ -53,7 +53,7 @@ export function MatchEnrichedDisplay({
               <button
                 type="button"
                 onClick={() => setShowEnlarged(false)}
-                className="absolute top-4 right-4 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white"
+                className="absolute top-4 right-4 p-2 rounded-lg bg-paper hover:bg-cream-deep text-ink"
                 aria-label="Fermer"
               >
                 <X size={24} />
@@ -71,7 +71,7 @@ export function MatchEnrichedDisplay({
 
       {/* Task 2: Cups badge - "X cups remaining" */}
       {hasCups && (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/40">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gold/20 text-gold border border-gold/40">
           {cupsRemaining} gobelet{cupsRemaining > 1 ? "s" : ""} restant
           {cupsRemaining > 1 ? "s" : ""}
         </span>

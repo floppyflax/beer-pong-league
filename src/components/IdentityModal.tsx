@@ -50,26 +50,26 @@ export const IdentityModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
+      <div className="bg-cream w-full max-w-sm rounded-2xl p-6 border border-card">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold">Reprendre ton profil ?</h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-paper rounded-lg transition-colors"
             aria-label="Fermer"
           >
-            <X size={20} className="text-slate-400" />
+            <X size={20} className="text-ink-soft" />
           </button>
         </div>
 
         {localUser ? (
           <div className="space-y-4">
-            <div className="bg-slate-800 p-4 rounded-xl">
-              <div className="text-sm text-slate-400 mb-1">Ton pseudo</div>
-              <div className="text-lg font-bold text-white">
+            <div className="bg-paper p-4 rounded-xl">
+              <div className="text-sm text-ink-soft mb-1">Ton pseudo</div>
+              <div className="text-lg font-bold text-ink">
                 {localUser.pseudo}
               </div>
-              <div className="text-xs text-slate-500 mt-1">
+              <div className="text-xs text-ink-mute mt-1">
                 Créé le{" "}
                 {new Date(localUser.createdAt).toLocaleDateString("fr-FR")}
               </div>
@@ -78,13 +78,13 @@ export const IdentityModal = ({
             <div className="flex gap-3">
               <button
                 onClick={handleResume}
-                className="flex-1 bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-colors"
+                className="flex-1 bg-cup-red hover:brightness-110 text-ink font-bold py-3 rounded-xl transition-colors"
               >
                 Reprendre
               </button>
               <button
                 onClick={handleCreateNew}
-                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-colors"
+                className="flex-1 bg-cream-deep hover:bg-paper text-ink font-bold py-3 rounded-xl transition-colors"
               >
                 Nouveau profil
               </button>
@@ -92,12 +92,12 @@ export const IdentityModal = ({
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-slate-400">
+            <p className="text-ink-soft">
               Aucun profil local trouvé. Crée un nouveau profil pour commencer.
             </p>
             <button
               onClick={handleCreateNew}
-              className="w-full bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-colors"
+              className="w-full bg-cup-red hover:brightness-110 text-ink font-bold py-3 rounded-xl transition-colors"
             >
               Créer un profil
             </button>

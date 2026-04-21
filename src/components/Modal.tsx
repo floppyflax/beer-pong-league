@@ -101,21 +101,21 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         ref={modalRef}
-        className={`bg-slate-800 rounded-xl ${maxWidth} w-full mx-auto shadow-2xl`}
+        className={`bg-paper rounded-xl ${maxWidth} w-full mx-auto shadow-2xl`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <h2 id="modal-title" className="text-xl font-bold text-white">
+        <div className="flex items-center justify-between p-6 border-b border-card">
+          <h2 id="modal-title" className="text-xl font-bold text-ink">
             {title}
           </h2>
           {!hideCloseButton && (
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-cream-deep rounded-lg transition-colors"
               aria-label="Fermer"
             >
-              <X size={20} className="text-slate-400" />
+              <X size={20} className="text-ink-soft" />
             </button>
           )}
         </div>
@@ -127,7 +127,7 @@ export const Modal: React.FC<ModalProps> = ({
 
         {/* Footer */}
         {footer && (
-          <div className="p-6 pt-0 border-t border-slate-700">
+          <div className="p-6 pt-0 border-t border-card">
             {footer}
           </div>
         )}

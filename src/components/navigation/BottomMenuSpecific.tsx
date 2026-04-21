@@ -58,7 +58,7 @@ export const BottomMenuSpecific: React.FC<BottomMenuSpecificProps> = ({
 
   return (
     <div
-      className={`${positionClass} ${bottomClass} p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 z-30 ${!previewMode ? "lg:hidden" : ""}`}
+      className={`${positionClass} ${bottomClass} p-4 bg-cream/80 backdrop-blur-md border-t border-card z-30 ${!previewMode ? "lg:hidden" : ""}`}
     >
       <div
         className={`flex gap-3 max-w-md mx-auto ${
@@ -75,8 +75,8 @@ export const BottomMenuSpecific: React.FC<BottomMenuSpecificProps> = ({
             } ${
               variant === "gradient"
                 ? "bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700"
-                : "bg-primary hover:bg-amber-600"
-            } text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                : "bg-cup-red hover:brightness-110"
+            } text-ink font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {action.icon}
             <span>{action.label}</span>

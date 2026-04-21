@@ -340,35 +340,35 @@ export const PaymentModal = ({
   if (showCloseConfirmation) {
     return (
       <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-        <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
+        <div className="bg-cream w-full max-w-sm rounded-2xl p-6 border border-card">
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-start gap-3 flex-1">
               <AlertCircle
                 size={24}
-                className="text-amber-500 flex-shrink-0 mt-0.5"
+                className="text-gold flex-shrink-0 mt-0.5"
               />
               <div>
                 <h3 className="text-lg font-bold mb-2">
                   Annuler le paiement ?
                 </h3>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-ink-soft">
                   Le paiement est en cours. Êtes-vous sûr de vouloir annuler ?
                 </p>
               </div>
             </div>
             <button
               onClick={() => setShowCloseConfirmation(false)}
-              className="p-2 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+              className="p-2 hover:bg-paper rounded-lg transition-colors flex-shrink-0"
               aria-label="Fermer"
             >
-              <X size={20} className="text-slate-400" />
+              <X size={20} className="text-ink-soft" />
             </button>
           </div>
 
           <div className="flex gap-3">
             <button
               onClick={() => setShowCloseConfirmation(false)}
-              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-colors"
+              className="flex-1 bg-cream-deep hover:bg-paper text-ink font-bold py-3 rounded-xl transition-colors"
             >
               Continuer
             </button>
@@ -388,26 +388,26 @@ export const PaymentModal = ({
   if (paymentState === "success") {
     return (
       <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-        <div className="bg-slate-900 w-full max-w-md rounded-2xl p-6 border border-slate-700 relative">
+        <div className="bg-cream w-full max-w-md rounded-2xl p-6 border border-card relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="absolute top-4 right-4 p-2 hover:bg-paper rounded-lg transition-colors"
             aria-label="Fermer"
           >
-            <X size={20} className="text-slate-400" />
+            <X size={20} className="text-ink-soft" />
           </button>
           <div className="text-center space-y-4">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-2">
               <CheckCircle size={32} className="text-green-500" />
             </div>
-            <h3 className="text-2xl font-bold text-white">Paiement réussi !</h3>
-            <p className="text-slate-400">
+            <h3 className="text-2xl font-bold text-ink">Paiement réussi !</h3>
+            <p className="text-ink-soft">
               Ton compte est maintenant Premium. Profite de toutes les
               fonctionnalités illimitées !
             </p>
             <div className="pt-2">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-              <p className="text-sm text-slate-500 mt-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cup-red mx-auto" />
+              <p className="text-sm text-ink-mute mt-2">
                 Fermeture automatique...
               </p>
             </div>
@@ -420,79 +420,79 @@ export const PaymentModal = ({
   // Main payment modal
   return (
     <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-      <div className="bg-slate-900 w-full max-w-md rounded-2xl p-6 border border-slate-700">
+      <div className="bg-cream w-full max-w-md rounded-2xl p-6 border border-card">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
-            <Sparkles size={24} className="text-primary" />
+            <Sparkles size={24} className="text-cup-red" />
             <h3 className="text-xl font-bold">{title ?? "Passe Premium"}</h3>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 hover:bg-paper rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={paymentState === "processing"}
             aria-label="Fermer"
           >
-            <X size={20} className="text-slate-400" />
+            <X size={20} className="text-ink-soft" />
           </button>
         </div>
 
         <div className="space-y-6">
           {/* Custom subtitle (e.g. league limit message per AC5 10-3) */}
           {subtitle && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-              <p className="text-amber-200 text-sm">{subtitle}</p>
+            <div className="bg-gold/10 border border-gold/30 rounded-xl p-4">
+              <p className="text-gold text-sm">{subtitle}</p>
             </div>
           )}
           {/* Prix */}
-          <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl p-6 text-center border border-primary/30">
-            <div className="text-5xl font-black text-white mb-2">3€</div>
-            <div className="text-sm text-slate-300">
+          <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl p-6 text-center border border-cup-red/30">
+            <div className="text-5xl font-black text-ink mb-2">3€</div>
+            <div className="text-sm text-ink-soft">
               Paiement unique - À vie
             </div>
           </div>
 
           {/* Avantages */}
           <div className="space-y-3">
-            <div className="flex items-start gap-3 bg-slate-800/50 p-4 rounded-xl">
+            <div className="flex items-start gap-3 bg-paper/50 p-4 rounded-xl">
               <CheckCircle
                 size={20}
                 className="text-green-500 mt-0.5 flex-shrink-0"
               />
               <div>
-                <div className="font-semibold text-white">
+                <div className="font-semibold text-ink">
                   Tournois illimités
                 </div>
-                <div className="text-sm text-slate-400">
+                <div className="text-sm text-ink-soft">
                   Crée autant de tournois que tu veux
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 bg-slate-800/50 p-4 rounded-xl">
+            <div className="flex items-start gap-3 bg-paper/50 p-4 rounded-xl">
               <CheckCircle
                 size={20}
                 className="text-green-500 mt-0.5 flex-shrink-0"
               />
               <div>
-                <div className="font-semibold text-white">
+                <div className="font-semibold text-ink">
                   Ligues illimitées
                 </div>
-                <div className="text-sm text-slate-400">
+                <div className="text-sm text-ink-soft">
                   Crée et gère des ligues avec saisons
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 bg-slate-800/50 p-4 rounded-xl">
+            <div className="flex items-start gap-3 bg-paper/50 p-4 rounded-xl">
               <CheckCircle
                 size={20}
                 className="text-green-500 mt-0.5 flex-shrink-0"
               />
               <div>
-                <div className="font-semibold text-white">
+                <div className="font-semibold text-ink">
                   Joueurs illimités
                 </div>
-                <div className="text-sm text-slate-400">
+                <div className="text-sm text-ink-soft">
                   Aucune limite de participants par tournoi
                 </div>
               </div>
@@ -521,7 +521,7 @@ export const PaymentModal = ({
           {paymentState === "error" ? (
             <button
               onClick={handleRetry}
-              className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-cream-deep hover:bg-paper text-ink font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
               <span>Réessayer</span>
             </button>
@@ -529,7 +529,7 @@ export const PaymentModal = ({
             <button
               onClick={handlePayment}
               disabled={paymentState === "processing"}
-              className="w-full bg-primary hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-cup-red hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-ink font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
               {paymentState === "processing" ? (
                 <>
@@ -545,7 +545,7 @@ export const PaymentModal = ({
             </button>
           )}
 
-          <div className="text-xs text-slate-500 text-center">
+          <div className="text-xs text-ink-mute text-center">
             {import.meta.env.DEV ? (
               <>
                 🧪 Mode développement: Simulation de paiement

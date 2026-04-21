@@ -97,29 +97,29 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-slate-700">
+      <div className="bg-cream w-full max-w-sm rounded-2xl p-6 border border-card">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold">
             {step === "email" ? "Créer un compte" : "Email envoyé !"}
           </h3>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-paper rounded-lg transition-colors"
             disabled={isLoading}
             aria-label="Fermer"
           >
-            <X size={20} className="text-slate-400" />
+            <X size={20} className="text-ink-soft" />
           </button>
         </div>
 
         {step === "email" ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm text-slate-400 mb-2 block">Email</label>
+              <label className="text-sm text-ink-soft mb-2 block">Email</label>
               <div className="relative">
                 <Mail
                   size={20}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute"
                 />
                 <input
                   type="email"
@@ -129,7 +129,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                     setError(null);
                   }}
                   placeholder="ton@email.com"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-4 text-white focus:ring-2 focus:ring-primary outline-none"
+                  className="w-full bg-paper border border-card rounded-xl pl-10 pr-4 py-4 text-ink focus:ring-2 focus:ring-primary outline-none"
                   autoFocus
                   disabled={isLoading}
                 />
@@ -142,7 +142,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                   </p>
                 </div>
               ) : (
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-ink-mute mt-2">
                   Un lien magique sera envoyé à cette adresse
                 </p>
               )}
@@ -154,12 +154,12 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                 <p className="text-xs text-blue-400 mb-1 font-semibold">
                   🧪 Mode développement
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-ink-soft">
                   Comptes test disponibles :<br />•{" "}
-                  <span className="text-white">devadmin@test.com</span>
-                  <br />• <span className="text-white">devtest@test.com</span>
+                  <span className="text-ink">devadmin@test.com</span>
+                  <br />• <span className="text-ink">devtest@test.com</span>
                   <br />
-                  <span className="text-slate-500">
+                  <span className="text-ink-mute">
                     (connexion instantanée)
                   </span>
                 </p>
@@ -169,7 +169,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
             <button
               type="submit"
               disabled={!email.trim() || isLoading}
-              className="w-full bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-xl transition-colors"
+              className="w-full bg-cup-red disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 text-ink font-bold py-4 rounded-xl transition-colors"
             >
               {isLoading
                 ? isTestAccount(email)
@@ -186,26 +186,26 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
               <CheckCircle size={24} className="text-green-500" />
               <div>
                 <div className="font-bold text-green-500">Email envoyé !</div>
-                <div className="text-sm text-slate-400">
+                <div className="text-sm text-ink-soft">
                   Vérifie ta boîte mail et clique sur le lien
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-800 p-4 rounded-xl">
-              <div className="text-sm text-slate-400 mb-2">
+            <div className="bg-paper p-4 rounded-xl">
+              <div className="text-sm text-ink-soft mb-2">
                 Email envoyé à :
               </div>
-              <div className="font-bold text-white">{email}</div>
+              <div className="font-bold text-ink">{email}</div>
             </div>
 
-            <div className="text-xs text-slate-500 text-center">
+            <div className="text-xs text-ink-mute text-center">
               Une fois le lien cliqué, tu seras automatiquement connecté
             </div>
 
             <button
               onClick={handleClose}
-              className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-colors"
+              className="w-full bg-cream-deep hover:bg-paper text-ink font-bold py-3 rounded-xl transition-colors"
             >
               Fermer
             </button>

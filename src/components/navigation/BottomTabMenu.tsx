@@ -115,7 +115,7 @@ export const BottomTabMenu: React.FC<BottomTabMenuProps> = ({
 
   return (
     <nav
-      className={`${positionClass} bg-slate-800 border-t border-slate-700 z-40 ${!previewMode ? "lg:hidden" : ""}`}
+      className={`${positionClass} bg-paper border-t border-card z-40 ${!previewMode ? "lg:hidden" : ""}`}
       role="navigation"
       aria-label="Main navigation"
     >
@@ -135,15 +135,15 @@ export const BottomTabMenu: React.FC<BottomTabMenuProps> = ({
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800
                 ${
                   isActive
-                    ? "border-transparent bg-gradient-tab-active text-white"
-                    : "border-transparent text-slate-400 hover:text-slate-300"
+                    ? "border-transparent bg-gradient-tab-active text-ink"
+                    : "border-transparent text-ink-soft hover:text-ink-soft"
                 }
               `}
               aria-label={tab.ariaLabel}
               aria-current={isActive ? "page" : undefined}
             >
               <Icon
-                className={isActive ? "text-white" : "text-slate-400"}
+                className={isActive ? "text-ink" : "text-ink-soft"}
                 size={24}
               />
               <span className="text-[10px] font-medium">{tab.label}</span>

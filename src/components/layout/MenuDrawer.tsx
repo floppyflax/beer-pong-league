@@ -58,38 +58,38 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
 
       {/* Drawer - hidden on desktop (lg and above) */}
       <div
-        className={`fixed top-0 left-0 h-full w-80 bg-slate-900 border-r border-slate-700 z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed top-0 left-0 h-full w-80 bg-cream border-r border-card z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+          <div className="p-4 border-b border-card flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🍺</span>
-              <span className="text-xl font-bold text-primary">BPL</span>
+              <span className="text-xl font-bold text-cup-red">BPL</span>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-paper rounded-lg transition-colors"
             >
               <X size={20} />
             </button>
           </div>
 
           {/* Search */}
-          <div className="p-4 border-b border-slate-700">
+          <div className="p-4 border-b border-card">
             <div className="relative">
               <Search
                 size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
               />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher..."
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:ring-2 focus:ring-primary outline-none"
+                className="w-full bg-paper border border-card rounded-lg pl-10 pr-4 py-2 text-ink placeholder-slate-500 focus:ring-2 focus:ring-primary outline-none"
               />
             </div>
           </div>
@@ -97,35 +97,35 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
           {/* Content - Scrollable */}
           <div className="flex-1 overflow-y-auto">
             {/* Global Stats */}
-            <div className="p-4 border-b border-slate-700">
+            <div className="p-4 border-b border-card">
               <div className="flex items-center gap-2 mb-3">
-                <BarChart3 size={18} className="text-primary" />
-                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-400">
+                <BarChart3 size={18} className="text-cup-red" />
+                <h3 className="font-bold text-sm uppercase tracking-wider text-ink-soft">
                   Statistiques Globales
                 </h3>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div className="bg-slate-800 p-2 rounded-lg text-center">
-                  <div className="text-lg font-bold text-primary">
+                <div className="bg-paper p-2 rounded-lg text-center">
+                  <div className="text-lg font-bold text-cup-red">
                     {globalStats.totalMatches}
                   </div>
-                  <div className="text-[10px] text-slate-400 uppercase">
+                  <div className="text-[10px] text-ink-soft uppercase">
                     Matchs
                   </div>
                 </div>
-                <div className="bg-slate-800 p-2 rounded-lg text-center">
+                <div className="bg-paper p-2 rounded-lg text-center">
                   <div className="text-lg font-bold text-accent">
                     {globalStats.totalPlayers}
                   </div>
-                  <div className="text-[10px] text-slate-400 uppercase">
+                  <div className="text-[10px] text-ink-soft uppercase">
                     Joueurs
                   </div>
                 </div>
-                <div className="bg-slate-800 p-2 rounded-lg text-center">
-                  <div className="text-lg font-bold text-white">
+                <div className="bg-paper p-2 rounded-lg text-center">
+                  <div className="text-lg font-bold text-ink">
                     {globalStats.totalTournaments}
                   </div>
-                  <div className="text-[10px] text-slate-400 uppercase">
+                  <div className="text-[10px] text-ink-soft uppercase">
                     Tournois
                   </div>
                 </div>
@@ -138,8 +138,8 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
                 onClick={() => handleNavigate("/")}
                 className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
                   location.pathname === "/"
-                    ? "bg-primary/20 text-primary"
-                    : "hover:bg-slate-800 text-slate-300"
+                    ? "bg-cup-red/20 text-cup-red"
+                    : "hover:bg-paper text-ink-soft"
                 }`}
               >
                 <Home size={20} />
@@ -148,7 +148,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
 
               <button
                 onClick={() => handleNavigate("/create-league")}
-                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors"
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-paper text-ink-soft transition-colors"
               >
                 <Plus size={20} />
                 <span className="font-medium">Nouvelle League</span>
@@ -156,7 +156,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
 
               <button
                 onClick={() => handleNavigate("/create-tournament")}
-                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors"
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-paper text-ink-soft transition-colors"
               >
                 <Plus size={20} />
                 <span className="font-medium">Nouveau Tournoi</span>
@@ -164,16 +164,16 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
             </div>
 
             {/* Leagues Section */}
-            <div className="p-4 border-t border-slate-700">
+            <div className="p-4 border-t border-card">
               <div className="flex items-center gap-2 mb-3">
-                <Trophy size={18} className="text-primary" />
-                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-400">
+                <Trophy size={18} className="text-cup-red" />
+                <h3 className="font-bold text-sm uppercase tracking-wider text-ink-soft">
                   Mes Leagues ({leagues.length})
                 </h3>
               </div>
               <div className="space-y-1">
                 {filteredLeagues.length === 0 ? (
-                  <p className="text-sm text-slate-500 px-2">
+                  <p className="text-sm text-ink-mute px-2">
                     {searchQuery ? "Aucun résultat" : "Aucune league"}
                   </p>
                 ) : (
@@ -183,8 +183,8 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
                       onClick={() => handleNavigate(`/league/${league.id}`)}
                       className={`w-full text-left flex items-center gap-3 p-2 rounded-lg transition-colors ${
                         location.pathname === `/league/${league.id}`
-                          ? "bg-primary/20 text-primary"
-                          : "hover:bg-slate-800 text-slate-300"
+                          ? "bg-cup-red/20 text-cup-red"
+                          : "hover:bg-paper text-ink-soft"
                       }`}
                     >
                       <Trophy size={16} />
@@ -192,7 +192,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
                         <div className="font-medium truncate">
                           {league.name}
                         </div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-ink-mute">
                           {league.players.length} joueurs
                         </div>
                       </div>
@@ -203,10 +203,10 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
             </div>
 
             {/* Tournaments Section */}
-            <div className="p-4 border-t border-slate-700">
+            <div className="p-4 border-t border-card">
               <div className="flex items-center gap-2 mb-3">
                 <Calendar size={18} className="text-accent" />
-                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-400">
+                <h3 className="font-bold text-sm uppercase tracking-wider text-ink-soft">
                   Mes Tournois ({tournaments.length})
                 </h3>
               </div>
@@ -214,7 +214,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
               {/* Active Tournaments */}
               {activeTournaments.length > 0 && (
                 <div className="mb-3">
-                  <div className="text-xs text-slate-500 mb-1 px-2">
+                  <div className="text-xs text-ink-mute mb-1 px-2">
                     En cours
                   </div>
                   <div className="space-y-1">
@@ -231,7 +231,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
                           className={`w-full text-left flex items-center gap-3 p-2 rounded-lg transition-colors ${
                             location.pathname === `/tournament/${tournament.id}`
                               ? "bg-accent/20 text-accent"
-                              : "hover:bg-slate-800 text-slate-300"
+                              : "hover:bg-paper text-ink-soft"
                           }`}
                         >
                           <Calendar size={16} />
@@ -239,7 +239,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
                             <div className="font-medium truncate">
                               {tournament.name}
                             </div>
-                            <div className="text-xs text-slate-500">
+                            <div className="text-xs text-ink-mute">
                               {tournament.matches.length} matchs
                             </div>
                           </div>
@@ -252,7 +252,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
               {/* Finished Tournaments */}
               {finishedTournaments.length > 0 && (
                 <div>
-                  <div className="text-xs text-slate-500 mb-1 px-2">
+                  <div className="text-xs text-ink-mute mb-1 px-2">
                     Terminés
                   </div>
                   <div className="space-y-1">
@@ -269,7 +269,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
                           className={`w-full text-left flex items-center gap-3 p-2 rounded-lg transition-colors opacity-60 ${
                             location.pathname === `/tournament/${tournament.id}`
                               ? "bg-accent/20 text-accent"
-                              : "hover:bg-slate-800 text-slate-300"
+                              : "hover:bg-paper text-ink-soft"
                           }`}
                         >
                           <Calendar size={16} />
@@ -280,7 +280,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
                                 ✓
                               </span>
                             </div>
-                            <div className="text-xs text-slate-500">
+                            <div className="text-xs text-ink-mute">
                               {tournament.matches.length} matchs
                             </div>
                           </div>
@@ -291,14 +291,14 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
               )}
 
               {filteredTournaments.length === 0 && searchQuery && (
-                <p className="text-sm text-slate-500 px-2">Aucun résultat</p>
+                <p className="text-sm text-ink-mute px-2">Aucun résultat</p>
               )}
             </div>
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-700">
-            <div className="text-xs text-slate-500 text-center">
+          <div className="p-4 border-t border-card">
+            <div className="text-xs text-ink-mute text-center">
               Beer Pong League © 2024
             </div>
           </div>

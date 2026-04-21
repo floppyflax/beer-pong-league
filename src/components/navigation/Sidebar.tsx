@@ -51,10 +51,10 @@ export const Sidebar = () => {
   const isPremium = (user as any)?.isPremium || false;
   
   return (
-    <aside className="hidden lg:flex lg:flex-col w-60 h-screen bg-slate-800 border-r border-slate-700 fixed left-0 top-0">
+    <aside className="hidden lg:flex lg:flex-col w-60 h-screen bg-paper border-r border-card fixed left-0 top-0">
       {/* Logo */}
-      <div className="p-6 border-b border-slate-700">
-        <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
+      <div className="p-6 border-b border-card">
+        <h1 className="text-2xl font-bold text-cup-red flex items-center gap-2">
           <span>🍺</span> BPL
         </h1>
       </div>
@@ -72,8 +72,8 @@ export const Sidebar = () => {
               aria-current={isActive ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 isActive
-                  ? 'bg-slate-700 text-primary border-l-4 border-primary font-bold'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                  ? 'bg-cream-deep text-cup-red border-l-4 border-cup-red font-bold'
+                  : 'text-ink-soft hover:text-ink hover:bg-cream-deep/50'
               }`}
             >
               <Icon size={20} />
@@ -86,19 +86,19 @@ export const Sidebar = () => {
       {/* User Info */}
       {hasIdentity && (
         <div 
-          className="p-4 border-t border-slate-700 cursor-pointer hover:bg-slate-700/50 transition-colors"
+          className="p-4 border-t border-card cursor-pointer hover:bg-cream-deep/50 transition-colors"
           onClick={() => navigate('/profile')}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-              <User size={20} className="text-primary" />
+            <div className="w-10 h-10 rounded-full bg-cup-red/20 flex items-center justify-center">
+              <User size={20} className="text-cup-red" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-white truncate">
+              <div className="text-sm font-medium text-ink truncate">
                 {displayName}
               </div>
               {isPremium && (
-                <div className="text-xs text-primary">
+                <div className="text-xs text-cup-red">
                   💎 Premium
                 </div>
               )}

@@ -40,10 +40,10 @@ export const BackButton: React.FC<BackButtonProps> = ({
   return (
     <button
       onClick={handleClick}
-      className="p-2 hover:bg-slate-700 rounded-lg transition-colors active:scale-95"
+      className="p-2 hover:bg-cream-deep rounded-lg transition-colors active:scale-95"
       aria-label={ariaLabel}
     >
-      <ArrowLeft size={24} className="text-white" />
+      <ArrowLeft size={24} className="text-ink" />
     </button>
   );
 };

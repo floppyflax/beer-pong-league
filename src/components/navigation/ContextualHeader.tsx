@@ -20,8 +20,8 @@ import { ArrowLeft, MoreVertical } from 'lucide-react';
  * 
  * Visual Specs:
  * - Height: 64px (fixed)
- * - Background: bg-slate-900
- * - Border: border-b border-slate-800
+ * - Background: bg-cream
+ * - Border: border-b border-card
  * - Position: sticky top-0 z-30
  * - Back button: 40x40px, ArrowLeft icon
  * - Title: text-xl (mobile) / text-2xl (desktop), bold, truncate with ellipsis
@@ -102,13 +102,13 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4">
+    <header className="sticky top-0 z-30 h-16 bg-cream border-b border-card flex items-center justify-between px-4">
       {/* Left: Back Button + Title */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {showBackButton && (
           <button
             onClick={onBack}
-            className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800 active:scale-95"
+            className="w-10 h-10 flex items-center justify-center text-ink-soft hover:text-ink transition-colors rounded-lg hover:bg-paper active:scale-95"
             aria-label="Retour"
             tabIndex={0}
           >
@@ -117,7 +117,7 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
         )}
         
         <h1 
-          className="text-xl lg:text-2xl font-bold text-white truncate" 
+          className="text-xl lg:text-2xl font-bold text-ink truncate" 
           title={title}
         >
           {title}
@@ -155,7 +155,7 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800 active:scale-95"
+              className="w-10 h-10 flex items-center justify-center text-ink-soft hover:text-ink transition-colors rounded-lg hover:bg-paper active:scale-95"
               aria-label="Menu"
               aria-expanded={menuOpen}
               aria-haspopup="true"
@@ -167,7 +167,7 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
             {/* Dropdown Menu (AC6) */}
             {menuOpen && (
               <div 
-                className="absolute right-0 top-12 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-40"
+                className="absolute right-0 top-12 w-48 bg-paper border border-card rounded-lg shadow-xl z-40"
                 role="menu"
                 aria-orientation="vertical"
               >
@@ -179,10 +179,10 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
                       setMenuOpen(false);
                     }}
                     className={`
-                      w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-700 transition-colors
-                      ${item.destructive ? 'text-red-400' : 'text-white'}
+                      w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-cream-deep transition-colors
+                      ${item.destructive ? 'text-red-400' : 'text-ink'}
                       ${index === 0 ? 'rounded-t-lg' : ''}
-                      ${index === menuItems.length - 1 ? 'rounded-b-lg' : 'border-b border-slate-700'}
+                      ${index === menuItems.length - 1 ? 'rounded-b-lg' : 'border-b border-card'}
                     `}
                     role="menuitem"
                     tabIndex={0}
@@ -209,12 +209,12 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
 const getButtonVariantClasses = (variant?: string): string => {
   switch (variant) {
     case 'primary':
-      return 'bg-primary hover:bg-amber-600 text-white';
+      return 'bg-cup-red hover:brightness-110 text-ink';
     case 'secondary':
-      return 'bg-slate-700 hover:bg-slate-600 text-white';
+      return 'bg-cream-deep hover:bg-paper text-ink';
     case 'ghost':
-      return 'text-slate-400 hover:text-white hover:bg-slate-800';
+      return 'text-ink-soft hover:text-ink hover:bg-paper';
     default:
-      return 'bg-primary hover:bg-amber-600 text-white';
+      return 'bg-cup-red hover:brightness-110 text-ink';
   }
 };
