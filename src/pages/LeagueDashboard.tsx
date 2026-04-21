@@ -27,51 +27,10 @@ import {
   FAB,
 } from "@/components/design-system";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
-
-// Delta ELO du dernier match du joueur (design system 4.3)
-// matches must be sorted by date desc (most recent first)
-function getDeltaFromLastMatch(
-  playerId: string,
-  matches: {
-    date: string;
-    teamA: string[];
-    teamB: string[];
-    eloChanges?: Record<string, number>;
-  }[],
-): number | undefined {
-  for (const m of matches) {
-    if (m.teamA.includes(playerId) || m.teamB.includes(playerId)) {
-      const change = m.eloChanges?.[playerId];
-      return change !== undefined ? change : undefined;
-    }
-  }
-  return undefined;
-}
-
-// Derniers 5 résultats (true=victoire, false=défaite), du plus récent au plus ancien
-// matches must be sorted by date desc (most recent first)
-function getLast5MatchResults(
-  playerId: string,
-  matches: {
-    date: string;
-    teamA: string[];
-    teamB: string[];
-    scoreA: number;
-    scoreB: number;
-  }[],
-): boolean[] {
-  const results: boolean[] = [];
-  for (const m of matches) {
-    if (results.length >= 5) break;
-    const inTeamA = m.teamA.includes(playerId);
-    const inTeamB = m.teamB.includes(playerId);
-    if (!inTeamA && !inTeamB) continue;
-    const won =
-      (inTeamA && m.scoreA > m.scoreB) || (inTeamB && m.scoreB > m.scoreA);
-    results.push(won);
-  }
-  return results;
-}
+import {
+  getDeltaFromLastMatch,
+  getLast5MatchResults,
+} from "@/utils/playerStats";
 
 export const LeagueDashboard = () => {
   const { id } = useParams<{ id: string }>();

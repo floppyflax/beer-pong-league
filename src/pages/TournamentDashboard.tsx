@@ -35,42 +35,10 @@ import {
   FAB,
 } from "@/components/design-system";
 
-// Delta ELO du dernier match du joueur (AC5)
-function getDeltaFromLastMatch(
-  playerId: string,
-  matches: { date: string; teamA: string[]; teamB: string[]; eloChanges?: Record<string, number> }[],
-): number | undefined {
-  const sorted = [...matches].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
-  for (const m of sorted) {
-    if (m.teamA.includes(playerId) || m.teamB.includes(playerId)) {
-      const change = m.eloChanges?.[playerId];
-      return change !== undefined ? change : undefined;
-    }
-  }
-  return undefined;
-}
-
-// Derniers 5 résultats (true=victoire, false=défaite), du plus récent au plus ancien
-function getLast5MatchResults(
-  playerId: string,
-  matches: { date: string; teamA: string[]; teamB: string[]; scoreA: number; scoreB: number }[],
-): boolean[] {
-  const sorted = [...matches].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
-  const results: boolean[] = [];
-  for (const m of sorted) {
-    if (results.length >= 5) break;
-    const inTeamA = m.teamA.includes(playerId);
-    const inTeamB = m.teamB.includes(playerId);
-    if (!inTeamA && !inTeamB) continue;
-    const won = (inTeamA && m.scoreA > m.scoreB) || (inTeamB && m.scoreB > m.scoreA);
-    results.push(won);
-  }
-  return results;
-}
+import {
+  getDeltaFromLastMatch,
+  getLast5MatchResults,
+} from "@/utils/playerStats";
 
 // Task 4 - Utility function for relative timestamps (AC4)
 function getRelativeTimestamp(date: string): string {
@@ -152,6 +120,15 @@ export const TournamentDashboard = () => {
 
   // Find tournament (but ALL hooks must still be called even if null)
   const tournament = tournaments.find((t) => t.id === id);
+
+  // Matchs triés du plus récent au plus ancien — requis par les utils `playerStats`
+  const sortedMatches = useMemo(
+    () =>
+      [...(tournament?.matches ?? [])].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      ),
+    [tournament?.matches],
+  );
 
   // Load tournament participants from tournament_players (IDs match match.teamA/teamB)
   const [tournamentParticipants, setTournamentParticipants] = useState<
@@ -581,9 +558,9 @@ export const TournamentDashboard = () => {
                   );
                   const recentResults = getLast5MatchResults(
                     player.id,
-                    tournament.matches,
+                    sortedMatches,
                   );
-                  const delta = getDeltaFromLastMatch(player.id, tournament.matches);
+                  const delta = getDeltaFromLastMatch(player.id, sortedMatches);
                   return (
                     <ListRow
                       key={player.id}
