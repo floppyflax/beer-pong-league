@@ -1,78 +1,43 @@
-# 🍺 Beer Pong League
+# Beer Pong League
 
-Application de gestion de tournois et ligues de beer pong avec système ELO.
+Application web de gestion de ligues et tournois de beer-pong avec classement ELO individuel. React 18 + TypeScript + Vite, backend Supabase, paiements Stripe, déployée sur Vercel.
 
-## 🚀 Déploiement sur Vercel
+**Live** : [beer-pong-elo.com](https://beer-pong-elo.com)
 
-### Option 1 : Via Vercel Dashboard (Recommandé)
-
-1. Allez sur [vercel.com](https://vercel.com)
-2. Cliquez sur "Add New Project"
-3. Importez le repo GitHub `floppyflax/beer-pong-league`
-4. Configurez les variables d'environnement :
-   - `VITE_SUPABASE_URL` : URL de votre projet Supabase
-   - `VITE_SUPABASE_PUBLIC_KEY` : Publishable key de votre projet Supabase (format `sb_publishable_xxx`)
-5. Cliquez sur "Deploy"
-
-### Option 2 : Via Vercel CLI
+## Démarrage rapide
 
 ```bash
-# Installer Vercel CLI (si pas déjà installé)
-npm i -g vercel
-
-# Se connecter à Vercel
-vercel login
-
-# Déployer
-vercel
-
-# Pour lier à un projet existant
-vercel link
-
-# Pour déployer en production
-vercel --prod
+git clone https://github.com/floppyflax/beer-pong-league.git
+cd beer-pong-league
+npm install
 ```
 
-## 🔧 Configuration
-
-### Variables d'environnement
-
-Créez un fichier `.env.local` à la racine du projet :
+Créer `.env.local` :
 
 ```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_URL=https://<votre-projet>.supabase.co
 VITE_SUPABASE_PUBLIC_KEY=sb_publishable_xxx
 ```
 
-> **Note**: Utilisez la nouvelle **publishable key** (format `sb_publishable_xxx`) depuis le dashboard Supabase → Project Settings → API. L'ancienne `anon key` est deprecated.
-
-### Build
+Lancer :
 
 ```bash
-npm install
-npm run build
+npm run dev
 ```
 
-## 📦 Technologies
+## Documentation
 
-- **React** + **TypeScript**
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling
-- **Supabase** - Backend (Auth + Database)
-- **React Router** - Routing
-- **Vercel** - Hosting
+Toute la doc technique et produit est dans [`docs/`](./docs/README.md) :
 
-## 🎯 Fonctionnalités
+- [Getting Started](./docs/getting-started.md) — install détaillée.
+- [Architecture](./docs/architecture.md) — stack, modèle de données, composants.
+- [Auth & identité](./docs/auth-identity.md) — flow anonyme / OTP / merge.
+- [Paiements Stripe](./docs/payments.md)
+- [Supabase](./docs/supabase.md) — clés, variables, edge functions.
+- [Testing](./docs/testing.md)
+- [Déploiement](./docs/deployment.md)
+- [Roadmap](./docs/roadmap.md)
 
-- ✅ Gestion de ligues et tournois
-- ✅ Système ELO pour le classement
-- ✅ Authentification (email + OTP)
-- ✅ Profils utilisateurs (authentifié ou anonyme)
-- ✅ Display View pour projection live
-- ✅ Synchronisation Supabase (avec fallback localStorage)
+## Stack
 
-## 📝 Notes
-
-- L'application fonctionne en mode offline-first avec localStorage comme fallback
-- Les données sont synchronisées avec Supabase quand disponible
-- Migration automatique des données localStorage vers Supabase
+React 18, TypeScript, Vite, Tailwind CSS, Supabase (Auth + Postgres + Edge Functions), Stripe, Vercel.
