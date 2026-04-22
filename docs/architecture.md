@@ -21,25 +21,33 @@ SPA React + TypeScript déployée sur Vercel, adossée à Supabase (Postgres, Au
 | PWA / cache | Workbox |
 | Hébergement | Vercel |
 
-## Arborescence `src/`
+## Arborescence monorepo
 
 ```
-src/
-├── components/         # Composants réutilisables
-│   └── layout/         # MenuDrawer, wrappers de layout
-├── context/            # AuthContext, IdentityContext, LeagueContext
-├── hooks/              # useAuth, useIdentity
-├── lib/                # Client Supabase (supabase.ts)
-├── pages/              # Vues route-level
-├── services/           # Auth, Database, Identity, Migration, Stripe
-├── types/              # Types Supabase générés
-├── utils/              # deviceFingerprint, elo
-├── App.tsx             # Providers + Router
-├── main.tsx            # Entry point
-└── index.css
+apps/
+  web/src/
+    components/         # UI réutilisables
+      design-system/    # Primitives Arcade (Banner, Card, ScreenLayout, etc.)
+      layout/           # MenuDrawer, wrappers
+      ponglo/           # Wordmark, PButton, EloDelta, PRankBadge
+    context/            # AuthContext, IdentityContext, LeagueContext
+    hooks/              # useAuth, useIdentity
+    lib/                # Client Supabase (supabase.ts)
+    pages/              # Vues route-level
+    services/           # Auth, Database, Identity, Migration, Stripe + repositories/
+    types/              # Types Supabase générés + métier
+    utils/              # deviceFingerprint, elo, dateUtils
+    App.tsx
+    main.tsx
+  mobile/src/           # React Native — miroir des 9 principaux screens
+packages/
+  shared/src/           # Types, services, utils partagés web ↔ mobile
+supabase/
+  functions/            # Edge functions (create-checkout-session, verify-payment-session)
+  migrations/           # 001_initial_schema.sql, 002_add_anti_cheat.sql, ...
 ```
 
-Config à la racine : `package.json`, `vite.config.ts` (alias `@/`), `tsconfig.json`, `tailwind.config.js`, `vercel.json`, `playwright.config.ts`.
+Config à la racine : `package.json` (workspaces), `vercel.json`, `playwright.config.ts`. Config par app : `vite.config.ts` (alias `@/`), `tsconfig.json`, `tailwind.config.js`.
 
 ## Modèle de données (Supabase Postgres)
 
@@ -81,7 +89,18 @@ Les migrations vivent dans `supabase/migrations/` : `001_initial_schema.sql` et 
 - Typo : `Space Grotesk` (body), `Archivo` (display, labels uppercase), `JetBrains Mono` (chiffres, codes).
 - Composants dans `src/components/design-system/` — APIs stables : `Banner`, `HelpCard`, `PlayerCard`, `StatCard`, `InfoCard`, `FAB`, `ListRow`, `SegmentedTabs`, `SearchBar`, `ScreenLayout` (wrapper header + max-width + overlay), `LastActivityCard` (carte générique leagues/tournaments).
 - Primitives Ponglo dans `src/components/ponglo/` : `PongloWordmark`, `PButton` (variants `primary` / `accent` / `lime` / `dark` / `ghost`), `EloDelta` (badge `+14`/`-12`), `PRankBadge` (tiers par ELO).
-- Showcase vivant : route `/design-system` (`src/pages/DesignSystemShowcase.tsx`).
+- Showcase vivant : route `/design-system` (`apps/web/src/pages/DesignSystemShowcase.tsx`).
+
+### Form Page Pattern (Sticky CTA)
+
+**Pages concernées :** `CreateTournament`, `CreateLeague`, et toute page de formulaire création/édition.
+
+**Règle :** le CTA principal (submit) est **sticky** au-dessus du bottom nav, toujours visible pendant le scroll.
+
+**Structure :**
+- Zone contenu : `overflow-y-auto pb-24` (réserve d'espace pour la barre CTA)
+- Barre CTA : `fixed bottom-16 inset-x-0 z-20 bg-paper border-t border-ink/10 p-4 md:p-6`
+- Bouton : attribut `form="form-id"` pour l'associer au formulaire (bouton hors du `<form>`)
 
 ### Layout et shell
 - `components/layout/MenuDrawer` — drawer de navigation principal.

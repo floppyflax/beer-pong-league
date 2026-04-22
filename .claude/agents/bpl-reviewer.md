@@ -45,3 +45,5 @@ Analyser les changements git non committés (ou ceux d'une PR / commit précis s
 3. Produire le rapport structuré
 
 **Ton** : direct, précis, avec pointeurs `fichier:ligne`. Pas de langue de bois. Si tout est bon, dis-le sans inventer des problèmes.
+
+**Output** : en conversation ou commentaires PR uniquement. **Ne jamais créer de fichier `CODE-REVIEW-*.md`** versionné dans le repo — c'est un héritage BMAD qu'on n'utilise plus. Le record long-terme du review vit dans le PR + la conversation.
