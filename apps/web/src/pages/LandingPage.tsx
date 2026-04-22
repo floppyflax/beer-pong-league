@@ -55,16 +55,13 @@ export const LandingPage = () => {
         <h1
           className="font-archivo font-black uppercase text-ink"
           style={{
-            fontSize: "clamp(40px, 12vw, 52px)",
+            fontSize: "clamp(32px, 10vw, 48px)",
             lineHeight: 0.92,
             letterSpacing: "-1.8px",
             textWrap: "balance",
           }}
         >
-          Le beer pong.
-          <br />
-          Enfin avec un
-          <br />
+          Le beer pong. Enfin avec un{" "}
           <span className="text-lime">vrai classement.</span>
         </h1>
         <p className="mt-[18px] text-[15px] leading-[1.4] text-ink/70">

@@ -60,3 +60,7 @@ export type {
   PlayerCardCompactProps,
   PlayerCardFullProps,
 } from './PlayerCard';
+export { ScreenLayout } from './ScreenLayout';
+export type { ScreenLayoutProps } from './ScreenLayout';
+export { LastActivityCard } from './LastActivityCard';
+export type { LastActivityCardProps } from './LastActivityCard';
