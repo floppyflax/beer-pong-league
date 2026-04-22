@@ -1,10 +1,11 @@
-import { X, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
+import { Sparkles, CheckCircle, AlertCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIdentity } from "../hooks/useIdentity";
 import { useAuthContext } from "../context/AuthContext";
 import { premiumService } from "../services/PremiumService";
 import { stripeService } from "../services/StripeService";
 import { supabase } from "../lib/supabase";
+import { Modal } from "./Modal";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -16,7 +17,6 @@ interface PaymentModalProps {
   subtitle?: string;
 }
 
-// Payment state machine
 type PaymentState = "idle" | "processing" | "success" | "error";
 
 export const PaymentModal = ({
@@ -31,65 +31,38 @@ export const PaymentModal = ({
   const [paymentState, setPaymentState] = useState<PaymentState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false); // FIX #4: Prevent double-click
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // FIX #1 & #3: Refs for cleanup
   const pollingAbortRef = useRef<AbortController | null>(null);
   const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
 
-  // FIX #3: Cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
 
     return () => {
       isMountedRef.current = false;
 
-      // Cleanup polling
       if (pollingAbortRef.current) {
         pollingAbortRef.current.abort();
       }
 
-      // Cleanup success timeout
       if (successTimeoutRef.current) {
         clearTimeout(successTimeoutRef.current);
       }
     };
   }, []);
 
-  // Escape key closes modal (or dismisses confirmation)
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (showCloseConfirmation) {
-        setShowCloseConfirmation(false);
-      } else if (paymentState === "success") {
-        onClose();
-      } else if (paymentState === "processing") {
-        setShowCloseConfirmation(true);
-      } else {
-        setPaymentState("idle");
-        setError(null);
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, showCloseConfirmation, paymentState, onClose]);
-
   if (!isOpen) return null;
 
-  // FIX #2 & #7: Poll for premium status update after payment (webhook confirmation)
-  // This simulates waiting for a webhook. In production (Story 7.4), we'll use real webhook events.
   const pollForPremiumStatus = async (
     userId: string | null,
     anonymousUserId: string | null,
     transactionId: string,
     abortSignal: AbortSignal,
   ): Promise<boolean> => {
-    const maxAttempts = 10; // 10 attempts
-    const interval = 1000; // 1 second between attempts
+    const maxAttempts = 10;
+    const interval = 1000;
 
     console.log(
       "Polling for webhook confirmation of transaction:",
@@ -97,22 +70,17 @@ export const PaymentModal = ({
     );
 
     for (let i = 0; i < maxAttempts; i++) {
-      // Check if aborted
       if (abortSignal.aborted) {
         console.log("Polling aborted for transaction:", transactionId);
         return false;
       }
 
-      // Wait before polling
       await new Promise((resolve) => setTimeout(resolve, interval));
 
-      // Check if aborted again after timeout
       if (abortSignal.aborted) {
         return false;
       }
 
-      // In production (Story 7.4), we'd check if a webhook confirmed this specific transaction
-      // For now, we verify premium status was updated (webhook simulation)
       const isPremium = await premiumService.isPremium(userId, anonymousUserId);
       if (isPremium) {
         console.log("Webhook confirmed transaction:", transactionId);
@@ -125,7 +93,6 @@ export const PaymentModal = ({
   };
 
   const handlePayment = async () => {
-    // FIX #4: Prevent double-click
     if (isProcessing) {
       return;
     }
@@ -145,19 +112,15 @@ export const PaymentModal = ({
         return;
       }
 
-      // FIX #6: Check if supabase is available
       if (!supabase) {
         throw new Error("Database connection not available");
       }
 
-      // Story 7.3: Check if Stripe is configured
       const isStripeConfigured = stripeService.isStripeConfigured();
 
       if (isStripeConfigured) {
-        // PRODUCTION MODE: Use real Stripe Checkout
         console.log("🔐 Stripe Mode: Redirecting to Stripe Checkout...");
 
-        // Create Stripe Checkout session
         const session = await stripeService.createCheckoutSession(
           userId,
           anonymousUserId,
@@ -172,29 +135,21 @@ export const PaymentModal = ({
           return;
         }
 
-        // Log transaction for tracking
         console.log("Payment transaction started:", session.sessionId);
 
-        // Redirect to Stripe Checkout (user will be redirected back after payment)
         window.location.href = session.url;
-        // Note: Component will be unmounted during redirect, cleanup handlers will run
         return;
       }
 
-      // DEVELOPMENT MODE: Simulation fallback (if Stripe not configured)
       console.log(
         "🧪 Simulation Mode: Stripe not configured, using simulation",
       );
 
-      // Generate simulated transaction ID
       const transactionId = `sim_${Date.now()}_${userId || anonymousUserId}`;
-      console.log("Simulated payment transaction started:", transactionId);
+      console.log("Payment transaction started:", transactionId);
 
-      // Simulate payment delay
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // FIX #2: In simulation, we update is_premium directly to mimic webhook
-      // In production, webhook (Story 7.4) will do this server-side
       let updateError;
 
       console.log("💳 Payment simulation - User info:", {
@@ -204,7 +159,6 @@ export const PaymentModal = ({
       });
 
       if (userId) {
-        // Authenticated user: UPSERT (create if doesn't exist, update otherwise)
         console.log("💳 Upserting authenticated user:", userId);
         const { error, data } = await supabase
           .from("users")
@@ -212,7 +166,6 @@ export const PaymentModal = ({
             {
               id: userId,
               is_premium: true,
-              // Minimal data - the user should already exist from auth
               pseudo: user?.email?.split("@")[0] || "User",
             },
             {
@@ -224,7 +177,6 @@ export const PaymentModal = ({
         console.log("💳 Upsert result:", { error, data });
         updateError = error;
       } else if (anonymousUserId) {
-        // Anonymous user: UPSERT (create if doesn't exist)
         console.log("💳 Upserting anonymous user:", anonymousUserId);
         const { error, data } = await supabase
           .from("anonymous_users")
@@ -253,10 +205,8 @@ export const PaymentModal = ({
         return;
       }
 
-      // Create abort controller for polling
       pollingAbortRef.current = new AbortController();
 
-      // Poll for premium status confirmation (simulates waiting for webhook)
       const premiumConfirmed = await pollForPremiumStatus(
         userId,
         anonymousUserId,
@@ -264,7 +214,6 @@ export const PaymentModal = ({
         pollingAbortRef.current.signal,
       );
 
-      // FIX #3: Check if component is still mounted
       if (!isMountedRef.current) {
         return;
       }
@@ -276,14 +225,11 @@ export const PaymentModal = ({
         return;
       }
 
-      // Mise à jour localStorage
       premiumService.updatePremiumStatusInLocalStorage(true);
 
-      // Success state
       setPaymentState("success");
       setIsProcessing(false);
 
-      // FIX #1: Store timeout ref for cleanup and check if mounted
       successTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current) {
           onSuccess?.();
@@ -293,7 +239,6 @@ export const PaymentModal = ({
     } catch (error) {
       console.error("Payment error:", error);
 
-      // FIX #3: Check if component is still mounted
       if (!isMountedRef.current) {
         return;
       }
@@ -305,18 +250,16 @@ export const PaymentModal = ({
   };
 
   const handleClose = () => {
-    // If processing, show confirmation
     if (paymentState === "processing") {
       setShowCloseConfirmation(true);
       return;
     }
 
-    // If success, don't allow manual close (auto-closes)
     if (paymentState === "success") {
+      onClose();
       return;
     }
 
-    // Reset state and close
     setPaymentState("idle");
     setError(null);
     setShowCloseConfirmation(false);
@@ -333,231 +276,203 @@ export const PaymentModal = ({
   const handleRetry = () => {
     setPaymentState("idle");
     setError(null);
-    setIsProcessing(false); // FIX #4: Reset processing flag
+    setIsProcessing(false);
   };
 
   // Close confirmation dialog
   if (showCloseConfirmation) {
     return (
-      <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-        <div className="bg-cream w-full max-w-sm rounded-2xl p-6 border border-card">
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex items-start gap-3 flex-1">
-              <AlertCircle
-                size={24}
-                className="text-gold flex-shrink-0 mt-0.5"
-              />
-              <div>
-                <h3 className="text-lg font-bold mb-2">
-                  Annuler le paiement ?
-                </h3>
-                <p className="text-sm text-ink-soft">
-                  Le paiement est en cours. Êtes-vous sûr de vouloir annuler ?
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowCloseConfirmation(false)}
-              className="p-2 hover:bg-paper rounded-lg transition-colors flex-shrink-0"
-              aria-label="Fermer"
-            >
-              <X size={20} className="text-ink-soft" />
-            </button>
-          </div>
+      <Modal
+        isOpen={true}
+        onClose={() => setShowCloseConfirmation(false)}
+        title={
+          <span className="flex items-center gap-2">
+            <AlertCircle size={22} className="text-primary" />
+            Annuler le paiement ?
+          </span>
+        }
+        maxWidth="max-w-sm"
+        layer="top"
+      >
+        <p className="text-sm text-text-tertiary mb-6">
+          Le paiement est en cours. Êtes-vous sûr de vouloir annuler ?
+        </p>
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowCloseConfirmation(false)}
-              className="flex-1 bg-cream-deep hover:bg-paper text-ink font-bold py-3 rounded-xl transition-colors"
-            >
-              Continuer
-            </button>
-            <button
-              onClick={handleConfirmClose}
-              className="flex-1 bg-red-500/20 border border-red-500/50 hover:bg-red-500/30 text-red-500 font-bold py-3 rounded-xl transition-colors"
-            >
-              Annuler
-            </button>
-          </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowCloseConfirmation(false)}
+            className="flex-1 bg-background-tertiary hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
+          >
+            Continuer
+          </button>
+          <button
+            onClick={handleConfirmClose}
+            className="flex-1 bg-error/20 border border-error/50 hover:bg-error/30 text-error font-bold py-3 rounded-input transition-colors"
+          >
+            Annuler
+          </button>
         </div>
-      </div>
+      </Modal>
     );
   }
 
   // Success state
   if (paymentState === "success") {
     return (
-      <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-        <div className="bg-cream w-full max-w-md rounded-2xl p-6 border border-card relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-paper rounded-lg transition-colors"
-            aria-label="Fermer"
-          >
-            <X size={20} className="text-ink-soft" />
-          </button>
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-2">
-              <CheckCircle size={32} className="text-green-500" />
-            </div>
-            <h3 className="text-2xl font-bold text-ink">Paiement réussi !</h3>
-            <p className="text-ink-soft">
-              Ton compte est maintenant Premium. Profite de toutes les
-              fonctionnalités illimitées !
+      <Modal
+        isOpen={true}
+        onClose={onClose}
+        title="Paiement réussi !"
+        layer="top"
+      >
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-success/20 rounded-full">
+            <CheckCircle size={32} className="text-success" />
+          </div>
+          <p className="text-text-tertiary">
+            Ton compte est maintenant Premium. Profite de toutes les
+            fonctionnalités illimitées !
+          </p>
+          <div className="pt-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+            <p className="text-sm text-text-muted mt-2">
+              Fermeture automatique...
             </p>
-            <div className="pt-2">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cup-red mx-auto" />
-              <p className="text-sm text-ink-mute mt-2">
-                Fermeture automatique...
-              </p>
-            </div>
           </div>
         </div>
-      </div>
+      </Modal>
     );
   }
 
   // Main payment modal
   return (
-    <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-      <div className="bg-cream w-full max-w-md rounded-2xl p-6 border border-card">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <Sparkles size={24} className="text-cup-red" />
-            <h3 className="text-xl font-bold">{title ?? "Passe Premium"}</h3>
+    <Modal
+      isOpen={true}
+      onClose={handleClose}
+      title={
+        <span className="flex items-center gap-2">
+          <Sparkles size={22} className="text-primary" />
+          {title ?? "Passe Premium"}
+        </span>
+      }
+      layer="top"
+    >
+      <div className="space-y-6">
+        {subtitle && (
+          <div className="bg-primary/10 border border-primary/30 rounded-input p-4">
+            <p className="text-primary text-sm">{subtitle}</p>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-paper rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={paymentState === "processing"}
-            aria-label="Fermer"
-          >
-            <X size={20} className="text-ink-soft" />
-          </button>
+        )}
+        <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-card p-6 text-center border border-primary/30">
+          <div className="text-5xl font-black text-white mb-2">3€</div>
+          <div className="text-sm text-text-secondary">
+            Paiement unique - À vie
+          </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Custom subtitle (e.g. league limit message per AC5 10-3) */}
-          {subtitle && (
-            <div className="bg-gold/10 border border-gold/30 rounded-xl p-4">
-              <p className="text-gold text-sm">{subtitle}</p>
-            </div>
-          )}
-          {/* Prix */}
-          <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl p-6 text-center border border-cup-red/30">
-            <div className="text-5xl font-black text-ink mb-2">3€</div>
-            <div className="text-sm text-ink-soft">
-              Paiement unique - À vie
-            </div>
-          </div>
-
-          {/* Avantages */}
-          <div className="space-y-3">
-            <div className="flex items-start gap-3 bg-paper/50 p-4 rounded-xl">
-              <CheckCircle
-                size={20}
-                className="text-green-500 mt-0.5 flex-shrink-0"
-              />
-              <div>
-                <div className="font-semibold text-ink">
-                  Tournois illimités
-                </div>
-                <div className="text-sm text-ink-soft">
-                  Crée autant de tournois que tu veux
-                </div>
+        <div className="space-y-3">
+          <div className="flex items-start gap-3 bg-background-tertiary/50 p-4 rounded-input">
+            <CheckCircle
+              size={20}
+              className="text-success mt-0.5 flex-shrink-0"
+            />
+            <div>
+              <div className="font-semibold text-white">
+                Tournois illimités
               </div>
-            </div>
-
-            <div className="flex items-start gap-3 bg-paper/50 p-4 rounded-xl">
-              <CheckCircle
-                size={20}
-                className="text-green-500 mt-0.5 flex-shrink-0"
-              />
-              <div>
-                <div className="font-semibold text-ink">
-                  Ligues illimitées
-                </div>
-                <div className="text-sm text-ink-soft">
-                  Crée et gère des ligues avec saisons
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 bg-paper/50 p-4 rounded-xl">
-              <CheckCircle
-                size={20}
-                className="text-green-500 mt-0.5 flex-shrink-0"
-              />
-              <div>
-                <div className="font-semibold text-ink">
-                  Joueurs illimités
-                </div>
-                <div className="text-sm text-ink-soft">
-                  Aucune limite de participants par tournoi
-                </div>
+              <div className="text-sm text-text-tertiary">
+                Crée autant de tournois que tu veux
               </div>
             </div>
           </div>
 
-          {/* Message d'erreur */}
-          {paymentState === "error" && error && (
-            <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle
-                  size={20}
-                  className="text-red-500 mt-0.5 flex-shrink-0"
-                />
-                <div>
-                  <div className="font-semibold text-red-500 mb-1">
-                    Erreur de paiement
-                  </div>
-                  <div className="text-red-400 text-sm">{error}</div>
-                </div>
+          <div className="flex items-start gap-3 bg-background-tertiary/50 p-4 rounded-input">
+            <CheckCircle
+              size={20}
+              className="text-success mt-0.5 flex-shrink-0"
+            />
+            <div>
+              <div className="font-semibold text-white">
+                Ligues illimitées
+              </div>
+              <div className="text-sm text-text-tertiary">
+                Crée et gère des ligues avec saisons
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Bouton de paiement ou retry */}
-          {paymentState === "error" ? (
-            <button
-              onClick={handleRetry}
-              className="w-full bg-cream-deep hover:bg-paper text-ink font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
-            >
-              <span>Réessayer</span>
-            </button>
-          ) : (
-            <button
-              onClick={handlePayment}
-              disabled={paymentState === "processing"}
-              className="w-full bg-cup-red hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-ink font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
-            >
-              {paymentState === "processing" ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                  <span>Traitement en cours...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={20} />
-                  <span>Débloquer Premium - 3€</span>
-                </>
-              )}
-            </button>
-          )}
+          <div className="flex items-start gap-3 bg-background-tertiary/50 p-4 rounded-input">
+            <CheckCircle
+              size={20}
+              className="text-success mt-0.5 flex-shrink-0"
+            />
+            <div>
+              <div className="font-semibold text-white">
+                Joueurs illimités
+              </div>
+              <div className="text-sm text-text-tertiary">
+                Aucune limite de participants par tournoi
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <div className="text-xs text-ink-mute text-center">
-            {import.meta.env.DEV ? (
+        {paymentState === "error" && error && (
+          <div className="bg-error/20 border border-error/50 rounded-input p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle
+                size={20}
+                className="text-error mt-0.5 flex-shrink-0"
+              />
+              <div>
+                <div className="font-semibold text-error mb-1">
+                  Erreur de paiement
+                </div>
+                <div className="text-red-400 text-sm">{error}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {paymentState === "error" ? (
+          <button
+            onClick={handleRetry}
+            className="w-full bg-background-tertiary hover:bg-slate-600 text-white font-bold py-4 rounded-input transition-colors flex items-center justify-center gap-2"
+          >
+            <span>Réessayer</span>
+          </button>
+        ) : (
+          <button
+            onClick={handlePayment}
+            disabled={paymentState === "processing"}
+            className="w-full bg-primary hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-input transition-colors flex items-center justify-center gap-2"
+          >
+            {paymentState === "processing" ? (
               <>
-                🧪 Mode développement: Simulation de paiement
-                <br />
-                L'intégration Stripe (Story 7.3) sera ajoutée prochainement
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                <span>Traitement en cours...</span>
               </>
             ) : (
-              "Paiement sécurisé via Stripe"
+              <>
+                <Sparkles size={20} />
+                <span>Débloquer Premium - 3€</span>
+              </>
             )}
-          </div>
+          </button>
+        )}
+
+        <div className="text-xs text-text-muted text-center">
+          {import.meta.env.DEV ? (
+            <>
+              🧪 Mode développement: Simulation de paiement
+              <br />
+              L'intégration Stripe (Story 7.3) sera ajoutée prochainement
+            </>
+          ) : (
+            "Paiement sécurisé via Stripe"
+          )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

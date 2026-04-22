@@ -1,27 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
-/**
- * Modal Component
- * 
- * Accessible, reusable modal dialog with proper ARIA attributes and keyboard navigation
- * 
- * Features:
- * - ARIA attributes for screen readers
- * - Focus trap (focus stays within modal)
- * - Escape key to close
- * - Click outside to close
- * - Focus management (auto-focus first focusable element)
- * - Backdrop with blur effect
- */
-
 export interface ModalProps {
   /** Whether the modal is open */
   isOpen: boolean;
   /** Callback when modal should close */
   onClose: () => void;
   /** Modal title (required for accessibility) */
-  title: string;
+  title: React.ReactNode;
   /** Modal content */
   children: React.ReactNode;
   /** Optional footer content (e.g., action buttons) */
@@ -30,6 +16,12 @@ export interface ModalProps {
   maxWidth?: string;
   /** Hide the close X button (default: false) */
   hideCloseButton?: boolean;
+  /** Disable close affordances (X, Escape, backdrop click) */
+  disableClose?: boolean;
+  /** Stack layer — use 'top' for nested modals (z-[60]) */
+  layer?: 'default' | 'top';
+  /** Custom class on the modal surface (advanced) */
+  className?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -40,13 +32,15 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   maxWidth = 'max-w-md',
   hideCloseButton = false,
+  disableClose = false,
+  layer = 'default',
+  className = '',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Handle Escape key
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || disableClose) return;
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -56,25 +50,21 @@ export const Modal: React.FC<ModalProps> = ({
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, disableClose]);
 
-  // Focus management
   useEffect(() => {
     if (!isOpen) return;
 
-    // Store previously focused element
     previousFocusRef.current = document.activeElement as HTMLElement;
 
-    // Focus first focusable element in modal
     const focusableElements = modalRef.current?.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-    
+
     if (focusableElements && focusableElements.length > 0) {
       (focusableElements[0] as HTMLElement).focus();
     }
 
-    // Restore focus when modal closes
     return () => {
       if (previousFocusRef.current) {
         previousFocusRef.current.focus();
@@ -82,8 +72,8 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen]);
 
-  // Click outside to close
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (disableClose) return;
     if (event.target === event.currentTarget) {
       onClose();
     }
@@ -91,9 +81,11 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
+  const zClass = layer === 'top' ? 'z-[60]' : 'z-50';
+
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className={`fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center ${zClass} p-4`}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
@@ -101,36 +93,28 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         ref={modalRef}
-        className={`bg-paper rounded-xl ${maxWidth} w-full mx-auto shadow-2xl`}
+        className={`bg-background-secondary rounded-card ${maxWidth} w-full mx-auto border border-card shadow-modal ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-card">
-          <h2 id="modal-title" className="text-xl font-bold text-ink">
+        <div className="flex items-center justify-between p-6 pb-4">
+          <h2 id="modal-title" className="text-xl font-bold text-white">
             {title}
           </h2>
           {!hideCloseButton && (
             <button
               onClick={onClose}
-              className="p-2 hover:bg-cream-deep rounded-lg transition-colors"
+              disabled={disableClose}
+              className="p-2 hover:bg-background-tertiary rounded-button transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Fermer"
             >
-              <X size={20} className="text-ink-soft" />
+              <X size={20} className="text-text-tertiary" />
             </button>
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-6">
-          {children}
-        </div>
+        <div className="px-6 pb-6">{children}</div>
 
-        {/* Footer */}
-        {footer && (
-          <div className="p-6 pt-0 border-t border-card">
-            {footer}
-          </div>
-        )}
+        {footer && <div className="px-6 pb-6">{footer}</div>}
       </div>
     </div>
   );

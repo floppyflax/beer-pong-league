@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, FormEvent } from "react";
-import { X, Mail, CheckCircle } from "lucide-react";
+import { useState, useCallback, FormEvent } from "react";
+import { Mail, CheckCircle } from "lucide-react";
 import { authService } from "../services/AuthService";
+import { Modal } from "./Modal";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,18 +23,6 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     onClose();
   }, [onClose]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, handleClose]);
-
-  if (!isOpen) return null;
-
-  // Check if email is a test account
   const isTestAccount = (email: string): boolean => {
     if (!import.meta.env.DEV) return false;
     const testAccounts = [
@@ -53,7 +42,6 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Email invalide");
@@ -73,20 +61,17 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
         return;
       }
 
-      // Si c'est un compte test ET password auth a réussi (usedOTP === false)
       if (isTestAccount(email) && usedOTP === false) {
         console.log("🧪 Test account logged in with password, closing modal");
         setIsLoading(false);
         handleClose();
 
-        // Wait a bit for auth state to propagate, then call onSuccess
         setTimeout(() => {
           onSuccess?.();
         }, 500);
         return;
       }
 
-      // Sinon (OTP envoyé), afficher l'étape "email envoyé"
       setStep("sent");
       setIsLoading(false);
     } catch (error) {
@@ -96,122 +81,112 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-cream w-full max-w-sm rounded-2xl p-6 border border-card">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold">
-            {step === "email" ? "Créer un compte" : "Email envoyé !"}
-          </h3>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={step === "email" ? "Créer un compte" : "Email envoyé !"}
+      maxWidth="max-w-sm"
+    >
+      {step === "email" ? (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm text-text-tertiary mb-2 block">
+              Email
+            </label>
+            <div className="relative">
+              <Mail
+                size={20}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
+                placeholder="ton@email.com"
+                className="w-full bg-background-tertiary border border-card rounded-input pl-10 pr-4 py-4 text-white focus:ring-2 focus:ring-primary outline-none"
+                autoFocus
+                disabled={isLoading}
+              />
+            </div>
+            {error && <p className="text-error text-sm mt-2">{error}</p>}
+            {isTestAccount(email) ? (
+              <div className="bg-success/20 border border-success/50 rounded-button p-2 mt-2">
+                <p className="text-xs text-success font-semibold">
+                  🧪 Compte test détecté - Connexion directe
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-text-muted mt-2">
+                Un lien magique sera envoyé à cette adresse
+              </p>
+            )}
+          </div>
+
+          {import.meta.env.DEV && !email && (
+            <div className="bg-info/10 border border-info/30 rounded-button p-3">
+              <p className="text-xs text-info mb-1 font-semibold">
+                🧪 Mode développement
+              </p>
+              <p className="text-xs text-text-tertiary">
+                Comptes test disponibles :<br />•{" "}
+                <span className="text-white">devadmin@test.com</span>
+                <br />• <span className="text-white">devtest@test.com</span>
+                <br />
+                <span className="text-text-muted">
+                  (connexion instantanée)
+                </span>
+              </p>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={!email.trim() || isLoading}
+            className="w-full bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-input transition-colors"
+          >
+            {isLoading
+              ? isTestAccount(email)
+                ? "Connexion..."
+                : "Envoi..."
+              : isTestAccount(email)
+                ? "Se connecter"
+                : "Envoyer le lien magique"}
+          </button>
+        </form>
+      ) : (
+        <div className="space-y-4">
+          <div className="bg-success/20 border border-success/50 rounded-input p-4 flex items-center gap-3">
+            <CheckCircle size={24} className="text-success" />
+            <div>
+              <div className="font-bold text-success">Email envoyé !</div>
+              <div className="text-sm text-text-tertiary">
+                Vérifie ta boîte mail et clique sur le lien
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-background-tertiary p-4 rounded-input">
+            <div className="text-sm text-text-tertiary mb-2">
+              Email envoyé à :
+            </div>
+            <div className="font-bold text-white">{email}</div>
+          </div>
+
+          <div className="text-xs text-text-muted text-center">
+            Une fois le lien cliqué, tu seras automatiquement connecté
+          </div>
+
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-paper rounded-lg transition-colors"
-            disabled={isLoading}
-            aria-label="Fermer"
+            className="w-full bg-background-tertiary hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
           >
-            <X size={20} className="text-ink-soft" />
+            Fermer
           </button>
         </div>
-
-        {step === "email" ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm text-ink-soft mb-2 block">Email</label>
-              <div className="relative">
-                <Mail
-                  size={20}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute"
-                />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError(null);
-                  }}
-                  placeholder="ton@email.com"
-                  className="w-full bg-paper border border-card rounded-xl pl-10 pr-4 py-4 text-ink focus:ring-2 focus:ring-primary outline-none"
-                  autoFocus
-                  disabled={isLoading}
-                />
-              </div>
-              {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-              {isTestAccount(email) ? (
-                <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-2 mt-2">
-                  <p className="text-xs text-green-500 font-semibold">
-                    🧪 Compte test détecté - Connexion directe
-                  </p>
-                </div>
-              ) : (
-                <p className="text-xs text-ink-mute mt-2">
-                  Un lien magique sera envoyé à cette adresse
-                </p>
-              )}
-            </div>
-
-            {/* Dev mode hint */}
-            {import.meta.env.DEV && !email && (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                <p className="text-xs text-blue-400 mb-1 font-semibold">
-                  🧪 Mode développement
-                </p>
-                <p className="text-xs text-ink-soft">
-                  Comptes test disponibles :<br />•{" "}
-                  <span className="text-ink">devadmin@test.com</span>
-                  <br />• <span className="text-ink">devtest@test.com</span>
-                  <br />
-                  <span className="text-ink-mute">
-                    (connexion instantanée)
-                  </span>
-                </p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={!email.trim() || isLoading}
-              className="w-full bg-cup-red disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 text-ink font-bold py-4 rounded-xl transition-colors"
-            >
-              {isLoading
-                ? isTestAccount(email)
-                  ? "Connexion..."
-                  : "Envoi..."
-                : isTestAccount(email)
-                  ? "Se connecter"
-                  : "Envoyer le lien magique"}
-            </button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-4 flex items-center gap-3">
-              <CheckCircle size={24} className="text-green-500" />
-              <div>
-                <div className="font-bold text-green-500">Email envoyé !</div>
-                <div className="text-sm text-ink-soft">
-                  Vérifie ta boîte mail et clique sur le lien
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-paper p-4 rounded-xl">
-              <div className="text-sm text-ink-soft mb-2">
-                Email envoyé à :
-              </div>
-              <div className="font-bold text-ink">{email}</div>
-            </div>
-
-            <div className="text-xs text-ink-mute text-center">
-              Une fois le lien cliqué, tu seras automatiquement connecté
-            </div>
-
-            <button
-              onClick={handleClose}
-              className="w-full bg-cream-deep hover:bg-paper text-ink font-bold py-3 rounded-xl transition-colors"
-            >
-              Fermer
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 };
