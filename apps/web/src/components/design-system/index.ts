@@ -109,3 +109,10 @@ export { ClaimGuestBanner } from './ClaimGuestBanner';
 export type { ClaimGuestBannerProps } from './ClaimGuestBanner';
 export { ClaimGuestSheet } from './ClaimGuestSheet';
 export type { ClaimGuestSheetProps } from './ClaimGuestSheet';
+
+// Join-time identity chooser (continue-as-X / OTP / play-anonymous)
+export { IdentityGateSheet } from './IdentityGateSheet';
+export type {
+  IdentityGateSheetProps,
+  IdentityGateChoice,
+} from './IdentityGateSheet';

@@ -1,19 +1,49 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
+import { useAuthContext } from "../context/AuthContext";
+import { useIdentityContext } from "../context/IdentityContext";
 import { useRequireIdentity } from "../hooks/useRequireIdentity";
+import { useUnclaimedGuests } from "../hooks/useUnclaimedGuests";
 import { CreateIdentityModal } from "../components/CreateIdentityModal";
+import { AuthModal } from "../components/AuthModal";
 import { ContextualHeader } from "../components/navigation/ContextualHeader";
 import { TournamentCard } from "../components/tournaments/TournamentCard";
 import { PlayerCard } from "../components/design-system/PlayerCard";
 import { HelpCard } from "../components/design-system/HelpCard";
+import { ClaimGuestSheet } from "../components/design-system/ClaimGuestSheet";
+import {
+  IdentityGateSheet,
+  type IdentityGateChoice,
+} from "../components/design-system/IdentityGateSheet";
 import { PButton } from "../components/ponglo/PButton";
 import { UserPlus, Users } from "lucide-react";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { identityMergeService } from "../services/IdentityMergeService";
 import toast from "react-hot-toast";
 
+/**
+ * TournamentJoin — full join flow.
+ *
+ * Sequence on mount:
+ *   1. **`?ghost=TOKEN` short-circuit** — if the URL carries a ghost invite
+ *      token (admin-shared link), we ensure an identity then run the
+ *      `claim_ghost_by_token` RPC and route straight to the dashboard.
+ *   2. **IdentityGateSheet** — first visit, no identity choice yet → ask the
+ *      user to pick: continue-as-X / connect-by-email / play-anonymous.
+ *   3. **ClaimGuestSheet** — once identity is settled, show unclaimed ghost
+ *      players for this tournament so the user can adopt one ("c'est moi")
+ *      instead of duplicating themselves.
+ *   4. **Default UI** — pick an existing tournament_player OR create a new
+ *      participant; same as before PR3.
+ *
+ * The page is intentionally not a state-machine — each modal/sheet is
+ * conditioned on simple boolean state. We rely on the user's explicit choice
+ * to advance, and never auto-route them out of the flow.
+ */
 export const TournamentJoin = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const {
     tournaments,
@@ -22,35 +52,63 @@ export const TournamentJoin = () => {
     addAnonymousPlayerToTournament,
     isLoadingInitialData,
   } = useLeague();
+  const { user, isAuthenticated } = useAuthContext();
+  const { localUser, initializeAnonymousUser } = useIdentityContext();
   const { ensureIdentity, showModal, handleIdentityCreated, handleCancel } =
     useRequireIdentity();
+
+  // ---- Local UI state ----
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [showCreatePlayer, setShowCreatePlayer] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+
+  // ---- Identity-gate state ----
+  // `gateDecided` flips the first time the user makes a choice (or has been
+  // pre-resolved by an existing identity continuation). We don't persist it —
+  // re-mounting the route re-asks, which is the right UX for shared devices.
+  const [gateDecided, setGateDecided] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // ---- Claim-sheet state ----
+  const [showClaimSheet, setShowClaimSheet] = useState(false);
+  const [claimDismissed, setClaimDismissed] = useState(false);
+
+  // ---- Token (?ghost=TOKEN) state ----
+  // We consume the token only ONCE per mount so a re-render doesn't double-fire
+  // the RPC. After processing we clear the search param to prevent re-runs on
+  // back/forward navigation.
+  const ghostToken = searchParams.get("ghost");
+  const [tokenProcessed, setTokenProcessed] = useState(false);
 
   const tournament = tournaments.find((t) => t.id === id);
   const league = tournament?.leagueId
     ? leagues.find((l) => l.id === tournament.leagueId)
     : null;
 
-  // Get tournament players with their info
+  // Pseudo to display in the "Continuer en tant que X" CTA.
+  const currentPseudo = useMemo<string | null>(() => {
+    if (isAuthenticated && user) {
+      const meta = user.user_metadata as { pseudo?: string } | undefined;
+      return meta?.pseudo ?? user.email ?? null;
+    }
+    if (localUser) return localUser.pseudo ?? null;
+    return null;
+  }, [isAuthenticated, user, localUser]);
+
+  // Get tournament players with their info (existing logic, unchanged).
   const tournamentPlayers = tournament
     ? tournament.playerIds.map((playerId) => {
-        // Try to find in league players first
         if (league) {
           const leaguePlayer = league.players.find((p) => p.id === playerId);
           if (leaguePlayer) {
             return {
               id: playerId,
               name: leaguePlayer.name,
-              // FUTURE WORK: Implement account verification to check if player has an associated user account
-              // This will require integration with the identity system to lookup user_id/anonymous_user_id mappings
               hasAccount: false,
             };
           }
         }
-        // Fallback: just use the ID
         return {
           id: playerId,
           name: `Joueur ${playerId.slice(0, 8)}`,
@@ -59,24 +117,145 @@ export const TournamentJoin = () => {
       })
     : [];
 
+  // Unclaimed ghosts in this tournament — shown to BOTH auth + anon users
+  // (mode "any"); the claim RPC chooses the right backend on submit.
+  const { guests: unclaimedGuests, refresh: refreshGuests } = useUnclaimedGuests(
+    "tournament",
+    tournament?.id ?? null,
+    { mode: "any" },
+  );
+
+  // ---- Effects ----
+
+  // Tournament not found → redirect after a beat.
   useEffect(() => {
-    // If tournament not found, redirect after a moment
     if (!isLoadingInitialData && !tournament) {
-      setTimeout(() => {
-        navigate("/");
-      }, 3000);
+      const t = setTimeout(() => navigate("/"), 3000);
+      return () => clearTimeout(t);
     }
   }, [tournament, isLoadingInitialData, navigate]);
 
-  const handleJoinAsExistingPlayer = async () => {
-    if (!selectedPlayerId || !tournament) return;
+  // Token short-circuit: claim and bounce to the dashboard.
+  useEffect(() => {
+    if (!ghostToken || tokenProcessed || !tournament) return;
+    setTokenProcessed(true);
 
-    // Ensure user has an identity before joining
-    const identity = await ensureIdentity();
-    if (!identity) {
-      // User cancelled identity creation
+    (async () => {
+      const identity = await ensureIdentity();
+      if (!identity) return; // user cancelled the identity modal
+      const caller =
+        identity.type === "authenticated"
+          ? { userId: (identity.user as { id: string }).id }
+          : {
+              anonymousUserId: (identity.user as { anonymousUserId: string })
+                .anonymousUserId,
+            };
+
+      const result = await identityMergeService.claimGhostByToken(
+        ghostToken,
+        caller,
+      );
+
+      // Always wipe the token from the URL so refresh doesn't replay it.
+      const next = new URLSearchParams(searchParams);
+      next.delete("ghost");
+      setSearchParams(next, { replace: true });
+
+      if (!result.success) {
+        toast.error(result.error ?? "Lien d'invitation invalide");
+        // Stay on the join page so the user can pick another path.
+        return;
+      }
+
+      toast.success(`Bienvenue dans ${tournament.name} !`);
+      navigate(`/tournament/${tournament.id}`);
+    })();
+  }, [
+    ghostToken,
+    tokenProcessed,
+    tournament,
+    ensureIdentity,
+    navigate,
+    searchParams,
+    setSearchParams,
+  ]);
+
+  // After identity gate is resolved AND there are unclaimed ghosts, surface
+  // the claim sheet automatically (once per session per dismiss).
+  useEffect(() => {
+    if (!gateDecided || claimDismissed) return;
+    if (unclaimedGuests.length === 0) return;
+    if (showAuthModal || showModal) return; // don't stack sheets
+    setShowClaimSheet(true);
+  }, [
+    gateDecided,
+    claimDismissed,
+    unclaimedGuests.length,
+    showAuthModal,
+    showModal,
+  ]);
+
+  // ---- Handlers ----
+
+  const handleGateChoice = async (choice: IdentityGateChoice) => {
+    if (choice === "continue") {
+      setGateDecided(true);
       return;
     }
+    if (choice === "auth") {
+      setShowAuthModal(true);
+      return;
+    }
+    // "anonymous" — ensure we have a localUser; CreateIdentityModal will appear
+    // if needed via useRequireIdentity.
+    const identity = await ensureIdentity();
+    if (identity) setGateDecided(true);
+  };
+
+  const handleClaimGuest = async (playerId: string) => {
+    if (!tournament) return;
+    const guest = unclaimedGuests.find((g) => g.playerId === playerId);
+    if (!guest) return;
+
+    const identity = await ensureIdentity();
+    if (!identity) return;
+
+    let result;
+    if (identity.type === "authenticated") {
+      result = await identityMergeService.claimAnonymousPlayer(
+        "tournament",
+        playerId,
+        (identity.user as { id: string }).id,
+      );
+    } else {
+      result = await identityMergeService.claimAnonymousPlayerAsAnonymous(
+        "tournament",
+        playerId,
+        (identity.user as { anonymousUserId: string }).anonymousUserId,
+      );
+    }
+
+    if (!result.success) {
+      toast.error(result.error ?? "Réclamation impossible");
+      return;
+    }
+
+    toast.success(`Tu es maintenant ${guest.pseudo} dans ${tournament.name} !`);
+    setShowClaimSheet(false);
+    navigate(`/tournament/${tournament.id}`);
+  };
+
+  const handleDismissClaim = () => {
+    setShowClaimSheet(false);
+    setClaimDismissed(true);
+    // Trigger a refresh in case other tabs changed the list (cheap).
+    refreshGuests();
+  };
+
+  const handleJoinAsExistingPlayer = async () => {
+    if (!selectedPlayerId || !tournament) return;
+    const identity = await ensureIdentity();
+    if (!identity) return;
 
     setIsJoining(true);
     try {
@@ -91,15 +270,10 @@ export const TournamentJoin = () => {
     }
   };
 
-  // Validate player name: min 1 char, max 100 chars
   const validatePlayerName = (name: string): string | null => {
     const trimmed = name.trim();
-    if (trimmed.length === 0) {
-      return "Le nom ne peut pas être vide";
-    }
-    if (trimmed.length > 100) {
-      return "Le nom ne peut pas dépasser 100 caractères";
-    }
+    if (trimmed.length === 0) return "Le nom ne peut pas être vide";
+    if (trimmed.length > 100) return "Le nom ne peut pas dépasser 100 caractères";
     return null;
   };
 
@@ -107,25 +281,18 @@ export const TournamentJoin = () => {
     e.preventDefault();
     if (!tournament) return;
 
-    // Validate name
     const validationError = validatePlayerName(newPlayerName);
     if (validationError) {
       toast.error(validationError);
       return;
     }
 
-    // Ensure user has an identity before creating player
     const identity = await ensureIdentity();
-    if (!identity) {
-      // User cancelled identity creation
-      return;
-    }
+    if (!identity) return;
 
     setIsJoining(true);
     try {
-      // Add anonymous player to tournament (function handles identity creation)
       await addAnonymousPlayerToTournament(tournament.id, newPlayerName.trim());
-
       toast.success(`Tu as rejoint le tournoi "${tournament.name}" !`);
       navigate(`/tournament/${tournament.id}`);
     } catch (error) {
@@ -135,6 +302,8 @@ export const TournamentJoin = () => {
       setIsJoining(false);
     }
   };
+
+  // ---- Render guards ----
 
   if (isLoadingInitialData) {
     return (
@@ -156,6 +325,10 @@ export const TournamentJoin = () => {
       </div>
     );
   }
+
+  // Show the gate sheet on first visit, unless we're processing a token
+  // (which has its own flow).
+  const showGateSheet = !gateDecided && !ghostToken && !tokenProcessed;
 
   return (
     <div className="min-h-screen bg-navy">
@@ -303,10 +476,44 @@ export const TournamentJoin = () => {
         )}
       </div>
 
+      {/* --- Sheets / modals --- */}
+
+      <IdentityGateSheet
+        isOpen={showGateSheet}
+        onClose={() => setGateDecided(true)}
+        onChoose={handleGateChoice}
+        currentPseudo={currentPseudo}
+      />
+
+      <ClaimGuestSheet
+        isOpen={showClaimSheet}
+        onClose={handleDismissClaim}
+        guests={unclaimedGuests}
+        onClaim={handleClaimGuest}
+        onDismissAll={handleDismissClaim}
+        title="Êtes-vous une de ces personnes ?"
+      />
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          setShowAuthModal(false);
+          setGateDecided(true);
+        }}
+      />
+
       <CreateIdentityModal
         isOpen={showModal}
         onClose={handleCancel}
-        onIdentityCreated={handleIdentityCreated}
+        onIdentityCreated={(u) => {
+          handleIdentityCreated(u);
+          // After creating an anon identity, also flip the gate so we don't
+          // re-show it.
+          setGateDecided(true);
+          // Auto-init anon user in DB if needed (mirrors useJoinTournament).
+          initializeAnonymousUser().catch(() => {});
+        }}
       />
     </div>
   );

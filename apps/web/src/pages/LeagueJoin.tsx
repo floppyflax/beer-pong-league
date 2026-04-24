@@ -1,41 +1,82 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
+import { useAuthContext } from "../context/AuthContext";
+import { useIdentityContext } from "../context/IdentityContext";
 import { useRequireIdentity } from "../hooks/useRequireIdentity";
+import { useUnclaimedGuests } from "../hooks/useUnclaimedGuests";
 import { CreateIdentityModal } from "../components/CreateIdentityModal";
+import { AuthModal } from "../components/AuthModal";
 import { ContextualHeader } from "../components/navigation/ContextualHeader";
 import { PlayerCard } from "../components/design-system/PlayerCard";
 import { HelpCard } from "../components/design-system/HelpCard";
+import { ClaimGuestSheet } from "../components/design-system/ClaimGuestSheet";
+import {
+  IdentityGateSheet,
+  type IdentityGateChoice,
+} from "../components/design-system/IdentityGateSheet";
 import { PButton } from "../components/ponglo/PButton";
 import { UserPlus, Users, Trophy } from "lucide-react";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { identityMergeService } from "../services/IdentityMergeService";
 import toast from "react-hot-toast";
 
 /**
- * LeagueJoin — Mirror of TournamentJoin for leagues (mig 016).
+ * LeagueJoin — mirror of TournamentJoin for leagues (mig 016 + PR3 wiring).
  *
- * Reached via:
- *   - `/join` → useJoinTournament resolves a code to a league → navigate here.
- *   - QR / share link → direct landing on `/league/:id/join`.
- *
- * PR2 scope: parity skeleton. Existing-player selection navigates straight to
- * the dashboard (no claim yet). New-player creation goes through `addPlayer`.
- *
- * PR3 will wire the IdentityGateSheet + ClaimGuestSheet on top: existing
- * ghosts will be offered as "Êtes-vous ce joueur ?" instead of just listing.
+ * Same 4-step sequence as the tournament page (token short-circuit →
+ * IdentityGateSheet → ClaimGuestSheet → default UI). Kept as a separate file
+ * for now so each context keeps its own copy strings ("ligue" vs "tournoi")
+ * and dataset (leagues + league_players); a refactor into a shared
+ * `<JoinFlow kind={...} />` is left for after PR3 stabilises.
  */
 export const LeagueJoin = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { leagues, addPlayer, isLoadingInitialData } = useLeague();
+  const { user, isAuthenticated } = useAuthContext();
+  const { localUser, initializeAnonymousUser } = useIdentityContext();
   const { ensureIdentity, showModal, handleIdentityCreated, handleCancel } =
     useRequireIdentity();
+
+  // ---- Local UI state ----
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [showCreatePlayer, setShowCreatePlayer] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
 
+  // ---- Identity-gate state ----
+  const [gateDecided, setGateDecided] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // ---- Claim-sheet state ----
+  const [showClaimSheet, setShowClaimSheet] = useState(false);
+  const [claimDismissed, setClaimDismissed] = useState(false);
+
+  // ---- Token (?ghost=TOKEN) state ----
+  const ghostToken = searchParams.get("ghost");
+  const [tokenProcessed, setTokenProcessed] = useState(false);
+
   const league = leagues.find((l) => l.id === id);
+
+  const currentPseudo = useMemo<string | null>(() => {
+    if (isAuthenticated && user) {
+      const meta = user.user_metadata as { pseudo?: string } | undefined;
+      return meta?.pseudo ?? user.email ?? null;
+    }
+    if (localUser) return localUser.pseudo ?? null;
+    return null;
+  }, [isAuthenticated, user, localUser]);
+
+  // Unclaimed ghosts in this league — for both auth + anon (mode "any").
+  const { guests: unclaimedGuests, refresh: refreshGuests } = useUnclaimedGuests(
+    "league",
+    league?.id ?? null,
+    { mode: "any" },
+  );
+
+  // ---- Effects ----
 
   useEffect(() => {
     if (!isLoadingInitialData && !league) {
@@ -43,6 +84,118 @@ export const LeagueJoin = () => {
       return () => clearTimeout(t);
     }
   }, [league, isLoadingInitialData, navigate]);
+
+  // Token short-circuit: claim and bounce to the dashboard.
+  useEffect(() => {
+    if (!ghostToken || tokenProcessed || !league) return;
+    setTokenProcessed(true);
+
+    (async () => {
+      const identity = await ensureIdentity();
+      if (!identity) return;
+      const caller =
+        identity.type === "authenticated"
+          ? { userId: (identity.user as { id: string }).id }
+          : {
+              anonymousUserId: (identity.user as { anonymousUserId: string })
+                .anonymousUserId,
+            };
+
+      const result = await identityMergeService.claimGhostByToken(
+        ghostToken,
+        caller,
+      );
+
+      const next = new URLSearchParams(searchParams);
+      next.delete("ghost");
+      setSearchParams(next, { replace: true });
+
+      if (!result.success) {
+        toast.error(result.error ?? "Lien d'invitation invalide");
+        return;
+      }
+
+      toast.success(`Bienvenue dans ${league.name} !`);
+      navigate(`/league/${league.id}`);
+    })();
+  }, [
+    ghostToken,
+    tokenProcessed,
+    league,
+    ensureIdentity,
+    navigate,
+    searchParams,
+    setSearchParams,
+  ]);
+
+  // After identity gate is resolved AND there are unclaimed ghosts, surface
+  // the claim sheet automatically.
+  useEffect(() => {
+    if (!gateDecided || claimDismissed) return;
+    if (unclaimedGuests.length === 0) return;
+    if (showAuthModal || showModal) return;
+    setShowClaimSheet(true);
+  }, [
+    gateDecided,
+    claimDismissed,
+    unclaimedGuests.length,
+    showAuthModal,
+    showModal,
+  ]);
+
+  // ---- Handlers ----
+
+  const handleGateChoice = async (choice: IdentityGateChoice) => {
+    if (choice === "continue") {
+      setGateDecided(true);
+      return;
+    }
+    if (choice === "auth") {
+      setShowAuthModal(true);
+      return;
+    }
+    const identity = await ensureIdentity();
+    if (identity) setGateDecided(true);
+  };
+
+  const handleClaimGuest = async (playerId: string) => {
+    if (!league) return;
+    const guest = unclaimedGuests.find((g) => g.playerId === playerId);
+    if (!guest) return;
+
+    const identity = await ensureIdentity();
+    if (!identity) return;
+
+    let result;
+    if (identity.type === "authenticated") {
+      result = await identityMergeService.claimAnonymousPlayer(
+        "league",
+        playerId,
+        (identity.user as { id: string }).id,
+      );
+    } else {
+      result = await identityMergeService.claimAnonymousPlayerAsAnonymous(
+        "league",
+        playerId,
+        (identity.user as { anonymousUserId: string }).anonymousUserId,
+      );
+    }
+
+    if (!result.success) {
+      toast.error(result.error ?? "Réclamation impossible");
+      return;
+    }
+
+    toast.success(`Tu es maintenant ${guest.pseudo} dans ${league.name} !`);
+    setShowClaimSheet(false);
+    navigate(`/league/${league.id}`);
+  };
+
+  const handleDismissClaim = () => {
+    setShowClaimSheet(false);
+    setClaimDismissed(true);
+    refreshGuests();
+  };
 
   const handleJoinAsExistingPlayer = async () => {
     if (!selectedPlayerId || !league) return;
@@ -52,8 +205,10 @@ export const LeagueJoin = () => {
 
     setIsJoining(true);
     try {
-      // PR2: no claim yet, just land on the dashboard. PR3 will replace this
-      // with a ClaimGuestSheet that calls claim_anonymous_player(_anon).
+      // Existing player path — selecting an EXISTING (non-ghost) league_player
+      // is a no-op for now (PR3 doesn't add a "join existing seat" RPC). The
+      // user just lands on the dashboard. Ghost adoption is handled separately
+      // via the ClaimGuestSheet.
       toast.success("Tu as rejoint la ligue !");
       navigate(`/league/${league.id}`);
     } catch (error) {
@@ -118,6 +273,8 @@ export const LeagueJoin = () => {
     );
   }
 
+  const showGateSheet = !gateDecided && !ghostToken && !tokenProcessed;
+
   return (
     <div className="min-h-screen bg-navy">
       <ContextualHeader
@@ -128,8 +285,7 @@ export const LeagueJoin = () => {
 
       <div className="px-4 md:px-6 pb-[120px]">
         <div className="max-w-md mx-auto space-y-4">
-          {/* Lightweight league summary card — keeps parity with TournamentCard
-              on TournamentJoin without pulling in the heavy tournament card. */}
+          {/* Lightweight league summary card */}
           <div className="bg-navy-soft rounded-card p-4 border border-card flex items-center gap-3">
             <Trophy size={20} className="text-electric-blue flex-shrink-0" />
             <div className="min-w-0">
@@ -276,10 +432,41 @@ export const LeagueJoin = () => {
         )}
       </div>
 
+      {/* --- Sheets / modals --- */}
+
+      <IdentityGateSheet
+        isOpen={showGateSheet}
+        onClose={() => setGateDecided(true)}
+        onChoose={handleGateChoice}
+        currentPseudo={currentPseudo}
+      />
+
+      <ClaimGuestSheet
+        isOpen={showClaimSheet}
+        onClose={handleDismissClaim}
+        guests={unclaimedGuests}
+        onClaim={handleClaimGuest}
+        onDismissAll={handleDismissClaim}
+        title="Êtes-vous une de ces personnes ?"
+      />
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          setShowAuthModal(false);
+          setGateDecided(true);
+        }}
+      />
+
       <CreateIdentityModal
         isOpen={showModal}
         onClose={handleCancel}
-        onIdentityCreated={handleIdentityCreated}
+        onIdentityCreated={(u) => {
+          handleIdentityCreated(u);
+          setGateDecided(true);
+          initializeAnonymousUser().catch(() => {});
+        }}
       />
     </div>
   );

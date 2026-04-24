@@ -4,13 +4,16 @@
  * Returns the list of "ghost" players (anonymous_user_id NOT NULL, user_id NULL,
  * source anonymous_users not yet merged) for a given tournament or league.
  *
- * Use case: an authenticated user lands on an event/league dashboard. We show
- * a banner "Êtes-vous une de ces personnes ?" listing every unclaimed guest
- * pseudo so the user can claim a row that an admin pre-created for them.
+ * Use case (PR3 of the join-flow refactor): both authenticated AND anonymous
+ * users land on `/tournament/:id/join` or `/league/:id/join` and may want to
+ * adopt a ghost row pre-created by an admin (e.g. "L'admin a créé un joueur
+ * 'Toto' — c'est moi"). We expose the same list for both, and the consuming
+ * page picks the right RPC:
+ *   - authenticated → `claim_anonymous_player`
+ *   - anonymous     → `claim_anonymous_player_anon` (mig 014, capability-based)
  *
- * Returns an empty list if the caller is not authenticated (anonymous users
- * have no account to attach to — claim makes no sense), or if Supabase isn't
- * available.
+ * Pass `mode: "auth-only"` to restore the legacy behaviour (post-account
+ * banner on the dashboard, where claim only makes sense for auth users).
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -50,7 +53,9 @@ interface RawLeagueRow {
 export function useUnclaimedGuests(
   kind: "tournament" | "league",
   contextId: string | null | undefined,
+  options: { mode?: "auth-only" | "any" } = {},
 ) {
+  const mode = options.mode ?? "auth-only";
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [guests, setGuests] = useState<UnclaimedGuest[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -58,7 +63,15 @@ export function useUnclaimedGuests(
 
   const load = useCallback(async () => {
     if (authLoading) return;
-    if (!isAuthenticated || !contextId || !supabase) {
+    // In "auth-only" mode (legacy dashboard banner) we bail for anon users.
+    // In "any" mode (PR3 join flow), we serve the list to everyone — the RLS
+    // SELECT policy on tournament_players/league_players is permissive for
+    // reads, and the claim RPC enforces caller identity at write time.
+    if (!contextId || !supabase) {
+      setGuests([]);
+      return;
+    }
+    if (mode === "auth-only" && !isAuthenticated) {
       setGuests([]);
       return;
     }
@@ -157,7 +170,7 @@ export function useUnclaimedGuests(
     } finally {
       setIsLoading(false);
     }
-  }, [kind, contextId, isAuthenticated, authLoading]);
+  }, [kind, contextId, isAuthenticated, authLoading, mode]);
 
   useEffect(() => {
     load();
