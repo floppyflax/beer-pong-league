@@ -451,19 +451,17 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
 
           {/* Sticky footer */}
           <div className="px-5 pb-6 pt-3 border-t border-card flex flex-col gap-3">
-            {props.kind === "tournament" &&
-              !props.isFinished &&
-              props.onFinish && (
-                <PButton
-                  type="button"
-                  variant="ghost"
-                  size="lg"
-                  full
-                  onClick={props.onFinish}
-                >
-                  Clôturer l'événement
-                </PButton>
-              )}
+            {props.kind === "tournament" && props.onFinish && (
+              <PButton
+                type="button"
+                variant="ghost"
+                size="lg"
+                full
+                onClick={props.onFinish}
+              >
+                {props.isFinished ? "Réouvrir l'événement" : "Clôturer l'événement"}
+              </PButton>
+            )}
             <PButton
               type="submit"
               variant="primary"
