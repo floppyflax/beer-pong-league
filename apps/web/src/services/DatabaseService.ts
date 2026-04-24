@@ -131,6 +131,14 @@ class DatabaseService {
     return playersRepository.loadPlayerById(playerId);
   }
 
+  loadPlayerEnrichment(playerId: string): Promise<{
+    avatarUrl: string | null;
+    joinedAt: string | null;
+    userId: string | null;
+  } | null> {
+    return playersRepository.loadPlayerEnrichment(playerId);
+  }
+
   loadTournamentParticipants(tournamentId: string): Promise<
     {
       id: string;

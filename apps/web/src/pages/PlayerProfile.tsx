@@ -17,7 +17,6 @@ import { formatRelativeTime, formatJoinedSince } from "@/utils/dateUtils";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { EloChart } from "@/components/ponglo/EloChart";
 import { PAvatar } from "@/components/ponglo/PAvatar";
-import { PRankBadge } from "@/components/ponglo/PRankBadge";
 import { AchievementCard } from "@/components/achievements/AchievementCard";
 import type { Achievement } from "@/components/achievements/AchievementCard";
 import { supabase, isSupabaseAvailable } from "@/lib/supabase";
@@ -126,12 +125,19 @@ export const PlayerProfile = () => {
   }, [playerId, player, leagues]);
 
   // Story 14-35: Load enrichment (avatar, joined_at, userId) — for league players or when we need userId for ELO history
-  // TODO(Phase B): restore loadPlayerEnrichment once method is added to DatabaseService
   useEffect(() => {
     if (!playerId || !player) {
       setEnrichment(null);
+      return;
     }
-    // loadPlayerEnrichment not yet implemented in DatabaseService
+    let cancelled = false;
+    databaseService.loadPlayerEnrichment(playerId).then((result) => {
+      if (cancelled) return;
+      setEnrichment(result ? { ...result, anonymousUserId: null } : null);
+    }).catch(() => {
+      if (!cancelled) setEnrichment(null);
+    });
+    return () => { cancelled = true; };
   }, [playerId, player]);
 
   // Story 14-35: Load ELO history from DB when we have user identity (fallback to match data in eloEvolution)
@@ -386,7 +392,6 @@ export const PlayerProfile = () => {
               <h2 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-white truncate">
                 {player.name}
               </h2>
-              <PRankBadge elo={player.elo} size="sm" className="flex-shrink-0" />
             </div>
             {playerLeague && (
               <p className="text-sm text-cool-gray truncate">

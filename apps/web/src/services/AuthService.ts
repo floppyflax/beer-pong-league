@@ -244,6 +244,49 @@ class AuthService {
   }
 
   /**
+   * Update user profile fields (pseudo and/or avatar_url).
+   */
+  async updateUserProfile(
+    userId: string,
+    updates: { pseudo?: string; avatar_url?: string },
+  ): Promise<boolean> {
+    if (!supabase) return false;
+    try {
+      const { error } = await supabase
+        .from("users")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", userId);
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Upload avatar to Supabase Storage and return the public URL.
+   * Path: avatars/{userId}/avatar.{ext}
+   */
+  async uploadAvatar(userId: string, file: File): Promise<string | null> {
+    if (!supabase) return null;
+    try {
+      const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+      const path = `${userId}/avatar.${ext}`;
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      // Cache-bust pour forcer le rechargement de l'image
+      return `${data.publicUrl}?t=${Date.now()}`;
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      return null;
+    }
+  }
+
+  /**
    * Get user profile from public.users
    */
   async getUserProfile(userId: string) {

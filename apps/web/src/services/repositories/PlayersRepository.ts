@@ -743,6 +743,65 @@ class PlayersRepository extends BaseRepository {
       }
     }
   }
+  /**
+   * Enrichissement d'un joueur : avatar_url, joined_at, user_id.
+   * Cherche d'abord dans league_players, puis tournament_players.
+   * Retourne null si Supabase n'est pas disponible.
+   */
+  async loadPlayerEnrichment(playerId: string): Promise<{
+    avatarUrl: string | null;
+    joinedAt: string | null;
+    userId: string | null;
+  } | null> {
+    if (!this.isSupabaseAvailable()) return null;
+
+    try {
+      // 1. league_players
+      const { data: lp } = await supabase!
+        .from('league_players')
+        .select('user_id, joined_at, user:users(avatar_url)')
+        .eq('id', playerId)
+        .maybeSingle();
+
+      if (lp) {
+        const row = lp as unknown as {
+          user_id: string | null;
+          joined_at: string | null;
+          user: { avatar_url: string | null } | null;
+        };
+        return {
+          userId: row.user_id ?? null,
+          joinedAt: row.joined_at ?? null,
+          avatarUrl: row.user?.avatar_url ?? null,
+        };
+      }
+
+      // 2. tournament_players
+      const { data: tp } = await supabase!
+        .from('tournament_players')
+        .select('user_id, joined_at, user:users(avatar_url)')
+        .eq('id', playerId)
+        .maybeSingle();
+
+      if (tp) {
+        const row = tp as unknown as {
+          user_id: string | null;
+          joined_at: string | null;
+          user: { avatar_url: string | null } | null;
+        };
+        return {
+          userId: row.user_id ?? null,
+          joinedAt: row.joined_at ?? null,
+          avatarUrl: row.user?.avatar_url ?? null,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error loading player enrichment:', error);
+      return null;
+    }
+  }
 }
 
 export const playersRepository = new PlayersRepository();
