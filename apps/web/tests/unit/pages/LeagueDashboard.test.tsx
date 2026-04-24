@@ -23,6 +23,26 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+// AuthContext is consumed by LeagueDashboard for the "claim ghost" banner;
+// stub a no-auth state so the banner stays hidden during these tests.
+vi.mock("../../../src/context/AuthContext", () => ({
+  useAuthContext: () => ({
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+  }),
+}));
+
+// Avoid hitting Supabase from the claim-ghost hook in unit tests.
+vi.mock("../../../src/hooks/useUnclaimedGuests", () => ({
+  useUnclaimedGuests: () => ({
+    guests: [],
+    isLoading: false,
+    error: null,
+    refresh: vi.fn(),
+  }),
+}));
+
 describe("LeagueDashboard - Story 14-17", () => {
   const mockPlayers = [
     {

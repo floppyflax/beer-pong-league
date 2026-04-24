@@ -25,6 +25,8 @@ import {
   FAB,
   DetailHero,
   InviteSheet,
+  ClaimGuestBanner,
+  ClaimGuestSheet,
 } from "@/components/design-system";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
@@ -32,6 +34,10 @@ import { getDeltaFromLastMatch } from "@/utils/playerStats";
 import { exportLeagueJSON, exportPlayersCSV, exportMatchesCSV } from "@/services/ExportService";
 import { Podium } from "@/components/ponglo/Podium";
 import { LeaderRow } from "@/components/ponglo/LeaderRow";
+import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
+import { identityMergeService } from "@/services/IdentityMergeService";
+import { useAuthContext } from "@/context/AuthContext";
+import { toast } from "react-hot-toast";
 
 export const LeagueDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,8 +50,10 @@ export const LeagueDashboard = () => {
     updatePlayer,
     deletePlayer,
     isLoadingInitialData,
+    reloadData,
   } = useLeague();
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuthContext();
 
   const league = leagues.find((l) => l.id === id);
   const [activeTab, setActiveTab] = useState<
@@ -69,6 +77,46 @@ export const LeagueDashboard = () => {
 
   const [showEloChanges, setShowEloChanges] = useState(false);
   const [lastEloChanges] = useState<Record<string, number>>({});
+
+  // Claim ghost flow — only for authenticated users.
+  const [showClaimSheet, setShowClaimSheet] = useState(false);
+  const claimDismissKey = `bpl:claim-dismissed:league:${id ?? ""}`;
+  const [claimDismissed, setClaimDismissed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem(claimDismissKey) === "1";
+  });
+  const {
+    guests: unclaimedGuests,
+    refresh: refreshUnclaimedGuests,
+  } = useUnclaimedGuests("league", id);
+
+  const handleClaimGuest = async (playerId: string) => {
+    if (!user?.id) return;
+    const result = await identityMergeService.claimAnonymousPlayer(
+      "league",
+      playerId,
+      user.id,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Impossible de réclamer ce joueur");
+      return;
+    }
+    toast.success("Joueur réclamé !");
+    await refreshUnclaimedGuests();
+    await reloadData();
+    if ((unclaimedGuests.length - 1) <= 0) {
+      setShowClaimSheet(false);
+    }
+  };
+
+  const handleDismissAllClaims = () => {
+    sessionStorage.setItem(claimDismissKey, "1");
+    setClaimDismissed(true);
+    setShowClaimSheet(false);
+  };
+
+  const showClaimBanner =
+    isAuthenticated && !claimDismissed && unclaimedGuests.length > 0;
 
   if (isLoadingInitialData) {
     return (
@@ -224,6 +272,19 @@ export const LeagueDashboard = () => {
         }
         menuItems={detailHeroMenuItems}
       />
+
+      {/* Claim ghost banner — only visible to authenticated users when guests exist */}
+      {showClaimBanner && (
+        <div className="px-4 pt-4">
+          <ClaimGuestBanner
+            count={unclaimedGuests.length}
+            singlePseudo={
+              unclaimedGuests.length === 1 ? unclaimedGuests[0].pseudo : undefined
+            }
+            onOpen={() => setShowClaimSheet(true)}
+          />
+        </div>
+      )}
 
       {/* SegmentedTabs: Matchs / Classement / Events */}
       <div className="px-4 pt-4 pb-4">
@@ -690,6 +751,15 @@ export const LeagueDashboard = () => {
           onClose={() => setShowEloChanges(false)}
         />
       )}
+
+      {/* Claim ghost sheet */}
+      <ClaimGuestSheet
+        isOpen={showClaimSheet}
+        onClose={() => setShowClaimSheet(false)}
+        guests={unclaimedGuests}
+        onClaim={handleClaimGuest}
+        onDismissAll={handleDismissAllClaims}
+      />
     </div>
   );
 };

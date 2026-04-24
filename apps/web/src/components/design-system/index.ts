@@ -103,3 +103,9 @@ export type {
   SettingsSheetTournamentUpdates,
   SettingsSheetLeagueUpdates,
 } from './SettingsSheet';
+
+// Claim ghost player (post-account creation flow — see migration 012)
+export { ClaimGuestBanner } from './ClaimGuestBanner';
+export type { ClaimGuestBannerProps } from './ClaimGuestBanner';
+export { ClaimGuestSheet } from './ClaimGuestSheet';
+export type { ClaimGuestSheetProps } from './ClaimGuestSheet';

@@ -67,14 +67,15 @@ interface LeagueContextType {
     leagueId: string,
     teamAIds: string[],
     teamBIds: string[],
-    winner: "A" | "B"
+    winner: "A" | "B",
+    enrichment?: { cupsRemaining?: number }
   ) => Promise<Record<string, number> | null>;
   recordTournamentMatch: (
     tournamentId: string,
     teamAIds: string[],
     teamBIds: string[],
     winner: "A" | "B",
-    scores?: { scoreA: number; scoreB: number },
+    scores?: { scoreA: number; scoreB: number; cupsRemaining?: number },
     participantsOverride?: Player[]
   ) => Promise<Record<string, number> | null>;
   deleteLeague: (id: string) => Promise<void>;
@@ -606,7 +607,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     leagueId: string,
     teamAIds: string[],
     teamBIds: string[],
-    winner: "A" | "B"
+    winner: "A" | "B",
+    enrichment?: { cupsRemaining?: number }
   ): Promise<Record<string, number> | null> => {
     const league = leagues.find((l) => l.id === leagueId);
     if (!league) return null;
@@ -665,14 +667,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       };
     });
 
+    const cupsRem = enrichment?.cupsRemaining;
     const newMatch: Match = {
       id: crypto.randomUUID(),
       date: new Date().toISOString(),
       teamA: teamAIds,
       teamB: teamBIds,
-      scoreA: winner === "A" ? 10 : 0,
-      scoreB: winner === "B" ? 10 : 0,
+      scoreA: winner === "A" ? 10 : (cupsRem !== undefined ? 10 - cupsRem : 0),
+      scoreB: winner === "B" ? 10 : (cupsRem !== undefined ? 10 - cupsRem : 0),
       eloChanges: eloChanges,
+      cups_remaining: cupsRem ?? null,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
     };
@@ -711,7 +715,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     teamAIds: string[],
     teamBIds: string[],
     winner: "A" | "B",
-    scores?: { scoreA: number; scoreB: number },
+    scores?: { scoreA: number; scoreB: number; cupsRemaining?: number },
     participantsOverride?: Player[]
   ): Promise<Record<string, number> | null> => {
     const tournament = tournaments.find((t) => t.id === tournamentId);
@@ -761,6 +765,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       scoreA: scoreA,
       scoreB: scoreB,
       eloChanges: eloChanges,
+      cups_remaining: scores?.cupsRemaining ?? null,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
     };

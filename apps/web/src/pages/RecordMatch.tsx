@@ -35,6 +35,7 @@ const TEAM_SIZE_BY_FORMAT: Record<string, number | null> = {
 };
 
 const TOTAL_CUPS = 10;
+// Standard beer pong rack viewed from above: back row first (4 cups), then 3, 2, 1
 const CUP_ROWS = [4, 3, 2, 1];
 
 const makeCups = () => Array.from({ length: TOTAL_CUPS }, () => true);
