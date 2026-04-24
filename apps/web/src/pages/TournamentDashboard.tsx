@@ -10,6 +10,7 @@ import {
   LogOut,
   UserPlus,
   Settings,
+  Ghost,
 } from "lucide-react";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "@/components/EloChangeDisplay";
@@ -28,12 +29,15 @@ import {
   DetailHero,
   InviteSheet,
   SettingsSheet,
+  GhostManagementSheet,
 } from "@/components/design-system";
 import type {
   DetailHeroAction,
   DetailHeroMenuItem,
   SettingsSheetTournamentUpdates,
 } from "@/components/design-system";
+import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
+import { identityMergeService } from "@/services/IdentityMergeService";
 import { Podium } from "@/components/ponglo/Podium";
 import { LeaderRow } from "@/components/ponglo/LeaderRow";
 
@@ -94,6 +98,15 @@ export const TournamentDashboard = () => {
   const [lastEloChanges] = useState<Record<string, number>>({});
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showGhostMgmt, setShowGhostMgmt] = useState(false);
+
+  // Ghosts (anonymous players manually added by the admin) for this tournament.
+  // We use mode: "any" so the list is loaded for the admin even though the
+  // legacy default ("auth-only") would otherwise also work — explicit is safer.
+  const {
+    guests: tournamentGhosts,
+    refresh: refreshTournamentGhosts,
+  } = useUnclaimedGuests("tournament", id, { mode: "any" });
 
   // Escape key closes Add Player modal (InviteSheet manages its own but we keep
   // for backward compat with other modals that might be open)
@@ -387,7 +400,15 @@ export const TournamentDashboard = () => {
           destructive: true,
         },
       ]
-    : [];
+    : tournamentGhosts.length > 0
+      ? [
+          {
+            label: "Joueurs fantômes",
+            icon: <Ghost size={20} />,
+            onClick: () => setShowGhostMgmt(true),
+          },
+        ]
+      : [];
 
   // SettingsSheet handlers
   const handleSaveSettings = async (updates: SettingsSheetTournamentUpdates) => {
@@ -414,6 +435,48 @@ export const TournamentDashboard = () => {
     deleteTournament(tournament.id);
     setShowSettings(false);
     navigate("/");
+  };
+
+  // GhostManagementSheet handlers — admin-only.
+  const handleRenameGhost = async (playerId: string, newPseudo: string) => {
+    const result = await identityMergeService.renameAnonymousPlayer(
+      "tournament",
+      playerId,
+      newPseudo,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Renommage impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur renommé");
+    await refreshTournamentGhosts();
+    reloadData();
+  };
+
+  const handleDeleteGhost = async (playerId: string) => {
+    const result = await identityMergeService.deleteAnonymousPlayer(
+      "tournament",
+      playerId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Suppression impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur supprimé");
+    await refreshTournamentGhosts();
+    reloadData();
+  };
+
+  const handleGenerateGhostInvite = async (playerId: string) => {
+    const result = await identityMergeService.generateGhostInviteToken(
+      "tournament",
+      playerId,
+    );
+    if (!result.success || !result.token) {
+      toast.error(result.error || "Lien indisponible");
+      throw new Error(result.error);
+    }
+    return { token: result.token };
   };
 
   return (
@@ -749,6 +812,19 @@ export const TournamentDashboard = () => {
               )}
             </div>
           }
+        />
+      )}
+
+      {/* Ghost player management — admin only, only when ghosts exist */}
+      {isAdmin && (
+        <GhostManagementSheet
+          isOpen={showGhostMgmt}
+          onClose={() => setShowGhostMgmt(false)}
+          guests={tournamentGhosts}
+          joinPath={`/tournament/${tournament.id}/join`}
+          onRename={handleRenameGhost}
+          onDelete={handleDeleteGhost}
+          onGenerateInvite={handleGenerateGhostInvite}
         />
       )}
 

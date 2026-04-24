@@ -375,6 +375,110 @@ class IdentityMergeService {
       };
     }
   }
+
+  /**
+   * Admin rename of a ghost player in a tournament or league. Backed by mig
+   * 018 `rename_anonymous_player`. Server enforces auth.uid() = creator.
+   */
+  async renameAnonymousPlayer(
+    kind: "tournament" | "league",
+    playerId: string,
+    newPseudo: string,
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    pseudo?: string;
+    globalPseudoUpdated?: boolean;
+  }> {
+    if (!supabase) {
+      return { success: false, error: "Supabase not configured" };
+    }
+
+    try {
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
+        fn: string,
+        params: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+      const { data, error: rpcError } = await rpc("rename_anonymous_player", {
+        p_kind: kind,
+        p_player_id: playerId,
+        p_new_pseudo: newPseudo,
+      });
+
+      if (rpcError) {
+        console.error("Error renaming anonymous player:", rpcError);
+        return { success: false, error: rpcError.message };
+      }
+
+      const result = data as {
+        pseudo?: string;
+        global_pseudo_updated?: boolean;
+      } | null;
+
+      return {
+        success: true,
+        pseudo: result?.pseudo,
+        globalPseudoUpdated: result?.global_pseudo_updated ?? false,
+      };
+    } catch (error) {
+      console.error("Error renaming anonymous player:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+  /**
+   * Admin delete of a ghost player. Server BLOCKS if any match has been
+   * recorded for that player in this context (mig 018). Caller must own
+   * the context. Returns `error` containing the count when blocked.
+   */
+  async deleteAnonymousPlayer(
+    kind: "tournament" | "league",
+    playerId: string,
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    anonymousUserDeleted?: boolean;
+  }> {
+    if (!supabase) {
+      return { success: false, error: "Supabase not configured" };
+    }
+
+    try {
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
+        fn: string,
+        params: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+      const { data, error: rpcError } = await rpc("delete_anonymous_player", {
+        p_kind: kind,
+        p_player_id: playerId,
+      });
+
+      if (rpcError) {
+        console.error("Error deleting anonymous player:", rpcError);
+        return { success: false, error: rpcError.message };
+      }
+
+      const result = data as {
+        anonymous_user_deleted?: boolean;
+      } | null;
+
+      return {
+        success: true,
+        anonymousUserDeleted: result?.anonymous_user_deleted ?? false,
+      };
+    } catch (error) {
+      console.error("Error deleting anonymous player:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
 }
 
 export const identityMergeService = new IdentityMergeService();

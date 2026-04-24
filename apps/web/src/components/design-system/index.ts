@@ -116,3 +116,7 @@ export type {
   IdentityGateSheetProps,
   IdentityGateChoice,
 } from './IdentityGateSheet';
+
+// Admin ghost player management (rename / invite link / delete)
+export { GhostManagementSheet } from './GhostManagementSheet';
+export type { GhostManagementSheetProps } from './GhostManagementSheet';

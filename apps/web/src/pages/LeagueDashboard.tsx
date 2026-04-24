@@ -14,7 +14,9 @@ import {
   FileJson,
   FileSpreadsheet,
   Settings,
+  Ghost,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
@@ -25,9 +27,12 @@ import {
   FAB,
   DetailHero,
   InviteSheet,
+  GhostManagementSheet,
 } from "@/components/design-system";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
+import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
+import { identityMergeService } from "@/services/IdentityMergeService";
 import { getDeltaFromLastMatch } from "@/utils/playerStats";
 import { exportLeagueJSON, exportPlayersCSV, exportMatchesCSV } from "@/services/ExportService";
 import { Podium } from "@/components/ponglo/Podium";
@@ -44,6 +49,7 @@ export const LeagueDashboard = () => {
     updatePlayer,
     deletePlayer,
     isLoadingInitialData,
+    reloadData,
   } = useLeague();
   const navigate = useNavigate();
 
@@ -54,6 +60,13 @@ export const LeagueDashboard = () => {
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editingPlayerName, setEditingPlayerName] = useState("");
+  const [showGhostMgmt, setShowGhostMgmt] = useState(false);
+
+  // Ghosts (anonymous players manually added by the admin) for this league.
+  const {
+    guests: leagueGhosts,
+    refresh: refreshLeagueGhosts,
+  } = useUnclaimedGuests("league", id, { mode: "any" });
 
   // Escape key closes add-player modal
   useEffect(() => {
@@ -148,6 +161,15 @@ export const LeagueDashboard = () => {
           },
         ]
       : []),
+    ...(isAdmin && leagueGhosts.length > 0
+      ? [
+          {
+            label: "Joueurs fantômes",
+            icon: <Ghost size={20} />,
+            onClick: () => setShowGhostMgmt(true),
+          },
+        ]
+      : []),
     {
       label: "Exporter JSON",
       icon: <FileJson size={20} />,
@@ -180,6 +202,48 @@ export const LeagueDashboard = () => {
         ]
       : []),
   ];
+
+  // GhostManagementSheet handlers — admin-only.
+  const handleRenameGhost = async (playerId: string, newPseudo: string) => {
+    const result = await identityMergeService.renameAnonymousPlayer(
+      "league",
+      playerId,
+      newPseudo,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Renommage impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur renommé");
+    await refreshLeagueGhosts();
+    reloadData();
+  };
+
+  const handleDeleteGhost = async (playerId: string) => {
+    const result = await identityMergeService.deleteAnonymousPlayer(
+      "league",
+      playerId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Suppression impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur supprimé");
+    await refreshLeagueGhosts();
+    reloadData();
+  };
+
+  const handleGenerateGhostInvite = async (playerId: string) => {
+    const result = await identityMergeService.generateGhostInviteToken(
+      "league",
+      playerId,
+    );
+    if (!result.success || !result.token) {
+      toast.error(result.error || "Lien indisponible");
+      throw new Error(result.error);
+    }
+    return { token: result.token };
+  };
 
   const shortDateFormatter: Intl.DateTimeFormatOptions = {
     day: "2-digit",
@@ -681,6 +745,19 @@ export const LeagueDashboard = () => {
         onClose={() => setShowAddPlayer(false)}
         onAddManual={handleInviteAddManual}
       />
+
+      {/* Ghost player management — admin only, only when ghosts exist */}
+      {isAdmin && (
+        <GhostManagementSheet
+          isOpen={showGhostMgmt}
+          onClose={() => setShowGhostMgmt(false)}
+          guests={leagueGhosts}
+          joinPath={`/league/${league.id}/join`}
+          onRename={handleRenameGhost}
+          onDelete={handleDeleteGhost}
+          onGenerateInvite={handleGenerateGhostInvite}
+        />
+      )}
 
       {/* ELO Changes Display */}
       {showEloChanges && (
