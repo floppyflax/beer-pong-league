@@ -31,6 +31,7 @@ import {
 import { migrationService } from "../services/MigrationService";
 import { localUserService } from "../services/LocalUserService";
 import { getDeviceFingerprint } from "../utils/deviceFingerprint";
+import { generateTournamentCode } from "../utils/tournamentCode";
 
 /**
  * Global context interface for managing leagues, tournaments, players, and matches.
@@ -296,6 +297,25 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     tournaments.find((t) => t.id === currentTournamentId) || null;
 
   const createLeague = async (name: string, type: "event" | "season") => {
+    // Migration 016 — generate a 6-char join_code with collision retry
+    // (mirrors CreateTournament.generateUniqueCode logic).
+    let joinCode: string | undefined;
+    try {
+      const maxAttempts = 10;
+      for (let i = 0; i < maxAttempts; i++) {
+        const code = generateTournamentCode();
+        const exists = await databaseService.leagueCodeExists(code);
+        if (!exists) {
+          joinCode = code;
+          break;
+        }
+      }
+    } catch (error) {
+      // Non-blocking: leagues created before mig 016 had no code; if
+      // generation fails (offline, RLS), keep going without one.
+      console.warn('Failed to generate league join_code:', error);
+    }
+
     const newLeague: League = {
       id: crypto.randomUUID(),
       name,
@@ -304,13 +324,14 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       players: [],
       matches: [],
       tournaments: [],
+      joinCode,
       // Associate creator based on auth state
       creator_user_id: isAuthenticated && user ? user.id : null,
       creator_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
     };
     setLeagues((prev) => [...prev, newLeague]);
     setCurrentLeagueId(newLeague.id);
-    
+
     // Save to Supabase
     try {
       await databaseService.saveLeague(newLeague);
@@ -319,7 +340,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error saving league to Supabase:', error);
       toast.error('Erreur lors de la sauvegarde de la ligue');
     }
-    
+
     return newLeague.id;
   };
 

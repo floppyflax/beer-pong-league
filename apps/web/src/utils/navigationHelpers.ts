@@ -34,6 +34,7 @@ const CORE_ROUTE_PATTERNS = [
   /^\/tournament\/[^/]+\/invite$/, // /tournament/:id/invite
   /^\/tournament\/[^/]+\/join$/, // /tournament/:id/join
   /^\/league\/[^/]+$/, // /league/:id (exclude /league/:id/display)
+  /^\/league\/[^/]+\/join$/, // /league/:id/join (mig 016 parity)
   /^\/player\/[^/]+$/, // /player/:id
 ];
 

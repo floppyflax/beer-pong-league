@@ -166,6 +166,7 @@ class LeaguesRepository extends BaseRepository {
           players: playersByLeague.get(leagueRow.id) || [],
           matches: matchesByLeague.get(leagueRow.id) || [],
           tournaments: tournamentsByLeague.get(leagueRow.id) || [],
+          joinCode: leagueRow.join_code ?? undefined,
           creator_user_id: leagueRow.creator_user_id,
           creator_anonymous_user_id: leagueRow.creator_anonymous_user_id,
           anti_cheat_enabled: leagueRow.anti_cheat_enabled || false,
@@ -208,6 +209,7 @@ class LeaguesRepository extends BaseRepository {
             name: league.name,
             type: league.type,
             created_at: league.createdAt,
+            join_code: league.joinCode ?? null,
             creator_user_id: league.creator_user_id,
             creator_anonymous_user_id: league.creator_anonymous_user_id,
             anti_cheat_enabled: league.anti_cheat_enabled || false,
@@ -373,6 +375,34 @@ class LeaguesRepository extends BaseRepository {
       .eq('id', leagueId)
       .maybeSingle();
     return data as { name: string } | null;
+  }
+
+  /**
+   * Migration 016 — check if a league join_code already exists.
+   * Mirrors `tournamentCodeExists` so league code generation can collision-test.
+   */
+  async leagueCodeExists(joinCode: string): Promise<boolean> {
+    if (!this.isSupabaseAvailable()) {
+      return false; // Optimistic: assume code is unique if offline
+    }
+
+    try {
+      const { data, error } = await supabase!
+        .from('leagues')
+        .select('id')
+        .eq('join_code', joinCode)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking league code:', error);
+        return false;
+      }
+
+      return data !== null;
+    } catch (error) {
+      console.error('Error in leagueCodeExists:', error);
+      return false;
+    }
   }
 
   // ===== localStorage fallback =====

@@ -88,6 +88,9 @@ const TournamentInvite = lazy(() =>
 const TournamentJoin = lazy(() =>
   import("./pages/TournamentJoin").then((m) => ({ default: m.TournamentJoin })),
 );
+const LeagueJoin = lazy(() =>
+  import("./pages/LeagueJoin").then((m) => ({ default: m.LeagueJoin })),
+);
 const AuthCallback = lazy(() =>
   import("./pages/AuthCallback").then((m) => ({ default: m.AuthCallback })),
 );
@@ -380,6 +383,10 @@ function AppContent() {
                     <Route
                       path="/tournament/:id/join"
                       element={<TournamentJoin />}
+                    />
+                    <Route
+                      path="/league/:id/join"
+                      element={<LeagueJoin />}
                     />
                     <Route
                       path="/player/:playerId"

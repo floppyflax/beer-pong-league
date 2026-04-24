@@ -43,6 +43,7 @@ export interface League {
   players: Player[];
   matches: Match[];
   tournaments?: string[]; // Tournament IDs associated with this League
+  joinCode?: string; // Unique 6-character alphanumeric code (parity with Tournament)
   creator_user_id?: string | null; // User ID if created by authenticated user
   creator_anonymous_user_id?: string | null; // Anonymous user ID if created by local user
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation

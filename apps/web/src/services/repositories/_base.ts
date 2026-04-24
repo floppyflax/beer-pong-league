@@ -20,6 +20,8 @@ export interface LeagueRow {
   creator_user_id: string | null;
   creator_anonymous_user_id: string | null;
   anti_cheat_enabled?: boolean;
+  // Migration 016 — parity with tournaments.join_code
+  join_code?: string | null;
 }
 
 export interface TournamentRow {
@@ -77,6 +79,10 @@ export interface MatchRow {
   confirmed_at?: string | null;
   cups_remaining?: number | null;
   photo_url?: string | null;
+  // Migration 009 — live match tracking
+  is_live?: boolean;
+  balloon_possession?: 'team_a' | 'team_b' | null;
+  is_match_point?: boolean;
 }
 
 export interface TournamentPlayerRow {

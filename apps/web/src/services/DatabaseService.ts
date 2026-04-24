@@ -49,6 +49,10 @@ class DatabaseService {
     return leaguesRepository.getLeagueById(leagueId);
   }
 
+  leagueCodeExists(joinCode: string): Promise<boolean> {
+    return leaguesRepository.leagueCodeExists(joinCode);
+  }
+
   // ===== Tournaments =====
 
   loadTournaments(userId?: string, anonymousUserId?: string): Promise<Tournament[]> {
@@ -76,6 +80,9 @@ class DatabaseService {
 
   createTournament(data: {
     name: string;
+    /** Human-facing format ('1v1' | '2v2' | '3v3' | 'libre'). Written to the
+     *  `format` column so that loadTournaments can read it back directly. */
+    format?: '1v1' | '2v2' | '3v3' | 'libre';
     joinCode: string;
     formatType: 'fixed' | 'free';
     team1Size: number | null;

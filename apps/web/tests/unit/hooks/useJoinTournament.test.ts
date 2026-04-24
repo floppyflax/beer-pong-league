@@ -12,8 +12,9 @@ vi.mock('../../../src/lib/supabase', () => ({
   isSupabaseAvailable: () => true,
 }));
 
+const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
 }));
 
 vi.mock('../../../src/context/AuthContext', () => ({
@@ -36,6 +37,36 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
+/**
+ * Helper — wires up a fresh chain of mocks for the supabase query builder.
+ *
+ * The hook (post mig 016) probes BOTH `tournaments` then `leagues` using
+ * `.maybeSingle()`. We provide one mock response per `from(table)` call so the
+ * tests can simulate "tournament hit", "league hit" or "neither" without
+ * interfering with each other.
+ */
+type ProbeResult = {
+  data: Record<string, unknown> | null;
+  error: { message: string } | null;
+};
+
+function mockSupabaseProbes(...responses: ProbeResult[]) {
+  const eqMocks: ReturnType<typeof vi.fn>[] = [];
+  let callIndex = 0;
+
+  vi.mocked(supabase.from).mockImplementation(() => {
+    const response = responses[callIndex] ?? { data: null, error: null };
+    callIndex += 1;
+    const maybeSingle = vi.fn().mockResolvedValue(response);
+    const eq = vi.fn().mockReturnValue({ maybeSingle });
+    eqMocks.push(eq);
+    const select = vi.fn().mockReturnValue({ eq });
+    return { select } as unknown as ReturnType<typeof supabase.from>;
+  });
+
+  return { eqMocks };
+}
+
 describe('useJoinTournament', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,29 +82,10 @@ describe('useJoinTournament', () => {
       await expect(result.current.joinByCode('abc@#$')).rejects.toThrow('Code invalide');
     });
 
-    it('should convert code to uppercase', async () => {
-      const mockFrom = vi.fn().mockReturnThis();
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: '123',
-          name: 'Test Tournament',
-          is_finished: false,
-          join_code: 'ABC123',
-        },
+    it('should convert code to uppercase before probing', async () => {
+      const { eqMocks } = mockSupabaseProbes({
+        data: { id: '123', name: 'Test Tournament', is_finished: false, join_code: 'ABC123' },
         error: null,
-      });
-
-      vi.mocked(supabase.from).mockImplementation(mockFrom);
-      mockFrom.mockReturnValue({
-        select: mockSelect,
-      });
-      mockSelect.mockReturnValue({
-        eq: mockEq,
-      });
-      mockEq.mockReturnValue({
-        single: mockSingle,
       });
 
       const { result } = renderHook(() => useJoinTournament());
@@ -81,67 +93,28 @@ describe('useJoinTournament', () => {
       await result.current.joinByCode('abc123');
 
       await waitFor(() => {
-        expect(mockEq).toHaveBeenCalledWith('join_code', 'ABC123');
+        expect(eqMocks[0]).toHaveBeenCalledWith('join_code', 'ABC123');
       });
     });
 
-    it('should query database with correct code', async () => {
-      const mockFrom = vi.fn().mockReturnThis();
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: '123',
-          name: 'Test Tournament',
-          is_finished: false,
-          join_code: 'ABC123',
-        },
+    it('should query the tournaments table first with the right shape', async () => {
+      mockSupabaseProbes({
+        data: { id: '123', name: 'Test Tournament', is_finished: false, join_code: 'ABC123' },
         error: null,
-      });
-
-      vi.mocked(supabase.from).mockImplementation(mockFrom);
-      mockFrom.mockReturnValue({
-        select: mockSelect,
-      });
-      mockSelect.mockReturnValue({
-        eq: mockEq,
-      });
-      mockEq.mockReturnValue({
-        single: mockSingle,
       });
 
       const { result } = renderHook(() => useJoinTournament());
 
       await result.current.joinByCode('ABC123');
 
-      expect(mockFrom).toHaveBeenCalledWith('tournaments');
-      expect(mockSelect).toHaveBeenCalledWith('id, name, is_finished, join_code');
-      expect(mockEq).toHaveBeenCalledWith('join_code', 'ABC123');
+      expect(supabase.from).toHaveBeenNthCalledWith(1, 'tournaments');
+      expect(mockNavigate).toHaveBeenCalledWith('/tournament/123/join');
     });
 
     it('should reject finished tournaments', async () => {
-      const mockFrom = vi.fn().mockReturnThis();
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: '123',
-          name: 'Test Tournament',
-          is_finished: true,
-          join_code: 'ABC123',
-        },
+      mockSupabaseProbes({
+        data: { id: '123', name: 'Test Tournament', is_finished: true, join_code: 'ABC123' },
         error: null,
-      });
-
-      vi.mocked(supabase.from).mockImplementation(mockFrom);
-      mockFrom.mockReturnValue({
-        select: mockSelect,
-      });
-      mockSelect.mockReturnValue({
-        eq: mockEq,
-      });
-      mockEq.mockReturnValue({
-        single: mockSingle,
       });
 
       const { result } = renderHook(() => useJoinTournament());
@@ -150,67 +123,44 @@ describe('useJoinTournament', () => {
       expect(toast.error).toHaveBeenCalledWith('Ce tournoi est terminé');
     });
 
-    it('should handle tournament not found', async () => {
-      const mockFrom = vi.fn().mockReturnThis();
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: null,
-        error: { message: 'Not found' },
-      });
-
-      vi.mocked(supabase.from).mockImplementation(mockFrom);
-      mockFrom.mockReturnValue({
-        select: mockSelect,
-      });
-      mockSelect.mockReturnValue({
-        eq: mockEq,
-      });
-      mockEq.mockReturnValue({
-        single: mockSingle,
-      });
+    it('should fall through to leagues when tournament misses, and route accordingly', async () => {
+      mockSupabaseProbes(
+        { data: null, error: null },
+        { data: { id: 'lg-1', name: 'Beer Pong Spring', join_code: 'LEAG12' }, error: null },
+      );
 
       const { result } = renderHook(() => useJoinTournament());
 
-      await expect(result.current.joinByCode('INVALID')).rejects.toThrow('Code invalide ou tournoi introuvable');
+      await result.current.joinByCode('LEAG12');
+
+      expect(supabase.from).toHaveBeenNthCalledWith(1, 'tournaments');
+      expect(supabase.from).toHaveBeenNthCalledWith(2, 'leagues');
+      expect(mockNavigate).toHaveBeenCalledWith('/league/lg-1/join');
     });
 
-    it('should set loading state during operation', async () => {
-      const mockFrom = vi.fn().mockReturnThis();
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: '123',
-          name: 'Test Tournament',
-          is_finished: false,
-          join_code: 'ABC123',
-        },
-        error: null,
-      });
+    it('should throw a generic "neither found" error when both probes miss', async () => {
+      mockSupabaseProbes(
+        { data: null, error: null },
+        { data: null, error: null },
+      );
 
-      vi.mocked(supabase.from).mockImplementation(mockFrom);
-      mockFrom.mockReturnValue({
-        select: mockSelect,
-      });
-      mockSelect.mockReturnValue({
-        eq: mockEq,
-      });
-      mockEq.mockReturnValue({
-        single: mockSingle,
+      const { result } = renderHook(() => useJoinTournament());
+
+      await expect(result.current.joinByCode('NOPE12')).rejects.toThrow(
+        'Code invalide — aucun tournoi ni ligue trouvé',
+      );
+    });
+
+    it('should reset loading state after a successful tournament join', async () => {
+      mockSupabaseProbes({
+        data: { id: '123', name: 'Test Tournament', is_finished: false, join_code: 'ABC123' },
+        error: null,
       });
 
       const { result } = renderHook(() => useJoinTournament());
 
       expect(result.current.isLoading).toBe(false);
-
-      const promise = result.current.joinByCode('ABC123');
-
-      // Note: In real implementation, we'd check isLoading during the async operation
-      // but due to the fast execution in tests, we just verify it completes
-
-      await promise;
-
+      await result.current.joinByCode('ABC123');
       expect(result.current.isLoading).toBe(false);
     });
 
@@ -220,49 +170,18 @@ describe('useJoinTournament', () => {
     });
 
     it('should accept codes with 6-8 characters', async () => {
-      const mockFrom = vi.fn().mockReturnThis();
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: {
-          id: '123',
-          name: 'Test Tournament',
-          is_finished: false,
-          join_code: 'ABC123',
-        },
-        error: null,
-      });
-
-      vi.mocked(supabase.from).mockImplementation(mockFrom);
-      mockFrom.mockReturnValue({
-        select: mockSelect,
-      });
-      mockSelect.mockReturnValue({
-        eq: mockEq,
-      });
-      mockEq.mockReturnValue({
-        single: mockSingle,
-      });
+      mockSupabaseProbes(
+        { data: { id: '123', name: 'Test Tournament', is_finished: false, join_code: 'ABC123' }, error: null },
+        { data: { id: '456', name: 'Test 8', is_finished: false, join_code: 'ABCD1234' }, error: null },
+      );
 
       const { result } = renderHook(() => useJoinTournament());
 
-      // Test 6 chars
       await result.current.joinByCode('ABC123');
-      expect(mockEq).toHaveBeenCalledWith('join_code', 'ABC123');
-
-      // Test 8 chars
-      mockSingle.mockResolvedValue({
-        data: {
-          id: '123',
-          name: 'Test Tournament',
-          is_finished: false,
-          join_code: 'ABCD1234',
-        },
-        error: null,
-      });
-
       await result.current.joinByCode('ABCD1234');
-      expect(mockEq).toHaveBeenCalledWith('join_code', 'ABCD1234');
+
+      expect(supabase.from).toHaveBeenNthCalledWith(1, 'tournaments');
+      expect(supabase.from).toHaveBeenNthCalledWith(2, 'tournaments');
     });
   });
 });

@@ -197,6 +197,7 @@ export type Database = {
           creator_anonymous_user_id: string | null;
           creator_user_id: string | null;
           id: string;
+          join_code: string | null;
           name: string;
           type: string;
           updated_at: string | null;
@@ -206,6 +207,7 @@ export type Database = {
           creator_anonymous_user_id?: string | null;
           creator_user_id?: string | null;
           id?: string;
+          join_code?: string | null;
           name: string;
           type: string;
           updated_at?: string | null;
@@ -215,6 +217,7 @@ export type Database = {
           creator_anonymous_user_id?: string | null;
           creator_user_id?: string | null;
           id?: string;
+          join_code?: string | null;
           name?: string;
           type?: string;
           updated_at?: string | null;
