@@ -63,12 +63,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               clsx(
                 'bg-slate-800 text-white rounded-input border transition-all duration-150 w-full',
                 'placeholder:text-slate-500',
-                'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary',
+                'focus:outline-none focus:ring-2 focus:ring-electric-blue/50 focus:border-electric-blue',
                 sizeClasses[inputSize],
                 Icon && 'pl-10',
                 suffix && 'pr-10',
                 hasError
-                  ? 'border-error focus:ring-error/50 focus:border-error'
+                  ? 'border-signal-red focus:ring-signal-red/50 focus:border-signal-red'
                   : 'border-slate-700 hover:border-slate-600',
               ),
               className,
@@ -89,7 +89,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {error && (
           <p
             id={`${inputId}-error`}
-            className="mt-1 text-sm text-error"
+            className="mt-1 text-sm text-signal-red"
             role="alert"
           >
             {error}

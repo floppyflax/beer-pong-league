@@ -4,12 +4,12 @@ import { Calendar, Users, LayoutGrid } from 'lucide-react';
 import { InfoCard } from '../../../../src/components/design-system/InfoCard';
 
 describe('InfoCard (Story 14-5, Epic 15 Arcade palette)', () => {
-  it('should have structure: bg-paper rounded-card p-4 border border-card (AC: 1)', () => {
+  it('should have structure: bg-navy-soft rounded-card p-4 border border-card (AC: 1)', () => {
     const { container } = render(
       <InfoCard title="Mon Tournoi" statusBadge="En cours" infos={[]} />
     );
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass('bg-paper');
+    expect(card).toHaveClass('bg-navy-soft');
     expect(card).toHaveClass('rounded-card');
     expect(card).toHaveClass('p-4');
     expect(card).toHaveClass('border');
@@ -62,8 +62,8 @@ describe('InfoCard (Story 14-5, Epic 15 Arcade palette)', () => {
       />
     );
     const badge = screen.getByText('En cours');
-    expect(badge).toHaveClass('bg-cup-red/20');
-    expect(badge).toHaveClass('text-cup-red');
+    expect(badge).toHaveClass('bg-signal-red/20');
+    expect(badge).toHaveClass('text-signal-red');
   });
 
   it('should apply status-finished variant (lime) for finished badge', () => {
@@ -90,8 +90,8 @@ describe('InfoCard (Story 14-5, Epic 15 Arcade palette)', () => {
       />
     );
     const badge = screen.getByText('Annulé');
-    expect(badge).toHaveClass('bg-ink-mute/20');
-    expect(badge).toHaveClass('text-ink-mute');
+    expect(badge).toHaveClass('bg-cool-gray/20');
+    expect(badge).toHaveClass('text-cool-gray');
   });
 
   it('should have data-testid infocard', () => {

@@ -1,9 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
-  QrCode,
-  Trophy,
-  Medal,
+  BarChart2,
+  Swords,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -11,11 +10,14 @@ import {
 /**
  * BottomTabMenu Component
  *
- * Bottom navigation menu for mobile with 5 main tabs
+ * Bottom navigation menu for mobile with 4 main tabs (per design spec) :
+ *   ACCUEIL · JOUER · CLASSEMENT · PROFIL
  *
- * Features (AC1-AC6):
+ * "Rejoindre" n'est plus un onglet — c'est une page (`/join`) ouverte via
+ * des CTAs (bouton rejoindre sur l'empty state, scan QR, invitation).
+ *
+ * Features :
  * - Fixed bottom position on mobile
- * - 5 tabs with icons and labels
  * - Active state: gradient (bg-gradient-tab-active) per design-system-convergence 2.1
  * - Navigation on tab click
  * - Hidden on desktop (lg:hidden)
@@ -34,25 +36,18 @@ interface Tab {
 const tabs: Tab[] = [
   { id: "home", label: "ACCUEIL", icon: Home, route: "/", ariaLabel: "Home" },
   {
-    id: "join",
-    label: "REJOINDRE",
-    icon: QrCode,
-    route: "/join",
-    ariaLabel: "Join",
+    id: "play",
+    label: "JOUER",
+    icon: Swords,
+    route: "/competitions",
+    ariaLabel: "Jouer",
   },
   {
-    id: "tournaments",
-    label: "TOURNOIS",
-    icon: Trophy,
-    route: "/tournaments",
-    ariaLabel: "Tournaments",
-  },
-  {
-    id: "leagues",
-    label: "LEAGUES",
-    icon: Medal,
-    route: "/leagues",
-    ariaLabel: "Leagues",
+    id: "leaderboard",
+    label: "CLASSEMENT",
+    icon: BarChart2,
+    route: "/leaderboard",
+    ariaLabel: "Leaderboard",
   },
   {
     id: "profile",
@@ -63,17 +58,32 @@ const tabs: Tab[] = [
   },
 ];
 
-/** Matches path to tab per design-system-convergence 2.1 (nested routes: /tournament/:id, /league/:id, /player/:id) */
+/**
+ * Matches path to tab per design-system-convergence 2.1.
+ *
+ * "Jouer" = screen hub des compétitions (événements + leagues) et tout ce
+ * qui s'y rattache : détails, création, flow Rejoindre (pas d'onglet dédié).
+ * Note: /player/:id reste sur Profil (fiche joueur, pas du jeu).
+ */
 function isTabActive(pathname: string, tab: Tab): boolean {
   switch (tab.id) {
     case "home":
       return pathname === "/";
-    case "join":
-      return pathname === "/join" || pathname.startsWith("/join/");
-    case "tournaments":
-      return pathname === "/tournaments" || pathname.startsWith("/tournament/");
-    case "leagues":
-      return pathname === "/leagues" || pathname.startsWith("/league/");
+    case "play":
+      return (
+        pathname === "/competitions" ||
+        pathname === "/leagues" ||
+        pathname === "/tournaments" ||
+        pathname === "/join" ||
+        pathname.startsWith("/join/") ||
+        pathname.startsWith("/league/") ||
+        pathname.startsWith("/tournament/") ||
+        pathname.startsWith("/event/") ||
+        pathname === "/create-league" ||
+        pathname === "/create-tournament"
+      );
+    case "leaderboard":
+      return pathname === "/leaderboard";
     case "profile":
       return (
         pathname === "/user/profile" ||
@@ -120,7 +130,7 @@ export const BottomTabMenu: React.FC<BottomTabMenuProps> = ({
 
   return (
     <nav
-      className={`${positionClass} bg-paper border-t border-card z-40 ${!previewMode ? "lg:hidden" : ""}`}
+      className={`${positionClass} bg-navy-soft border-t border-card z-40 ${!previewMode ? "lg:hidden" : ""}`}
       role="navigation"
       aria-label="Main navigation"
     >
@@ -137,21 +147,23 @@ export const BottomTabMenu: React.FC<BottomTabMenuProps> = ({
                 flex-1 flex flex-col items-center justify-center gap-1
                 border-t-2 transition-all duration-200
                 min-h-[48px] active:scale-95
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800
                 ${
                   isActive
-                    ? "border-transparent bg-gradient-tab-active text-ink"
-                    : "border-transparent text-ink-soft hover:text-ink-soft"
+                    ? "border-transparent bg-gradient-tab-active text-white"
+                    : "border-transparent text-cool-gray hover:text-cool-gray"
                 }
               `}
               aria-label={tab.ariaLabel}
               aria-current={isActive ? "page" : undefined}
             >
               <Icon
-                className={isActive ? "text-ink" : "text-ink-soft"}
+                className={isActive ? "text-white" : "text-cool-gray"}
                 size={24}
               />
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className="text-[10px] font-medium whitespace-nowrap">
+                {tab.label}
+              </span>
             </button>
           );
         })}

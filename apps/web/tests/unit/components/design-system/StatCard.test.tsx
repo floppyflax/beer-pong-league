@@ -15,10 +15,10 @@ describe('StatCard (Story 14-2, Epic 15 Arcade palette)', () => {
     expect(screen.getByText('ELO')).toBeInTheDocument();
   });
 
-  it('should have structure: bg-paper p-3 rounded-card text-center (AC: 3)', () => {
+  it('should have structure: bg-navy-soft p-3 rounded-card text-center (AC: 3)', () => {
     const { container } = render(<StatCard value={0} label="Matchs" />);
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass('bg-paper');
+    expect(card).toHaveClass('bg-navy-soft');
     expect(card).toHaveClass('rounded-card');
     expect(card).toHaveClass('text-center');
     expect(card).toHaveClass('p-3');
@@ -27,7 +27,8 @@ describe('StatCard (Story 14-2, Epic 15 Arcade palette)', () => {
   it('should apply primary variant color (AC: 2)', () => {
     render(<StatCard value={10} label="Joueurs" variant="primary" />);
     const valueEl = screen.getByTestId('statcard-value');
-    expect(valueEl).toHaveClass('text-cup-blue');
+    // PR1: cup-blue remapped → electric-blue
+    expect(valueEl).toHaveClass('text-electric-blue');
   });
 
   it('should apply success variant color (AC: 2)', () => {
@@ -39,13 +40,14 @@ describe('StatCard (Story 14-2, Epic 15 Arcade palette)', () => {
   it('should apply accent variant color (AC: 2)', () => {
     render(<StatCard value={1200} label="ELO" variant="accent" />);
     const valueEl = screen.getByTestId('statcard-value');
-    expect(valueEl).toHaveClass('text-cup-red');
+    // PR1: cup-red remapped → signal-red
+    expect(valueEl).toHaveClass('text-signal-red');
   });
 
   it('should use default ink variant when variant prop is omitted', () => {
     render(<StatCard value={5} label="Matchs" />);
     const valueEl = screen.getByTestId('statcard-value');
-    expect(valueEl).toHaveClass('text-ink');
+    expect(valueEl).toHaveClass('text-white');
   });
 
   it('should render value with stat font (AC: 4)', () => {
@@ -55,13 +57,14 @@ describe('StatCard (Story 14-2, Epic 15 Arcade palette)', () => {
     expect(valueEl).toHaveClass('font-bold');
   });
 
-  it('should render label with Arcade archivo extrabold uppercase (AC: 5)', () => {
+  it('should render label with extrabold uppercase mono (AC: 5)', () => {
     render(<StatCard value={1} label="Rang" />);
     const labelEl = screen.getByTestId('statcard-label');
     expect(labelEl).toHaveClass('text-[10px]');
     expect(labelEl).toHaveClass('uppercase');
     expect(labelEl).toHaveClass('font-extrabold');
-    expect(labelEl).toHaveClass('font-archivo');
-    expect(labelEl).toHaveClass('text-ink-mute');
+    // PR3: font-archivo → font-mono for consistency with DS mono label convention
+    expect(labelEl).toHaveClass('font-mono');
+    expect(labelEl).toHaveClass('text-cool-gray');
   });
 });

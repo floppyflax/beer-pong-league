@@ -1,21 +1,22 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Target, Trophy, Award, User } from 'lucide-react';
+import { Home, Swords, BarChart2, User, type LucideIcon } from 'lucide-react';
 import { useAuthContext } from '../../context/AuthContext';
 import { useIdentity } from '../../hooks/useIdentity';
 
 interface NavItem {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   route: string;
 }
 
+// Aligned with BottomTabMenu: 4 entries — Accueil · Jouer · Classement · Profil.
+// "Rejoindre" is NOT a menu entry; it's a page (/join) reached from CTAs.
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Home', icon: Home, route: '/' },
-  { id: 'join', label: 'Rejoindre', icon: Target, route: '/join' },
-  { id: 'tournaments', label: 'Tournois', icon: Trophy, route: '/tournaments' },
-  { id: 'leagues', label: 'Leagues', icon: Award, route: '/leagues' },
-  { id: 'profile', label: 'Profil', icon: User, route: '/profile' },
+  { id: 'home', label: 'Accueil', icon: Home, route: '/' },
+  { id: 'play', label: 'Jouer', icon: Swords, route: '/competitions' },
+  { id: 'leaderboard', label: 'Classement', icon: BarChart2, route: '/leaderboard' },
+  { id: 'profile', label: 'Profil', icon: User, route: '/user/profile' },
 ];
 
 export const Sidebar = () => {
@@ -23,20 +24,37 @@ export const Sidebar = () => {
   const location = useLocation();
   const { user, isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
-  
+
   /**
-   * Determines which navigation item should be highlighted based on current route
-   * Returns empty string for detail pages where no nav item should be active
+   * Determines which navigation item should be highlighted based on current route.
+   * "Jouer" = hub compétitions (inclut legacy /tournaments, /leagues, détails, flow /join).
    */
   const getActiveItem = (pathname: string): string => {
-    // Main pages - exact or prefix match
     if (pathname === '/') return 'home';
-    if (pathname.startsWith('/join')) return 'join';
-    if (pathname.startsWith('/tournaments')) return 'tournaments';
-    if (pathname.startsWith('/leagues')) return 'leagues';
-    if (pathname.startsWith('/profile')) return 'profile';
-    
-    // Detail pages (e.g., /tournament/:id) - no active nav item
+    if (
+      pathname === '/competitions' ||
+      pathname === '/tournaments' ||
+      pathname === '/leagues' ||
+      pathname.startsWith('/join') ||
+      pathname.startsWith('/tournament/') ||
+      pathname.startsWith('/league/') ||
+      pathname.startsWith('/event/') ||
+      pathname === '/create-tournament' ||
+      pathname === '/create-league'
+    ) {
+      return 'play';
+    }
+    if (pathname === '/leaderboard') return 'leaderboard';
+    if (
+      pathname === '/user/profile' ||
+      pathname.startsWith('/user/profile') ||
+      pathname.startsWith('/profile') ||
+      pathname.startsWith('/player/')
+    ) {
+      return 'profile';
+    }
+
+    // Detail pages without match - no active nav item
     return '';
   };
   
@@ -46,15 +64,15 @@ export const Sidebar = () => {
   const hasIdentity = isAuthenticated || localUser;
   const displayName = isAuthenticated && user?.email
     ? user.email.split('@')[0]
-    : localUser?.displayName || 'Utilisateur';
+    : localUser?.pseudo || 'Utilisateur';
   // Premium status from user object (verified by backend)
   const isPremium = (user as any)?.isPremium || false;
   
   return (
-    <aside className="hidden lg:flex lg:flex-col w-60 h-screen bg-paper border-r border-card fixed left-0 top-0">
+    <aside className="hidden lg:flex lg:flex-col w-60 h-screen bg-navy-soft border-r border-card fixed left-0 top-0">
       {/* Logo */}
       <div className="p-6 border-b border-card">
-        <h1 className="text-2xl font-bold text-cup-red flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-signal-red flex items-center gap-2">
           <span>🍺</span> BPL
         </h1>
       </div>
@@ -72,8 +90,8 @@ export const Sidebar = () => {
               aria-current={isActive ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 isActive
-                  ? 'bg-cream-deep text-cup-red border-l-4 border-cup-red font-bold'
-                  : 'text-ink-soft hover:text-ink hover:bg-cream-deep/50'
+                  ? 'bg-navy-deep text-electric-blue border-l-4 border-electric-blue font-bold'
+                  : 'text-cool-gray hover:text-white hover:bg-navy-deep/50'
               }`}
             >
               <Icon size={20} />
@@ -86,19 +104,19 @@ export const Sidebar = () => {
       {/* User Info */}
       {hasIdentity && (
         <div 
-          className="p-4 border-t border-card cursor-pointer hover:bg-cream-deep/50 transition-colors"
+          className="p-4 border-t border-card cursor-pointer hover:bg-navy-deep/50 transition-colors"
           onClick={() => navigate('/profile')}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-cup-red/20 flex items-center justify-center">
-              <User size={20} className="text-cup-red" />
+            <div className="w-10 h-10 rounded-full bg-signal-red/20 flex items-center justify-center">
+              <User size={20} className="text-signal-red" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-ink truncate">
+              <div className="text-sm font-medium text-white truncate">
                 {displayName}
               </div>
               {isPremium && (
-                <div className="text-xs text-cup-red">
+                <div className="text-xs text-signal-red">
                   💎 Premium
                 </div>
               )}

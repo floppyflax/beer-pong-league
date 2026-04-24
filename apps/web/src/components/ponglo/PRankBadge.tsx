@@ -12,15 +12,20 @@ export type RankTier = {
 /**
  * Tiers de rang par ELO — noms inspirés contenants de bière.
  * Ordre croissant de minima. `rankOf(elo)` retourne le tier le plus haut atteint.
+ *
+ * Colors reference Everything ELO canonical tokens (§2.3 redesign-spec.md).
+ * Inline styles are used because Tailwind purge cannot detect dynamic class names.
+ * Token mapping: ink-mute / lime / signal-red / signal-red-deep /
+ *                electric-blue / electric-blue-deep / ping-yellow
  */
 export const RANKS: RankTier[] = [
-  { min: 0, name: "MOUSSE", color: "#6B6A5E", textColor: "#F4F2E8" },
-  { min: 900, name: "PICHET", color: "#B8FF3D", textColor: "#0B0D14" },
-  { min: 1100, name: "DEMI", color: "#FF4438", textColor: "#F4F2E8" },
-  { min: 1300, name: "PINTE", color: "#C42418", textColor: "#F4F2E8" },
-  { min: 1500, name: "MAGNUM", color: "#3B8EFF", textColor: "#F4F2E8" },
-  { min: 1700, name: "METEORE", color: "#0052D4", textColor: "#F4F2E8" },
-  { min: 1900, name: "LEGENDE", color: "#FFB800", textColor: "#0B0D14" },
+  { min: 0,    name: "MOUSSE",  color: "#6B7280", textColor: "#FFFFFF" },  // ink-mute  / white
+  { min: 900,  name: "PICHET",  color: "#B7FF3B", textColor: "#0B1320" },  // lime      / navy
+  { min: 1100, name: "DEMI",    color: "#FF3B3B", textColor: "#FFFFFF" },  // signal-red / white
+  { min: 1300, name: "PINTE",   color: "#D32828", textColor: "#FFFFFF" },  // signal-red-deep / white
+  { min: 1500, name: "MAGNUM",  color: "#2F6BFF", textColor: "#FFFFFF" },  // electric-blue / white
+  { min: 1700, name: "METEORE", color: "#1E4CD9", textColor: "#FFFFFF" },  // electric-blue-deep / white
+  { min: 1900, name: "LEGENDE", color: "#FFD400", textColor: "#0B1320" },  // ping-yellow / navy
 ];
 
 /**

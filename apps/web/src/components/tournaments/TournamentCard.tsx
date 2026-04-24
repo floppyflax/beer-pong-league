@@ -5,117 +5,100 @@ import type { Tournament } from "../../types";
 
 interface TournamentCardProps {
   tournament: Tournament;
-  /** When false, card is display-only (no click, no navigation). Default: true */
   interactive?: boolean;
 }
 
-/**
- * TournamentCard Component
- *
- * Displays a tournament card with:
- * - Header: [Title bold white] [Badge ACTIF / TERMINÉ]
- * - Middle: Date
- * - Bottom: 3 columns (Matchs, Joueurs, Format) + chevron navigation
- * - Container: bg-gradient-card, rounded-xl p-6, border-card/50
- *
- * Clicks navigate to /tournament/:id (keyboard accessible: Enter/Space)
- */
 export const TournamentCard: React.FC<TournamentCardProps> = ({
   tournament,
   interactive = true,
 }) => {
   const navigate = useNavigate();
 
-  const handleClick = () => {
-    if (interactive) {
-      navigate(`/tournament/${tournament.id}`);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (interactive && (e.key === "Enter" || e.key === " ")) {
-      e.preventDefault();
-      handleClick();
-    }
-  };
-
-  const playerCount = tournament.playerIds?.length || 0;
-  const matchCount = tournament.matches?.length || 0;
-
-  const tournamentDate = tournament.date
-    ? new Date(tournament.date).toLocaleDateString("fr-FR", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      })
-    : "Date non définie";
+  const playerCount = tournament.playerIds?.length ?? 0;
+  const matchCount = tournament.matches?.length ?? 0;
 
   const formatLabel =
     tournament.format === "libre"
       ? "Libre"
       : tournament.format.toUpperCase().replace("V", "v");
 
-  const containerClasses = interactive
-    ? "bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-card/50 cursor-pointer transition-all hover:border-cup-red hover:shadow-lg hover:shadow-primary/20 active:scale-95"
-    : "bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-card/50";
+  const today = new Date().toISOString().slice(0, 10);
+  const eventDay = tournament.date ? new Date(tournament.date).toISOString().slice(0, 10) : null;
+  const isToday = eventDay === today;
+  const isFuture = eventDay ? eventDay > today : false;
+
+  const badgeLabel = tournament.isFinished
+    ? "Terminé"
+    : isToday
+    ? "En ce moment"
+    : isFuture && eventDay
+    ? new Date(tournament.date!).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" })
+    : "Actif";
+
+  const badgeColor = tournament.isFinished
+    ? "text-cool-gray"
+    : isToday
+    ? "text-lime"
+    : "text-cool-gray";
+
+  const dotColor = tournament.isFinished
+    ? "bg-cool-gray"
+    : isToday
+    ? "bg-lime"
+    : "bg-cool-gray";
+
+  const content = (
+    <>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`}
+            style={isToday && !tournament.isFinished ? { boxShadow: "0 0 0 4px rgba(183,255,59,0.18)" } : undefined}
+          />
+          <span className={`font-mono text-[10px] tracking-[1.5px] uppercase font-bold ${badgeColor}`}>
+            {badgeLabel}
+          </span>
+        </div>
+        <div className="font-archivo font-extrabold text-xl tracking-[-0.4px] truncate text-white">
+          {tournament.name}
+        </div>
+        <div className="text-[13px] text-cool-gray mt-0.5 flex items-center gap-1.5 flex-wrap">
+          <span>{playerCount} {playerCount === 1 ? "joueur" : "joueurs"}</span>
+          <span className="opacity-40">·</span>
+          <span>{matchCount} {matchCount === 1 ? "match" : "matchs"}</span>
+          <span className="opacity-40">·</span>
+          <span>{formatLabel}</span>
+          <span className="opacity-40">·</span>
+          <span className="text-lime font-bold">ELO</span>
+        </div>
+      </div>
+      {interactive && (
+        <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+          <ChevronRight size={18} className="text-white" />
+        </div>
+      )}
+    </>
+  );
+
+  if (!interactive) {
+    return (
+      <div
+        className="w-full bg-navy-soft border-[1.5px] border-white/20 rounded-lg p-4 flex items-center gap-3"
+        data-testid="tournament-card"
+      >
+        {content}
+      </div>
+    );
+  }
 
   return (
-    <div
-      role={interactive ? "button" : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      onClick={interactive ? handleClick : undefined}
-      onKeyDown={interactive ? handleKeyDown : undefined}
-      className={containerClasses}
+    <button
+      className="w-full bg-navy-soft border-[1.5px] border-white rounded-lg p-4 shadow-[0_3px_0_#F4F2E8] flex items-center gap-3 text-left hover:brightness-110 transition-[filter] duration-75 active:translate-y-[2px] active:shadow-none"
+      onClick={() => navigate(`/tournament/${tournament.id}`)}
       data-testid="tournament-card"
-      aria-label={
-        interactive ? `Voir le tournoi ${tournament.name}` : undefined
-      }
+      aria-label={`Voir le tournoi ${tournament.name}`}
     >
-      {/* Header: Title + Badge */}
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <h3 className="text-lg font-bold text-ink truncate flex-1 min-w-0">
-          {tournament.name}
-        </h3>
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 ${
-            tournament.isFinished
-              ? "bg-cream-deep text-ink-soft"
-              : "bg-green-500/20 text-green-400"
-          }`}
-        >
-          {tournament.isFinished ? "TERMINÉ" : "ACTIF"}
-        </span>
-      </div>
-
-      {/* Middle: Date */}
-      <p className="text-sm text-ink-soft mb-4">{tournamentDate}</p>
-
-      {/* Bottom: 3 stats columns + chevron (decorative, no nested button) */}
-      <div className="flex items-end justify-between gap-4">
-        <div className="flex gap-6 flex-1 min-w-0">
-          <div>
-            <p className="text-lg font-bold text-ink">{matchCount}</p>
-            <p className="text-xs text-ink-soft">Matchs</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-ink">{playerCount}</p>
-            <p className="text-xs text-ink-soft">Joueurs</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-blue-400">{formatLabel}</p>
-            <p className="text-xs text-ink-soft">Format</p>
-          </div>
-        </div>
-        {interactive ? (
-          <span
-            className="shrink-0 w-10 h-10 rounded-full bg-cream-deep flex items-center justify-center text-ink"
-            aria-hidden
-            data-testid="tournament-card-chevron"
-          >
-            <ChevronRight size={20} />
-          </span>
-        ) : null}
-      </div>
-    </div>
+      {content}
+    </button>
   );
 };

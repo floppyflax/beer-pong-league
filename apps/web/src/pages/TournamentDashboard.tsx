@@ -3,42 +3,41 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import {
   Trophy,
-  X,
   Link as LinkIcon,
   Users,
   History,
   Monitor,
-  Share2,
   LogOut,
   UserPlus,
-  Calendar,
+  Settings,
 } from "lucide-react";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "@/components/EloChangeDisplay";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { MatchRecordingForm } from "@/components/MatchRecordingForm";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
-import { QRCodeSVG } from "qrcode.react";
-import type { Match } from "@/types";
+import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { databaseService } from "@/services/DatabaseService";
 import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
 import { toast } from "react-hot-toast";
-import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { useDetailPagePermissions } from "@/hooks/useDetailPagePermissions";
 import {
-  InfoCard,
-  StatCard,
   SegmentedTabs,
-  ListRow,
   FAB,
+  DetailHero,
+  InviteSheet,
+  SettingsSheet,
 } from "@/components/design-system";
+import type {
+  DetailHeroAction,
+  DetailHeroMenuItem,
+  SettingsSheetTournamentUpdates,
+} from "@/components/design-system";
+import { Podium } from "@/components/ponglo/Podium";
+import { LeaderRow } from "@/components/ponglo/LeaderRow";
 
-import {
-  getDeltaFromLastMatch,
-  getLast5MatchResults,
-} from "@/utils/playerStats";
+import { getDeltaFromLastMatch } from "@/utils/playerStats";
 
 // Task 4 - Utility function for relative timestamps (AC4)
 function getRelativeTimestamp(date: string): string {
@@ -74,7 +73,6 @@ export const TournamentDashboard = () => {
   const {
     tournaments,
     leagues,
-    recordTournamentMatch,
     deleteTournament,
     toggleTournamentStatus,
     updateTournament,
@@ -88,30 +86,21 @@ export const TournamentDashboard = () => {
   } = useLeague();
 
   const [rankingMode, setRankingMode] = useState<"local" | "global">("local");
-  const [activeTab, setActiveTab] = useState<
-    "classement" | "matchs" | "settings"
-  >("classement");
-  const [showRecordMatch, setShowRecordMatch] = useState(false);
-  const [showEloChanges, setShowEloChanges] = useState(false);
-  const [lastEloChanges, setLastEloChanges] = useState<Record<string, number>>(
-    {},
+  const [activeTab, setActiveTab] = useState<"classement" | "matchs">(
+    "classement",
   );
+  const [showEloChanges, setShowEloChanges] = useState(false);
+  const [lastEloChanges] = useState<Record<string, number>>({});
   const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [addPlayerTab, setAddPlayerTab] = useState<
-    "pseudo" | "invitation" | "league"
-  >("pseudo");
-  const [newPlayerName, setNewPlayerName] = useState("");
-  const [selectedLeagueId, setSelectedLeagueId] = useState<string>("");
-  const [selectedLeaguePlayerId, setSelectedLeaguePlayerId] =
-    useState<string>("");
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Escape key closes Add Player modal
+  // Escape key closes Add Player modal (InviteSheet manages its own but we keep
+  // for backward compat with other modals that might be open)
   useEffect(() => {
     if (!showAddPlayer) return;
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setShowAddPlayer(false);
-        setAddPlayerTab("pseudo");
       }
     };
     document.addEventListener("keydown", handleEscape);
@@ -207,7 +196,6 @@ export const TournamentDashboard = () => {
       });
     }
     // Only trigger when league player count changes to avoid unnecessary re-syncs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [league?.players.length]);
 
   // NOW we can have conditional returns (after ALL hooks)
@@ -224,12 +212,12 @@ export const TournamentDashboard = () => {
       <div className="p-4 text-center">
         <EmptyState
           icon={Trophy}
-          title="Tournoi introuvable"
-          description="Ce tournoi n'existe pas ou a été supprimé."
+          title="Événement introuvable"
+          description="Cet événement n'existe pas ou a été supprimé."
           action={
             <button
               onClick={() => navigate("/")}
-              className="px-4 py-2 bg-cup-red text-ink rounded-lg font-bold hover:brightness-110 transition-colors"
+              className="px-4 py-2 bg-signal-red text-white rounded-lg font-bold hover:brightness-110 transition-colors"
             >
               Retour à l'accueil
             </button>
@@ -239,36 +227,9 @@ export const TournamentDashboard = () => {
     );
   }
 
-  const handleMatchFormSuccess = async (match: Match) => {
-    // Calculate winner from scores
-    const winner: "A" | "B" = match.scoreA > match.scoreB ? "A" : "B";
-
-    // Call recordTournamentMatch with scores and tournament participants (tournament_players.id)
-    const eloChanges = await recordTournamentMatch(
-      tournament.id,
-      match.teamA,
-      match.teamB,
-      winner,
-      { scoreA: match.scoreA, scoreB: match.scoreB },
-      tournamentPlayers,
-    );
-
-    if (eloChanges) {
-      setLastEloChanges(eloChanges);
-      setShowEloChanges(true);
-    }
-  };
-
-  const handleDeleteTournament = () => {
-    if (confirm("Es-tu sûr de vouloir supprimer ce Tournoi ?")) {
-      deleteTournament(tournament.id);
-      navigate("/");
-    }
-  };
-
   // Task 7 - Leave tournament functionality (Story 8.3, AC7)
   const handleLeaveTournament = async () => {
-    if (confirm("Es-tu sûr de vouloir quitter ce tournoi ?")) {
+    if (confirm("Es-tu sûr de vouloir quitter cet événement ?")) {
       try {
         await databaseService.leaveTournament(
           tournament.id,
@@ -283,45 +244,38 @@ export const TournamentDashboard = () => {
         navigate("/");
 
         // Show success toast (AC7)
-        toast.success("Tu as quitté le tournoi");
+        toast.success("Tu as quitté l'événement");
       } catch (error: unknown) {
         console.error("Error leaving tournament:", error);
         toast.error(
-          error instanceof Error ? error.message : "Erreur lors de la sortie du tournoi",
+          error instanceof Error ? error.message : "Erreur lors de la sortie de l'événement",
         );
       }
     }
   };
 
-  const handleAddPlayerByPseudo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPlayerName.trim()) return;
-
-    if (tournament.leagueId) {
-      // Add player to League - it will be auto-added to tournament via useEffect
-      addPlayer(tournament.leagueId, newPlayerName);
-    } else {
-      // TODO: For autonomous tournaments, create guest player directly
-      // For now, add to league if exists
+  const handleInviteAddManual = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (!tournament.leagueId) {
       toast.error(
-        "Pour ajouter des joueurs, associez d'abord ce tournoi à une League dans les paramètres.",
+        "Pour ajouter des joueurs manuellement, rattache d'abord cet événement à une ligue via Paramètres.",
       );
       setShowAddPlayer(false);
-      setActiveTab("settings");
+      if (isAdmin) setShowSettings(true);
       return;
     }
-    setNewPlayerName("");
+    addPlayer(tournament.leagueId, trimmed);
+    toast.success(`${trimmed} ajouté·e`);
     setShowAddPlayer(false);
-    setAddPlayerTab("pseudo"); // Reset to default tab
   };
 
-  const handleAddPlayerFromLeague = async () => {
-    if (!selectedLeaguePlayerId || !tournament.leagueId) return;
-
+  const handleInviteAddFromLeague = async (leaguePlayerId: string) => {
+    if (!leaguePlayerId || !tournament.leagueId) return;
     try {
       const tournamentPlayerId = await databaseService.addLeaguePlayerToTournament(
         tournament.id,
-        selectedLeaguePlayerId,
+        leaguePlayerId,
       );
       addPlayerToTournament(tournament.id, tournamentPlayerId);
       await reloadData();
@@ -342,193 +296,179 @@ export const TournamentDashboard = () => {
           ),
         )
         .catch(() => {});
+      toast.success("Joueur ajouté à l'événement");
+      setShowAddPlayer(false);
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Erreur lors de l'ajout du joueur",
       );
-      return;
-    }
-    setSelectedLeaguePlayerId("");
-    setShowAddPlayer(false);
-    setAddPlayerTab("pseudo"); // Reset to default tab
-  };
-
-  const handleCopyCode = () => {
-    if (tournament.joinCode) {
-      navigator.clipboard.writeText(tournament.joinCode);
-      toast.success("Code copié!");
     }
   };
 
-  const handleShareLink = async () => {
-    const url = `${window.location.origin}/tournament/${tournament.id}/join`;
+  // ── DetailHero derived state ─────────────────────────────────────────────
+  const tournamentStatusVariant: "finished" | "cancelled" | "live" | "active" =
+    tournament.status === "finished" || tournament.isFinished
+      ? "finished"
+      : tournament.status === "cancelled"
+        ? "cancelled"
+        : tournament.matches.some((m) => m.is_live)
+          ? "live"
+          : "active";
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: tournament.name,
-          text: `Rejoins le tournoi ${tournament.name}!`,
-          url: url,
-        });
-      } catch (err) {
-        // User cancelled share or error occurred
-        console.log("Share cancelled or failed");
-      }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(url);
-      toast.success("Lien copié!");
+  const tournamentStatusLabel =
+    tournamentStatusVariant === "finished"
+      ? "Terminé"
+      : tournamentStatusVariant === "cancelled"
+        ? "Annulé"
+        : tournamentStatusVariant === "live"
+          ? "En direct"
+          : "En cours";
+
+  const formatLabel =
+    tournament.format === "libre" ? "Format libre" : `Format ${tournament.format}`;
+
+  // Mode de compétition : ELO (classement ponctuel) ou Bracket (élimination
+  // directe). Défini à la création et immuable. Default 'elo' pour les anciens
+  // tournois (cohérent avec la migration 011).
+  const tournamentMode: "elo" | "bracket" = tournament.mode ?? "elo";
+  const modeLabel = tournamentMode === "bracket" ? "Mode Bracket" : "Mode ELO";
+
+  const dateLabel = new Date(tournament.date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
+
+  // Hero actions — spec refonte :
+  //  • Admin : [Inviter primary] [Paramètres secondary] [📺 Mode Diffusion iconOnly]
+  //  • Non-admin : [Inviter primary], avec Quitter accessible via menu (seul item
+  //    conservé pour les participants).
+  const detailHeroActions: DetailHeroAction[] = [];
+  if (isAdmin || canInvite) {
+    detailHeroActions.push({
+      label: "Inviter",
+      icon: <UserPlus size={16} />,
+      onClick: () => setShowAddPlayer(true),
+      variant: "primary",
+    });
+  }
+  if (isAdmin) {
+    detailHeroActions.push({
+      label: "Paramètres",
+      icon: <Settings size={16} />,
+      onClick: () => setShowSettings(true),
+      variant: "secondary",
+    });
+    detailHeroActions.push({
+      label: "Mode Diffusion",
+      icon: <Monitor size={18} />,
+      onClick: () => navigate(`/tournament/${tournament.id}/display`),
+      variant: "iconOnly",
+    });
+  }
+
+  const detailHeroMenuItems: DetailHeroMenuItem[] = !isAdmin
+    ? [
+        {
+          label: "Quitter l'événement",
+          icon: <LogOut size={20} />,
+          onClick: handleLeaveTournament,
+          destructive: true,
+        },
+      ]
+    : [];
+
+  // SettingsSheet handlers
+  const handleSaveSettings = async (updates: SettingsSheetTournamentUpdates) => {
+    try {
+      await updateTournament(tournament.id, updates);
+      toast.success("Paramètres enregistrés");
+    } catch (err) {
+      console.error("Error saving tournament settings:", err);
+      toast.error("Erreur lors de la sauvegarde");
     }
   };
 
-  const handleLinkToLeague = () => {
-    if (!selectedLeagueId) return;
-    associateTournamentToLeague(tournament.id, selectedLeagueId);
-    setSelectedLeagueId("");
+  const handleFinishFromSettings = () => {
+    toggleTournamentStatus(tournament.id);
+    toast.success(
+      tournament.isFinished
+        ? "Événement rouvert"
+        : "Événement clôturé",
+    );
+    setShowSettings(false);
+  };
+
+  const handleDeleteFromSettings = () => {
+    deleteTournament(tournament.id);
+    setShowSettings(false);
+    navigate("/");
   };
 
   return (
-    <div className="min-h-screen bg-cream text-ink flex flex-col relative">
-      <ContextualHeader
+    <div className="min-h-screen bg-navy text-white flex flex-col relative">
+      {/* DetailHero — bloc bleu pleine largeur (bleed sous padding ResponsiveLayout + App) */}
+      <DetailHero
+        className="-mx-4 -mt-4 md:mx-0 md:mt-0"
+        onBack={() => navigate("/competitions")}
+        adminBadge={isAdmin}
         title={tournament.name}
-        showBackButton={true}
-        onBack={() => navigate("/tournaments")}
-        actions={[
-          ...(isAdmin || canInvite
-            ? [
-                {
-                  label: "INVITER",
-                  icon: <UserPlus size={20} />,
-                  onClick: () => setShowAddPlayer(true),
-                  variant: "secondary" as const,
-                },
-              ]
-            : []),
-        ]}
-        menuItems={[
-          ...(isAdmin
-            ? [
-                {
-                  label: "Mode Diffusion",
-                  icon: <Monitor size={20} />,
-                  onClick: () =>
-                    navigate(`/tournament/${tournament.id}/display`),
-                },
-              ]
-            : []),
+        status={{
+          label: tournamentStatusLabel,
+          variant: tournamentStatusVariant,
+        }}
+        meta={[formatLabel, modeLabel, dateLabel]}
+        stats={[
           {
-            label: "Quitter le tournoi",
-            icon: <LogOut size={20} />,
-            onClick: handleLeaveTournament,
-            destructive: false,
+            label: "Joueurs",
+            value: `${tournamentPlayers.length}${
+              tournament.maxPlayers && tournament.maxPlayers < 999
+                ? `/${tournament.maxPlayers}`
+                : ""
+            }`,
+          },
+          { label: "Matchs", value: String(tournament.matches.length) },
+          {
+            label: "Top ELO",
+            value: ranking.length > 0 ? String(ranking[0].elo) : "—",
           },
         ]}
+        actions={detailHeroActions}
+        menuItems={detailHeroMenuItems}
       />
 
-      {/* InfoCard (AC2): status, code, format, date */}
-      <div className="px-4 py-3">
-        <InfoCard
-          title=""
-          statusBadge={
-            tournament.status === "finished" || tournament.isFinished
-              ? "Terminé"
-              : tournament.status === "cancelled"
-                ? "Annulé"
-                : "En cours"
-          }
-          statusVariant={
-            tournament.status === "finished" || tournament.isFinished
-              ? "finished"
-              : tournament.status === "cancelled"
-                ? "cancelled"
-                : "active"
-          }
-          infos={[
-            ...(tournament.joinCode
-              ? [{ icon: LinkIcon, text: `Code: ${tournament.joinCode}` }]
-              : []),
-            {
-              icon: Trophy,
-              text: `Format: ${
-                tournament.format === "libre" ? "Libre" : tournament.format
-              }`,
-            },
-            {
-              icon: Users,
-              text: `${tournamentPlayers.length}${
-                tournament.maxPlayers && tournament.maxPlayers < 999
-                  ? `/${tournament.maxPlayers}`
-                  : ""
-              } joueurs`,
-            },
-            {
-              icon: Calendar,
-              text: new Date(tournament.date).toLocaleDateString("fr-FR"),
-            },
-          ]}
-        />
-      </div>
-
-      {/* StatCards (AC3): 3 columns */}
-      <div className="grid grid-cols-3 gap-2 px-4 pb-4">
-        <StatCard
-          value={tournamentPlayers.length}
-          label="Joueurs"
-          variant="primary"
-        />
-        <StatCard value={tournament.matches.length} label="Matchs" />
-        <StatCard
-          value={ranking.length > 0 ? ranking[0].elo : "-"}
-          label="Top ELO"
-          variant="accent"
-        />
-      </div>
-
-      {/* SegmentedTabs (AC4): Classement / Matchs / Paramètres */}
-      <div className="px-4 pb-4">
+      {/* SegmentedTabs: Matchs / Classement */}
+      <div className="px-4 pt-4 pb-4">
         <SegmentedTabs
           tabs={[
-            { id: "classement", label: "Classement" },
             { id: "matchs", label: "Matchs" },
-            { id: "settings", label: "Paramètres" },
+            { id: "classement", label: "Classement" },
           ]}
           activeId={activeTab}
-          onChange={(id) =>
-            setActiveTab(id as "classement" | "matchs" | "settings")
-          }
+          onChange={(id) => setActiveTab(id as "classement" | "matchs")}
           variant="encapsulated"
         />
       </div>
 
-      {!tournament.leagueId && activeTab === "classement" && (
-        <div className="px-4 py-2 bg-gold/20 border border-gold/50 rounded-lg mx-4 my-2 flex items-center gap-2 text-sm">
-          <LinkIcon size={16} className="text-gold" />
-          <span className="text-gold">
-            Tournoi autonome. Associe-le à une League pour suivre le classement
-            global.
-          </span>
-        </div>
-      )}
-
       {/* Ranking Mode Switch */}
       {tournament.leagueId && activeTab === "classement" && (
-        <div className="px-4 py-2 bg-paper/50 flex gap-2">
+        <div className="px-4 py-2 bg-navy-soft/50 flex gap-2">
           <button
             onClick={() => setRankingMode("local")}
             className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
               rankingMode === "local"
-                ? "bg-cup-red text-ink"
-                : "bg-cream-deep text-ink-soft"
+                ? "bg-electric-blue text-white"
+                : "bg-navy-deep text-cool-gray"
             }`}
           >
-            Classement Tournoi
+            Classement Événement
           </button>
           <button
             onClick={() => setRankingMode("global")}
             className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
               rankingMode === "global"
-                ? "bg-cup-red text-ink"
-                : "bg-cream-deep text-ink-soft"
+                ? "bg-electric-blue text-white"
+                : "bg-navy-deep text-cool-gray"
             }`}
           >
             Classement League
@@ -547,35 +487,47 @@ export const TournamentDashboard = () => {
                 description="Invite tes amis pour commencer à jouer!"
               />
             ) : (
-              <div className="space-y-2 w-full">
-                {ranking.map((player, index) => {
-                  const participant = tournamentParticipants.find(
-                    (tp) => tp.id === player.id,
-                  );
-                  const profileId = getPlayerProfileId(
-                    participant || { id: player.id },
-                  );
-                  const recentResults = getLast5MatchResults(
-                    player.id,
-                    sortedMatches,
-                  );
-                  const delta = getDeltaFromLastMatch(player.id, sortedMatches);
-                  return (
-                    <ListRow
-                      key={player.id}
-                      variant="player"
-                      name={player.name}
-                      subtitle={`${player.wins}V - ${player.losses}D • ${Math.round(
-                        (player.wins / (player.matchesPlayed || 1)) * 100,
-                      )}%`}
-                      elo={player.elo}
-                      rank={index + 1}
-                      delta={delta}
-                      recentResults={recentResults}
-                      onClick={() => navigate(`/player/${profileId}`)}
-                    />
-                  );
-                })}
+              <div className="space-y-3 w-full">
+                {/* Podium top-3 */}
+                {ranking.length >= 3 && (
+                  <Podium
+                    top3={ranking.slice(0, 3).map((p) => ({
+                      id: p.id,
+                      name: p.name,
+                      elo: p.elo,
+                    }))}
+                    scope={rankingMode === "global" ? league?.name : undefined}
+                    className="mb-1"
+                  />
+                )}
+                {/* Full leaderboard with LeaderRow */}
+                <div className="space-y-1.5">
+                  {ranking.map((player, index) => {
+                    const participant = tournamentParticipants.find(
+                      (tp) => tp.id === player.id,
+                    );
+                    const profileId = getPlayerProfileId(
+                      participant || { id: player.id },
+                    );
+                    const delta = getDeltaFromLastMatch(
+                      player.id,
+                      sortedMatches,
+                    );
+                    return (
+                      <LeaderRow
+                        key={player.id}
+                        rank={index + 1}
+                        player={{
+                          id: player.id,
+                          name: player.name,
+                          elo: player.elo,
+                          delta: delta ?? undefined,
+                        }}
+                        onClick={() => navigate(`/player/${profileId}`)}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             )}
           </>
@@ -603,24 +555,26 @@ export const TournamentDashboard = () => {
                 return (
                   <div
                     key={match.id}
-                    className="bg-paper p-4 rounded-xl border border-card/50"
+                    className={`bg-navy-soft p-4 rounded-xl border ${match.is_live ? "border-lime/50" : "border-card/50"}`}
                   >
+                    {/* Phase D.4: Live badge */}
+                    <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
                     {/* Match teams and winner - Task 4 AC4 */}
                     <div className="flex justify-between items-center text-sm mb-2">
                       <div
                         className={`flex-1 text-right ${
-                          winnerA ? "text-ink font-bold" : "text-ink-soft"
+                          winnerA ? "text-white font-bold" : "text-cool-gray"
                         }`}
                       >
                         {winnerA && "🏆 "}
                         {teamANames}
                       </div>
-                      <div className="px-4 font-bold text-ink-mute text-xs">
+                      <div className="px-4 font-bold text-cool-gray text-xs">
                         VS
                       </div>
                       <div
                         className={`flex-1 text-left ${
-                          !winnerA ? "text-ink font-bold" : "text-ink-soft"
+                          !winnerA ? "text-white font-bold" : "text-cool-gray"
                         }`}
                       >
                         {!winnerA && "🏆 "}
@@ -628,7 +582,7 @@ export const TournamentDashboard = () => {
                       </div>
                     </div>
                     {/* Task 4 - AC4: Timestamp display */}
-                    <div className="text-xs text-ink-mute mb-2">
+                    <div className="text-xs text-cool-gray mb-2">
                       {getRelativeTimestamp(match.date)}
                     </div>
                     {/* Task 4 - AC4: ELO changes for players */}
@@ -644,7 +598,7 @@ export const TournamentDashboard = () => {
                                 className={`px-2 py-0.5 rounded ${
                                   change > 0
                                     ? "bg-lime/20 text-lime"
-                                    : "bg-ruby/20 text-ruby"
+                                    : "bg-signal-red/20 text-signal-red"
                                 }`}
                               >
                                 {player.name}: {change > 0 ? "+" : ""}
@@ -665,465 +619,126 @@ export const TournamentDashboard = () => {
             )}
           </>
         )}
-        {activeTab === "settings" && (
-          <div className="space-y-4">
-            {/* Invitation Section - Prominent */}
-            <div className="bg-paper rounded-xl p-6 border border-card/50">
-              <h3 className="text-xl font-bold text-ink mb-2 flex items-center gap-2">
-                <Share2 size={20} />
-                Inviter des participants
-              </h3>
+      </div>
 
-              <p className="text-ink-soft mb-4 text-sm">
-                Scannez ce QR code ou saisissez le code pour rejoindre le
-                tournoi
-              </p>
+      {/* FAB (AC6): Nouveau match — navigate to RecordMatch page */}
+      {!tournament.isFinished && (
+        <FAB
+          icon={BeerPongMatchIcon}
+          onClick={() =>
+            navigate(`/record-match/tournament/${tournament.id}`)
+          }
+          ariaLabel="Nouveau match"
+        />
+      )}
 
-              {/* Join Code Display */}
-              {tournament.joinCode && (
-                <div className="bg-cream-deep rounded-lg p-4 mb-4 text-center">
-                  <div className="text-sm text-ink-soft mb-1">
-                    Code du tournoi
-                  </div>
-                  <div className="text-3xl font-mono font-bold text-cup-red">
-                    {tournament.joinCode}
-                  </div>
-                </div>
-              )}
+      {/* Invite bottom sheet — QR+code+share + add player (manual ou depuis ligue) */}
+      <InviteSheet
+        isOpen={showAddPlayer}
+        onClose={() => setShowAddPlayer(false)}
+        shareData={{
+          joinCode: tournament.joinCode,
+          joinUrl: `${window.location.origin}/tournament/${tournament.id}/join`,
+          shareTitle: tournament.name,
+          shareText: `Rejoins l'événement ${tournament.name} !`,
+        }}
+        leaguePlayers={
+          tournament.leagueId && league
+            ? league.players
+                .filter(
+                  (lp) =>
+                    !tournamentParticipants.some(
+                      (tp) => tp.leaguePlayerId === lp.id,
+                    ),
+                )
+                .map((p) => ({ id: p.id, name: p.name }))
+            : []
+        }
+        onAddManual={handleInviteAddManual}
+        onAddFromLeague={
+          tournament.leagueId ? handleInviteAddFromLeague : undefined
+        }
+      />
 
-              {/* QR Code */}
-              <div className="flex justify-center">
-                <div className="bg-white p-4 rounded-lg">
-                  <QRCodeSVG
-                    value={`${window.location.origin}/tournament/${tournament.id}/join`}
-                    size={200}
-                    level="H"
-                    includeMargin={true}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <button
-                  onClick={() =>
-                    navigate(`/tournament/${tournament.id}/invite`)
-                  }
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-cup-red text-ink rounded-xl font-semibold hover:brightness-110 transition-colors"
-                >
-                  <Share2 size={20} />
-                  Afficher en plein écran
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-paper p-4 rounded-xl border border-card/50">
-              <h3 className="font-bold text-ink mb-4">Informations</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm text-ink-soft">
-                    Nom du Tournoi
-                  </label>
-                  <input
-                    type="text"
-                    value={tournament.name}
-                    onChange={(e) =>
-                      updateTournament(
-                        tournament.id,
-                        e.target.value,
-                        tournament.date,
-                      )
-                    }
-                    className="w-full bg-cream-deep border border-card-muted rounded-lg p-2 mt-1 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-ink-soft">Date</label>
-                  <input
-                    type="date"
-                    value={tournament.date}
-                    onChange={(e) =>
-                      updateTournament(
-                        tournament.id,
-                        tournament.name,
-                        e.target.value,
-                      )
-                    }
-                    className="w-full bg-cream-deep border border-card-muted rounded-lg p-2 mt-1 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-ink-soft">Format</label>
-                  <select
-                    value={tournament.format}
-                    onChange={(e) =>
-                      updateTournament(
-                        tournament.id,
-                        tournament.name,
-                        tournament.date,
-                        undefined,
-                        e.target.value as "1v1" | "2v2" | "3v3" | "libre",
-                      )
-                    }
-                    className="w-full bg-cream-deep border border-card-muted rounded-lg p-2 mt-1 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
-                  >
-                    <option value="1v1">1v1 (Solo)</option>
-                    <option value="2v2">2v2 (Équipes de 2)</option>
-                    <option value="3v3">3v3 (Équipes de 3)</option>
-                    <option value="libre">Libre (Équipes flexibles)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Link to League */}
-            <div className="bg-paper p-4 rounded-xl border border-card/50">
-              <h3 className="font-bold text-ink mb-4 flex items-center gap-2">
-                <LinkIcon size={18} />
-                Association à une League
-              </h3>
+      {/* Settings bottom sheet — admin only */}
+      {isAdmin && (
+        <SettingsSheet
+          kind="tournament"
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          title="Paramètres"
+          initial={{
+            name: tournament.name,
+            format: tournament.format,
+            maxPlayers: tournament.maxPlayers ?? 999,
+            isPrivate: tournament.isPrivate ?? true,
+          }}
+          mode={tournamentMode}
+          currentPlayersCount={tournamentParticipants.length}
+          onSave={handleSaveSettings}
+          onFinish={handleFinishFromSettings}
+          onDelete={handleDeleteFromSettings}
+          isFinished={tournament.isFinished}
+          extraContent={
+            <div className="space-y-2">
+              <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+                <span className="inline-flex items-center gap-1.5">
+                  <LinkIcon size={12} />
+                  Rattachement à une ligue
+                </span>
+              </span>
               {tournament.leagueId ? (
-                <div className="space-y-3">
-                  <div className="text-sm text-ink-soft">
-                    Ce tournoi est associé à :
-                  </div>
-                  <div className="bg-cream-deep p-3 rounded-lg">
-                    <div className="font-bold text-ink">
-                      {league?.name || "League introuvable"}
+                <div className="p-3 rounded-card border border-card bg-navy-deep flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-archivo font-semibold text-sm truncate">
+                      {league?.name || "Ligue introuvable"}
                     </div>
+                    <div className="text-cool-gray text-xs">Associé</div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => {
                       if (
                         confirm(
-                          "Voulez-vous dissocier ce tournoi de la League ?",
+                          "Voulez-vous dissocier cet événement de la ligue ?",
                         )
                       ) {
                         associateTournamentToLeague(tournament.id, "");
                       }
                     }}
-                    className="w-full bg-cream-deep hover:bg-cream-deep text-ink font-bold py-2 rounded-lg text-sm"
+                    className="px-3 h-8 rounded-full border border-card text-cool-gray hover:text-white hover:border-white/60 font-archivo font-extrabold uppercase text-[10px] tracking-[1px] transition-colors"
                   >
-                    Dissocier de la League
+                    Dissocier
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="text-sm text-ink-soft mb-3">
-                    Associe ce tournoi à une league pour suivre le classement
-                    global ET ajouter rapidement les joueurs de la league.
-                  </div>
-                  <select
-                    value={selectedLeagueId}
-                    onChange={(e) => setSelectedLeagueId(e.target.value)}
-                    className="w-full bg-cream-deep border border-card-muted rounded-lg p-3 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
-                  >
-                    <option value="">Sélectionner une League</option>
-                    {leagues.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedLeagueId && (
-                    <button
-                      onClick={handleLinkToLeague}
-                      className="w-full bg-cup-red hover:brightness-110 text-ink font-bold py-3 rounded-lg"
-                    >
-                      Associer à cette League
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Anti-Cheat Mode */}
-            <div className="bg-paper p-4 rounded-xl border border-card/50">
-              <h3 className="font-bold text-ink mb-4">Mode Anti-Triche</h3>
-              <div className="space-y-3">
-                <div className="text-sm text-ink-soft mb-3">
-                  Lorsque activé, chaque match doit être confirmé par
-                  l'adversaire pour éviter la triche.
-                </div>
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-ink font-medium">
-                    Anti-triche activé
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={tournament.anti_cheat_enabled || false}
-                    onChange={(e) =>
-                      updateTournament(
+              ) : leagues.length > 0 ? (
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      associateTournamentToLeague(
                         tournament.id,
-                        tournament.name,
-                        tournament.date,
-                        e.target.checked,
-                      )
+                        e.target.value,
+                      );
                     }
-                    className="w-6 h-6 rounded bg-cream-deep border-card-muted text-cup-red focus:ring-2 focus:ring-lime/30"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="bg-paper p-4 rounded-xl border border-card/50">
-              <h3 className="font-bold text-ink mb-4">Actions</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => toggleTournamentStatus(tournament.id)}
-                  className={`w-full py-3 rounded-lg font-bold transition-all border ${
-                    tournament.isFinished
-                      ? "bg-gold/20 text-gold border-gold/50 hover:bg-gold/25"
-                      : "bg-lime/20 text-lime border-green-500/50 hover:bg-lime/30"
-                  }`}
+                  }}
+                  className="w-full bg-navy-deep border border-card rounded-md p-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime/20"
                 >
-                  {tournament.isFinished
-                    ? "Rouvrir le tournoi"
-                    : "Clôturer le tournoi"}
-                </button>
-
-                {/* Task 7 - Leave tournament button (AC7 - only for non-admins) */}
-                {!isAdmin && (
-                  <button
-                    onClick={handleLeaveTournament}
-                    className="w-full bg-orange-500/20 hover:bg-orange-500/30 text-orange-500 font-bold py-3 rounded-lg border border-orange-500/50 flex items-center justify-center gap-2"
-                  >
-                    <LogOut size={18} />
-                    Quitter le tournoi
-                  </button>
-                )}
-
-                <button
-                  onClick={handleDeleteTournament}
-                  className="w-full bg-ruby/20 hover:bg-ruby/30 text-ruby font-bold py-3 rounded-lg border border-ruby/50"
-                >
-                  Supprimer le Tournoi
-                </button>
-              </div>
+                  <option value="">Sélectionner une ligue…</option>
+                  {leagues.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-cool-gray text-xs">
+                  Aucune ligue disponible. Crée-en une pour pouvoir rattacher.
+                </p>
+              )}
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* FAB (AC6): Nouveau match with BeerPongMatchIcon */}
-      {!tournament.isFinished && (
-        <FAB
-          icon={BeerPongMatchIcon}
-          onClick={() => setShowRecordMatch(true)}
-          ariaLabel="Nouveau match"
+          }
         />
-      )}
-
-      {/* Record Match Modal - Using new MatchRecordingForm */}
-      {showRecordMatch && (
-        <MatchRecordingForm
-          tournamentId={tournament.id}
-          leagueId={tournament.leagueId}
-          format={tournament.format}
-          participants={tournamentPlayers}
-          onSuccess={handleMatchFormSuccess}
-          onClose={() => setShowRecordMatch(false)}
-        />
-      )}
-
-      {/* Add Player Modal - 3 options */}
-      {showAddPlayer && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-cream w-full max-w-md rounded-2xl border border-card overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-card">
-              <h3 className="text-xl font-bold">Ajouter un joueur</h3>
-              <button
-                onClick={() => {
-                  setShowAddPlayer(false);
-                  setAddPlayerTab("pseudo"); // Reset tab on close
-                }}
-                className="p-2 hover:bg-paper rounded-lg transition-colors"
-                aria-label="Fermer"
-              >
-                <X size={24} className="text-ink-soft" />
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex border-b border-card">
-              <button
-                onClick={() => setAddPlayerTab("pseudo")}
-                className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-                  addPlayerTab === "pseudo"
-                    ? "border-primary text-ink"
-                    : "border-transparent text-ink-mute hover:text-ink"
-                }`}
-              >
-                Pseudo
-              </button>
-              <button
-                onClick={() => setAddPlayerTab("invitation")}
-                className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-                  addPlayerTab === "invitation"
-                    ? "border-primary text-ink"
-                    : "border-transparent text-ink-mute hover:text-ink"
-                }`}
-              >
-                Invitation
-              </button>
-              <button
-                onClick={() => setAddPlayerTab("league")}
-                disabled={!tournament.leagueId}
-                className={`flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-colors border-b-2 ${
-                  addPlayerTab === "league"
-                    ? "border-primary text-ink"
-                    : tournament.leagueId
-                      ? "border-transparent text-ink-mute hover:text-ink"
-                      : "border-transparent text-ink-mute cursor-not-allowed"
-                }`}
-              >
-                Depuis ligue
-              </button>
-            </div>
-
-            {/* Tab Content */}
-            <div className="p-6">
-              {/* Tab 1: Pseudo */}
-              {addPlayerTab === "pseudo" && (
-                <form onSubmit={handleAddPlayerByPseudo} className="space-y-4">
-                  <div>
-                    <label className="text-sm text-ink-soft mb-2 block">
-                      Pseudo du joueur
-                    </label>
-                    <input
-                      type="text"
-                      value={newPlayerName}
-                      onChange={(e) => setNewPlayerName(e.target.value)}
-                      placeholder="Nom du joueur"
-                      className="w-full bg-paper border border-card rounded-xl p-4 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
-                      autoFocus
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full bg-cup-red hover:brightness-110 font-bold py-4 rounded-xl text-ink transition-colors"
-                  >
-                    AJOUTER
-                  </button>
-                </form>
-              )}
-
-              {/* Tab 2: Invitation */}
-              {addPlayerTab === "invitation" && (
-                <div className="space-y-4">
-                  <h4 className="font-bold text-center mb-4">
-                    Partage le tournoi
-                  </h4>
-
-                  {tournament.joinCode && (
-                    <div className="bg-paper p-4 rounded-xl text-center">
-                      <div className="text-sm text-ink-soft mb-2">Code</div>
-                      <div className="text-2xl font-mono font-bold text-cup-red mb-4">
-                        {tournament.joinCode}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <button
-                      onClick={handleCopyCode}
-                      className="w-full bg-paper hover:bg-cream-deep text-ink font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-                    >
-                      📋 Copier le code
-                    </button>
-                    <button
-                      onClick={handleShareLink}
-                      className="w-full bg-paper hover:bg-cream-deep text-ink font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-                    >
-                      📱 Partager le lien
-                    </button>
-                  </div>
-
-                  <div className="text-center text-sm text-ink-soft my-4">
-                    ou
-                  </div>
-
-                  <div className="flex flex-col items-center">
-                    <div className="bg-white p-3 rounded-lg">
-                      <QRCodeSVG
-                        value={`${window.location.origin}/tournament/${tournament.id}/join`}
-                        size={150}
-                        level="H"
-                      />
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowAddPlayer(false);
-                        setActiveTab("settings");
-                      }}
-                      className="mt-3 text-sm text-cup-red hover:brightness-110 transition-colors"
-                    >
-                      Afficher en grand
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 3: Depuis ligue */}
-              {addPlayerTab === "league" && (
-                <div className="space-y-4">
-                  {tournament.leagueId && league ? (
-                    <>
-                      <div>
-                        <label className="text-sm text-ink-soft mb-2 block">
-                          Sélectionne un joueur
-                        </label>
-                        <select
-                          value={selectedLeaguePlayerId}
-                          onChange={(e) =>
-                            setSelectedLeaguePlayerId(e.target.value)
-                          }
-                          className="w-full bg-paper border border-card rounded-xl p-4 text-ink focus:ring-2 focus:ring-lime/30 outline-none"
-                        >
-                          <option value="">Choisir un joueur...</option>
-                          {league.players
-                            .filter(
-                              (lp) =>
-                                !tournamentParticipants.some(
-                                  (tp) => tp.leaguePlayerId === lp.id,
-                                ),
-                            )
-                            .map((player) => (
-                              <option key={player.id} value={player.id}>
-                                {player.name}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                      <button
-                        onClick={handleAddPlayerFromLeague}
-                        disabled={!selectedLeaguePlayerId}
-                        className="w-full bg-cup-red hover:brightness-110 font-bold py-4 rounded-xl text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        AJOUTER
-                      </button>
-                    </>
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="text-ink-soft mb-4">
-                        Associe ce tournoi à une ligue dans les paramètres
-                      </div>
-                      <button
-                        onClick={() => {
-                          setShowAddPlayer(false);
-                          setActiveTab("settings");
-                        }}
-                        className="bg-cup-red hover:brightness-110 font-bold py-3 px-6 rounded-xl text-ink transition-colors"
-                      >
-                        Aller aux paramètres
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       )}
 
       {/* ELO Changes Display */}
@@ -1134,8 +749,6 @@ export const TournamentDashboard = () => {
           onClose={() => setShowEloChanges(false)}
         />
       )}
-
-      {/* Story 13.2 - Actions moved to ContextualHeader (removed ContextualBar) */}
     </div>
   );
 };

@@ -7,19 +7,27 @@ import {
 } from "../../../src/utils/navigationHelpers";
 
 describe("navigationHelpers", () => {
-  describe("shouldShowBottomMenu (Story 14-10)", () => {
-    it("should return true for core routes", () => {
+  describe("shouldShowBottomMenu (post refonte 4 onglets)", () => {
+    it("should return true for core read routes", () => {
       expect(shouldShowBottomMenu("/")).toBe(true);
-      expect(shouldShowBottomMenu("/join")).toBe(true);
       expect(shouldShowBottomMenu("/tournaments")).toBe(true);
       expect(shouldShowBottomMenu("/leagues")).toBe(true);
+      expect(shouldShowBottomMenu("/competitions")).toBe(true);
+      expect(shouldShowBottomMenu("/leaderboard")).toBe(true);
       expect(shouldShowBottomMenu("/user/profile")).toBe(true);
     });
 
-    it("should return true for detail pages", () => {
+    it("should return true for detail pages (read)", () => {
       expect(shouldShowBottomMenu("/tournament/123")).toBe(true);
       expect(shouldShowBottomMenu("/league/456")).toBe(true);
       expect(shouldShowBottomMenu("/player/abc")).toBe(true);
+    });
+
+    it("should return false for modale-like action pages", () => {
+      // Ces pages ont leur propre CTA + back button dans un header contextuel.
+      expect(shouldShowBottomMenu("/join")).toBe(false);
+      expect(shouldShowBottomMenu("/create-league")).toBe(false);
+      expect(shouldShowBottomMenu("/create-tournament")).toBe(false);
     });
 
     it("should return false for display routes", () => {
@@ -44,14 +52,9 @@ describe("navigationHelpers", () => {
       expect(shouldShowBottomMenu("/unknown")).toBe(false);
     });
 
-    it("should return true for tournament invite/join sub-routes (Story 14-14, design-system 5.5)", () => {
+    it("should return true for tournament invite/join sub-routes (design-system 5.5)", () => {
       expect(shouldShowBottomMenu("/tournament/123/invite")).toBe(true);
       expect(shouldShowBottomMenu("/tournament/123/join")).toBe(true);
-    });
-
-    it("should return true for create-league and create-tournament (Story 14-18, design-system 5.3)", () => {
-      expect(shouldShowBottomMenu("/create-league")).toBe(true);
-      expect(shouldShowBottomMenu("/create-tournament")).toBe(true);
     });
   });
 
@@ -61,32 +64,27 @@ describe("navigationHelpers", () => {
       expect(getContentPaddingBottom("/design-system")).toBe("");
     });
 
-    it("should return pb-20 for core routes without specific menu", () => {
+    it("should return empty string for modale-like action pages (no bottom menu)", () => {
+      expect(getContentPaddingBottom("/join")).toBe("");
+      expect(getContentPaddingBottom("/create-league")).toBe("");
+      expect(getContentPaddingBottom("/create-tournament")).toBe("");
+    });
+
+    it("should return pb-20 for core routes (no stacked menu anymore)", () => {
       expect(getContentPaddingBottom("/")).toContain("pb-20");
       expect(getContentPaddingBottom("/user/profile")).toContain("pb-20");
       expect(getContentPaddingBottom("/tournament/123")).toContain("pb-20");
-    });
-
-    it("should return pb-36 for pages with BottomMenuSpecific", () => {
-      expect(getContentPaddingBottom("/join")).toContain("pb-36");
-      // Story 14-12: /tournaments uses FAB instead of BottomMenuSpecific → pb-20
-      // Story 14-16: /leagues uses FAB instead of BottomMenuSpecific → pb-20
       expect(getContentPaddingBottom("/tournaments")).toContain("pb-20");
       expect(getContentPaddingBottom("/leagues")).toContain("pb-20");
     });
 
-    it("should return pb-20 for tournament invite/join sub-routes (Story 14-14)", () => {
+    it("should return pb-20 for tournament invite/join sub-routes", () => {
       expect(getContentPaddingBottom("/tournament/123/invite")).toContain(
         "pb-20",
       );
       expect(getContentPaddingBottom("/tournament/123/join")).toContain(
         "pb-20",
       );
-    });
-
-    it("should return pb-20 for create-league and create-tournament (Story 14-18)", () => {
-      expect(getContentPaddingBottom("/create-league")).toContain("pb-20");
-      expect(getContentPaddingBottom("/create-tournament")).toContain("pb-20");
     });
   });
 
@@ -99,8 +97,11 @@ describe("navigationHelpers", () => {
       expect(shouldShowBackButton("/user/profile")).toBe(false);
     });
 
-    it("should return true for join route", () => {
-      expect(shouldShowBackButton("/join")).toBe(true);
+    it("should return false for join route (contextual header handles its own back button)", () => {
+      // /join est une page modale-like avec son propre contextual header
+      // (cf. apps/web/src/App.tsx `pagesWithContextualHeader`) → la global
+      // shouldShowBackButton peut renvoyer false, le back est déjà affiché par la page.
+      expect(shouldShowBackButton("/join")).toBe(false);
     });
 
     it("should return false for tournaments route (main nav, Story 14-12)", () => {

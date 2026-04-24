@@ -20,11 +20,11 @@ export default defineConfig({
         type: 'module'
       },
       manifest: {
-        name: 'Beer Pong League',
-        short_name: 'BP League',
-        description: 'Social-first platform for beer pong tournaments',
-        theme_color: '#f59e0b', // Tailwind amber-500
-        background_color: '#0f172a', // Tailwind slate-900
+        name: 'Beer Pong ELO',
+        short_name: 'BPelo',
+        description: 'Ligues et tournois de beer pong avec classement ELO',
+        theme_color: '#0B1320', // navy — Everything ELO palette
+        background_color: '#0B1320', // navy
         display: 'standalone',
         scope: '/',
         start_url: '/',

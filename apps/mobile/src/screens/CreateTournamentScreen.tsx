@@ -8,14 +8,14 @@ export function CreateTournamentScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>Nouveau Tournoi</Text>
+      <Text style={styles.title}>Nouvel Événement</Text>
       <View style={styles.form}>
-        <Text style={styles.label}>Nom du tournoi</Text>
+        <Text style={styles.label}>Nom de l'événement</Text>
         <TextInput
           style={styles.input}
           value={tournamentName}
           onChangeText={setTournamentName}
-          placeholder="Entrez le nom du tournoi"
+          placeholder="Entrez le nom de l'événement"
           placeholderTextColor={colors.text.muted}
         />
       </View>

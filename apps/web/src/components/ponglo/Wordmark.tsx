@@ -56,7 +56,7 @@ export function PongloWordmark({
   return (
     <div
       role="img"
-      aria-label={ariaLabel ?? "Ponglo"}
+      aria-label={ariaLabel ?? "Beer Pong ELO"}
       aria-labelledby={ariaLabel ? undefined : id}
       style={{
         display: inline ? "inline-flex" : "flex",

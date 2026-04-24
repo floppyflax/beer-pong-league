@@ -79,7 +79,7 @@ export const QRScanner = ({ onScan, onClose, onFallbackToCodeInput }: QRScannerP
               });
             }
           },
-          (errorMessage) => {
+          (_errorMessage) => {
             // Error callback - QR code not detected (not an actual error, just no QR found in frame)
             // We don't need to do anything here, scanner keeps trying
           }
@@ -137,13 +137,13 @@ export const QRScanner = ({ onScan, onClose, onFallbackToCodeInput }: QRScannerP
   };
 
   return (
-    <div className="fixed inset-0 bg-cream z-50 flex flex-col">
+    <div className="fixed inset-0 bg-navy z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-card bg-cream">
-        <h2 className="text-lg font-bold text-ink">Scanner QR Code</h2>
+      <div className="flex items-center justify-between p-4 border-b border-card bg-navy">
+        <h2 className="text-lg font-bold text-white">Scanner QR Code</h2>
         <button
           onClick={handleClose}
-          className="text-ink-soft hover:text-ink transition-colors p-2"
+          className="text-cool-gray hover:text-white transition-colors p-2"
           aria-label="Fermer le scanner"
         >
           <X size={24} />
@@ -155,11 +155,11 @@ export const QRScanner = ({ onScan, onClose, onFallbackToCodeInput }: QRScannerP
         {hasPermission === false || error ? (
           <div className="text-center max-w-md">
             <AlertCircle size={64} className="text-red-500 mx-auto mb-4" />
-            <p className="text-ink font-bold text-xl mb-2">Accès caméra requis</p>
-            <p className="text-ink-soft mb-6">{error}</p>
+            <p className="text-white font-bold text-xl mb-2">Accès caméra requis</p>
+            <p className="text-cool-gray mb-6">{error}</p>
             <button
               onClick={handleFallbackToCodeInput}
-              className="w-full bg-cup-red hover:brightness-110 text-ink font-bold py-4 px-6 rounded-xl transition-all active:scale-95"
+              className="w-full bg-signal-red hover:brightness-110 text-white font-bold py-4 px-6 rounded-xl transition-all active:scale-95"
             >
               Saisir le code manuellement
             </button>
@@ -174,16 +174,16 @@ export const QRScanner = ({ onScan, onClose, onFallbackToCodeInput }: QRScannerP
 
       {/* Instructions */}
       {hasPermission === true && !error && (
-        <div className="p-6 text-center bg-paper border-t border-card">
-          <p className="text-ink-soft text-sm mb-2">
+        <div className="p-6 text-center bg-navy-soft border-t border-card">
+          <p className="text-cool-gray text-sm mb-2">
             Placez le QR code dans le cadre pour le scanner automatiquement
           </p>
-          <p className="text-ink-mute text-xs mb-4">
+          <p className="text-cool-gray text-xs mb-4">
             Le scan se fera automatiquement dès qu'un QR code valide est détecté
           </p>
           <button
             onClick={handleFallbackToCodeInput}
-            className="text-cup-red hover:brightness-110 text-sm font-medium transition-colors"
+            className="text-signal-red hover:brightness-110 text-sm font-medium transition-colors"
           >
             Saisir le code manuellement
           </button>

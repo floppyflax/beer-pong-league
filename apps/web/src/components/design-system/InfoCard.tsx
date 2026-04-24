@@ -32,9 +32,9 @@ export interface InfoCardProps {
 }
 
 const statusVariantClasses: Record<InfoCardStatusVariant, string> = {
-  active: 'bg-cup-red/20 text-cup-red',
+  active: 'bg-signal-red/20 text-signal-red',
   finished: 'bg-lime/20 text-lime',
-  cancelled: 'bg-ink-mute/20 text-ink-mute',
+  cancelled: 'bg-cool-gray/20 text-cool-gray',
 };
 
 export function InfoCard({
@@ -48,11 +48,11 @@ export function InfoCard({
 
   return (
     <div
-      className="bg-paper rounded-card p-4 border border-card"
+      className="bg-navy-soft rounded-card p-4 border border-card"
       data-testid="infocard"
     >
       <div className="flex items-center gap-4 text-sm">
-        <h2 className="text-ink font-archivo font-extrabold uppercase tracking-tight text-base">
+        <h2 className="text-white font-archivo font-extrabold uppercase tracking-tight text-base">
           {title}
         </h2>
         <span
@@ -65,12 +65,12 @@ export function InfoCard({
       {children ? (
         children
       ) : infos.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-4 text-xs text-ink-soft mt-2">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-cool-gray mt-2">
           {infos.map((item, index) => {
             const Icon = item.icon;
             return (
               <div key={index} className="flex items-center gap-1">
-                <Icon size={14} className="text-ink-mute shrink-0" />
+                <Icon size={14} className="text-cool-gray shrink-0" />
                 <span>{item.text}</span>
               </div>
             );

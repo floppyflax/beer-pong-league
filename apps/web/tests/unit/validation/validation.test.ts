@@ -1,18 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   playerSchema,
-  teamSchema,
   matchSchema,
   leagueSchema,
   tournamentSchema,
   validatePlayer,
-  validateLeague,
-  validateTournament,
-  validateMatch,
   safeValidatePlayer,
-  safeValidateLeague,
-  safeValidateTournament,
-  safeValidateMatch,
   createPlayerInputSchema,
   createLeagueInputSchema,
   createTournamentInputSchema,

@@ -64,17 +64,17 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      className="bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-card/50 cursor-pointer transition-all hover:border-cup-red hover:shadow-lg hover:shadow-primary/20 active:scale-95"
+      className="bg-gradient-card backdrop-blur-sm rounded-xl p-6 border border-card/50 cursor-pointer transition-all hover:border-signal-red hover:shadow-lg hover:shadow-primary/20 active:scale-95"
       aria-label={`Voir la league ${league.name}`}
     >
       {/* Header: Title + Badge (format TournamentCard) */}
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold text-ink truncate">
+          <h3 className="text-lg font-bold text-white truncate">
             {league.name}
           </h3>
           {isOwner && (
-            <span className="text-xs text-ink-soft mt-0.5">
+            <span className="text-xs text-cool-gray mt-0.5">
               👑 Propriétaire
             </span>
           )}
@@ -82,7 +82,7 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
         <span
           className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 ${
             league.status === "finished"
-              ? "bg-cream-deep text-ink-soft"
+              ? "bg-navy-deep text-cool-gray"
               : "bg-green-500/20 text-green-400"
           }`}
         >
@@ -91,30 +91,30 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
       </div>
 
       {/* Middle: Date (format TournamentCard) */}
-      <p className="text-sm text-ink-soft mb-4">Créée le {createdDate}</p>
+      <p className="text-sm text-cool-gray mb-4">Créée le {createdDate}</p>
 
       {/* Bottom: 3 stats columns + chevron (format TournamentCard) */}
       <div className="flex items-end justify-between gap-4">
         <div className="flex gap-6 flex-1 min-w-0">
           <div>
-            <p className="text-lg font-bold text-ink">
+            <p className="text-lg font-bold text-white">
               {league.member_count}
             </p>
-            <p className="text-xs text-ink-soft">
+            <p className="text-xs text-cool-gray">
               {league.member_count === 1 ? "Membre" : "Membres"}
             </p>
           </div>
           <div>
-            <p className="text-lg font-bold text-ink">
+            <p className="text-lg font-bold text-white">
               {league.tournament_count}
             </p>
-            <p className="text-xs text-ink-soft">
+            <p className="text-xs text-cool-gray">
               {league.tournament_count === 1 ? "Tournoi" : "Tournois"}
             </p>
           </div>
           <div>
             <p className="text-lg font-bold text-blue-400">{lastActivity}</p>
-            <p className="text-xs text-ink-soft">Dern. activité</p>
+            <p className="text-xs text-cool-gray">Dern. activité</p>
           </div>
         </div>
         <button
@@ -124,7 +124,7 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
             e.stopPropagation();
             handleClick();
           }}
-          className="shrink-0 w-10 h-10 rounded-full bg-cream-deep flex items-center justify-center text-ink hover:bg-paper transition-colors"
+          className="shrink-0 w-10 h-10 rounded-full bg-navy-deep flex items-center justify-center text-white hover:bg-navy-soft transition-colors"
           aria-hidden
         >
           <ChevronRight size={20} />

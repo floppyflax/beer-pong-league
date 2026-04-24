@@ -61,13 +61,13 @@ export function FAB({
         hover:brightness-110 active:translate-y-[2px]
         focus:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-cream
         ${isPrimary
-          ? 'bg-lime text-cream border-[1.5px] border-[#8BCC1F] shadow-fab'
-          : 'bg-paper text-ink border-[1.5px] border-card'}
+          ? 'bg-lime text-navy border-[1.5px] border-[#8BCC1F] shadow-fab'
+          : 'bg-navy-soft text-white border-[1.5px] border-card'}
       `}
       data-testid="fab"
     >
       <span data-testid="fab-icon">
-        <Icon size={24} className={isPrimary ? 'text-cream' : 'text-ink'} />
+        <Icon size={24} className={isPrimary ? 'text-navy' : 'text-white'} />
       </span>
     </button>
   );

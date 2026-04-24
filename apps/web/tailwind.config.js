@@ -1,76 +1,44 @@
 /** @type {import('tailwindcss').Config} */
-// PONGLO — Arcade design system (dark + neon + Space Grotesk + JetBrains Mono)
-// Reference: /tmp/bpl-design/tokens.js (system: arcade)
+// EVERYTHING ELO — brand design system (navy + electric blue + ping yellow + lime)
+// Reference: docs/redesign-spec.md §2.1
+// Phase A PR4 — legacy aliases (cream, cup-red, forest, ink…) purged.
+//               All source files now use canonical Everything ELO tokens.
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
-      // -------------------------------------------------------------
-      // Palette Arcade
-      // -------------------------------------------------------------
+      // ---------------------------------------------------------------
+      // Palette — Everything ELO canonical tokens (§2.1)
+      // ---------------------------------------------------------------
       colors: {
-        // Surfaces (dark night / under the neons)
-        cream: "#0B0D14", // app background
-        "cream-deep": "#050710", // deeper panels
-        paper: "#141826", // cards
-        // Text / ink (inverted for dark)
-        ink: "#F4F2E8", // primary text
-        "ink-soft": "#B8B4A3", // secondary text
-        "ink-mute": "#6B6A5E", // tertiary text
-        // Brand cups
-        "cup-red": "#FF4438",
-        "cup-red-deep": "#C42418",
-        "cup-blue": "#3B8EFF",
-        "cup-blue-deep": "#0052D4",
-        "cup-green": "#B8FF3D",
-        "cup-green-deep": "#8BCC1F",
-        // Aliases Ponglo
-        forest: "#3B8EFF",
-        "forest-deep": "#0052D4",
-        terracotta: "#FF4438",
-        "terracotta-deep": "#C42418",
-        // Signals
-        lime: "#B8FF3D",
-        gold: "#FFB800",
-        ruby: "#FF4438",
+        // ── Surfaces ────────────────────────────────────────────────
+        navy: "#0B1320",             // app background
+        "navy-deep": "#070C16",      // deeper panels
+        "navy-soft": "#141D2F",      // cards
 
-        // -----------------------------------------------------------
-        // Legacy aliases (Epic 14 compat — remap onto Arcade palette)
-        // Kept to keep the app compiling during the reskin. These WILL
-        // be removed once all components are migrated.
-        // -----------------------------------------------------------
-        background: {
-          primary: "#0B0D14", // → cream
-          secondary: "#141826", // → paper
-          tertiary: "#1F2433", // slightly lighter paper
-        },
-        text: {
-          primary: "#F4F2E8", // → ink
-          secondary: "#B8B4A3", // → ink-soft
-          tertiary: "#8A8878",
-          muted: "#6B6A5E", // → ink-mute
-        },
-        primary: "#FF4438", // → terracotta (was amber)
-        success: "#B8FF3D", // → lime
-        error: "#FF4438", // → ruby
-        elo: "#B8FF3D", // → lime (ELO highlight)
-        info: "#3B8EFF", // → cup-blue
-        "status-active": "#FF4438",
-        "status-finished": "#B8FF3D",
-        "delta-positive": "#B8FF3D",
-        "delta-negative": "#FF4438",
-        secondary: "#141826",
-        accent: "#FF4438",
+        // ── Text (white is Tailwind default) ────────────────────────
+        "cool-gray": "#A8B0C0",      // secondary / muted text
+
+        // ── Brand accents ────────────────────────────────────────────
+        "electric-blue": "#2F6BFF",      // primary CTA, ELO hero, focus
+        "electric-blue-deep": "#1E4CD9", // pressed state
+        "signal-red": "#FF3B3B",         // alert, live, delta-negative
+        "signal-red-deep": "#D32828",    // pressed state
+        "ping-yellow": "#FFD400",        // highlight, podium 1st, bracket
+        "ping-yellow-deep": "#D9B400",   // pressed state
+        lime: "#B7FF3B",                 // delta-positive, ELO hero, rank highlight
+        "lime-deep": "#8BCC1F",          // lime pressed / border accent
+        bronze: "#CD7F32",               // podium 3rd
       },
 
-      // -------------------------------------------------------------
-      // Typography — Space Grotesk (body/display) + JetBrains Mono
-      //               Archivo kept as display fallback
-      // -------------------------------------------------------------
+      // ---------------------------------------------------------------
+      // Typography — Sora (body/display) + Teko (numbers) + JetBrains Mono
+      // ---------------------------------------------------------------
       fontFamily: {
-        sans: ["Space Grotesk", "Archivo", "system-ui", "sans-serif"],
-        display: ["Space Grotesk", "Archivo", "system-ui", "sans-serif"],
-        archivo: ["Archivo", "Space Grotesk", "system-ui", "sans-serif"],
+        sans: ["Sora", "system-ui", "sans-serif"],
+        display: ["Teko", "system-ui", "sans-serif"],
+        // @deprecated — use sans (Sora) for body text; kept as legacy fallback
+        archivo: ["Archivo", "Sora", "system-ui", "sans-serif"],
         mono: [
           "JetBrains Mono",
           "ui-monospace",
@@ -96,7 +64,7 @@ export default {
         "body-sm": ["0.875rem", { lineHeight: "1.25rem" }],
         label: ["0.875rem", { lineHeight: "1.25rem", fontWeight: "500" }],
         stat: ["1.5rem", { lineHeight: "2rem", fontWeight: "700" }],
-        // Arcade display — for huge ELO numbers, scoreboard
+        // Display — for huge ELO numbers, scoreboard (Teko)
         "display-sm": [
           "2rem",
           { lineHeight: "2rem", fontWeight: "700", letterSpacing: "-0.02em" },
@@ -115,9 +83,9 @@ export default {
         ],
       },
 
-      // -------------------------------------------------------------
-      // Spacing (kept from Epic 14 — these are layout tokens)
-      // -------------------------------------------------------------
+      // ---------------------------------------------------------------
+      // Spacing (layout tokens — unchanged)
+      // ---------------------------------------------------------------
       spacing: {
         page: "1rem",
         "page-lg": "1.5rem",
@@ -141,32 +109,31 @@ export default {
         "bottom-nav-lg": "6rem",
       },
 
-      // -------------------------------------------------------------
-      // Radius — Arcade sharp
+      // ---------------------------------------------------------------
+      // Radius — sharp
       // xs:2, sm:4, md:6, lg:10, xl:14, full:9999
-      // -------------------------------------------------------------
+      // ---------------------------------------------------------------
       borderRadius: {
         xs: "2px",
         sm: "4px",
         md: "6px",
         lg: "10px",
         xl: "14px",
-        // Legacy component radius (remapped sharper)
-        card: "10px", // was 12px
-        button: "6px", // was 8px
-        input: "6px", // was 12px
+        card: "10px",
+        button: "6px",
+        input: "6px",
       },
       borderColor: {
-        card: "rgba(244, 242, 232, 0.14)", // ink with alpha
-        "card-muted": "rgba(244, 242, 232, 0.06)",
+        card: "rgba(168, 176, 192, 0.14)",       // cool-gray with alpha
+        "card-muted": "rgba(168, 176, 192, 0.06)",
       },
       borderWidth: {
         card: "1px",
       },
 
-      // -------------------------------------------------------------
+      // ---------------------------------------------------------------
       // Screens
-      // -------------------------------------------------------------
+      // ---------------------------------------------------------------
       screens: {
         sm: "640px",
         md: "768px",
@@ -174,41 +141,59 @@ export default {
         xl: "1440px",
       },
 
-      // -------------------------------------------------------------
-      // Background images — Arcade gradients (remapped from Epic 14)
-      // Legacy class names kept for compatibility during reskin.
-      // -------------------------------------------------------------
+      // ---------------------------------------------------------------
+      // Background images — Everything ELO gradients
+      // Legacy class names kept for compatibility during Phase B reskin.
+      // ---------------------------------------------------------------
       backgroundImage: {
-        // Cards : subtle ink wash (paper → cream-deep)
-        "gradient-card": "linear-gradient(180deg, #141826 0%, #0B0D14 100%)",
+        // Cards: navy wash
+        "gradient-card":
+          "linear-gradient(180deg, #141D2F 0%, #0B1320 100%)",
         "gradient-card-transparent":
-          "linear-gradient(180deg, rgba(20,24,38,0.8) 0%, rgba(11,13,20,0.6) 100%)",
-        // CTA buttons : terracotta → deep
+          "linear-gradient(180deg, rgba(20,29,47,0.8) 0%, rgba(11,19,32,0.6) 100%)",
+        // CTA buttons: electric-blue → electric-blue-deep (ÉNERGIE pillar)
         "gradient-cta":
-          "linear-gradient(135deg, #FF4438 0%, #C42418 100%)",
+          "linear-gradient(135deg, #2F6BFF 0%, #1E4CD9 100%)",
         "gradient-cta-alt":
-          "linear-gradient(135deg, #3B8EFF 0%, #0052D4 100%)",
-        // FAB : lime neon glow
+          "linear-gradient(135deg, #B7FF3B 0%, #8BCC1F 100%)",
+        // FAB: ping-yellow (COMPÉTITION pillar)
         "gradient-fab":
-          "linear-gradient(135deg, #B8FF3D 0%, #8BCC1F 100%)",
-        // Tabs actif : terracotta
+          "linear-gradient(135deg, #FFD400 0%, #D9B400 100%)",
+        // Tab active: electric-blue (ÉNERGIE pillar)
         "gradient-tab-active":
-          "linear-gradient(135deg, #FF4438 0%, #C42418 100%)",
+          "linear-gradient(135deg, #2F6BFF 0%, #1E4CD9 100%)",
       },
 
-      // -------------------------------------------------------------
-      // Shadows — Arcade neon (glow + hairline ink outline)
-      // -------------------------------------------------------------
+      // ---------------------------------------------------------------
+      // Shadows — Everything ELO glows (electric-blue + lime + ping-yellow)
+      // ---------------------------------------------------------------
       boxShadow: {
-        card: "0 0 0 1px rgba(244,242,232,0.06), 0 8px 24px rgba(0,0,0,0.5)",
+        card: "0 0 0 1px rgba(168,176,192,0.06), 0 8px 24px rgba(0,0,0,0.5)",
         "card-lg":
-          "0 0 0 1px rgba(244,242,232,0.08), 0 20px 60px rgba(0,0,0,0.6), 0 0 60px rgba(227,34,42,0.18)",
-        fab: "0 0 0 1px rgba(244,242,232,0.08), 0 10px 30px rgba(0,0,0,0.6), 0 0 30px rgba(184,255,61,0.25)",
+          "0 0 0 1px rgba(168,176,192,0.08), 0 20px 60px rgba(0,0,0,0.6), 0 0 60px rgba(47,107,255,0.18)",
+        fab: "0 0 0 1px rgba(168,176,192,0.08), 0 10px 30px rgba(0,0,0,0.6), 0 0 30px rgba(255,212,0,0.25)",
         modal:
-          "0 0 0 1px rgba(244,242,232,0.1), 0 25px 60px -12px rgba(0,0,0,0.8)",
-        "glow-red": "0 0 24px rgba(255,68,56,0.4)",
-        "glow-blue": "0 0 24px rgba(59,142,255,0.4)",
-        "glow-lime": "0 0 24px rgba(184,255,61,0.4)",
+          "0 0 0 1px rgba(168,176,192,0.1), 0 25px 60px -12px rgba(0,0,0,0.8)",
+        // Canonical glow tokens — use these in new Phase B components
+        "glow-electric": "0 0 24px rgba(47,107,255,0.4)",
+        "glow-lime": "0 0 24px rgba(183,255,59,0.4)",
+        "glow-yellow": "0 0 24px rgba(255,212,0,0.4)",
+        "glow-red": "0 0 24px rgba(255,59,59,0.4)",
+        // Legacy names — remapped onto new glows (kept for compat)
+        "glow-blue": "0 0 24px rgba(47,107,255,0.4)",  // → glow-electric
+      },
+
+      // ---------------------------------------------------------------
+      // Animations — bottom sheets, fade-ins, slide-ups
+      // ---------------------------------------------------------------
+      keyframes: {
+        "sheet-up": {
+          "0%": { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+      },
+      animation: {
+        "invite-sheet-up": "sheet-up 220ms cubic-bezier(0.16, 1, 0.3, 1)",
       },
     },
   },

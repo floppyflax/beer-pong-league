@@ -93,7 +93,7 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         ref={modalRef}
-        className={`bg-background-secondary rounded-card ${maxWidth} w-full mx-auto border border-card shadow-modal ${className}`}
+        className={`bg-navy-soft rounded-card ${maxWidth} w-full mx-auto border border-card shadow-modal ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 pb-4">
@@ -104,10 +104,10 @@ export const Modal: React.FC<ModalProps> = ({
             <button
               onClick={onClose}
               disabled={disableClose}
-              className="p-2 hover:bg-background-tertiary rounded-button transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 hover:bg-navy-soft rounded-button transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Fermer"
             >
-              <X size={20} className="text-text-tertiary" />
+              <X size={20} className="text-cool-gray" />
             </button>
           )}
         </div>

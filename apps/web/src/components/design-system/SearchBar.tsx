@@ -64,7 +64,7 @@ export const SearchBar = ({
   return (
     <div className="relative">
       <Search
-        className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-mute"
+        className="absolute left-4 top-1/2 -translate-y-1/2 text-cool-gray"
         size={20}
         aria-hidden
       />
@@ -76,7 +76,7 @@ export const SearchBar = ({
         value={internalValue}
         onChange={handleChange}
         placeholder={placeholder}
-        className="w-full pl-12 pr-4 py-3 bg-paper border border-card rounded-md text-ink placeholder-ink-mute focus:border-lime focus:ring-2 focus:ring-lime/20 focus:outline-none transition-colors"
+        className="w-full pl-12 pr-4 py-3 bg-navy-soft border border-card rounded-md text-white placeholder-cool-gray focus:border-lime focus:ring-2 focus:ring-lime/20 focus:outline-none transition-colors"
       />
     </div>
   );

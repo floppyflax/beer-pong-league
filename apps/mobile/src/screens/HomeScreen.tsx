@@ -1,46 +1,129 @@
+/**
+ * HomeScreen — Everything ELO (Phase C.2)
+ * Displays wordmark, recent activity feed, and quick actions.
+ */
+
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, typography } from '../theme/tokens';
+import { palette, spacing, radius, typography } from '../theme/tokens';
+import { StatCard } from '../components/ponglo/StatCard';
+import { MatchRow } from '../components/ponglo/MatchRow';
 
 export function HomeScreen() {
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>Accueil</Text>
-      <Text style={styles.welcome}>Bienvenue sur Beer Pong League</Text>
-      <View style={styles.activityPlaceholder}>
-        <Text style={styles.placeholderText}>Activité récente</Text>
-      </View>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Wordmark */}
+        <View style={styles.header}>
+          <Text style={styles.wordmark}>🏓 Beer Pong</Text>
+          <Text style={styles.wordmarkAccent}>ELO</Text>
+        </View>
+
+        {/* Quick stats */}
+        <View style={styles.statsRow}>
+          <StatCard label="Ligues" value="—" sub="Connectez-vous" compact />
+          <StatCard label="Événements" value="—" sub="Connectez-vous" compact />
+          <StatCard label="Matchs" value="—" sub="Connectez-vous" compact />
+        </View>
+
+        {/* Recent activity */}
+        <Text style={styles.sectionTitle}>Activité récente</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyIcon}>🍺</Text>
+          <Text style={styles.emptyTitle}>Aucune activité</Text>
+          <Text style={styles.emptyText}>
+            Rejoignez une ligue ou un événement pour commencer à jouer.
+          </Text>
+        </View>
+
+        {/* Placeholder for connected state */}
+        {false && (
+          <View style={styles.matchList}>
+            {/* MatchRow items would be mapped here when connected */}
+            <MatchRow
+              date={new Date().toISOString()}
+              teamA={['Alice']}
+              teamB={['Bob']}
+              scoreA={10}
+              scoreB={6}
+            />
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    backgroundColor: colors.bg.primary,
+    backgroundColor: palette.navy,
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
     paddingHorizontal: spacing.page,
+    paddingTop: spacing.lg,
+    paddingBottom: 100,
+    gap: spacing.lg,
   },
-  title: {
-    ...typography.pageTitle,
-    color: colors.text.primary,
-    marginBottom: spacing.page,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
   },
-  welcome: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginBottom: spacing.page,
+  wordmark: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: palette.white,
+    letterSpacing: -0.5,
   },
-  activityPlaceholder: {
-    flex: 1,
-    backgroundColor: colors.bg.secondary,
-    borderRadius: 8,
-    padding: spacing.page,
-    justifyContent: 'center',
+  wordmarkAccent: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: palette.electricBlue,
+    letterSpacing: -0.5,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  sectionTitle: {
+    ...typography.sectionTitle,
+    color: palette.coolGray,
+  },
+  emptyCard: {
+    backgroundColor: palette.navySoft,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+    padding: spacing['2xl'],
     alignItems: 'center',
+    gap: spacing.sm,
   },
-  placeholderText: {
-    ...typography.body,
-    color: colors.text.muted,
+  emptyIcon: {
+    fontSize: 40,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: palette.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  emptyText: {
+    fontSize: 13,
+    color: palette.coolGray,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  matchList: {
+    gap: spacing.sm,
   },
 });

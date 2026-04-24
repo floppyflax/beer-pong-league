@@ -2,11 +2,11 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import clsx from "clsx";
 
 export type PButtonVariant =
-  | "primary" // cup-red — CTA principal
-  | "accent" // cup-blue — action secondaire
-  | "tertiary" // cup-green — action tertiaire
+  | "primary" // ping-yellow — CTA principal
+  | "accent" // electric-blue — action secondaire
+  | "tertiary" // lime — action tertiaire
   | "lime" // lime — GG / positif
-  | "dark" // ink — noir plein
+  | "dark" // blanc sur navy — contraste fort
   | "ghost"; // transparent avec bordure
 
 export type PButtonSize = "sm" | "md" | "lg";
@@ -27,15 +27,15 @@ const sizeClasses: Record<PButtonSize, string> = {
 
 const variantClasses: Record<PButtonVariant, string> = {
   primary:
-    "bg-cup-red text-ink border-cup-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418]",
+    "bg-ping-yellow text-navy border-ping-yellow-deep shadow-[0_3px_0_#D9B400] hover:brightness-105 active:translate-y-[2px] active:shadow-[0_1px_0_#D9B400]",
   accent:
-    "bg-cup-blue text-ink border-cup-blue-deep shadow-[0_3px_0_#0052D4] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#0052D4]",
+    "bg-electric-blue text-white border-electric-blue-deep shadow-[0_3px_0_#0052D4] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#0052D4]",
   tertiary:
-    "bg-cup-green text-cream border-cup-green-deep shadow-[0_3px_0_#8BCC1F] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#8BCC1F]",
-  lime: "bg-lime text-cream border-[#8BCC1F] shadow-[0_3px_0_#8BCC1F] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#8BCC1F]",
-  dark: "bg-ink text-cream border-black shadow-[0_3px_0_#000] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#000]",
+    "bg-lime text-navy border-lime-deep shadow-[0_3px_0_#8BCC1F] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#8BCC1F]",
+  lime: "bg-lime text-navy border-[#8BCC1F] shadow-[0_3px_0_#8BCC1F] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#8BCC1F]",
+  dark: "bg-white text-navy border-black shadow-[0_3px_0_#000] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#000]",
   ghost:
-    "bg-transparent text-ink border-[rgba(244,242,232,0.14)] hover:bg-[rgba(244,242,232,0.04)] active:bg-[rgba(244,242,232,0.08)]",
+    "bg-transparent text-white border-[rgba(244,242,232,0.14)] hover:bg-[rgba(244,242,232,0.04)] active:bg-[rgba(244,242,232,0.08)]",
 };
 
 /**
@@ -67,7 +67,7 @@ export const PButton = forwardRef<HTMLButtonElement, PButtonProps>(
           "inline-flex items-center justify-center rounded-full",
           "border-[1.5px] font-archivo font-bold uppercase tracking-[-0.2px]",
           "transition-[transform,box-shadow,filter] duration-75",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-cream",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-ping-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-navy",
           "disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0",
           sizeClasses[size],
           variantClasses[variant],

@@ -102,7 +102,7 @@ export const DisplayView = () => {
 
   if (!league) {
     return (
-      <div className="h-screen flex items-center justify-center bg-cream text-ink">
+      <div className="h-screen flex items-center justify-center bg-navy text-white">
         <p>Ligue introuvable.</p>
       </div>
     );
@@ -112,21 +112,21 @@ export const DisplayView = () => {
   const remainingPlayers = sortedPlayers.slice(10);
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-ink overflow-hidden relative select-none fixed inset-0">
+    <div className="h-screen w-screen bg-navy text-white overflow-hidden relative select-none fixed inset-0">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 p-4 md:p-6 bg-cream/80 backdrop-blur-md border-b border-card/50 z-20">
+      <div className="absolute top-0 left-0 right-0 p-4 md:p-6 bg-navy/80 backdrop-blur-md border-b border-card/50 z-20">
         <div className="flex items-center justify-between w-full px-4 md:px-8">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl md:text-4xl font-black mb-1 md:mb-2 truncate">{league.name}</h1>
             <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-              <span className="text-xs md:text-sm text-ink-soft uppercase tracking-wider font-bold">
+              <span className="text-xs md:text-sm text-cool-gray uppercase tracking-wider font-bold">
                 {league.type === "season" ? "Saison" : "Ligue"}
               </span>
-              <div className="flex items-center gap-2 text-accent">
+              <div className="flex items-center gap-2 text-electric-blue">
                 <Zap size={16} className="animate-pulse w-3.5 h-3.5 md:w-4 md:h-4" />
                 <span className="text-xs md:text-sm font-bold">LIVE</span>
               </div>
-              <span className="text-xs md:text-sm text-ink-soft">
+              <span className="text-xs md:text-sm text-cool-gray">
                 {league.matches.length} matchs
               </span>
             </div>
@@ -154,12 +154,12 @@ export const DisplayView = () => {
                 return (
                   <div
                     key={player.id}
-                    className={`bg-paper/90 backdrop-blur-sm p-3 md:p-5 rounded-xl md:rounded-2xl border-2 transition-all duration-700 ${
+                    className={`bg-navy-soft/90 backdrop-blur-sm p-3 md:p-5 rounded-xl md:rounded-2xl border-2 transition-all duration-700 ${
                       isHighlighted
-                        ? "border-cup-red shadow-2xl shadow-primary/50 scale-[1.02]"
+                        ? "border-electric-blue shadow-2xl shadow-electric-blue/30 scale-[1.02]"
                         : "border-card/50"
-                    } ${isWinner ? "ring-4 ring-green-500/30" : ""} ${
-                      isLoser ? "ring-4 ring-red-500/30" : ""
+                    } ${isWinner ? "ring-4 ring-lime/30" : ""} ${
+                      isLoser ? "ring-4 ring-signal-red/30" : ""
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 md:gap-4">
@@ -167,31 +167,31 @@ export const DisplayView = () => {
                         <div
                           className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center font-black text-lg md:text-2xl rounded-lg md:rounded-xl flex-shrink-0 ${
                             index === 0
-                              ? "bg-gold text-cream"
+                              ? "bg-ping-yellow text-navy"
                               : index === 1
-                              ? "bg-ink-soft text-cream"
+                              ? "bg-cool-gray text-navy"
                               : index === 2
-                              ? "bg-gold text-ink"
-                              : "bg-cream-deep text-ink-soft"
+                              ? "bg-ping-yellow text-white"
+                              : "bg-navy-deep text-cool-gray"
                           }`}
                         >
                           {index + 1}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-lg md:text-2xl font-black mb-0.5 md:mb-1 truncate">{player.name}</div>
-                          <div className="text-sm md:text-base text-ink-soft">
+                          <div className="text-sm md:text-base text-cool-gray">
                             {player.wins}V - {player.losses}D
                           </div>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-2xl md:text-4xl font-black text-cup-red">
+                        <div className="text-2xl md:text-4xl font-black text-signal-red">
                           {player.elo}
                         </div>
                         {eloChange !== 0 && (
                           <div
                             className={`text-sm md:text-base font-bold flex items-center justify-end gap-1 mt-0.5 md:mt-1 ${
-                              eloChange > 0 ? "text-lime" : "text-ruby"
+                              eloChange > 0 ? "text-lime" : "text-signal-red"
                             }`}
                           >
                             {eloChange > 0 ? (
@@ -222,21 +222,21 @@ export const DisplayView = () => {
                 {remainingPlayers.map((player, index) => (
                   <div
                     key={player.id}
-                    className="bg-paper/60 backdrop-blur-sm p-3 rounded-lg border border-card/50"
+                    className="bg-navy-soft/60 backdrop-blur-sm p-3 rounded-lg border border-card/50"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 flex items-center justify-center font-bold text-lg bg-cream-deep text-ink-soft rounded">
+                        <div className="w-10 h-10 flex items-center justify-center font-bold text-lg bg-navy-deep text-cool-gray rounded">
                           {index + 11}
                         </div>
                         <div>
                           <div className="text-lg font-bold">{player.name}</div>
-                          <div className="text-xs text-ink-soft">
+                          <div className="text-xs text-cool-gray">
                             {player.wins}V - {player.losses}D
                           </div>
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-cup-red">
+                      <div className="text-2xl font-black text-signal-red">
                         {player.elo}
                       </div>
                     </div>
@@ -250,7 +250,7 @@ export const DisplayView = () => {
         {/* Right: Match Feed + QR Code */}
         <div className="w-full lg:w-96 flex flex-col gap-4 md:gap-6 lg:gap-8 flex-shrink-0">
           {/* Match Feed */}
-          <div className="bg-paper/90 backdrop-blur-sm rounded-xl p-4 md:p-5 border border-card/50">
+          <div className="bg-navy-soft/90 backdrop-blur-sm rounded-xl p-4 md:p-5 border border-card/50">
             <h3 className="text-lg md:text-xl font-black mb-3 md:mb-4">Derniers matchs</h3>
             <div className="space-y-2">
               {recentMatches.map((match, index) => {
@@ -269,11 +269,11 @@ export const DisplayView = () => {
                     key={match.id}
                     className={`p-3 md:p-4 rounded-lg md:rounded-xl border-2 transition-all ${
                       index === 0
-                        ? "bg-cup-red/20 border-cup-red/50 shadow-lg"
-                        : "bg-cream-deep/40 border-card/50"
+                        ? "bg-signal-red/20 border-signal-red/50 shadow-lg"
+                        : "bg-navy-deep/40 border-card/50"
                     }`}
                   >
-                    <div className="text-xs md:text-sm text-ink-soft mb-1 md:mb-2 font-bold">
+                    <div className="text-xs md:text-sm text-cool-gray mb-1 md:mb-2 font-bold">
                       {new Date(match.date).toLocaleTimeString("fr-FR", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -281,13 +281,13 @@ export const DisplayView = () => {
                     </div>
                     <div className="text-sm md:text-base">
                       <div
-                        className={winnerA ? "font-black text-ink text-base md:text-lg truncate" : "text-ink-soft truncate"}
+                        className={winnerA ? "font-black text-white text-base md:text-lg truncate" : "text-cool-gray truncate"}
                       >
                         {teamANames}
                       </div>
-                      <div className="text-ink-mute text-center my-1 md:my-2 font-bold">VS</div>
+                      <div className="text-cool-gray text-center my-1 md:my-2 font-bold">VS</div>
                       <div
-                        className={!winnerA ? "font-black text-ink text-base md:text-lg truncate" : "text-ink-soft truncate"}
+                        className={!winnerA ? "font-black text-white text-base md:text-lg truncate" : "text-cool-gray truncate"}
                       >
                         {teamBNames}
                       </div>
@@ -299,7 +299,7 @@ export const DisplayView = () => {
           </div>
 
           {/* QR Code */}
-          <div className="bg-paper/90 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-card/50 flex flex-col items-center">
+          <div className="bg-navy-soft/90 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-card/50 flex flex-col items-center">
             <h3 className="text-lg md:text-xl font-black mb-3 md:mb-4 text-center">
               Rejoins le tournoi !
             </h3>
@@ -307,7 +307,7 @@ export const DisplayView = () => {
               <QRCodeSVG value={joinUrl} size={150} className="md:hidden" />
               <QRCodeSVG value={joinUrl} size={200} className="hidden md:block" />
             </div>
-            <p className="text-xs md:text-sm text-ink-soft text-center font-medium">
+            <p className="text-xs md:text-sm text-cool-gray text-center font-medium">
               Scanne avec ton téléphone
             </p>
           </div>
@@ -315,7 +315,7 @@ export const DisplayView = () => {
       </div>
 
       {/* Exit hint */}
-      <div className="absolute bottom-2 md:bottom-4 right-2 md:right-4 text-[10px] md:text-xs text-ink-mute">
+      <div className="absolute bottom-2 md:bottom-4 right-2 md:right-4 text-[10px] md:text-xs text-cool-gray">
         Appuyez sur ESC pour quitter
       </div>
     </div>

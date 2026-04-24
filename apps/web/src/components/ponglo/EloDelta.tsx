@@ -35,7 +35,7 @@ export function EloDelta({
         "inline-flex items-center rounded-full font-mono font-semibold tracking-tight",
         up
           ? "bg-lime/10 text-lime"
-          : "bg-ruby/10 text-ruby",
+          : "bg-signal-red/10 text-signal-red",
         sizeClasses[size],
         className,
       )}

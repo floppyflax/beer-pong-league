@@ -37,9 +37,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             className={twMerge(
               clsx(
                 'appearance-none bg-slate-800 text-white rounded-input border px-4 py-2.5 pr-10 w-full transition-all duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary',
+                'focus:outline-none focus:ring-2 focus:ring-electric-blue/50 focus:border-electric-blue',
                 hasError
-                  ? 'border-error focus:ring-error/50 focus:border-error'
+                  ? 'border-signal-red focus:ring-signal-red/50 focus:border-signal-red'
                   : 'border-slate-700 hover:border-slate-600',
               ),
               className,
@@ -65,7 +65,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           />
         </div>
         {error && (
-          <p className="mt-1 text-sm text-error" role="alert">
+          <p className="mt-1 text-sm text-signal-red" role="alert">
             {error}
           </p>
         )}

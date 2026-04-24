@@ -11,26 +11,21 @@ import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { StatCard, ListRow } from "@/components/design-system";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { databaseService } from "@/services/DatabaseService";
-import { TrendingUp, TrendingDown, BarChart3, Flame } from "lucide-react";
-import { useState, useMemo, useEffect, useId } from "react";
-import { getInitials } from "@/utils/string";
+import { TrendingUp, TrendingDown, BarChart3, Flame, Medal } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import { formatRelativeTime, formatJoinedSince } from "@/utils/dateUtils";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { EloChart } from "@/components/ponglo/EloChart";
+import { PAvatar } from "@/components/ponglo/PAvatar";
+import { PRankBadge } from "@/components/ponglo/PRankBadge";
+import { AchievementCard } from "@/components/achievements/AchievementCard";
+import type { Achievement } from "@/components/achievements/AchievementCard";
+import { supabase, isSupabaseAvailable } from "@/lib/supabase";
 import type { Player } from "@/types";
 import type { Match } from "@/types";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const eloGradientId = useId();
   const { leagues, tournaments } = useLeague();
   const navigate = useNavigate();
   const [fetchedPlayer, setFetchedPlayer] = useState<{
@@ -49,8 +44,8 @@ export const PlayerProfile = () => {
   const [opponentAvatars, setOpponentAvatars] = useState<Record<string, string | null>>({});
   const [eloHistoryFromDb, setEloHistoryFromDb] = useState<{ date: string; elo: number }[]>([]);
   const [playerNotFound, setPlayerNotFound] = useState(false);
-  const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(false);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
   // Find player in leagues first (sync)
   let player: Player | null = null;
@@ -64,11 +59,6 @@ export const PlayerProfile = () => {
       break;
     }
   }
-
-  // Reset avatar error when switching players
-  useEffect(() => {
-    setAvatarLoadError(false);
-  }, [playerId]);
 
   // If not in leagues, fetch from DB (tournament players, or league players from leagues we're not in)
   useEffect(() => {
@@ -91,7 +81,7 @@ export const PlayerProfile = () => {
           setFetchedPlayer(null);
           return;
         }
-        const { player: p, leagueId, leagueName, tournamentId, avatarUrl, joinedAt } = result;
+        const { player: p, leagueId, leagueName, tournamentId } = result;
         const playersMap: Record<string, string> = {};
         leagues.forEach((l) => {
           l.players.forEach((pl) => {
@@ -104,8 +94,8 @@ export const PlayerProfile = () => {
           player: p,
           playerLeague: leagueName ? { id: leagueId!, name: leagueName } : null,
           playersMap: {} as Record<string, string>,
-          avatarUrl: avatarUrl ?? null,
-          joinedAt: joinedAt ?? null,
+          avatarUrl: null, // TODO(Phase B): restore via loadPlayerEnrichment
+          joinedAt: null,  // TODO(Phase B): restore via loadPlayerEnrichment
         };
 
         if (tournamentId) {
@@ -136,38 +126,46 @@ export const PlayerProfile = () => {
   }, [playerId, player, leagues]);
 
   // Story 14-35: Load enrichment (avatar, joined_at, userId) — for league players or when we need userId for ELO history
+  // TODO(Phase B): restore loadPlayerEnrichment once method is added to DatabaseService
   useEffect(() => {
     if (!playerId || !player) {
       setEnrichment(null);
-      return;
     }
-    let cancelled = false;
-    databaseService.loadPlayerEnrichment(playerId).then((e) => {
-      if (!cancelled) setEnrichment(e);
-    });
-    return () => {
-      cancelled = true;
-    };
+    // loadPlayerEnrichment not yet implemented in DatabaseService
   }, [playerId, player]);
 
   // Story 14-35: Load ELO history from DB when we have user identity (fallback to match data in eloEvolution)
+  // TODO(Phase B): restore loadEloHistoryForPlayer once method is added to DatabaseService
   useEffect(() => {
-    const userId = enrichment?.userId ?? null;
-    const anonId = enrichment?.anonymousUserId ?? null;
-    if (!userId && !anonId) {
-      setEloHistoryFromDb([]);
+    setEloHistoryFromDb([]); // stub until loadEloHistoryForPlayer is implemented
+  }, [enrichment, playerLeague?.id]);
+
+  // Phase D.3: Load achievements for this player from Supabase
+  useEffect(() => {
+    if (!playerId || !isSupabaseAvailable() || !supabase) {
+      setAchievements([]);
       return;
     }
-    let cancelled = false;
-    databaseService
-      .loadEloHistoryForPlayer(userId, anonId, playerLeague?.id ?? null)
-      .then((data) => {
-        if (!cancelled) setEloHistoryFromDb(data);
+    const client = supabase as any; // player_achievements not yet in generated types
+    client
+      .from("player_achievements")
+      .select("earned_at, achievements(slug, label, description, icon_key)")
+      .eq("player_id", playerId)
+      .then(({ data }: { data: Record<string, unknown>[] | null }) => {
+        if (!data) return;
+        const parsed: Achievement[] = data.map((row) => {
+          const def = row["achievements"] as Record<string, unknown>;
+          return {
+            slug: String(def["slug"]),
+            label: String(def["label"]),
+            description: String(def["description"]),
+            icon_key: String(def["icon_key"]),
+            earned_at: String(row["earned_at"]),
+          };
+        });
+        setAchievements(parsed);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [enrichment, playerLeague?.id]);
+  }, [playerId]);
 
   if (fetchedPlayer) {
     player = fetchedPlayer.player;
@@ -246,14 +244,9 @@ export const PlayerProfile = () => {
     [headToHead],
   );
 
+  // TODO(Phase B): restore loadAvatarUrlsForPlayerIds once method is added to DatabaseService
   useEffect(() => {
-    if (headToHeadOpponentIds.length === 0) {
-      setOpponentAvatars({});
-      return;
-    }
-    databaseService
-      .loadAvatarUrlsForPlayerIds(headToHeadOpponentIds)
-      .then(setOpponentAvatars);
+    setOpponentAvatars({}); // stub until loadAvatarUrlsForPlayerIds is implemented
   }, [headToHeadOpponentIds.join(",")]);
 
   const eloEvolution = useMemo(() => {
@@ -336,10 +329,10 @@ export const PlayerProfile = () => {
   if (!player && playerNotFound) {
     return (
       <div className="p-4 text-center">
-        <p className="text-ink-soft">Joueur introuvable.</p>
+        <p className="text-cool-gray">Joueur introuvable.</p>
         <button
           onClick={() => navigate(-1)}
-          className="text-cup-red mt-4 font-semibold"
+          className="text-signal-red mt-4 font-semibold"
         >
           Retour
         </button>
@@ -370,7 +363,7 @@ export const PlayerProfile = () => {
   const joinedAt = fetchedPlayer?.joinedAt ?? enrichment?.joinedAt ?? null;
 
   return (
-    <div className="min-h-screen bg-cream text-ink flex flex-col">
+    <div className="min-h-screen bg-navy text-white flex flex-col">
       {/* AC1: Header — nom + retour */}
       <ContextualHeader
         title={player.name}
@@ -378,32 +371,30 @@ export const PlayerProfile = () => {
         onBack={() => navigate(-1)}
       />
 
-      {/* AC1, AC2: Avatar (photo or initials) + infos + Membre depuis */}
+      {/* AC1, AC2: PAvatar 72px + PRankBadge + infos + Membre depuis */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 w-16 h-16 rounded-full bg-cream-deep flex items-center justify-center text-xl font-bold text-ink-soft overflow-hidden">
-            {avatarUrl && !avatarLoadError ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                className="w-full h-full object-cover"
-                onError={() => setAvatarLoadError(true)}
-              />
-            ) : (
-              <span>{getInitials(player.name)}</span>
-            )}
-          </div>
+          <PAvatar
+            name={player.name}
+            size={72}
+            imageUrl={avatarUrl ?? undefined}
+            ring="#B7FF3B"
+            className="flex-shrink-0"
+          />
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold text-ink truncate">
-              {player.name}
-            </h2>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-white truncate">
+                {player.name}
+              </h2>
+              <PRankBadge elo={player.elo} size="sm" className="flex-shrink-0" />
+            </div>
             {playerLeague && (
-              <p className="text-sm text-ink-soft truncate">
+              <p className="text-sm text-cool-gray truncate">
                 {playerLeague.name}
               </p>
             )}
             {joinedAt && (
-              <p className="text-xs text-ink-mute mt-0.5">
+              <p className="text-xs text-cool-gray mt-0.5">
                 {formatJoinedSince(joinedAt)}
               </p>
             )}
@@ -426,23 +417,23 @@ export const PlayerProfile = () => {
         <div
           className={`p-4 rounded-xl flex items-center gap-3 border ${
             player.streak >= 3
-              ? "bg-gold/20 border-gold/50"
+              ? "bg-ping-yellow/20 border-ping-yellow/50"
               : player.streak > 0
                 ? "bg-lime/20 border-green-500/50"
                 : player.streak < 0
-                  ? "bg-ruby/20 border-red-500/50"
-                  : "bg-paper/50 border-card/50"
+                  ? "bg-signal-red/20 border-red-500/50"
+                  : "bg-navy-soft/50 border-card/50"
           }`}
         >
           {player.streak >= 3 ? (
-            <Flame className="text-gold flex-shrink-0" size={24} />
+            <Flame className="text-ping-yellow flex-shrink-0" size={24} />
           ) : player.streak > 0 ? (
             <TrendingUp className="text-lime flex-shrink-0" size={24} />
           ) : player.streak < 0 ? (
-            <TrendingDown className="text-ruby flex-shrink-0" size={24} />
+            <TrendingDown className="text-signal-red flex-shrink-0" size={24} />
           ) : null}
           <div className="min-w-0">
-            <div className="font-bold text-ink">
+            <div className="font-bold text-white">
               {player.streak >= 3
                 ? "En feu !"
                 : player.streak > 0
@@ -451,7 +442,7 @@ export const PlayerProfile = () => {
                     ? `${Math.abs(player.streak)} défaites d'affilée`
                     : "Aucune série"}
             </div>
-            <div className="text-xs text-ink-soft">
+            <div className="text-xs text-cool-gray">
               {player.streak >= 3
                 ? `${player.streak} victoires d'affilée`
                 : "Série actuelle"}
@@ -462,90 +453,39 @@ export const PlayerProfile = () => {
 
       {/* AC5: Sections — ELO evolution, Stats par league, Head-to-head, Recent matches */}
       <div className="flex-grow overflow-y-auto px-4 py-4 space-y-6 pb-bottom-nav lg:pb-bottom-nav-lg">
-        {/* ELO Evolution Chart — Story 14-35: Recharts area chart */}
+        {/* ELO Evolution Chart — DS EloChart (§5.1) */}
         {eloEvolution.length > 1 && (
           <section>
-            <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-ink">
-              <BarChart3 size={20} className="text-ink-soft" />
+            <h3 className="text-sm font-archivo font-extrabold uppercase tracking-tight mb-3 flex items-center gap-2 text-white">
+              <BarChart3 size={18} className="text-cool-gray" />
               Évolution ELO
             </h3>
-            <div className="bg-paper p-4 rounded-xl border border-card/50">
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={eloEvolution.map((p) => ({
-                      ...p,
-                      label: new Date(p.date).toLocaleDateString("fr-FR", {
-                        month: "short",
-                        year: "2-digit",
-                      }),
-                    }))}
-                    margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id={eloGradientId}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="rgb(251, 191, 36)"
-                          stopOpacity={0.4}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="rgb(251, 191, 36)"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="rgba(148, 163, 184, 0.15)"
-                    />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: "rgb(148, 163, 184)", fontSize: 10 }}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      domain={[
-                        (dataMin: number) =>
-                          Math.max(800, Math.floor(dataMin / 50) * 50 - 50),
-                        (dataMax: number) =>
-                          Math.min(2000, Math.ceil(dataMax / 50) * 50 + 50),
-                      ]}
-                      tick={{ fill: "rgb(148, 163, 184)", fontSize: 10 }}
-                      tickLine={false}
-                      width={32}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "rgb(30, 41, 59)",
-                        border: "1px solid rgb(51, 65, 85)",
-                        borderRadius: "8px",
-                      }}
-                      labelStyle={{ color: "rgb(148, 163, 184)" }}
-                      formatter={(value: unknown) =>
-                        value != null ? [`${value} ELO`, "ELO"] : ["—", "ELO"]
-                      }
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="elo"
-                      stroke="rgb(251, 191, 36)"
-                      strokeWidth={2}
-                      fill={`url(#${eloGradientId})`}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-2 text-xs text-ink-soft text-center">
+            <div className="bg-navy-soft p-4 rounded-card border border-card">
+              <EloChart
+                points={eloEvolution}
+                width={330}
+                height={80}
+                highlightCurrent
+                className="w-full"
+              />
+              <div className="mt-2 text-xs text-cool-gray text-center font-mono">
                 {eloEvolution.length} points de données
               </div>
+            </div>
+          </section>
+        )}
+
+        {/* Phase D.3: Achievements */}
+        {achievements.length > 0 && (
+          <section>
+            <h3 className="text-sm font-archivo font-extrabold uppercase tracking-tight mb-3 flex items-center gap-2 text-white">
+              <Medal size={18} className="text-ping-yellow" />
+              Succès
+            </h3>
+            <div className="space-y-2">
+              {achievements.map((achievement) => (
+                <AchievementCard key={achievement.slug} achievement={achievement} />
+              ))}
             </div>
           </section>
         )}
@@ -553,36 +493,36 @@ export const PlayerProfile = () => {
         {/* Stats par league */}
         {Object.keys(statsByLeague).length > 0 && (
           <section>
-            <h3 className="text-lg font-bold mb-3 text-ink">
+            <h3 className="text-lg font-bold mb-3 text-white">
               Statistiques par League
             </h3>
             <div className="space-y-2">
               {Object.entries(statsByLeague).map(([leagueId, stats]) => (
                 <div
                   key={leagueId}
-                  className="bg-paper p-4 rounded-xl border border-card/50"
+                  className="bg-navy-soft p-4 rounded-xl border border-card/50"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <div className="font-bold text-ink">
+                      <div className="font-bold text-white">
                         {stats.leagueName}
                       </div>
-                      <div className="text-xs text-ink-soft">
+                      <div className="text-xs text-cool-gray">
                         {stats.matches} matchs
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-cup-red">
+                      <div className="font-bold text-signal-red">
                         {stats.elo} ELO
                       </div>
-                      <div className="text-xs text-ink-soft">
+                      <div className="text-xs text-cool-gray">
                         {stats.winRate}% win rate
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-4 text-sm">
                     <span className="text-lime">{stats.wins}V</span>
-                    <span className="text-ruby">{stats.losses}D</span>
+                    <span className="text-signal-red">{stats.losses}D</span>
                   </div>
                 </div>
               ))}
@@ -593,7 +533,7 @@ export const PlayerProfile = () => {
         {/* Head-to-Head — ListRow (AC5) */}
         {Object.keys(headToHead).length > 0 && (
           <section>
-            <h3 className="text-lg font-bold mb-3 text-ink">
+            <h3 className="text-lg font-bold mb-3 text-white">
               Tête-à-tête
             </h3>
             <div className="space-y-2">
@@ -626,7 +566,7 @@ export const PlayerProfile = () => {
 
         {/* Recent Matches — Story 14-35: relative time, league/tournament, badge Victoire/Défaite, delta ELO */}
         <section>
-          <h3 className="text-lg font-bold mb-3 text-ink">
+          <h3 className="text-lg font-bold mb-3 text-white">
             Matchs récents
           </h3>
           <div className="space-y-2">
@@ -650,16 +590,16 @@ export const PlayerProfile = () => {
               return (
                 <div
                   key={match.id}
-                  className={`bg-paper p-4 rounded-xl border border-card/50 ${
+                  className={`bg-navy-soft p-4 rounded-xl border border-card/50 ${
                     isWinner ? "border-green-500/50" : "border-red-500/50"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-xs text-ink-mute">
+                    <span className="text-xs text-cool-gray">
                       {formatRelativeTime(match.date)}
                     </span>
                     {contextName && (
-                      <span className="text-xs text-ink-soft truncate max-w-[60%]">
+                      <span className="text-xs text-cool-gray truncate max-w-[60%]">
                         {contextName}
                       </span>
                     )}
@@ -667,7 +607,7 @@ export const PlayerProfile = () => {
                       className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
                         isWinner
                           ? "bg-lime/20 text-lime"
-                          : "bg-ruby/20 text-ruby"
+                          : "bg-signal-red/20 text-signal-red"
                       }`}
                     >
                       {isWinner ? "Victoire" : "Défaite"}
@@ -676,15 +616,15 @@ export const PlayerProfile = () => {
                   <div className="flex justify-between items-center text-sm">
                     <div
                       className={`flex-1 truncate ${
-                        isTeamA && isWinner ? "text-ink font-bold" : "text-ink-soft"
+                        isTeamA && isWinner ? "text-white font-bold" : "text-cool-gray"
                       }`}
                     >
                       {teamA}
                     </div>
-                    <div className="px-3 text-ink-mute flex-shrink-0">VS</div>
+                    <div className="px-3 text-cool-gray flex-shrink-0">VS</div>
                     <div
                       className={`flex-1 text-right truncate ${
-                        !isTeamA && isWinner ? "text-ink font-bold" : "text-ink-soft"
+                        !isTeamA && isWinner ? "text-white font-bold" : "text-cool-gray"
                       }`}
                     >
                       {teamB}
@@ -693,7 +633,7 @@ export const PlayerProfile = () => {
                   {deltaElo !== undefined && (
                     <div
                       className={`text-xs mt-1 text-center font-medium ${
-                        deltaElo > 0 ? "text-lime" : "text-ruby"
+                        deltaElo > 0 ? "text-lime" : "text-signal-red"
                       }`}
                     >
                       {deltaElo > 0 ? "+" : ""}
@@ -708,7 +648,7 @@ export const PlayerProfile = () => {
               );
             })}
             {playerMatchesWithContext.length === 0 && (
-              <p className="text-ink-mute text-center py-4">
+              <p className="text-cool-gray text-center py-4">
                 Aucun match enregistré
               </p>
             )}

@@ -67,13 +67,13 @@ export const PaymentSuccess = () => {
 
   if (isVerifying) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-deep p-4">
-        <div className="bg-cream rounded-2xl p-8 max-w-md w-full text-center border border-card">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-cup-red/20 rounded-full mb-4">
-            <Loader size={32} className="text-cup-red animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-navy-deep p-4">
+        <div className="bg-navy rounded-2xl p-8 max-w-md w-full text-center border border-card">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-signal-red/20 rounded-full mb-4">
+            <Loader size={32} className="text-signal-red animate-spin" />
           </div>
           <h1 className="text-2xl font-bold mb-2">Vérification du paiement...</h1>
-          <p className="text-ink-soft">
+          <p className="text-cool-gray">
             Nous vérifions votre paiement avec Stripe.
           </p>
         </div>
@@ -83,16 +83,16 @@ export const PaymentSuccess = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-deep p-4">
-        <div className="bg-cream rounded-2xl p-8 max-w-md w-full text-center border border-red-500/50">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-ruby/20 rounded-full mb-4">
+      <div className="min-h-screen flex items-center justify-center bg-navy-deep p-4">
+        <div className="bg-navy rounded-2xl p-8 max-w-md w-full text-center border border-red-500/50">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-signal-red/20 rounded-full mb-4">
             <span className="text-4xl">❌</span>
           </div>
-          <h1 className="text-2xl font-bold mb-2 text-ruby">Erreur</h1>
-          <p className="text-ink-soft mb-6">{error}</p>
+          <h1 className="text-2xl font-bold mb-2 text-signal-red">Erreur</h1>
+          <p className="text-cool-gray mb-6">{error}</p>
           <button
             onClick={() => navigate('/')}
-            className="bg-cream-deep hover:bg-paper text-ink font-bold py-3 px-6 rounded-xl transition-colors"
+            className="bg-navy-deep hover:bg-navy-soft text-white font-bold py-3 px-6 rounded-xl transition-colors"
           >
             Retour à l'accueil
           </button>
@@ -102,33 +102,33 @@ export const PaymentSuccess = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cream-deep p-4">
-      <div className="bg-cream rounded-2xl p-8 max-w-md w-full text-center border border-green-500/50">
+    <div className="min-h-screen flex items-center justify-center bg-navy-deep p-4">
+      <div className="bg-navy rounded-2xl p-8 max-w-md w-full text-center border border-green-500/50">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-lime/20 rounded-full mb-4">
           <CheckCircle size={32} className="text-lime" />
         </div>
         <h1 className="text-2xl font-bold mb-2">Paiement réussi !</h1>
-        <p className="text-ink-soft mb-2">
-          Ton compte est maintenant <span className="text-cup-red font-bold">Premium</span>.
+        <p className="text-cool-gray mb-2">
+          Ton compte est maintenant <span className="text-signal-red font-bold">Premium</span>.
         </p>
-        <p className="text-ink-soft mb-6">
+        <p className="text-cool-gray mb-6">
           Profite de toutes les fonctionnalités illimitées !
         </p>
         <div className="space-y-3">
-          <div className="flex items-center gap-3 bg-paper/50 p-3 rounded-xl text-left">
+          <div className="flex items-center gap-3 bg-navy-soft/50 p-3 rounded-xl text-left">
             <CheckCircle size={20} className="text-lime flex-shrink-0" />
             <span className="text-sm">Tournois illimités</span>
           </div>
-          <div className="flex items-center gap-3 bg-paper/50 p-3 rounded-xl text-left">
+          <div className="flex items-center gap-3 bg-navy-soft/50 p-3 rounded-xl text-left">
             <CheckCircle size={20} className="text-lime flex-shrink-0" />
             <span className="text-sm">Ligues illimitées</span>
           </div>
-          <div className="flex items-center gap-3 bg-paper/50 p-3 rounded-xl text-left">
+          <div className="flex items-center gap-3 bg-navy-soft/50 p-3 rounded-xl text-left">
             <CheckCircle size={20} className="text-lime flex-shrink-0" />
             <span className="text-sm">Joueurs illimités</span>
           </div>
         </div>
-        <p className="text-sm text-ink-mute mt-6">
+        <p className="text-sm text-cool-gray mt-6">
           Redirection automatique...
         </p>
       </div>

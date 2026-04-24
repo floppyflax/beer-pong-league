@@ -12,7 +12,7 @@ vi.mock("@/services/AuthService", () => ({
 
 describe("AuthModal", () => {
   const mockOnClose = vi.fn();
-  const mockOnSuccess = vi.fn();
+  const _mockOnSuccess = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();

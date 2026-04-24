@@ -11,6 +11,7 @@ import { TournamentDashboard } from "../../../src/pages/TournamentDashboard";
 import * as LeagueContext from "../../../src/context/LeagueContext";
 import * as AuthContext from "../../../src/context/AuthContext";
 import * as IdentityHook from "../../../src/hooks/useIdentity";
+import * as DetailPagePermissions from "../../../src/hooks/useDetailPagePermissions";
 import { databaseService } from "../../../src/services/DatabaseService";
 
 // Mock modules
@@ -20,6 +21,10 @@ vi.mock("../../../src/services/DatabaseService", () => ({
     loadTournamentParticipants: vi.fn().mockResolvedValue([]),
     addLeaguePlayerToTournament: vi.fn().mockResolvedValue("new-tp-id"),
   },
+}));
+
+vi.mock("../../../src/hooks/useDetailPagePermissions", () => ({
+  useDetailPagePermissions: vi.fn(),
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -101,6 +106,12 @@ describe("TournamentDashboard - Story 8.3", () => {
       () => Promise.resolve(mockPlayers.map((p) => ({ ...p, leaguePlayerId: p.id, joinedAt: new Date().toISOString() }))),
     );
 
+    // Default: user is non-admin but can invite (so Inviter action + leave menu both visible)
+    vi.mocked(DetailPagePermissions.useDetailPagePermissions).mockReturnValue({
+      isAdmin: false,
+      canInvite: true,
+    });
+
     // Mock LeagueContext
     vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
       tournaments: [mockTournament],
@@ -143,14 +154,17 @@ describe("TournamentDashboard - Story 8.3", () => {
       expect(screen.getAllByText(/Summer Cup/i).length).toBeGreaterThan(0);
     });
 
-    it("should display join code", () => {
+    it("should expose an Inviter action on the hero", () => {
       render(
         <BrowserRouter>
           <TournamentDashboard />
         </BrowserRouter>,
       );
 
-      expect(screen.getByText(/Code: ABC123/i)).toBeInTheDocument();
+      // Single invite action (QR code removed from hero — exposed via invitation modal/settings)
+      expect(
+        screen.getByRole("button", { name: /Inviter/i }),
+      ).toBeInTheDocument();
     });
 
     it("should display format info", () => {
@@ -160,26 +174,19 @@ describe("TournamentDashboard - Story 8.3", () => {
         </BrowserRouter>,
       );
 
-      expect(screen.getByText(/Format: 2v2/i)).toBeInTheDocument();
+      // DetailHero meta chip: "Format 2v2" (no colon)
+      expect(screen.getByText(/Format 2v2/i)).toBeInTheDocument();
     });
 
     it("should display player count with max", () => {
-      const { container } = render(
+      render(
         <BrowserRouter>
           <TournamentDashboard />
         </BrowserRouter>,
       );
 
-      // Check for player count display in header (uses tournamentPlayers which comes from league)
-      // Since tournamentPlayers.length will be 0 in this test (no league setup), check for the format
-      const header = container.querySelector(
-        '[class*="flex items-center gap-4"]',
-      );
-      expect(header).toBeInTheDocument();
-
-      // Verify "joueurs" text appears somewhere (from player count or stats summary)
-      const joueurElements = screen.queryAllByText(/joueurs/i);
-      expect(joueurElements.length).toBeGreaterThan(0);
+      // DetailHero stats grid has a "Joueurs" cell
+      expect(screen.getAllByText(/Joueurs/i).length).toBeGreaterThan(0);
     });
 
     it("should display status badge", () => {
@@ -288,30 +295,35 @@ describe("TournamentDashboard - Story 8.3", () => {
     });
   });
 
-  // Task 7 - AC7: Leave Tournament Functionality
+  // Task 7 - AC7: Leave Tournament Functionality (moved to overflow menu)
   describe("Task 7 - Leave Tournament (AC7)", () => {
-    it("should display leave tournament button for non-creators", async () => {
+    it("should display leave tournament entry for non-creators in the overflow menu", async () => {
       render(
         <BrowserRouter>
           <TournamentDashboard />
         </BrowserRouter>,
       );
 
-      const settingsTab = screen.getByRole("tab", { name: "Paramètres" });
-      fireEvent.click(settingsTab);
+      fireEvent.click(screen.getByRole("button", { name: "Menu" }));
 
       await waitFor(() => {
-        expect(screen.getByText(/Quitter le tournoi/i)).toBeInTheDocument();
+        expect(
+          screen.getByRole("menuitem", { name: /Quitter l'événement/i }),
+        ).toBeInTheDocument();
       });
     });
 
-    it("should NOT display leave button for creators", async () => {
-      // Mock user as creator
+    it("should NOT display leave entry for creators", async () => {
+      // Mock user as creator (admin)
       vi.spyOn(AuthContext, "useAuthContext").mockReturnValue({
         isAuthenticated: true,
         user: { id: "creator-user-id", email: "creator@example.com" },
         signOut: vi.fn(),
       } as any);
+      vi.mocked(DetailPagePermissions.useDetailPagePermissions).mockReturnValue({
+        isAdmin: true,
+        canInvite: true,
+      });
 
       render(
         <BrowserRouter>
@@ -319,17 +331,20 @@ describe("TournamentDashboard - Story 8.3", () => {
         </BrowserRouter>,
       );
 
-      const settingsTab = screen.getByRole("tab", { name: "Paramètres" });
-      fireEvent.click(settingsTab);
+      fireEvent.click(screen.getByRole("button", { name: "Menu" }));
 
       await waitFor(() => {
+        // Menu is open → Paramètres is visible as a hint
         expect(
-          screen.queryByText(/Quitter le tournoi/i),
-        ).not.toBeInTheDocument();
+          screen.getByRole("menuitem", { name: /Paramètres/i }),
+        ).toBeInTheDocument();
       });
+      expect(
+        screen.queryByRole("menuitem", { name: /Quitter l'événement/i }),
+      ).not.toBeInTheDocument();
     });
 
-    it("should call leaveTournament on confirmation", async () => {
+    it("should call leaveTournament from overflow menu on confirmation", async () => {
       global.confirm = vi.fn(() => true);
       (databaseService.leaveTournament as any).mockResolvedValue(undefined);
 
@@ -345,11 +360,11 @@ describe("TournamentDashboard - Story 8.3", () => {
         </BrowserRouter>,
       );
 
-      const settingsTab = screen.getByRole("tab", { name: "Paramètres" });
-      fireEvent.click(settingsTab);
-
-      const leaveButton = await screen.findByText(/Quitter le tournoi/i);
-      await userEvent.click(leaveButton);
+      fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+      const leaveItem = await screen.findByRole("menuitem", {
+        name: /Quitter l'événement/i,
+      });
+      await userEvent.click(leaveItem);
 
       await waitFor(() => {
         expect(databaseService.leaveTournament).toHaveBeenCalledWith(
@@ -373,11 +388,11 @@ describe("TournamentDashboard - Story 8.3", () => {
         </BrowserRouter>,
       );
 
-      const settingsTab = screen.getByRole("tab", { name: "Paramètres" });
-      fireEvent.click(settingsTab);
-
-      const leaveButton = await screen.findByText(/Quitter le tournoi/i);
-      await userEvent.click(leaveButton);
+      fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+      const leaveItem = await screen.findByRole("menuitem", {
+        name: /Quitter l'événement/i,
+      });
+      await userEvent.click(leaveItem);
 
       await waitFor(() => {
         expect(databaseService.leaveTournament).toHaveBeenCalled();

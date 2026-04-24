@@ -90,13 +90,13 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
       {step === "email" ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm text-text-tertiary mb-2 block">
+            <label className="text-sm text-cool-gray mb-2 block">
               Email
             </label>
             <div className="relative">
               <Mail
                 size={20}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-cool-gray"
               />
               <input
                 type="email"
@@ -106,36 +106,36 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                   setError(null);
                 }}
                 placeholder="ton@email.com"
-                className="w-full bg-background-tertiary border border-card rounded-input pl-10 pr-4 py-4 text-white focus:ring-2 focus:ring-primary outline-none"
+                className="w-full bg-navy-soft border border-card rounded-input pl-10 pr-4 py-4 text-white focus:ring-2 focus:ring-electric-blue outline-none"
                 autoFocus
                 disabled={isLoading}
               />
             </div>
-            {error && <p className="text-error text-sm mt-2">{error}</p>}
+            {error && <p className="text-signal-red text-sm mt-2">{error}</p>}
             {isTestAccount(email) ? (
-              <div className="bg-success/20 border border-success/50 rounded-button p-2 mt-2">
-                <p className="text-xs text-success font-semibold">
+              <div className="bg-lime/20 border border-lime/50 rounded-button p-2 mt-2">
+                <p className="text-xs text-lime font-semibold">
                   🧪 Compte test détecté - Connexion directe
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-text-muted mt-2">
+              <p className="text-xs text-cool-gray mt-2">
                 Un lien magique sera envoyé à cette adresse
               </p>
             )}
           </div>
 
           {import.meta.env.DEV && !email && (
-            <div className="bg-info/10 border border-info/30 rounded-button p-3">
-              <p className="text-xs text-info mb-1 font-semibold">
+            <div className="bg-electric-blue/10 border border-electric-blue/30 rounded-button p-3">
+              <p className="text-xs text-electric-blue mb-1 font-semibold">
                 🧪 Mode développement
               </p>
-              <p className="text-xs text-text-tertiary">
+              <p className="text-xs text-cool-gray">
                 Comptes test disponibles :<br />•{" "}
                 <span className="text-white">devadmin@test.com</span>
                 <br />• <span className="text-white">devtest@test.com</span>
                 <br />
-                <span className="text-text-muted">
+                <span className="text-cool-gray">
                   (connexion instantanée)
                 </span>
               </p>
@@ -145,7 +145,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
           <button
             type="submit"
             disabled={!email.trim() || isLoading}
-            className="w-full bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-input transition-colors"
+            className="w-full bg-electric-blue disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-input transition-colors"
           >
             {isLoading
               ? isTestAccount(email)
@@ -158,30 +158,30 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
         </form>
       ) : (
         <div className="space-y-4">
-          <div className="bg-success/20 border border-success/50 rounded-input p-4 flex items-center gap-3">
-            <CheckCircle size={24} className="text-success" />
+          <div className="bg-lime/20 border border-lime/50 rounded-input p-4 flex items-center gap-3">
+            <CheckCircle size={24} className="text-lime" />
             <div>
-              <div className="font-bold text-success">Email envoyé !</div>
-              <div className="text-sm text-text-tertiary">
+              <div className="font-bold text-lime">Email envoyé !</div>
+              <div className="text-sm text-cool-gray">
                 Vérifie ta boîte mail et clique sur le lien
               </div>
             </div>
           </div>
 
-          <div className="bg-background-tertiary p-4 rounded-input">
-            <div className="text-sm text-text-tertiary mb-2">
+          <div className="bg-navy-soft p-4 rounded-input">
+            <div className="text-sm text-cool-gray mb-2">
               Email envoyé à :
             </div>
             <div className="font-bold text-white">{email}</div>
           </div>
 
-          <div className="text-xs text-text-muted text-center">
+          <div className="text-xs text-cool-gray text-center">
             Une fois le lien cliqué, tu seras automatiquement connecté
           </div>
 
           <button
             onClick={handleClose}
-            className="w-full bg-background-tertiary hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
+            className="w-full bg-navy-soft hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
           >
             Fermer
           </button>

@@ -15,8 +15,8 @@ interface MatchRecordingFormProps {
 }
 
 export function MatchRecordingForm({
-  tournamentId,
-  leagueId,
+  tournamentId: _tournamentId,
+  leagueId: _leagueId,
   format,
   participants,
   onSuccess,
@@ -190,20 +190,20 @@ export function MatchRecordingForm({
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col p-4 overflow-y-auto">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-2xl font-bold text-ink">Nouveau Match</h3>
+        <h3 className="text-2xl font-bold text-white">Nouveau Match</h3>
         <button
           onClick={onClose}
-          className="p-2 hover:bg-paper rounded-lg transition-colors"
+          className="p-2 hover:bg-navy-soft rounded-lg transition-colors"
           aria-label="Fermer"
         >
-          <X size={24} className="text-ink" />
+          <X size={24} className="text-white" />
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="flex-grow space-y-6">
         {/* Team A */}
-        <div className="bg-paper rounded-lg p-6">
-          <h3 className="text-xl font-bold text-ink mb-4">Équipe A</h3>
+        <div className="bg-navy-soft rounded-lg p-6">
+          <h3 className="text-xl font-bold text-white mb-4">Équipe A</h3>
 
           {Array.from({ length: playersPerTeam }).map((_, i) => {
             const availablePlayers = getAvailablePlayers("A", i);
@@ -213,7 +213,7 @@ export function MatchRecordingForm({
                 <select
                   value={teamA[i] || ""}
                   onChange={(e) => updateTeamPlayer("A", i, e.target.value)}
-                  className={`w-full px-4 py-3 bg-cream-deep text-ink rounded-lg text-lg border ${
+                  className={`w-full px-4 py-3 bg-navy-deep text-white rounded-lg text-lg border ${
                     errors.teamA ? "border-red-500" : "border-card-muted"
                   }`}
                 >
@@ -230,11 +230,11 @@ export function MatchRecordingForm({
 
         </div>
 
-        <div className="text-center text-ink-mute font-bold text-xl">VS</div>
+        <div className="text-center text-cool-gray font-bold text-xl">VS</div>
 
         {/* Team B */}
-        <div className="bg-paper rounded-lg p-6">
-          <h3 className="text-xl font-bold text-ink mb-4">Équipe B</h3>
+        <div className="bg-navy-soft rounded-lg p-6">
+          <h3 className="text-xl font-bold text-white mb-4">Équipe B</h3>
 
           {Array.from({ length: playersPerTeam }).map((_, i) => {
             const availablePlayers = getAvailablePlayers("B", i);
@@ -244,7 +244,7 @@ export function MatchRecordingForm({
                 <select
                   value={teamB[i] || ""}
                   onChange={(e) => updateTeamPlayer("B", i, e.target.value)}
-                  className={`w-full px-4 py-3 bg-cream-deep text-ink rounded-lg text-lg border ${
+                  className={`w-full px-4 py-3 bg-navy-deep text-white rounded-lg text-lg border ${
                     errors.teamB ? "border-red-500" : "border-card-muted"
                   }`}
                 >
@@ -262,8 +262,8 @@ export function MatchRecordingForm({
         </div>
 
         {/* Who won? - Story 14-25 (design-system 7.4) */}
-        <div className="bg-paper rounded-lg p-6">
-          <label className="block text-sm font-bold text-ink-soft mb-4">
+        <div className="bg-navy-soft rounded-lg p-6">
+          <label className="block text-sm font-bold text-cool-gray mb-4">
             Qui a gagné ?
           </label>
           <div className="grid grid-cols-2 gap-4">
@@ -281,8 +281,8 @@ export function MatchRecordingForm({
               }}
               className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all font-bold ${
                 winner === "A"
-                  ? "bg-gold/20 border-gold text-gold"
-                  : "bg-cream-deep border-card-muted text-ink-soft hover:border-card-muted hover:text-ink-soft"
+                  ? "bg-ping-yellow/20 border-ping-yellow text-ping-yellow"
+                  : "bg-navy-deep border-card-muted text-cool-gray hover:border-card-muted hover:text-cool-gray"
               }`}
             >
               Équipe 1
@@ -301,8 +301,8 @@ export function MatchRecordingForm({
               }}
               className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all font-bold ${
                 winner === "B"
-                  ? "bg-gold/20 border-gold text-gold"
-                  : "bg-cream-deep border-card-muted text-ink-soft hover:border-card-muted hover:text-ink-soft"
+                  ? "bg-ping-yellow/20 border-ping-yellow text-ping-yellow"
+                  : "bg-navy-deep border-card-muted text-cool-gray hover:border-card-muted hover:text-cool-gray"
               }`}
             >
               Équipe 2
@@ -324,7 +324,7 @@ export function MatchRecordingForm({
         <button
           type="submit"
           disabled={isSubmitting || !winner}
-          className="w-full px-8 py-4 bg-gold text-ink rounded-lg font-bold text-xl hover:brightness-110 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-8 py-4 bg-ping-yellow text-white rounded-lg font-bold text-xl hover:brightness-110 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Enregistrement..." : "Enregistrer le Match"}
         </button>

@@ -35,16 +35,16 @@ export function HelpCard({
     <div
       role="region"
       aria-labelledby={titleId}
-      className="bg-cup-blue/10 rounded-card p-4 md:p-6 border border-cup-blue/30"
+      className="bg-electric-blue/10 rounded-card p-4 md:p-6 border border-electric-blue/30"
       data-testid="helpcard"
     >
       <div className="flex items-start gap-3 mb-4">
-        <div className="shrink-0 w-10 h-10 rounded-full bg-cup-blue/20 flex items-center justify-center">
-          <HelpCircle size={22} className="text-cup-blue" aria-hidden />
+        <div className="shrink-0 w-10 h-10 rounded-full bg-electric-blue/20 flex items-center justify-center">
+          <HelpCircle size={22} className="text-electric-blue" aria-hidden />
         </div>
         <h4
           id={titleId}
-          className="text-base font-archivo font-extrabold uppercase tracking-tight text-ink pt-1.5"
+          className="text-base font-archivo font-extrabold uppercase tracking-tight text-white pt-1.5"
         >
           {title}
         </h4>
@@ -53,10 +53,10 @@ export function HelpCard({
       {children ? (
         children
       ) : (
-        <ul className="text-sm text-ink-soft space-y-3">
+        <ul className="text-sm text-cool-gray space-y-3">
           {steps.map((step, index) => (
             <li key={`${step.number}-${index}`} className="flex items-start gap-3">
-              <span className="shrink-0 w-6 h-6 rounded-full bg-cup-blue flex items-center justify-center text-xs font-mono font-bold text-ink">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-electric-blue flex items-center justify-center text-xs font-mono font-bold text-white">
                 {step.number}
               </span>
               <span className="pt-0.5">{step.text}</span>

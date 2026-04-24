@@ -102,6 +102,24 @@ const DesignSystemShowcase = lazy(() =>
     default: m.DesignSystemShowcase,
   })),
 );
+const RecordMatch = lazy(() =>
+  import("./pages/RecordMatch").then((m) => ({ default: m.RecordMatch })),
+);
+const EventDashboard = lazy(() =>
+  import("./pages/EventDashboard").then((m) => ({
+    default: m.EventDashboard,
+  })),
+);
+const GlobalLeaderboard = lazy(() =>
+  import("./pages/GlobalLeaderboard").then((m) => ({
+    default: m.GlobalLeaderboard,
+  })),
+);
+const Competitions = lazy(() =>
+  import("./pages/Competitions").then((m) => ({
+    default: m.Competitions,
+  })),
+);
 
 function App() {
   return (
@@ -118,22 +136,37 @@ function App() {
             position="top-center"
             toastOptions={{
               duration: 3000,
+              // Everything ELO tokens — navy-soft surface, card border, white text,
+              // success = lime (positive delta), error = signal-red (alert)
               style: {
-                background: "#1e293b",
-                color: "#fff",
-                border: "1px solid #334155",
-                borderRadius: "0.75rem",
+                background: "#141D2F", // navy-soft
+                color: "#FFFFFF",
+                border: "1px solid rgba(168, 176, 192, 0.12)", // card
+                borderRadius: "16px", // rounded-card
+                padding: "12px 16px",
+                fontSize: "14px",
+                fontWeight: 500,
+                fontFamily:
+                  "Sora, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+                boxShadow:
+                  "0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(47, 107, 255, 0.08)",
               },
               success: {
                 iconTheme: {
-                  primary: "#f59e0b",
-                  secondary: "#fff",
+                  primary: "#B7FF3B", // lime
+                  secondary: "#0B1320", // navy
                 },
               },
               error: {
                 iconTheme: {
-                  primary: "#ef4444",
-                  secondary: "#fff",
+                  primary: "#FF3B3B", // signal-red
+                  secondary: "#FFFFFF",
+                },
+              },
+              loading: {
+                iconTheme: {
+                  primary: "#2F6BFF", // electric-blue
+                  secondary: "#141D2F",
                 },
               },
             }}
@@ -161,15 +194,15 @@ function HeaderUserInfo() {
     <div className="flex items-center gap-2">
       <button
         onClick={() => navigate("/user/profile")}
-        className="flex items-center gap-2 px-2 py-1 bg-cup-red/20 rounded-lg hover:bg-cup-red/30 transition-colors cursor-pointer"
+        className="flex items-center gap-2 px-2 py-1 bg-signal-red/20 rounded-lg hover:bg-signal-red/30 transition-colors cursor-pointer"
       >
-        <User size={16} className="text-cup-red" />
-        <span className="text-xs text-cup-red font-medium">{displayName}</span>
+        <User size={16} className="text-signal-red" />
+        <span className="text-xs text-signal-red font-medium">{displayName}</span>
       </button>
       {isAuthenticated && (
         <button
           onClick={signOut}
-          className="p-2 hover:bg-cream-deep rounded-lg transition-colors"
+          className="p-2 hover:bg-navy-deep rounded-lg transition-colors"
           title="Déconnexion"
         >
           <LogOut size={18} />
@@ -199,6 +232,8 @@ function AppContent() {
     "/",
     "/tournaments",
     "/leagues",
+    "/competitions",
+    "/leaderboard",
     "/join",
     "/user/profile",
     "/create-tournament",
@@ -208,7 +243,8 @@ function AppContent() {
     pagesWithContextualHeader.includes(location.pathname) ||
     location.pathname.startsWith("/tournament/") ||
     location.pathname.startsWith("/league/") ||
-    location.pathname.startsWith("/player/");
+    location.pathname.startsWith("/player/") ||
+    location.pathname.startsWith("/record-match/");
 
   const showHeader = !isDisplayView && !isLandingPage && !hasContextualHeader;
 
@@ -216,11 +252,11 @@ function AppContent() {
   const showBackBtn = shouldShowBackButton(location.pathname);
 
   return (
-    <div className="min-h-screen bg-cream text-ink flex flex-col">
+    <div className="min-h-screen bg-navy text-white flex flex-col">
       {showHeader && (
         <>
           <MenuDrawer isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
-          <header className="p-4 bg-paper border-b border-card flex justify-between items-center sticky top-0 z-10">
+          <header className="p-4 bg-navy-soft border-b border-card flex justify-between items-center sticky top-0 z-10">
             {/* Left navigation: Back button OR Hamburger menu - hidden on desktop (lg and above) */}
             <div className="lg:hidden">
               {showBackBtn ? (
@@ -228,7 +264,7 @@ function AppContent() {
               ) : (
                 <button
                   onClick={() => setMenuOpen(true)}
-                  className="p-2 hover:bg-cream-deep rounded-lg transition-colors"
+                  className="p-2 hover:bg-navy-deep rounded-lg transition-colors"
                   aria-label="Open menu"
                 >
                   <Menu size={24} />
@@ -239,26 +275,26 @@ function AppContent() {
             <nav className="hidden lg:flex items-center gap-6">
               <Link
                 to="/"
-                className="text-ink-soft hover:text-cup-red transition-colors"
+                className="text-cool-gray hover:text-signal-red transition-colors"
               >
                 Accueil
               </Link>
               <Link
                 to="/create-league"
-                className="text-ink-soft hover:text-cup-red transition-colors"
+                className="text-cool-gray hover:text-signal-red transition-colors"
               >
                 Nouvelle League
               </Link>
               <Link
                 to="/create-tournament"
-                className="text-ink-soft hover:text-cup-red transition-colors"
+                className="text-cool-gray hover:text-signal-red transition-colors"
               >
                 Nouveau Tournoi
               </Link>
             </nav>
             <Link
               to="/"
-              className="text-xl font-bold text-cup-red flex items-center gap-2"
+              className="text-xl font-bold text-signal-red flex items-center gap-2"
             >
               <span>🍺</span> BPL
             </Link>
@@ -308,6 +344,7 @@ function AppContent() {
                     <Route path="/join" element={<Join />} />
                     <Route path="/tournaments" element={<Tournaments />} />
                     <Route path="/leagues" element={<Leagues />} />
+                    <Route path="/competitions" element={<Competitions />} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
                     <Route
                       path="/payment-success"
@@ -351,6 +388,20 @@ function AppContent() {
                     <Route
                       path="/design-system"
                       element={<DesignSystemShowcase />}
+                    />
+                    <Route
+                      path="/record-match/:contextType/:id"
+                      element={<RecordMatch />}
+                    />
+                    {/* D.5: Global cross-league leaderboard */}
+                    <Route
+                      path="/leaderboard"
+                      element={<GlobalLeaderboard />}
+                    />
+                    {/* B.6: Event = canonical rename of Tournament — redirect for backward compat */}
+                    <Route
+                      path="/event/:id"
+                      element={<EventDashboard />}
                     />
                   </Routes>
                 </div>

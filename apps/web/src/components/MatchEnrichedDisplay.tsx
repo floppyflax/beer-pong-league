@@ -68,7 +68,7 @@ export function MatchEnrichedDisplay({
               setImageError(false);
               setShowEnlarged(true);
             }}
-            className="block rounded-lg overflow-hidden border border-slate-600 hover:border-slate-500 transition-colors focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed"
+            className="block rounded-lg overflow-hidden border border-slate-600 hover:border-slate-500 transition-colors focus:outline-none focus:ring-2 focus:ring-electric-blue disabled:opacity-60 disabled:cursor-not-allowed"
             aria-label="Agrandir la photo"
             disabled={imageError}
           >

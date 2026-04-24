@@ -154,7 +154,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     });
 
     it("should validate name maximum length (100 chars)", async () => {
-      const toast = await import("react-hot-toast");
+      const _toast = await import("react-hot-toast");
       render(<TournamentJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
@@ -196,7 +196,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
 
       // AC: Show character count
       await waitFor(() => {
-        expect(screen.getByText(/4\/100 caractères/i)).toBeInTheDocument();
+        expect(screen.getByText(/4\/100/i)).toBeInTheDocument();
       });
     });
 
@@ -212,8 +212,8 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
       await waitFor(() => {
         const submitButton = screen.getByRole("button", { name: /rejoindre/i });
         expect(submitButton).toBeInTheDocument();
-        // AC: Large, clear button (check for min-height class)
-        expect(submitButton.className).toContain("min-h-[44px]");
+        // AC: Large, clear button (PButton md = h-12, meets 44px min-touch-target)
+        expect(submitButton.className).toContain("h-12");
       });
     });
 
@@ -386,7 +386,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
 
   describe("Task 6: Implement redirect and confirmation (AC: Redirect, success message)", () => {
     it("should redirect to tournament dashboard after join", async () => {
-      const toast = await import("react-hot-toast");
+      const _toast = await import("react-hot-toast");
 
       render(<TournamentJoin />, { wrapper: Wrapper });
 

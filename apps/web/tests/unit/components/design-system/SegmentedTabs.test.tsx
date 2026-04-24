@@ -73,7 +73,7 @@ describe("SegmentedTabs", () => {
   });
 
   describe("variant encapsulated (Story 14-30, Arcade)", () => {
-    it("should render encapsulated container with bg-paper rounded-card p-1 border", () => {
+    it("should render encapsulated container with bg-navy-soft rounded-card p-1 border", () => {
       const { container } = render(
         <SegmentedTabs
           tabs={defaultTabs}
@@ -83,7 +83,7 @@ describe("SegmentedTabs", () => {
         />,
       );
       const tablist = container.querySelector('[role="tablist"]');
-      expect(tablist).toHaveClass("bg-paper");
+      expect(tablist).toHaveClass("bg-navy-soft");
       expect(tablist).toHaveClass("rounded-card");
       expect(tablist).toHaveClass("p-1");
       expect(tablist).toHaveClass("w-full");
@@ -119,7 +119,7 @@ describe("SegmentedTabs", () => {
       expect(tablist).not.toHaveClass("gap-2");
     });
 
-    it("should apply bg-cup-red text-ink rounded-sm to active tab in encapsulated", () => {
+    it("should apply bg-electric-blue text-white rounded-sm to active tab in encapsulated", () => {
       render(
         <SegmentedTabs
           tabs={defaultTabs}
@@ -129,12 +129,12 @@ describe("SegmentedTabs", () => {
         />,
       );
       const activeTab = screen.getByRole("tab", { name: "Actifs" });
-      expect(activeTab).toHaveClass("bg-cup-red");
-      expect(activeTab).toHaveClass("text-ink");
+      expect(activeTab).toHaveClass("bg-electric-blue");
+      expect(activeTab).toHaveClass("text-white");
       expect(activeTab).toHaveClass("rounded-sm");
     });
 
-    it("should apply transparent bg and text-ink-soft to inactive tab in encapsulated", () => {
+    it("should apply transparent bg and text-cool-gray to inactive tab in encapsulated", () => {
       render(
         <SegmentedTabs
           tabs={defaultTabs}
@@ -145,8 +145,8 @@ describe("SegmentedTabs", () => {
       );
       const inactiveTab = screen.getByRole("tab", { name: "Actifs" });
       expect(inactiveTab).toHaveClass("bg-transparent");
-      expect(inactiveTab).toHaveClass("text-ink-soft");
-      expect(inactiveTab).not.toHaveClass("bg-cup-red");
+      expect(inactiveTab).toHaveClass("text-cool-gray");
+      expect(inactiveTab).not.toHaveClass("bg-electric-blue");
     });
 
     it("should render empty container when tabs is empty in encapsulated", () => {
@@ -160,7 +160,7 @@ describe("SegmentedTabs", () => {
       );
       const tablist = container.querySelector('[role="tablist"]');
       expect(tablist).toBeInTheDocument();
-      expect(tablist).toHaveClass("bg-paper");
+      expect(tablist).toHaveClass("bg-navy-soft");
       expect(screen.queryAllByRole("tab")).toHaveLength(0);
     });
 
@@ -176,7 +176,7 @@ describe("SegmentedTabs", () => {
       const tablist = container.querySelector('[role="tablist"]');
       expect(tablist).toHaveClass("flex");
       expect(tablist).toHaveClass("gap-2");
-      expect(tablist).not.toHaveClass("bg-paper");
+      expect(tablist).not.toHaveClass("bg-navy-soft");
     });
   });
 });

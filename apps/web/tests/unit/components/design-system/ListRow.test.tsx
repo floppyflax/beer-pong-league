@@ -29,7 +29,7 @@ describe('ListRow (Story 14-4)', () => {
       );
       const badge = screen.getByText('1');
       expect(badge).toBeInTheDocument();
-      expect(badge).toHaveClass('bg-gold');
+      expect(badge).toHaveClass('bg-ping-yellow');
     });
 
     it('should display rank badge with silver for rank 2', () => {
@@ -43,7 +43,7 @@ describe('ListRow (Story 14-4)', () => {
         />
       );
       const badge = screen.getByText('2');
-      expect(badge).toHaveClass('bg-ink-soft');
+      expect(badge).toHaveClass('bg-cool-gray');
     });
 
     it('should display rank badge with bronze for rank 3', () => {
@@ -57,7 +57,7 @@ describe('ListRow (Story 14-4)', () => {
         />
       );
       const badge = screen.getByText('3');
-      expect(badge).toHaveClass('bg-cup-red-deep');
+      expect(badge).toHaveClass('bg-signal-red-deep');
     });
 
     it('should display name and subtitle', () => {
@@ -99,7 +99,7 @@ describe('ListRow (Story 14-4)', () => {
         />
       );
       const delta = screen.getByText('-15');
-      expect(delta).toHaveClass('text-ruby');
+      expect(delta).toHaveClass('text-signal-red');
     });
 
     it('should display chevron', () => {
@@ -129,10 +129,10 @@ describe('ListRow (Story 14-4)', () => {
       const circles = container.querySelectorAll('div[class*="rounded-full"]');
       expect(circles).toHaveLength(5);
       expect(circles[0]).toHaveClass('bg-lime');
-      expect(circles[1]).toHaveClass('bg-ruby');
+      expect(circles[1]).toHaveClass('bg-signal-red');
       expect(circles[2]).toHaveClass('bg-lime');
       expect(circles[3]).toHaveClass('bg-lime');
-      expect(circles[4]).toHaveClass('bg-ruby');
+      expect(circles[4]).toHaveClass('bg-signal-red');
     });
   });
 

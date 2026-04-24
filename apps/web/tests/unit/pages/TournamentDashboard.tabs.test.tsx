@@ -100,16 +100,16 @@ describe("TournamentDashboard - Tab Navigation (Task 1)", () => {
   });
 
   describe("AC1: Tab Navigation Structure", () => {
-    it("should display 3 tabs: Classement, Matchs, Paramètres", () => {
+    it("should display 2 tabs: Matchs, Classement (Paramètres moved to overflow menu)", () => {
       renderDashboard();
 
+      expect(screen.getByRole("tab", { name: "Matchs" })).toBeInTheDocument();
       expect(
         screen.getByRole("tab", { name: "Classement" }),
       ).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "Matchs" })).toBeInTheDocument();
       expect(
-        screen.getByRole("tab", { name: "Paramètres" }),
-      ).toBeInTheDocument();
+        screen.queryByRole("tab", { name: "Paramètres" }),
+      ).not.toBeInTheDocument();
     });
 
     it("should have Classement tab active by default", () => {
@@ -119,12 +119,13 @@ describe("TournamentDashboard - Tab Navigation (Task 1)", () => {
       expect(classementTab).toHaveAttribute("aria-selected", "true");
     });
 
-    it("should highlight active tab (SegmentedTabs encapsulated)", () => {
+    it("should highlight active tab (SegmentedTabs encapsulated, duel red on 2nd tab)", () => {
       renderDashboard();
 
       const classementTab = screen.getByRole("tab", { name: "Classement" });
-      expect(classementTab).toHaveClass("bg-cup-red");
-      expect(classementTab).toHaveClass("text-ink");
+      // SegmentedTabs applies a "duel" red to the 2nd tab when there are exactly 2 tabs
+      expect(classementTab).toHaveClass("bg-signal-red");
+      expect(classementTab).toHaveClass("text-white");
     });
 
     it("should switch to Matchs tab when clicked", () => {
@@ -136,13 +137,22 @@ describe("TournamentDashboard - Tab Navigation (Task 1)", () => {
       expect(matchsTab).toHaveAttribute("aria-selected", "true");
     });
 
-    it("should switch to Paramètres tab when clicked", () => {
+    it("should open Paramètres from the overflow menu", () => {
       renderDashboard();
 
-      const parametresTab = screen.getByRole("tab", { name: "Paramètres" });
-      fireEvent.click(parametresTab);
+      fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+      const parametresItem = screen.getByRole("menuitem", {
+        name: /Paramètres/i,
+      });
+      fireEvent.click(parametresItem);
 
-      expect(parametresTab).toHaveAttribute("aria-selected", "true");
+      // Clicking the menu entry switches to the settings view (no tab selected)
+      expect(
+        screen.getByRole("tab", { name: "Matchs" }),
+      ).toHaveAttribute("aria-selected", "false");
+      expect(
+        screen.getByRole("tab", { name: "Classement" }),
+      ).toHaveAttribute("aria-selected", "false");
     });
 
     it("should only have one active tab at a time", () => {
@@ -176,11 +186,14 @@ describe("TournamentDashboard - Tab Navigation (Task 1)", () => {
       expect(screen.getByText(/Aucun match/)).toBeInTheDocument();
     });
 
-    it("should show Paramètres content when on Paramètres tab", () => {
+    it("should show Paramètres content when opened via overflow menu", () => {
       renderDashboard();
 
-      const parametresTab = screen.getByRole("tab", { name: "Paramètres" });
-      fireEvent.click(parametresTab);
+      fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+      const parametresItem = screen.getByRole("menuitem", {
+        name: /Paramètres/i,
+      });
+      fireEvent.click(parametresItem);
 
       // Should show settings sections
       expect(screen.getByText("Informations")).toBeInTheDocument();

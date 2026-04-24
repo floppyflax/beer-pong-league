@@ -12,6 +12,23 @@ import {
   type MatchRow,
 } from './_base';
 
+/**
+ * Set of tournament fields that callers are allowed to update in-place.
+ * Using an object (rather than positional args) lets us extend the API
+ * without breaking existing call sites every time a new field shows up.
+ *
+ * `name` / `date` are optional here even though they're required at
+ * creation time — update is a partial mutation.
+ */
+export interface TournamentUpdates {
+  name?: string;
+  date?: string;
+  antiCheatEnabled?: boolean;
+  format?: '1v1' | '2v2' | '3v3' | 'libre';
+  maxPlayers?: number;
+  isPrivate?: boolean;
+}
+
 class TournamentsRepository extends BaseRepository {
   /**
    * Charge toutes les tournaments depuis Supabase
@@ -157,6 +174,9 @@ class TournamentsRepository extends BaseRepository {
             maxPlayers: tournamentRow.max_players,
             isPrivate: tournamentRow.is_private,
             status: tournamentRow.status as 'active' | 'finished' | 'cancelled' | undefined,
+            // Phase A.5 — competition mode (migration 011). Default 'elo' if DB
+            // hasn't received the migration yet (local/staging sync lag).
+            mode: tournamentRow.mode ?? 'elo',
           };
         }
       );
@@ -288,45 +308,52 @@ class TournamentsRepository extends BaseRepository {
    */
   async updateTournament(
     tournamentId: string,
-    name: string,
-    date: string,
-    antiCheatEnabled?: boolean,
-    format?: '1v1' | '2v2' | '3v3' | 'libre'
+    updates: TournamentUpdates
   ): Promise<void> {
+    // Apply the same set of field updates to a Tournament instance held in
+    // localStorage. Keeps the cache coherent with whatever gets sent to
+    // Supabase.
+    const applyToLocal = (tournament: Tournament) => {
+      if (updates.name !== undefined) tournament.name = updates.name;
+      if (updates.date !== undefined) tournament.date = updates.date;
+      if (updates.antiCheatEnabled !== undefined)
+        tournament.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.format !== undefined) tournament.format = updates.format;
+      if (updates.maxPlayers !== undefined)
+        tournament.maxPlayers = updates.maxPlayers;
+      if (updates.isPrivate !== undefined)
+        tournament.isPrivate = updates.isPrivate;
+    };
+
     if (!this.isSupabaseAvailable()) {
       const tournaments = this.loadTournamentsFromLocalStorage();
       const tournament = tournaments.find((t) => t.id === tournamentId);
       if (tournament) {
-        tournament.name = name;
-        tournament.date = date;
-        if (antiCheatEnabled !== undefined) {
-          tournament.anti_cheat_enabled = antiCheatEnabled;
-        }
-        if (format !== undefined) {
-          tournament.format = format;
-        }
+        applyToLocal(tournament);
         this.saveTournamentToLocalStorage(tournament);
       }
       return;
     }
 
     try {
-      const updates: {
-        name: string;
-        date: string;
-        anti_cheat_enabled?: boolean;
-        format?: string;
-      } = { name, date };
-      if (antiCheatEnabled !== undefined) {
-        updates.anti_cheat_enabled = antiCheatEnabled;
-      }
-      if (format !== undefined) {
-        updates.format = format;
-      }
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.date !== undefined) dbUpdates.date = updates.date;
+      if (updates.antiCheatEnabled !== undefined)
+        dbUpdates.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.format !== undefined) dbUpdates.format = updates.format;
+      if (updates.maxPlayers !== undefined)
+        dbUpdates.max_players = updates.maxPlayers;
+      if (updates.isPrivate !== undefined)
+        dbUpdates.is_private = updates.isPrivate;
+
+      // Nothing to update (e.g. caller passed an empty object) — bail out
+      // rather than issue a no-op round-trip.
+      if (Object.keys(dbUpdates).length === 0) return;
 
       const { error } = await supabase!
         .from('tournaments')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', tournamentId);
 
       if (error) throw error;
@@ -335,14 +362,7 @@ class TournamentsRepository extends BaseRepository {
       const tournaments = this.loadTournamentsFromLocalStorage();
       const tournament = tournaments.find((t) => t.id === tournamentId);
       if (tournament) {
-        tournament.name = name;
-        tournament.date = date;
-        if (antiCheatEnabled !== undefined) {
-          tournament.anti_cheat_enabled = antiCheatEnabled;
-        }
-        if (format !== undefined) {
-          tournament.format = format;
-        }
+        applyToLocal(tournament);
         this.saveTournamentToLocalStorage(tournament);
       }
     } catch (error) {
@@ -351,14 +371,7 @@ class TournamentsRepository extends BaseRepository {
       const tournaments = this.loadTournamentsFromLocalStorage();
       const tournament = tournaments.find((t) => t.id === tournamentId);
       if (tournament) {
-        tournament.name = name;
-        tournament.date = date;
-        if (antiCheatEnabled !== undefined) {
-          tournament.anti_cheat_enabled = antiCheatEnabled;
-        }
-        if (format !== undefined) {
-          tournament.format = format;
-        }
+        applyToLocal(tournament);
         this.saveTournamentToLocalStorage(tournament);
       }
     }
@@ -419,6 +432,8 @@ class TournamentsRepository extends BaseRepository {
     team2Size: number | null;
     maxPlayers: number;
     isPrivate: boolean;
+    // Competition mode. Omit to fall back on DB default 'elo' (migration 011).
+    mode?: 'elo' | 'bracket';
     creatorUserId: string | null;
     creatorAnonymousUserId: string | null;
   }): Promise<string> {
@@ -455,6 +470,9 @@ class TournamentsRepository extends BaseRepository {
     }
 
     try {
+      // Only send `mode` when the caller explicitly opted into Bracket.
+      // Otherwise the DB default 'elo' kicks in (migration 011) and we avoid
+      // a redundant field on every insert.
       const { data: tournament, error } = await supabase!
         .from('tournaments')
         .insert({
@@ -470,6 +488,7 @@ class TournamentsRepository extends BaseRepository {
           creator_user_id: data.creatorUserId,
           creator_anonymous_user_id: data.creatorAnonymousUserId,
           is_finished: false,
+          ...(data.mode !== undefined ? { mode: data.mode } : {}),
         })
         .select('id')
         .single();

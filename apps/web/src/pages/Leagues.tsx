@@ -84,7 +84,7 @@ export const Leagues: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] bg-cream">
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] bg-navy">
         <LoadingSpinner />
       </div>
     );
@@ -92,7 +92,7 @@ export const Leagues: React.FC = () => {
 
   const header = (
     <ContextualHeader
-      title="Mes Leagues"
+      title="Mes Ligues"
       actions={[
         {
           label: "CRÉER LEAGUE",
@@ -136,16 +136,16 @@ export const Leagues: React.FC = () => {
       >
         <div className="flex flex-col items-center justify-center text-center py-12 space-y-6 min-h-[50vh]">
           <div className="text-6xl">🏅</div>
-          <h2 className="text-2xl font-archivo font-extrabold uppercase tracking-tight text-ink">
+          <h2 className="text-2xl font-archivo font-extrabold uppercase tracking-tight text-white">
             Aucune league
           </h2>
-          <p className="text-ink-soft max-w-md">
+          <p className="text-cool-gray max-w-md">
             Créez votre première league pour organiser des compétitions long
             terme
           </p>
           <button
             onClick={handleCreate}
-            className="bg-cup-red text-ink border-[1.5px] border-cup-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 px-6 rounded-full transition-[transform,box-shadow,filter] duration-75 inline-flex items-center gap-2"
+            className="bg-signal-red text-white border-[1.5px] border-signal-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 px-6 rounded-full transition-[transform,box-shadow,filter] duration-75 inline-flex items-center gap-2"
           >
             <Plus size={20} />
             Créer une league
@@ -190,7 +190,7 @@ export const Leagues: React.FC = () => {
 
         {filteredLeagues.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-ink-soft text-lg">
+            <p className="text-cool-gray text-lg">
               {filter === "finished"
                 ? "Les leagues terminées seront disponibles prochainement."
                 : "Aucun résultat"}

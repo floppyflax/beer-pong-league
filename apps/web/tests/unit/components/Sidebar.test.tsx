@@ -56,7 +56,7 @@ describe('Sidebar', () => {
       expect(aside).toHaveClass('left-0');
       expect(aside).toHaveClass('w-60'); // 240px
       expect(aside).toHaveClass('h-screen'); // Full height
-      expect(aside).toHaveClass('bg-paper');
+      expect(aside).toHaveClass('bg-navy-soft');
       expect(aside).toHaveClass('border-r');
       expect(aside).toHaveClass('border-card');
     });
@@ -75,18 +75,27 @@ describe('Sidebar', () => {
   });
 
   describe('Navigation Items (AC2)', () => {
-    it('should render 5 navigation items', () => {
+    it('should render 4 navigation items (Accueil · Jouer · Classement · Profil)', () => {
       render(
         <BrowserRouter>
           <Sidebar />
         </BrowserRouter>
       );
 
-      expect(screen.getByText('Home')).toBeInTheDocument();
-      expect(screen.getByText('Rejoindre')).toBeInTheDocument();
-      expect(screen.getByText('Tournois')).toBeInTheDocument();
-      expect(screen.getByText('Leagues')).toBeInTheDocument();
+      expect(screen.getByText('Accueil')).toBeInTheDocument();
+      expect(screen.getByText('Jouer')).toBeInTheDocument();
+      expect(screen.getByText('Classement')).toBeInTheDocument();
       expect(screen.getByText('Profil')).toBeInTheDocument();
+    });
+
+    it('should NOT render a "Rejoindre" nav item (it is a page, not a menu entry)', () => {
+      render(
+        <BrowserRouter>
+          <Sidebar />
+        </BrowserRouter>
+      );
+
+      expect(screen.queryByText('Rejoindre')).not.toBeInTheDocument();
     });
 
     it('should render icons for each navigation item', () => {
@@ -98,9 +107,9 @@ describe('Sidebar', () => {
 
       // Check that there are SVG icons (lucide-react renders as SVG)
       const navButtons = container.querySelectorAll('nav button');
-      expect(navButtons).toHaveLength(5);
-      
-      navButtons.forEach(button => {
+      expect(navButtons).toHaveLength(4);
+
+      navButtons.forEach((button) => {
         const svg = button.querySelector('svg');
         expect(svg).toBeInTheDocument();
       });
@@ -113,13 +122,13 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const homeSpan = screen.getByText('Home');
+      const homeSpan = screen.getByText('Accueil');
       expect(homeSpan).toHaveClass('text-sm');
     });
   });
 
   describe('Active State (AC3)', () => {
-    it('should highlight Home when on / route', () => {
+    it('should highlight Accueil when on / route (electric-blue)', () => {
       vi.mocked(useLocation).mockReturnValue({ pathname: '/' } as any);
 
       render(
@@ -128,14 +137,14 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const homeButton = screen.getByText('Home').closest('button');
-      expect(homeButton).toHaveClass('bg-cream-deep');
-      expect(homeButton).toHaveClass('text-cup-red');
-      expect(homeButton).toHaveClass('border-cup-red');
+      const homeButton = screen.getByText('Accueil').closest('button');
+      expect(homeButton).toHaveClass('bg-navy-deep');
+      expect(homeButton).toHaveClass('text-electric-blue');
+      expect(homeButton).toHaveClass('border-electric-blue');
       expect(homeButton).toHaveClass('font-bold');
     });
 
-    it('should highlight Rejoindre when on /join route', () => {
+    it('should highlight Jouer when on /join route (Rejoindre sits inside Jouer)', () => {
       vi.mocked(useLocation).mockReturnValue({ pathname: '/join' } as any);
 
       render(
@@ -144,12 +153,12 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const joinButton = screen.getByText('Rejoindre').closest('button');
-      expect(joinButton).toHaveClass('bg-cream-deep');
-      expect(joinButton).toHaveClass('text-cup-red');
+      const playButton = screen.getByText('Jouer').closest('button');
+      expect(playButton).toHaveClass('bg-navy-deep');
+      expect(playButton).toHaveClass('text-electric-blue');
     });
 
-    it('should highlight Tournois when on /tournaments route', () => {
+    it('should highlight Jouer when on legacy /tournaments route', () => {
       vi.mocked(useLocation).mockReturnValue({ pathname: '/tournaments' } as any);
 
       render(
@@ -158,12 +167,12 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const tournamentsButton = screen.getByText('Tournois').closest('button');
-      expect(tournamentsButton).toHaveClass('bg-cream-deep');
-      expect(tournamentsButton).toHaveClass('text-cup-red');
+      const playButton = screen.getByText('Jouer').closest('button');
+      expect(playButton).toHaveClass('bg-navy-deep');
+      expect(playButton).toHaveClass('text-electric-blue');
     });
 
-    it('should highlight Leagues when on /leagues route', () => {
+    it('should highlight Jouer when on legacy /leagues route', () => {
       vi.mocked(useLocation).mockReturnValue({ pathname: '/leagues' } as any);
 
       render(
@@ -172,12 +181,53 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const leaguesButton = screen.getByText('Leagues').closest('button');
-      expect(leaguesButton).toHaveClass('bg-cream-deep');
-      expect(leaguesButton).toHaveClass('text-cup-red');
+      const playButton = screen.getByText('Jouer').closest('button');
+      expect(playButton).toHaveClass('bg-navy-deep');
+      expect(playButton).toHaveClass('text-electric-blue');
     });
 
-    it('should highlight Profil when on /profile route', () => {
+    it('should highlight Jouer when on /competitions route', () => {
+      vi.mocked(useLocation).mockReturnValue({ pathname: '/competitions' } as any);
+
+      render(
+        <BrowserRouter>
+          <Sidebar />
+        </BrowserRouter>
+      );
+
+      const playButton = screen.getByText('Jouer').closest('button');
+      expect(playButton).toHaveClass('text-electric-blue');
+    });
+
+    it('should highlight Classement when on /leaderboard route', () => {
+      vi.mocked(useLocation).mockReturnValue({ pathname: '/leaderboard' } as any);
+
+      render(
+        <BrowserRouter>
+          <Sidebar />
+        </BrowserRouter>
+      );
+
+      const leaderboardButton = screen.getByText('Classement').closest('button');
+      expect(leaderboardButton).toHaveClass('bg-navy-deep');
+      expect(leaderboardButton).toHaveClass('text-electric-blue');
+    });
+
+    it('should highlight Profil when on /user/profile route', () => {
+      vi.mocked(useLocation).mockReturnValue({ pathname: '/user/profile' } as any);
+
+      render(
+        <BrowserRouter>
+          <Sidebar />
+        </BrowserRouter>
+      );
+
+      const profileButton = screen.getByText('Profil').closest('button');
+      expect(profileButton).toHaveClass('bg-navy-deep');
+      expect(profileButton).toHaveClass('text-electric-blue');
+    });
+
+    it('should highlight Profil on legacy /profile route', () => {
       vi.mocked(useLocation).mockReturnValue({ pathname: '/profile' } as any);
 
       render(
@@ -187,8 +237,7 @@ describe('Sidebar', () => {
       );
 
       const profileButton = screen.getByText('Profil').closest('button');
-      expect(profileButton).toHaveClass('bg-cream-deep');
-      expect(profileButton).toHaveClass('text-cup-red');
+      expect(profileButton).toHaveClass('text-electric-blue');
     });
 
     it('should show inactive styling for non-active items', () => {
@@ -200,13 +249,13 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const joinButton = screen.getByText('Rejoindre').closest('button');
-      expect(joinButton).toHaveClass('text-ink-soft');
-      expect(joinButton).not.toHaveClass('bg-cream-deep');
-      expect(joinButton).not.toHaveClass('font-bold');
+      const playButton = screen.getByText('Jouer').closest('button');
+      expect(playButton).toHaveClass('text-cool-gray');
+      expect(playButton).not.toHaveClass('bg-navy-deep');
+      expect(playButton).not.toHaveClass('font-bold');
     });
 
-    it('should have no active item on detail pages', () => {
+    it('should highlight Jouer on tournament detail pages (nested)', () => {
       vi.mocked(useLocation).mockReturnValue({ pathname: '/tournament/123' } as any);
 
       render(
@@ -215,16 +264,13 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const homeButton = screen.getByText('Home').closest('button');
-      const joinButton = screen.getByText('Rejoindre').closest('button');
-
-      expect(homeButton).toHaveClass('text-ink-soft');
-      expect(joinButton).toHaveClass('text-ink-soft');
+      const playButton = screen.getByText('Jouer').closest('button');
+      expect(playButton).toHaveClass('text-electric-blue');
     });
   });
 
   describe('Navigation Behavior (AC4)', () => {
-    it('should navigate to / when clicking Home', async () => {
+    it('should navigate to / when clicking Accueil', async () => {
       const user = userEvent.setup();
 
       render(
@@ -233,13 +279,13 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const homeButton = screen.getByText('Home');
+      const homeButton = screen.getByText('Accueil');
       await user.click(homeButton);
 
       expect(mockNavigate).toHaveBeenCalledWith('/');
     });
 
-    it('should navigate to /join when clicking Rejoindre', async () => {
+    it('should navigate to /competitions when clicking Jouer', async () => {
       const user = userEvent.setup();
 
       render(
@@ -248,13 +294,13 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const joinButton = screen.getByText('Rejoindre');
-      await user.click(joinButton);
+      const playButton = screen.getByText('Jouer');
+      await user.click(playButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/join');
+      expect(mockNavigate).toHaveBeenCalledWith('/competitions');
     });
 
-    it('should navigate to /tournaments when clicking Tournois', async () => {
+    it('should navigate to /leaderboard when clicking Classement', async () => {
       const user = userEvent.setup();
 
       render(
@@ -263,28 +309,13 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const tournamentsButton = screen.getByText('Tournois');
-      await user.click(tournamentsButton);
+      const leaderboardButton = screen.getByText('Classement');
+      await user.click(leaderboardButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/tournaments');
+      expect(mockNavigate).toHaveBeenCalledWith('/leaderboard');
     });
 
-    it('should navigate to /leagues when clicking Leagues', async () => {
-      const user = userEvent.setup();
-
-      render(
-        <BrowserRouter>
-          <Sidebar />
-        </BrowserRouter>
-      );
-
-      const leaguesButton = screen.getByText('Leagues');
-      await user.click(leaguesButton);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/leagues');
-    });
-
-    it('should navigate to /profile when clicking Profil', async () => {
+    it('should navigate to /user/profile when clicking Profil', async () => {
       const user = userEvent.setup();
 
       render(
@@ -296,7 +327,7 @@ describe('Sidebar', () => {
       const profileButton = screen.getByText('Profil');
       await user.click(profileButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/profile');
+      expect(mockNavigate).toHaveBeenCalledWith('/user/profile');
     });
   });
 
@@ -338,7 +369,7 @@ describe('Sidebar', () => {
       } as any);
 
       vi.mocked(useIdentity).mockReturnValue({
-        localUser: { anonymousUserId: 'anon-123', displayName: 'Player 1' },
+        localUser: { anonymousUserId: 'anon-123', pseudo: 'Player 1' },
       } as any);
 
       render(
@@ -387,9 +418,9 @@ describe('Sidebar', () => {
 
     it('should truncate long email addresses', () => {
       vi.mocked(useAuthContext).mockReturnValue({
-        user: { 
-          id: 'user-1', 
-          email: 'verylongemailaddress123456789@example.com'
+        user: {
+          id: 'user-1',
+          email: 'verylongemailaddress123456789@example.com',
         },
         isAuthenticated: true,
       } as any);
@@ -414,7 +445,7 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const homeButton = screen.getByText('Home').closest('button');
+      const homeButton = screen.getByText('Accueil').closest('button');
       expect(homeButton).toBeInstanceOf(HTMLButtonElement);
     });
 
@@ -425,9 +456,9 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const joinButton = screen.getByText('Rejoindre').closest('button');
-      expect(joinButton).toHaveClass('hover:text-ink');
-      expect(joinButton).toHaveClass('hover:bg-cream-deep/50');
+      const playButton = screen.getByText('Jouer').closest('button');
+      expect(playButton).toHaveClass('hover:text-white');
+      expect(playButton).toHaveClass('hover:bg-navy-deep/50');
     });
 
     it('should have transition animations', () => {
@@ -437,7 +468,7 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const homeButton = screen.getByText('Home').closest('button');
+      const homeButton = screen.getByText('Accueil').closest('button');
       expect(homeButton).toHaveClass('transition-all');
     });
   });

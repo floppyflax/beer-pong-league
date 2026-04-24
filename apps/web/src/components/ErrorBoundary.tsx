@@ -121,31 +121,31 @@ function DefaultErrorFallback({ error, errorInfo, reset }: DefaultErrorFallbackP
   };
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-paper rounded-lg p-8 text-center">
+    <div className="min-h-screen bg-navy flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-navy-soft rounded-lg p-8 text-center">
         {/* Error Icon */}
         <AlertTriangle size={64} className="text-red-500 mx-auto mb-4" />
 
         {/* Error Title */}
-        <h1 className="text-2xl font-bold text-ink mb-2">
+        <h1 className="text-2xl font-bold text-white mb-2">
           Oups ! Quelque chose s'est mal passé
         </h1>
 
         {/* Error Message */}
-        <p className="text-ink-soft mb-6 text-lg">
+        <p className="text-cool-gray mb-6 text-lg">
           Une erreur inattendue s'est produite. Veuillez réessayer ou retourner à l'accueil.
         </p>
 
         {/* Error Details (dev mode only) */}
         {import.meta.env.DEV && (
-          <div className="mb-6 p-4 bg-cream rounded text-left max-h-48 overflow-auto">
+          <div className="mb-6 p-4 bg-navy rounded text-left max-h-48 overflow-auto">
             <p className="text-xs font-semibold text-red-400 mb-2">Détails de l'erreur (mode dev):</p>
             <p className="text-sm font-mono text-red-400 break-all mb-2">
               {error.message}
             </p>
             {errorInfo?.componentStack && (
-              <details className="text-xs font-mono text-ink-mute">
-                <summary className="cursor-pointer hover:text-ink-soft">Component Stack</summary>
+              <details className="text-xs font-mono text-cool-gray">
+                <summary className="cursor-pointer hover:text-cool-gray">Component Stack</summary>
                 <pre className="mt-2 whitespace-pre-wrap">{errorInfo.componentStack}</pre>
               </details>
             )}
@@ -156,7 +156,7 @@ function DefaultErrorFallback({ error, errorInfo, reset }: DefaultErrorFallbackP
         <div className="flex gap-4">
           <button
             onClick={reset}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gold text-ink rounded-lg font-semibold hover:brightness-110 transition-colors text-lg min-h-[44px]"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-ping-yellow text-white rounded-lg font-semibold hover:brightness-110 transition-colors text-lg min-h-[44px]"
           >
             <RefreshCw size={24} />
             Réessayer
@@ -164,7 +164,7 @@ function DefaultErrorFallback({ error, errorInfo, reset }: DefaultErrorFallbackP
 
           <button
             onClick={handleGoHome}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-cream-deep text-ink rounded-lg font-semibold hover:bg-paper transition-colors text-lg min-h-[44px]"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-navy-deep text-white rounded-lg font-semibold hover:bg-navy-soft transition-colors text-lg min-h-[44px]"
           >
             <Home size={24} />
             Accueil
@@ -187,10 +187,10 @@ interface CompactErrorFallbackProps {
 
 export function CompactErrorFallback({ error, reset, title = "Erreur" }: CompactErrorFallbackProps) {
   return (
-    <div className="bg-paper rounded-lg p-6 text-center border-2 border-red-500/20">
+    <div className="bg-navy-soft rounded-lg p-6 text-center border-2 border-red-500/20">
       <AlertTriangle size={32} className="text-red-500 mx-auto mb-3" />
-      <h3 className="text-lg font-semibold text-ink mb-2">{title}</h3>
-      <p className="text-ink-soft mb-4 text-sm">
+      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+      <p className="text-cool-gray mb-4 text-sm">
         Une erreur est survenue lors du chargement de cette section.
       </p>
 
@@ -202,7 +202,7 @@ export function CompactErrorFallback({ error, reset, title = "Erreur" }: Compact
 
       <button
         onClick={reset}
-        className="flex items-center justify-center gap-2 px-4 py-2 bg-gold text-ink rounded-lg font-semibold hover:brightness-110 transition-colors text-sm min-h-[44px] mx-auto"
+        className="flex items-center justify-center gap-2 px-4 py-2 bg-ping-yellow text-white rounded-lg font-semibold hover:brightness-110 transition-colors text-sm min-h-[44px] mx-auto"
       >
         <RefreshCw size={18} />
         Réessayer

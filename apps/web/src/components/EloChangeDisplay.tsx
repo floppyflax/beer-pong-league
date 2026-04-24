@@ -33,15 +33,15 @@ export const EloChangeDisplay: React.FC<EloChangeDisplayProps> = ({ players, elo
 
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-      <div className={`bg-cream w-full max-w-md rounded-2xl p-6 border border-card transform transition-all duration-300 ${
+      <div className={`bg-navy w-full max-w-md rounded-2xl p-6 border border-card transform transition-all duration-300 ${
         show ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       }`}>
         <div className="text-center mb-6">
-          <div className="inline-block p-4 bg-cup-red/20 rounded-full mb-4">
-            <Trophy className="text-cup-red" size={48} />
+          <div className="inline-block p-4 bg-signal-red/20 rounded-full mb-4">
+            <Trophy className="text-signal-red" size={48} />
           </div>
-          <h3 className="text-2xl font-black text-ink mb-2">MATCH TERMINÉ !</h3>
-          <p className="text-ink-soft text-sm">Changements de classement</p>
+          <h3 className="text-2xl font-black text-white mb-2">MATCH TERMINÉ !</h3>
+          <p className="text-cool-gray text-sm">Changements de classement</p>
         </div>
 
         <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -50,7 +50,7 @@ export const EloChangeDisplay: React.FC<EloChangeDisplayProps> = ({ players, elo
             return (
               <div 
                 key={player.id}
-                className={`bg-paper p-4 rounded-xl border flex items-center justify-between transform transition-all delay-${index * 100} ${
+                className={`bg-navy-soft p-4 rounded-xl border flex items-center justify-between transform transition-all delay-${index * 100} ${
                   show ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'
                 } ${isGain ? 'border-green-500/50' : 'border-red-500/50'}`}
                 style={{ transitionDelay: `${index * 100}ms` }}
@@ -62,8 +62,8 @@ export const EloChangeDisplay: React.FC<EloChangeDisplayProps> = ({ players, elo
                     <TrendingDown className="text-red-500" size={24} />
                   )}
                   <div>
-                    <div className="font-bold text-ink">{player.name}</div>
-                    <div className="text-xs text-ink-soft">
+                    <div className="font-bold text-white">{player.name}</div>
+                    <div className="text-xs text-cool-gray">
                       {player.wins}V - {player.losses}D
                     </div>
                   </div>
@@ -72,7 +72,7 @@ export const EloChangeDisplay: React.FC<EloChangeDisplayProps> = ({ players, elo
                   <div className={`font-black text-xl ${isGain ? 'text-green-500' : 'text-red-500'}`}>
                     {isGain ? '+' : ''}{player.change}
                   </div>
-                  <div className="text-xs text-ink-soft">
+                  <div className="text-xs text-cool-gray">
                     {player.newElo} ELO
                   </div>
                 </div>
@@ -86,7 +86,7 @@ export const EloChangeDisplay: React.FC<EloChangeDisplayProps> = ({ players, elo
             setShow(false);
             setTimeout(onClose, 300);
           }}
-          className="w-full mt-6 bg-cup-red hover:brightness-110 text-ink font-bold py-3 rounded-xl transition-colors"
+          className="w-full mt-6 bg-signal-red hover:brightness-110 text-white font-bold py-3 rounded-xl transition-colors"
         >
           CONTINUER
         </button>

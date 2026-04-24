@@ -15,8 +15,8 @@ vi.mock('react-router-dom', async () => {
 
 // Mock Supabase
 const mockGetSession = vi.fn();
-const mockSelect = vi.fn();
-const mockEq = vi.fn();
+const _mockSelect = vi.fn();
+const _mockEq = vi.fn();
 const mockSingle = vi.fn();
 const mockInsert = vi.fn();
 
@@ -25,7 +25,7 @@ vi.mock('../../../src/lib/supabase', () => ({
     auth: {
       getSession: () => mockGetSession(),
     },
-    from: (table: string) => ({
+    from: (_table: string) => ({
       select: () => ({ eq: () => ({ single: () => mockSingle() }) }),
       insert: () => mockInsert(),
     }),

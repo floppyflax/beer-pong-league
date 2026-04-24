@@ -33,21 +33,27 @@ describe("BottomTabMenu", () => {
       expect(nav).toHaveClass("right-0");
     });
 
-    it("should render 5 tabs", () => {
+    it("should render 4 tabs (Accueil · Jouer · Classement · Profil)", () => {
       render(<BottomTabMenu />);
 
       const buttons = screen.getAllByRole("button");
-      expect(buttons).toHaveLength(5);
+      expect(buttons).toHaveLength(4);
     });
 
     it("should display all tab labels", () => {
       render(<BottomTabMenu />);
 
       expect(screen.getByText("ACCUEIL")).toBeInTheDocument();
-      expect(screen.getByText("REJOINDRE")).toBeInTheDocument();
-      expect(screen.getByText("TOURNOIS")).toBeInTheDocument();
-      expect(screen.getByText("LEAGUES")).toBeInTheDocument();
+      expect(screen.getByText("JOUER")).toBeInTheDocument();
+      expect(screen.getByText("CLASSEMENT")).toBeInTheDocument();
       expect(screen.getByText("PROFIL")).toBeInTheDocument();
+    });
+
+    it("should NOT expose a Rejoindre tab (Rejoindre is a page, not a tab)", () => {
+      render(<BottomTabMenu />);
+
+      expect(screen.queryByText("REJOINDRE")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Join")).not.toBeInTheDocument();
     });
 
     it("should have proper navigation role", () => {
@@ -65,34 +71,50 @@ describe("BottomTabMenu", () => {
 
       const homeButton = screen.getByLabelText("Home");
       expect(homeButton).toHaveClass("bg-gradient-tab-active");
-      expect(homeButton).toHaveClass("text-ink");
+      expect(homeButton).toHaveClass("text-white");
     });
 
-    it("should highlight join tab when on join route", () => {
+    it("should highlight Jouer tab when on /join route (Rejoindre sits inside Jouer)", () => {
       mockLocation.pathname = "/join";
       render(<BottomTabMenu />);
 
-      const joinButton = screen.getByLabelText("Join");
-      expect(joinButton).toHaveClass("bg-gradient-tab-active");
-      expect(joinButton).toHaveClass("text-ink");
+      const playButton = screen.getByLabelText("Jouer");
+      expect(playButton).toHaveClass("bg-gradient-tab-active");
+      expect(playButton).toHaveClass("text-white");
     });
 
-    it("should highlight tournaments tab when on tournaments route", () => {
-      mockLocation.pathname = "/tournaments";
+    it("should highlight leaderboard tab when on leaderboard route", () => {
+      mockLocation.pathname = "/leaderboard";
       render(<BottomTabMenu />);
 
-      const tournamentsButton = screen.getByLabelText("Tournaments");
-      expect(tournamentsButton).toHaveClass("bg-gradient-tab-active");
-      expect(tournamentsButton).toHaveClass("text-ink");
+      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      expect(leaderboardButton).toHaveClass("bg-gradient-tab-active");
+      expect(leaderboardButton).toHaveClass("text-white");
     });
 
-    it("should highlight leagues tab when on leagues route", () => {
+    it("should highlight Jouer tab when on /competitions route", () => {
+      mockLocation.pathname = "/competitions";
+      render(<BottomTabMenu />);
+
+      const playButton = screen.getByLabelText("Jouer");
+      expect(playButton).toHaveClass("bg-gradient-tab-active");
+      expect(playButton).toHaveClass("text-white");
+    });
+
+    it("should highlight Jouer tab when on legacy /leagues route", () => {
       mockLocation.pathname = "/leagues";
       render(<BottomTabMenu />);
 
-      const leaguesButton = screen.getByLabelText("Leagues");
-      expect(leaguesButton).toHaveClass("bg-gradient-tab-active");
-      expect(leaguesButton).toHaveClass("text-ink");
+      const playButton = screen.getByLabelText("Jouer");
+      expect(playButton).toHaveClass("bg-gradient-tab-active");
+    });
+
+    it("should highlight Jouer tab when on legacy /tournaments route", () => {
+      mockLocation.pathname = "/tournaments";
+      render(<BottomTabMenu />);
+
+      const playButton = screen.getByLabelText("Jouer");
+      expect(playButton).toHaveClass("bg-gradient-tab-active");
     });
 
     it("should highlight profile tab when on profile route", () => {
@@ -101,16 +123,16 @@ describe("BottomTabMenu", () => {
 
       const profileButton = screen.getByLabelText("Profile");
       expect(profileButton).toHaveClass("bg-gradient-tab-active");
-      expect(profileButton).toHaveClass("text-ink");
+      expect(profileButton).toHaveClass("text-white");
     });
 
     it("should show inactive style for non-active tabs", () => {
       mockLocation.pathname = "/";
       render(<BottomTabMenu />);
 
-      const joinButton = screen.getByLabelText("Join");
-      expect(joinButton).toHaveClass("border-transparent");
-      expect(joinButton).toHaveClass("text-ink-soft");
+      const playButton = screen.getByLabelText("Jouer");
+      expect(playButton).toHaveClass("border-transparent");
+      expect(playButton).toHaveClass("text-cool-gray");
     });
 
     it("should have gradient background for active tab (design-system-convergence 2.1)", () => {
@@ -121,20 +143,20 @@ describe("BottomTabMenu", () => {
       expect(homeButton).toHaveClass("bg-gradient-tab-active");
     });
 
-    it("should highlight Tournaments tab when on /tournament/:id (nested route)", () => {
+    it("should highlight Jouer tab when on /tournament/:id (nested route)", () => {
       mockLocation.pathname = "/tournament/abc123";
       render(<BottomTabMenu />);
 
-      const tournamentsButton = screen.getByLabelText("Tournaments");
-      expect(tournamentsButton).toHaveClass("bg-gradient-tab-active");
+      const playButton = screen.getByLabelText("Jouer");
+      expect(playButton).toHaveClass("bg-gradient-tab-active");
     });
 
-    it("should highlight Leagues tab when on /league/:id (nested route)", () => {
+    it("should highlight Jouer tab when on /league/:id (nested route)", () => {
       mockLocation.pathname = "/league/xyz456";
       render(<BottomTabMenu />);
 
-      const leaguesButton = screen.getByLabelText("Leagues");
-      expect(leaguesButton).toHaveClass("bg-gradient-tab-active");
+      const playButton = screen.getByLabelText("Jouer");
+      expect(playButton).toHaveClass("bg-gradient-tab-active");
     });
 
     it("should highlight Profile tab when on /player/:id (nested route)", () => {
@@ -165,31 +187,22 @@ describe("BottomTabMenu", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/");
     });
 
-    it("should navigate to join when join tab clicked", () => {
+    it("should navigate to /competitions when Jouer tab clicked", () => {
       render(<BottomTabMenu />);
 
-      const joinButton = screen.getByLabelText("Join");
-      fireEvent.click(joinButton);
+      const playButton = screen.getByLabelText("Jouer");
+      fireEvent.click(playButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith("/join");
+      expect(mockNavigate).toHaveBeenCalledWith("/competitions");
     });
 
-    it("should navigate to tournaments when tournaments tab clicked", () => {
+    it("should navigate to leaderboard when leaderboard tab clicked", () => {
       render(<BottomTabMenu />);
 
-      const tournamentsButton = screen.getByLabelText("Tournaments");
-      fireEvent.click(tournamentsButton);
+      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      fireEvent.click(leaderboardButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith("/tournaments");
-    });
-
-    it("should navigate to leagues when leagues tab clicked", () => {
-      render(<BottomTabMenu />);
-
-      const leaguesButton = screen.getByLabelText("Leagues");
-      fireEvent.click(leaguesButton);
-
-      expect(mockNavigate).toHaveBeenCalledWith("/leagues");
+      expect(mockNavigate).toHaveBeenCalledWith("/leaderboard");
     });
 
     it("should navigate to profile when profile tab clicked", () => {
@@ -229,9 +242,8 @@ describe("BottomTabMenu", () => {
       render(<BottomTabMenu />);
 
       expect(screen.getByLabelText("Home")).toBeInTheDocument();
-      expect(screen.getByLabelText("Join")).toBeInTheDocument();
-      expect(screen.getByLabelText("Tournaments")).toBeInTheDocument();
-      expect(screen.getByLabelText("Leagues")).toBeInTheDocument();
+      expect(screen.getByLabelText("Jouer")).toBeInTheDocument();
+      expect(screen.getByLabelText("Leaderboard")).toBeInTheDocument();
       expect(screen.getByLabelText("Profile")).toBeInTheDocument();
     });
 
@@ -247,8 +259,8 @@ describe("BottomTabMenu", () => {
       mockLocation.pathname = "/";
       render(<BottomTabMenu />);
 
-      const joinButton = screen.getByLabelText("Join");
-      expect(joinButton).not.toHaveAttribute("aria-current");
+      const playButton = screen.getByLabelText("Jouer");
+      expect(playButton).not.toHaveAttribute("aria-current");
     });
 
     it("should have minimum height for touch targets", () => {
@@ -283,7 +295,7 @@ describe("BottomTabMenu", () => {
       const buttons = screen.getAllByRole("button");
       buttons.forEach((button) => {
         expect(button).toHaveClass("focus-visible:ring-2");
-        expect(button).toHaveClass("focus-visible:ring-primary");
+        expect(button).toHaveClass("focus-visible:ring-electric-blue");
       });
     });
 
@@ -291,22 +303,22 @@ describe("BottomTabMenu", () => {
       const user = userEvent.setup();
       render(<BottomTabMenu />);
 
-      const joinButton = screen.getByLabelText("Join");
-      joinButton.focus();
+      const playButton = screen.getByLabelText("Jouer");
+      playButton.focus();
       await user.keyboard("{Enter}");
 
-      expect(mockNavigate).toHaveBeenCalledWith("/join");
+      expect(mockNavigate).toHaveBeenCalledWith("/competitions");
     });
 
     it("should activate tab on Space key press", async () => {
       const user = userEvent.setup();
       render(<BottomTabMenu />);
 
-      const tournamentsButton = screen.getByLabelText("Tournaments");
-      tournamentsButton.focus();
+      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      leaderboardButton.focus();
       await user.keyboard(" ");
 
-      expect(mockNavigate).toHaveBeenCalledWith("/tournaments");
+      expect(mockNavigate).toHaveBeenCalledWith("/leaderboard");
     });
   });
 
@@ -322,7 +334,7 @@ describe("BottomTabMenu", () => {
       const { container } = render(<BottomTabMenu />);
 
       const nav = container.querySelector("nav");
-      expect(nav).toHaveClass("bg-paper");
+      expect(nav).toHaveClass("bg-navy-soft");
     });
 
     it("should have top border", () => {
@@ -338,9 +350,8 @@ describe("BottomTabMenu", () => {
 
       // All labels should be in uppercase
       expect(screen.getByText("ACCUEIL")).toBeInTheDocument();
-      expect(screen.getByText("REJOINDRE")).toBeInTheDocument();
-      expect(screen.getByText("TOURNOIS")).toBeInTheDocument();
-      expect(screen.getByText("LEAGUES")).toBeInTheDocument();
+      expect(screen.getByText("JOUER")).toBeInTheDocument();
+      expect(screen.getByText("CLASSEMENT")).toBeInTheDocument();
       expect(screen.getByText("PROFIL")).toBeInTheDocument();
     });
   });
@@ -364,13 +375,13 @@ describe("BottomTabMenu", () => {
       render(
         <BottomTabMenu
           previewMode
-          previewActiveRoute="/tournaments"
+          previewActiveRoute="/leaderboard"
           previewOnTabClick={() => {}}
         />,
       );
-      const tournamentsButton = screen.getByLabelText("Tournaments");
-      expect(tournamentsButton).toHaveClass("bg-gradient-tab-active");
-      expect(tournamentsButton).toHaveAttribute("aria-current", "page");
+      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      expect(leaderboardButton).toHaveClass("bg-gradient-tab-active");
+      expect(leaderboardButton).toHaveAttribute("aria-current", "page");
     });
 
     it("should call previewOnTabClick instead of navigate when tab clicked in preview mode", () => {
@@ -382,9 +393,9 @@ describe("BottomTabMenu", () => {
           previewOnTabClick={mockPreviewOnTabClick}
         />,
       );
-      const tournamentsButton = screen.getByLabelText("Tournaments");
-      fireEvent.click(tournamentsButton);
-      expect(mockPreviewOnTabClick).toHaveBeenCalledWith("/tournaments");
+      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      fireEvent.click(leaderboardButton);
+      expect(mockPreviewOnTabClick).toHaveBeenCalledWith("/leaderboard");
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
@@ -392,8 +403,8 @@ describe("BottomTabMenu", () => {
       render(
         <BottomTabMenu previewMode previewActiveRoute="/" />,
       );
-      const tournamentsButton = screen.getByLabelText("Tournaments");
-      fireEvent.click(tournamentsButton);
+      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      fireEvent.click(leaderboardButton);
       expect(mockNavigate).not.toHaveBeenCalled();
     });
   });

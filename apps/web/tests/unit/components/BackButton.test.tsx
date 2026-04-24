@@ -32,7 +32,7 @@ describe('BackButton', () => {
       
       const button = screen.getByLabelText('Retour');
       expect(button).toHaveClass('p-2');
-      expect(button).toHaveClass('hover:bg-cream-deep');
+      expect(button).toHaveClass('hover:bg-navy-deep');
       expect(button).toHaveClass('rounded-lg');
       expect(button).toHaveClass('transition-colors');
       expect(button).toHaveClass('active:scale-95');

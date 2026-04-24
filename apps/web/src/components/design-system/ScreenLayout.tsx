@@ -47,7 +47,7 @@ export function ScreenLayout({
   className = "",
   contentClassName = "",
 }: ScreenLayoutProps) {
-  const wrapperClass = `min-h-screen bg-cream text-ink ${className}`.trim();
+  const wrapperClass = `min-h-screen bg-navy text-white ${className}`.trim();
   const contentClass = [
     MAX_WIDTH_CLASS[maxWidth],
     MAX_WIDTH_CLASS[maxWidth] ? "mx-auto" : "",

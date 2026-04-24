@@ -41,12 +41,12 @@ export function PlayerCard(props: PlayerCardProps) {
     const baseClasses =
       "flex items-center gap-3 p-4 rounded-card border transition-colors text-left w-full";
     const stateClasses = props.selected
-      ? "bg-cup-red/15 border-cup-red text-ink"
-      : "bg-paper border-card text-ink-soft hover:border-card-muted hover:text-ink";
+      ? "bg-electric-blue/15 border-electric-blue text-white"
+      : "bg-navy-soft border-card text-cool-gray hover:border-card-muted hover:text-white";
 
     const content = (
       <>
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-cream-deep flex items-center justify-center text-sm font-mono font-bold overflow-hidden border border-card">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-navy-deep flex items-center justify-center text-sm font-mono font-bold overflow-hidden border border-card">
           {props.avatarUrl ? (
             <img
               src={props.avatarUrl}
@@ -54,7 +54,7 @@ export function PlayerCard(props: PlayerCardProps) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-ink-soft">{initials}</span>
+            <span className="text-cool-gray">{initials}</span>
           )}
         </div>
         <span className="font-semibold truncate flex-1">{props.name}</span>
@@ -87,7 +87,7 @@ export function PlayerCard(props: PlayerCardProps) {
   // variant full
   const fullProps = props as PlayerCardFullProps;
   const baseClasses =
-    "flex items-center gap-3 p-4 bg-paper rounded-card border border-card transition-colors text-left w-full";
+    "flex items-center gap-3 p-4 bg-navy-soft rounded-card border border-card transition-colors text-left w-full";
   const clickableClasses = fullProps.onClick
     ? " cursor-pointer hover:border-card-muted"
     : "";
@@ -103,7 +103,7 @@ export function PlayerCard(props: PlayerCardProps) {
       data-testid="playercard-full"
       {...wrapperProps}
     >
-      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-cream-deep flex items-center justify-center text-sm font-mono font-bold overflow-hidden border border-card">
+      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-navy-deep flex items-center justify-center text-sm font-mono font-bold overflow-hidden border border-card">
         {fullProps.avatarUrl ? (
           <img
             src={fullProps.avatarUrl}
@@ -111,15 +111,15 @@ export function PlayerCard(props: PlayerCardProps) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <span className="text-ink-soft">{initials}</span>
+          <span className="text-cool-gray">{initials}</span>
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-base font-archivo font-extrabold uppercase tracking-tight text-ink truncate">
+        <div className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate">
           {fullProps.name}
         </div>
         {fullProps.subtitle && (
-          <div className="text-sm text-ink-soft truncate">
+          <div className="text-sm text-cool-gray truncate">
             {fullProps.subtitle}
           </div>
         )}

@@ -123,14 +123,15 @@ describe("TournamentDashboard - FAB (Story 14-13 AC6)", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("should open match recording modal when FAB is clicked", () => {
+    it("should invoke navigation when FAB is clicked (no modal opened)", () => {
       renderDashboard();
 
       const fab = screen.getByRole("button", { name: "Nouveau match" });
+      expect(fab).toBeInTheDocument();
+      // Click navigates to /record-match/tournament/:id — no modal is opened
       fireEvent.click(fab);
-
-      // MatchRecordingForm modal should be visible
-      expect(screen.getByText("Nouveau Match")).toBeInTheDocument();
+      // Verify no "Nouveau Match" modal appeared (modal was removed in B.4)
+      expect(screen.queryByText("Nouveau Match")).not.toBeInTheDocument();
     });
   });
 });

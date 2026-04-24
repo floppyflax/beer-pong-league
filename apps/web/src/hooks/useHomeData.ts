@@ -6,6 +6,8 @@ interface Tournament {
   name: string;
   isFinished: boolean;
   playerCount: number;
+  matchCount: number;
+  format: string;
   updatedAt: string;
 }
 
@@ -23,10 +25,21 @@ interface PersonalStats {
   averageElo: number;
 }
 
+export interface RecentMatch {
+  id: string;
+  date: string;
+  eloChange: number;
+  format: string;
+  scoreA: number;
+  scoreB: number;
+  contextName: string | null;
+}
+
 interface HomeData {
   lastTournament?: Tournament;
   lastLeague?: League;
   personalStats?: PersonalStats;
+  recentMatches: RecentMatch[];
   isLoading: boolean;
   error: Error | null;
 }
@@ -60,7 +73,7 @@ async function fetchHomeData(userId: string) {
       };
     const { data: createdTournament } = await supabase
       .from("tournaments")
-      .select("id, name, is_finished, updated_at")
+      .select("id, name, is_finished, updated_at, team1_size, team2_size")
       .eq("creator_user_id", userId)
       .order("updated_at", { ascending: false })
       .limit(1)
@@ -69,7 +82,7 @@ async function fetchHomeData(userId: string) {
     // Also get tournaments where user is a participant
     const { data: participatedTournament } = await supabase
       .from("tournament_players")
-      .select("tournament:tournaments(id, name, is_finished, updated_at)")
+      .select("tournament:tournaments(id, name, is_finished, updated_at, team1_size, team2_size)")
       .eq("user_id", userId)
       .order("joined_at", { ascending: false })
       .limit(1)
@@ -102,17 +115,28 @@ async function fetchHomeData(userId: string) {
     }
 
     if (selectedTournament) {
-      // Get player count for this tournament
-      const { count: playerCount } = await supabase
-        .from("tournament_players")
-        .select("*", { count: "exact", head: true })
-        .eq("tournament_id", selectedTournament.id);
+      const [{ count: playerCount }, { count: matchCount }] = await Promise.all([
+        supabase
+          .from("tournament_players")
+          .select("*", { count: "exact", head: true })
+          .eq("tournament_id", selectedTournament.id),
+        supabase
+          .from("matches")
+          .select("*", { count: "exact", head: true })
+          .eq("tournament_id", selectedTournament.id),
+      ]);
+
+      const t1 = (selectedTournament as { team1_size?: number | null }).team1_size;
+      const t2 = (selectedTournament as { team2_size?: number | null }).team2_size;
+      const format = t1 && t2 ? `${t1}v${t2}` : "2v2";
 
       lastTournament = {
         id: selectedTournament.id,
         name: selectedTournament.name,
         isFinished: selectedTournament.is_finished || false,
         playerCount: playerCount || 0,
+        matchCount: matchCount || 0,
+        format,
         updatedAt: selectedTournament.updated_at,
       };
     }
@@ -177,42 +201,69 @@ async function fetchHomeData(userId: string) {
       };
     }
 
-    // Fetch personal stats from elo_history
+    // Fetch personal stats + recent matches from elo_history
     const { data: eloHistory } = await supabase
       .from("elo_history")
-      .select("elo_after, elo_change")
-      .eq("user_id", userId);
+      .select("elo_after, elo_change, match_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
-    let personalStats: PersonalStats | undefined;
+    let personalStats: PersonalStats;
+    let recentMatches: RecentMatch[] = [];
+
     if (eloHistory && eloHistory.length > 0) {
       const totalMatches = eloHistory.length;
       const wins = eloHistory.filter((h) => h.elo_change > 0).length;
       const winRate =
         totalMatches > 0 ? Math.round((wins / totalMatches) * 10000) / 100 : 0;
-
-      // Calculate average ELO from history
       const averageElo = Math.round(
         eloHistory.reduce((sum, h) => sum + h.elo_after, 0) / eloHistory.length,
       );
+      personalStats = { totalMatches, winRate, averageElo };
 
-      personalStats = {
-        totalMatches,
-        winRate,
-        averageElo,
-      };
+      // Fetch match details for the 3 most recent entries
+      const recentIds = eloHistory
+        .slice(0, 3)
+        .map((h) => h.match_id)
+        .filter(Boolean) as string[];
+
+      if (recentIds.length > 0) {
+        const { data: matchRows } = await supabase
+          .from("matches")
+          .select("id, format, score_a, score_b, created_at, tournament_id, league_id, tournaments(name), leagues(name)")
+          .in("id", recentIds);
+
+        if (matchRows) {
+          recentMatches = recentIds.map((mid) => {
+            const m = matchRows.find((r) => r.id === mid);
+            const histEntry = eloHistory.find((h) => h.match_id === mid);
+            if (!m) return null;
+            const ctx = m.tournaments
+              ? (Array.isArray(m.tournaments) ? m.tournaments[0]?.name : (m.tournaments as { name: string }).name)
+              : m.leagues
+              ? (Array.isArray(m.leagues) ? m.leagues[0]?.name : (m.leagues as { name: string }).name)
+              : null;
+            return {
+              id: m.id,
+              date: m.created_at ?? new Date().toISOString(),
+              eloChange: histEntry?.elo_change ?? 0,
+              format: m.format ?? "2v2",
+              scoreA: m.score_a,
+              scoreB: m.score_b,
+              contextName: ctx ?? null,
+            } satisfies RecentMatch;
+          }).filter((m): m is RecentMatch => m !== null);
+        }
+      }
     } else {
-      // No history yet - return zeros
-      personalStats = {
-        totalMatches: 0,
-        winRate: 0,
-        averageElo: 0,
-      };
+      personalStats = { totalMatches: 0, winRate: 0, averageElo: 0 };
     }
 
     return {
       lastTournament,
       lastLeague,
       personalStats,
+      recentMatches,
     };
   } catch (error) {
     console.error("Error fetching home data:", error);
@@ -230,6 +281,7 @@ async function fetchHomeData(userId: string) {
       lastTournament: undefined,
       lastLeague: undefined,
       personalStats: undefined,
+      recentMatches: [],
     };
   }
 }
@@ -251,6 +303,7 @@ export function useHomeData(userId: string | null | undefined): HomeData {
     lastTournament: data?.lastTournament,
     lastLeague: data?.lastLeague,
     personalStats: data?.personalStats,
+    recentMatches: data?.recentMatches ?? [],
     isLoading: isLoading && !!userId, // Only show loading if userId exists
     error: error as Error | null,
   };

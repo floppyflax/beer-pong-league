@@ -18,7 +18,7 @@ describe('Banner (Story 14-7)', () => {
   it('should have ruby background for error variant (Arcade)', () => {
     const { container } = render(<Banner message="Erreur" variant="error" />);
     const banner = container.firstChild as HTMLElement;
-    expect(banner).toHaveClass('bg-ruby');
+    expect(banner).toHaveClass('bg-signal-red');
   });
 
   it('should render icon + text (AC: 2)', () => {

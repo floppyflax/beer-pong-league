@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Join } from '../../src/pages/Join';
 import { Tournaments } from '../../src/pages/Tournaments';
 import { Leagues } from '../../src/pages/Leagues';

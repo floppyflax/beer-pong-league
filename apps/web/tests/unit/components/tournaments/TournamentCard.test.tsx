@@ -108,7 +108,7 @@ describe("TournamentCard", () => {
       <TournamentCard tournament={mockActiveTournament} />,
     );
     const card = getByTestId("tournament-card");
-    expect(card).toHaveClass("hover:border-cup-red");
+    expect(card).toHaveClass("hover:border-signal-red");
     expect(card).toHaveClass("active:scale-95");
   });
 

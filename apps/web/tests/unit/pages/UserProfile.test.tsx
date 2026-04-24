@@ -122,7 +122,7 @@ describe("UserProfile - Story 14.21", () => {
     it("should render StatCards for Leagues, Tournois, Matchs", () => {
       render(<UserProfile />, { wrapper: Wrapper });
       expect(screen.getByText("Leagues")).toBeInTheDocument();
-      expect(screen.getByText("Tournois")).toBeInTheDocument();
+      expect(screen.getByText("Événements")).toBeInTheDocument();
       expect(screen.getByText("Matchs")).toBeInTheDocument();
     });
 
@@ -140,7 +140,7 @@ describe("UserProfile - Story 14.21", () => {
 
     it("should render My Tournaments section when user has tournaments", () => {
       render(<UserProfile />, { wrapper: Wrapper });
-      expect(screen.getByText("Mes Tournois")).toBeInTheDocument();
+      expect(screen.getByText("Mes Événements")).toBeInTheDocument();
       expect(screen.getByText("Test Tournament")).toBeInTheDocument();
     });
   });
@@ -270,10 +270,10 @@ describe("UserProfile - Story 14.21", () => {
         screen.getByRole("heading", { name: /mon profil/i }),
       ).toBeInTheDocument();
       expect(screen.getByText("Leagues")).toBeInTheDocument();
-      expect(screen.getByText("Tournois")).toBeInTheDocument();
+      expect(screen.getByText("Événements")).toBeInTheDocument();
       expect(screen.getByText("Matchs")).toBeInTheDocument();
       expect(screen.queryByText("Mes Leagues")).not.toBeInTheDocument();
-      expect(screen.queryByText("Mes Tournois")).not.toBeInTheDocument();
+      expect(screen.queryByText("Mes Événements")).not.toBeInTheDocument();
     });
   });
 });

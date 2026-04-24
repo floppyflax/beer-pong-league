@@ -6,6 +6,7 @@ import { QRScanner } from "@/components/join/QRScanner";
 import { useJoinTournament } from "@/hooks/useJoinTournament";
 import { extractCodeFromQR } from "@/utils/extractCodeFromQR";
 import { PButton } from "@/components/ponglo/PButton";
+import { StickyCTA } from "@/components/design-system";
 
 const CODE_LENGTH = 6;
 const CODE_REGEX = /^[A-Z0-9]{6,8}$/;
@@ -32,7 +33,7 @@ export const Join = () => {
       const message =
         err instanceof Error
           ? err.message
-          : "Erreur lors de la jonction au tournoi";
+          : "Erreur lors de la jonction à l'événement";
       toast.error(message);
     } finally {
       setIsJoining(false);
@@ -55,7 +56,7 @@ export const Join = () => {
       const message =
         err instanceof Error
           ? err.message
-          : "Erreur lors de la jonction au tournoi";
+          : "Erreur lors de la jonction à l'événement";
       toast.error(message);
     } finally {
       setIsJoining(false);
@@ -65,13 +66,13 @@ export const Join = () => {
   const isValid = CODE_REGEX.test(code);
 
   return (
-    <div className="min-h-screen bg-cream text-ink flex flex-col relative">
+    <div className="min-h-screen bg-navy text-white flex flex-col relative">
       {/* Top nav */}
-      <div className="flex items-center gap-2.5 px-[18px] pt-14 pb-3.5">
+      <div className="flex items-center gap-2.5 px-[18px] pt-6 pb-3.5">
         <button
           onClick={() => navigate(-1)}
           aria-label="Retour"
-          className="w-9 h-9 rounded-full border-[1.5px] border-card flex items-center justify-center hover:bg-paper transition-colors"
+          className="w-9 h-9 rounded-full border-[1.5px] border-card flex items-center justify-center hover:bg-navy-soft transition-colors"
         >
           <ChevronLeft size={16} />
         </button>
@@ -81,10 +82,10 @@ export const Join = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-6 pb-[120px] flex flex-col">
+      <div className="flex-1 px-6 pb-[160px] flex flex-col">
         {/* Headline */}
         <h1
-          className="font-archivo font-black uppercase text-ink"
+          className="font-archivo font-black uppercase text-white"
           style={{
             fontSize: 34,
             lineHeight: 0.95,
@@ -100,12 +101,12 @@ export const Join = () => {
         {/* Scanner CTA card */}
         <button
           onClick={() => setShowScanner(true)}
-          className="mt-6 relative w-full aspect-square bg-ink rounded-xl p-5 flex items-center justify-center overflow-hidden group"
+          className="mt-6 relative w-full aspect-square bg-white rounded-xl p-5 flex items-center justify-center overflow-hidden group"
           aria-label="Ouvrir le scanner QR"
         >
           {/* deco QR pattern */}
           <div
-            className="absolute inset-5 rounded-md bg-cream grid pointer-events-none"
+            className="absolute inset-5 rounded-md bg-navy grid pointer-events-none"
             style={{
               gridTemplateColumns: "repeat(21, 1fr)",
               gap: 1,
@@ -135,23 +136,23 @@ export const Join = () => {
               return (
                 <span
                   key={i}
-                  className={fill ? "bg-ink" : ""}
+                  className={fill ? "bg-white" : ""}
                   style={{ borderRadius: 1 }}
                 />
               );
             })}
           </div>
           {/* center badge: camera */}
-          <div className="relative z-10 w-16 h-16 rounded-md bg-cream flex items-center justify-center shadow-card">
-            <Camera size={32} className="text-ink" />
+          <div className="relative z-10 w-16 h-16 rounded-md bg-navy flex items-center justify-center shadow-card">
+            <Camera size={32} className="text-white" />
           </div>
-          <span className="absolute bottom-3 left-0 right-0 text-center font-archivo font-bold uppercase text-[12px] tracking-[1px] text-cream">
+          <span className="absolute bottom-3 left-0 right-0 text-center font-archivo font-bold uppercase text-[12px] tracking-[1px] text-navy">
             Ouvrir le scanner
           </span>
         </button>
 
         {/* separator */}
-        <div className="text-center mt-4 font-mono text-xs text-ink-mute uppercase tracking-[1px]">
+        <div className="text-center mt-4 font-mono text-xs text-cool-gray uppercase tracking-[1px]">
           — ou —
         </div>
 
@@ -159,7 +160,7 @@ export const Join = () => {
         <div className="mt-3">
           <label
             htmlFor="tournament-code"
-            className="block font-mono text-[10px] tracking-[1.5px] uppercase text-ink-mute mb-2"
+            className="block font-mono text-[10px] tracking-[1.5px] uppercase text-cool-gray mb-2"
           >
             Code d'accès
           </label>
@@ -180,7 +181,7 @@ export const Join = () => {
                 if (e.key === "Enter" && isValid) handleSubmit();
               }}
               className="absolute inset-0 opacity-0 w-full h-full"
-              aria-label="Code du tournoi (6 à 8 caractères)"
+              aria-label="Code de l'événement (6 à 8 caractères)"
               maxLength={8}
               disabled={isJoining}
             />
@@ -191,9 +192,9 @@ export const Join = () => {
                 return (
                   <div
                     key={i}
-                    className={`flex-1 aspect-[0.8] bg-paper rounded-md flex items-center justify-center font-archivo font-black text-[28px] text-ink border-2 transition-colors ${
+                    className={`flex-1 aspect-[0.8] bg-navy-soft rounded-md flex items-center justify-center font-archivo font-black text-[28px] text-white border-2 transition-colors ${
                       isFocused
-                        ? "border-forest"
+                        ? "border-electric-blue"
                         : ch
                           ? "border-card"
                           : "border-card-muted"
@@ -210,8 +211,8 @@ export const Join = () => {
         <div className="flex-1" />
       </div>
 
-      {/* Sticky bottom CTA */}
-      <div className="absolute left-0 right-0 bottom-0 px-6 pt-4 pb-10 bg-gradient-to-t from-cream via-cream to-transparent">
+      {/* Sticky bottom CTA — DS primitive */}
+      <StickyCTA>
         <PButton
           variant="primary"
           size="lg"
@@ -219,9 +220,9 @@ export const Join = () => {
           onClick={handleSubmit}
           disabled={!isValid || isJoining}
         >
-          {isJoining ? "Vérification…" : "Rejoindre le tournoi"}
+          {isJoining ? "Vérification…" : "Rejoindre l'événement"}
         </PButton>
-      </div>
+      </StickyCTA>
 
       {showScanner && (
         <QRScanner

@@ -193,7 +193,7 @@ describe('PersonalStatsSummary', () => {
         </BrowserRouter>
       );
 
-      const card = container.querySelector('.bg-paper');
+      const card = container.querySelector('.bg-navy-soft');
       expect(card).toBeInTheDocument();
       expect(card).toHaveClass('rounded-xl');
       expect(card).toHaveClass('border');

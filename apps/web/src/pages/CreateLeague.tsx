@@ -1,12 +1,11 @@
 /**
- * CreateLeague Page - Story 14.18
+ * CreateLeague Page — Everything ELO refonte (Phase 3)
  *
- * League creation form aligned with design system (design-system-convergence 5.3).
- * - Header: title + back
- * - Fields with labels, inline validation
- * - Primary CTA at bottom
- * - Bottom nav visible
- * - Matches Frame 9
+ * Ligue creation form aligné DS Everything ELO :
+ * - PageHero (titre éditorial) au lieu de ContextualHeader sticky
+ * - Sticky bottom CTA (pattern page Rejoindre) — pas de divider
+ *
+ * Les ligues ne sont pas limitées par le freemium (pas de banner Premium ici).
  */
 
 import React, { useState, useEffect } from "react";
@@ -14,9 +13,9 @@ import { useNavigate } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import { useAuthContext } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
-import { ContextualHeader } from "@/components/navigation/ContextualHeader";
-import { ScreenLayout } from "@/components/design-system";
+import { PageHero, StickyCTA } from "@/components/design-system";
 import { Trophy, Calendar } from "lucide-react";
+import { PButton } from "@/components/ponglo/PButton";
 import toast from "react-hot-toast";
 
 export const CreateLeague = () => {
@@ -92,134 +91,131 @@ export const CreateLeague = () => {
         aria-pressed={active}
         className={`w-full p-4 rounded-card border flex items-center gap-4 transition-colors ${
           active
-            ? "bg-cup-red/10 border-cup-red"
-            : "bg-paper border-card hover:border-card-muted"
+            ? "bg-electric-blue/10 border-electric-blue"
+            : "bg-navy-soft border-card hover:border-card-muted"
         }`}
       >
         <div
-          className={`p-2 rounded-md ${active ? "bg-cup-red text-ink" : "bg-cream-deep text-ink-soft"}`}
+          className={`p-2 rounded-md ${active ? "bg-electric-blue text-white" : "bg-navy-deep text-cool-gray"}`}
         >
           {icon}
         </div>
         <div className="text-left">
           <div
-            className={`font-archivo font-extrabold uppercase tracking-tight ${active ? "text-cup-red" : "text-ink"}`}
+            className={`font-archivo font-extrabold uppercase tracking-tight ${active ? "text-electric-blue" : "text-white"}`}
           >
             {title}
           </div>
-          <div className="text-xs text-ink-soft mt-0.5">{description}</div>
+          <div className="text-xs text-cool-gray mt-0.5">{description}</div>
         </div>
       </button>
     );
   };
 
   return (
-    <ScreenLayout
-      header={
-        <ContextualHeader
-          title="Nouvelle League"
-          showBackButton={true}
-          onBack={() => navigate("/leagues")}
+    <div className="min-h-screen bg-navy text-white flex flex-col relative">
+      <div className="flex-1 max-w-[720px] w-full mx-auto px-4 sm:px-6 lg:px-8 pb-[160px]">
+        <PageHero
+          eyebrow="Nouvelle ligue"
+          title={<>Crée ta<br />ligue.</>}
+          onBack={() => navigate("/competitions?tab=leagues")}
         />
-      }
-      maxWidth="narrow"
-      contentClassName="pb-44"
-      overlay={
-        <>
-          <AuthModal
-            isOpen={showAuthModal}
-            onClose={() => {
-              if (isAuthenticated) {
-                setShowAuthModal(false);
-              } else {
-                navigate("/");
-              }
-            }}
-            onSuccess={() => {
-              setShowAuthModal(false);
-            }}
-          />
-          <div className="fixed bottom-16 inset-x-0 z-30 bg-cream border-t border-card p-4 md:p-6">
-            <div className="max-w-[720px] mx-auto">
-              <button
-                type="submit"
-                form="create-league-form"
-                disabled={!isFormValid || isSubmitting}
-                className="w-full bg-cup-red text-ink border-[1.5px] border-cup-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:shadow-none font-archivo font-bold uppercase tracking-tight py-4 rounded-full transition-[transform,box-shadow,filter] duration-75"
-              >
-                {!isAuthenticated
-                  ? "Connexion requise"
-                  : isSubmitting
-                    ? "Création…"
-                    : "C'est parti !"}
-              </button>
-            </div>
-          </div>
-        </>
-      }
-    >
-      <form
-        id="create-league-form"
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-6"
-        noValidate
-      >
-        <div className="space-y-2">
-          <label
-            htmlFor="league-name"
-            className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-ink-soft block"
-          >
-            Nom de la ligue
-          </label>
-          <input
-            id="league-name"
-            type="text"
-            value={name}
-            maxLength={100}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (touched) setNameError(validateName(e.target.value));
-            }}
-            onBlur={handleNameBlur}
-            placeholder="Ex: Soirée chez Tom, Ligue d'été..."
-            className={`w-full bg-paper border-[1.5px] rounded-md p-4 text-ink placeholder-ink-mute focus:outline-none focus:ring-2 transition-colors ${
-              nameError
-                ? "border-ruby focus:ring-ruby/30"
-                : "border-card focus:border-lime focus:ring-lime/20"
-            }`}
-            autoFocus
-            aria-invalid={!!nameError}
-            aria-describedby={nameError ? "league-name-error" : undefined}
-          />
-          {nameError && (
-            <p
-              id="league-name-error"
-              className="text-sm text-ruby"
-              role="alert"
-            >
-              {nameError}
-            </p>
-          )}
-        </div>
 
-        <div className="space-y-3">
-          <span className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-ink-soft block">
-            Type de compétition
-          </span>
-          {typeOption(
-            "event",
-            <Calendar size={24} />,
-            "League Continue",
-            "Classement persistant dans le temps.",
-          )}
-          {typeOption(
-            "season",
-            <Trophy size={24} />,
-            "League par Saison",
-            "Classement par saison avec reset périodique.",
-          )}
-        </div>
-      </form>
-    </ScreenLayout>
+        <form
+          id="create-league-form"
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-6"
+          noValidate
+        >
+          <div className="space-y-2">
+            <label
+              htmlFor="league-name"
+              className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-cool-gray block"
+            >
+              Nom de la ligue
+            </label>
+            <input
+              id="league-name"
+              type="text"
+              value={name}
+              maxLength={100}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (touched) setNameError(validateName(e.target.value));
+              }}
+              onBlur={handleNameBlur}
+              placeholder="Ex: Soirée chez Tom, Ligue d'été..."
+              className={`w-full bg-navy-soft border-[1.5px] rounded-md p-4 text-white placeholder-cool-gray focus:outline-none focus:ring-2 transition-colors ${
+                nameError
+                  ? "border-signal-red focus:ring-signal-red/30"
+                  : "border-card focus:border-lime focus:ring-lime/20"
+              }`}
+              autoFocus
+              aria-invalid={!!nameError}
+              aria-describedby={nameError ? "league-name-error" : undefined}
+            />
+            {nameError && (
+              <p
+                id="league-name-error"
+                className="text-sm text-signal-red"
+                role="alert"
+              >
+                {nameError}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <span className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-cool-gray block">
+              Type de compétition
+            </span>
+            {typeOption(
+              "event",
+              <Calendar size={24} />,
+              "League Continue",
+              "Classement persistant dans le temps.",
+            )}
+            {typeOption(
+              "season",
+              <Trophy size={24} />,
+              "League par Saison",
+              "Classement par saison avec reset périodique.",
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Sticky bottom CTA — DS primitive */}
+      <StickyCTA>
+        <PButton
+          type="submit"
+          form="create-league-form"
+          variant="primary"
+          size="lg"
+          full
+          disabled={!isFormValid || isSubmitting}
+        >
+          {!isAuthenticated
+            ? "Connexion requise"
+            : isSubmitting
+              ? "Création…"
+              : "C'est parti !"}
+        </PButton>
+      </StickyCTA>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          if (isAuthenticated) {
+            setShowAuthModal(false);
+          } else {
+            navigate("/");
+          }
+        }}
+        onSuccess={() => {
+          setShowAuthModal(false);
+        }}
+      />
+    </div>
   );
 };

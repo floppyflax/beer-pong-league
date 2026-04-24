@@ -65,8 +65,8 @@ describe('FAB (Story 14-6, Epic 15 Arcade palette)', () => {
     );
     const svg = container.querySelector('svg');
     expect(svg).toBeInTheDocument();
-    // Primary renders the Icon with text-cream (dark on neon lime)
-    expect(svg).toHaveClass('text-cream');
+    // Primary renders the Icon with text-navy (dark on neon lime)
+    expect(svg).toHaveClass('text-navy');
   });
 
   it('should apply primary variant (lime) by default', () => {
@@ -82,7 +82,7 @@ describe('FAB (Story 14-6, Epic 15 Arcade palette)', () => {
       <FAB icon={Plus} onClick={() => {}} ariaLabel="Test" variant="secondary" />
     );
     const button = container.querySelector('button');
-    expect(button).toHaveClass('bg-paper');
+    expect(button).toHaveClass('bg-navy-soft');
   });
 
   it('should use relative position when inline prop is true (showcase mode)', () => {

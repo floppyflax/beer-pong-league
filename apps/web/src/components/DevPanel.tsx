@@ -92,7 +92,7 @@ export function DevPanel() {
       {/* Floating toggle button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 right-4 z-[9999] bg-purple-600 hover:bg-purple-700 text-ink p-3 rounded-full shadow-lg transition-all"
+        className="fixed bottom-4 right-4 z-[9999] bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-full shadow-lg transition-all"
         title="Dev Panel"
       >
         <span className="text-lg">🧪</span>
@@ -100,22 +100,22 @@ export function DevPanel() {
 
       {/* Expandable panel */}
       {isOpen && (
-        <div className="fixed bottom-20 right-4 z-[9999] bg-paper border-2 border-purple-500 rounded-lg shadow-xl p-4 w-80">
+        <div className="fixed bottom-20 right-4 z-[9999] bg-navy-soft border-2 border-purple-500 rounded-lg shadow-xl p-4 w-80">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-purple-400 font-bold flex items-center gap-2">
               <span>🧪</span> Dev Panel
             </h3>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-ink-soft hover:text-ink"
+              className="text-cool-gray hover:text-white"
             >
               ✕
             </button>
           </div>
 
           {/* Identity Status */}
-          <div className="mb-4 p-3 bg-cream rounded border border-card">
-            <div className="text-xs font-semibold text-ink-soft mb-2">
+          <div className="mb-4 p-3 bg-navy rounded border border-card">
+            <div className="text-xs font-semibold text-cool-gray mb-2">
               IDENTITY STATUS
             </div>
 
@@ -124,15 +124,15 @@ export function DevPanel() {
                 <div className="text-green-400 font-semibold">
                   ✅ Authenticated (Supabase)
                 </div>
-                <div className="text-xs text-ink-soft">
+                <div className="text-xs text-cool-gray">
                   Email: {user.email}
                 </div>
-                <div className="text-xs text-ink-soft">
+                <div className="text-xs text-cool-gray">
                   ID: {user.id.slice(0, 8)}...
                 </div>
                 <button
                   onClick={handleAuthLogout}
-                  className="mt-2 w-full px-3 py-1 bg-red-600 hover:bg-red-700 text-ink text-xs rounded transition-colors"
+                  className="mt-2 w-full px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
                 >
                   Sign Out (Supabase)
                 </button>
@@ -142,45 +142,45 @@ export function DevPanel() {
                 <div className="text-yellow-400 font-semibold">
                   ⚠️ Anonymous (localStorage)
                 </div>
-                <div className="text-xs text-ink-soft">
+                <div className="text-xs text-cool-gray">
                   Pseudo: {localUser.pseudo}
                 </div>
-                <div className="text-xs text-ink-soft">
-                  ID: {localUser.id.slice(0, 8)}...
+                <div className="text-xs text-cool-gray">
+                  ID: {localUser.anonymousUserId.slice(0, 8)}...
                 </div>
                 <button
                   onClick={handleClearLocalIdentity}
-                  className="mt-2 w-full px-3 py-1 bg-red-600 hover:bg-red-700 text-ink text-xs rounded transition-colors"
+                  className="mt-2 w-full px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
                 >
                   Clear Local Identity
                 </button>
               </div>
             ) : (
-              <div className="text-ink-soft">❌ No Identity</div>
+              <div className="text-cool-gray">❌ No Identity</div>
             )}
           </div>
 
           {/* Quick Actions */}
           <div className="space-y-2">
-            <div className="text-xs font-semibold text-ink-soft mb-2">
+            <div className="text-xs font-semibold text-cool-gray mb-2">
               QUICK ACTIONS
             </div>
 
             {/* Test Account Logins (only if not authenticated) */}
             {!isAuthenticated && (
               <div className="space-y-2">
-                <div className="text-xs text-ink-mute mb-1">
+                <div className="text-xs text-cool-gray mb-1">
                   Test Accounts (no email required):
                 </div>
                 <button
                   onClick={() => handleTestAccountLogin("devadmin@test.com")}
-                  className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-ink text-sm rounded transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors flex items-center justify-center gap-2"
                 >
                   <span>👨‍💻</span> Login as Dev Admin
                 </button>
                 <button
                   onClick={() => handleTestAccountLogin("devtest@test.com")}
-                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-ink text-sm rounded transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors flex items-center justify-center gap-2"
                 >
                   <span>🧪</span> Login as Dev Test
                 </button>
@@ -191,7 +191,7 @@ export function DevPanel() {
             <div className="pt-2 mt-2 border-t border-card">
               <Link
                 to="/design-system"
-                className="w-full block px-3 py-1 bg-cream-deep hover:bg-paper text-ink text-xs rounded transition-colors mb-2 text-center"
+                className="w-full block px-3 py-1 bg-navy-deep hover:bg-navy-soft text-white text-xs rounded transition-colors mb-2 text-center"
               >
                 Design System
               </Link>
@@ -205,14 +205,14 @@ export function DevPanel() {
                   });
                   toast.success("Check console for localStorage data");
                 }}
-                className="w-full px-3 py-1 bg-cream-deep hover:bg-paper text-ink text-xs rounded transition-colors mb-2"
+                className="w-full px-3 py-1 bg-navy-deep hover:bg-navy-soft text-white text-xs rounded transition-colors mb-2"
               >
                 Log localStorage
               </button>
 
               <button
                 onClick={() => window.location.reload()}
-                className="w-full px-3 py-1 bg-cream-deep hover:bg-paper text-ink text-xs rounded transition-colors"
+                className="w-full px-3 py-1 bg-navy-deep hover:bg-navy-soft text-white text-xs rounded transition-colors"
               >
                 Reload App
               </button>
@@ -221,10 +221,10 @@ export function DevPanel() {
 
           {/* Info */}
           <div className="mt-3 pt-3 border-t border-card">
-            <div className="text-xs text-ink-mute">
+            <div className="text-xs text-cool-gray">
               Dev mode: <span className="text-green-400">Active</span>
             </div>
-            <div className="text-xs text-ink-mute">
+            <div className="text-xs text-cool-gray">
               Environment: {import.meta.env.MODE}
             </div>
           </div>

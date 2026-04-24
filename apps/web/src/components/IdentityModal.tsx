@@ -45,12 +45,12 @@ export const IdentityModal = ({
     >
       {localUser ? (
         <div className="space-y-4">
-          <div className="bg-background-tertiary p-4 rounded-input">
-            <div className="text-sm text-text-tertiary mb-1">Ton pseudo</div>
+          <div className="bg-navy-soft p-4 rounded-input">
+            <div className="text-sm text-cool-gray mb-1">Ton pseudo</div>
             <div className="text-lg font-bold text-white">
               {localUser.pseudo}
             </div>
-            <div className="text-xs text-text-muted mt-1">
+            <div className="text-xs text-cool-gray mt-1">
               Créé le{" "}
               {new Date(localUser.createdAt).toLocaleDateString("fr-FR")}
             </div>
@@ -59,13 +59,13 @@ export const IdentityModal = ({
           <div className="flex gap-3">
             <button
               onClick={handleResume}
-              className="flex-1 bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-input transition-colors"
+              className="flex-1 bg-electric-blue hover:bg-amber-600 text-white font-bold py-3 rounded-input transition-colors"
             >
               Reprendre
             </button>
             <button
               onClick={handleCreateNew}
-              className="flex-1 bg-background-tertiary hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
+              className="flex-1 bg-navy-soft hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
             >
               Nouveau profil
             </button>
@@ -73,12 +73,12 @@ export const IdentityModal = ({
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-text-tertiary">
+          <p className="text-cool-gray">
             Aucun profil local trouvé. Crée un nouveau profil pour commencer.
           </p>
           <button
             onClick={handleCreateNew}
-            className="w-full bg-primary hover:bg-amber-600 text-white font-bold py-3 rounded-input transition-colors"
+            className="w-full bg-electric-blue hover:bg-amber-600 text-white font-bold py-3 rounded-input transition-colors"
           >
             Créer un profil
           </button>

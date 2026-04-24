@@ -20,7 +20,7 @@ import { ArrowLeft, MoreVertical } from 'lucide-react';
  * 
  * Visual Specs:
  * - Height: 64px (fixed)
- * - Background: bg-cream
+ * - Background: bg-navy
  * - Border: border-b border-card
  * - Position: sticky top-0 z-30
  * - Back button: 40x40px, ArrowLeft icon
@@ -48,16 +48,23 @@ export interface ContextualHeaderMenuItem {
 export interface ContextualHeaderProps {
   // Page title (dynamic based on route)
   title: string;
-  
+
   // Optional back button (for detail pages)
   showBackButton?: boolean;
   onBack?: () => void;
-  
+
   // Optional actions (buttons on the right, desktop only)
   actions?: ContextualHeaderAction[];
-  
+
   // Optional menu button (3-dot menu)
   menuItems?: ContextualHeaderMenuItem[];
+
+  /**
+   * When true, the title is rendered as `sr-only` (kept for accessibility but
+   * hidden visually). Use on detail pages that render the title inside a
+   * `PageHero` block below and don't want the sticky bar to duplicate it.
+   */
+  hideTitle?: boolean;
 }
 
 export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
@@ -66,6 +73,7 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
   onBack,
   actions = [],
   menuItems = [],
+  hideTitle = false,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -102,13 +110,13 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-cream border-b border-card flex items-center justify-between px-4">
+    <header className="sticky top-0 z-30 h-16 bg-navy border-b border-card flex items-center justify-between px-4">
       {/* Left: Back Button + Title */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {showBackButton && (
           <button
             onClick={onBack}
-            className="w-10 h-10 flex items-center justify-center text-ink-soft hover:text-ink transition-colors rounded-lg hover:bg-paper active:scale-95"
+            className="w-10 h-10 flex items-center justify-center text-cool-gray hover:text-white transition-colors rounded-lg hover:bg-navy-soft active:scale-95"
             aria-label="Retour"
             tabIndex={0}
           >
@@ -116,8 +124,12 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
           </button>
         )}
         
-        <h1 
-          className="text-xl lg:text-2xl font-bold text-ink truncate" 
+        <h1
+          className={
+            hideTitle
+              ? "sr-only"
+              : "text-xl lg:text-2xl font-bold text-white truncate"
+          }
           title={title}
         >
           {title}
@@ -155,7 +167,7 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="w-10 h-10 flex items-center justify-center text-ink-soft hover:text-ink transition-colors rounded-lg hover:bg-paper active:scale-95"
+              className="w-10 h-10 flex items-center justify-center text-cool-gray hover:text-white transition-colors rounded-lg hover:bg-navy-soft active:scale-95"
               aria-label="Menu"
               aria-expanded={menuOpen}
               aria-haspopup="true"
@@ -167,7 +179,7 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
             {/* Dropdown Menu (AC6) */}
             {menuOpen && (
               <div 
-                className="absolute right-0 top-12 w-48 bg-paper border border-card rounded-lg shadow-xl z-40"
+                className="absolute right-0 top-12 w-48 bg-navy-soft border border-card rounded-lg shadow-xl z-40"
                 role="menu"
                 aria-orientation="vertical"
               >
@@ -179,8 +191,8 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
                       setMenuOpen(false);
                     }}
                     className={`
-                      w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-cream-deep transition-colors
-                      ${item.destructive ? 'text-red-400' : 'text-ink'}
+                      w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-navy-deep transition-colors
+                      ${item.destructive ? 'text-red-400' : 'text-white'}
                       ${index === 0 ? 'rounded-t-lg' : ''}
                       ${index === menuItems.length - 1 ? 'rounded-b-lg' : 'border-b border-card'}
                     `}
@@ -209,12 +221,12 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
 const getButtonVariantClasses = (variant?: string): string => {
   switch (variant) {
     case 'primary':
-      return 'bg-cup-red hover:brightness-110 text-ink';
+      return 'bg-signal-red hover:brightness-110 text-white';
     case 'secondary':
-      return 'bg-cream-deep hover:bg-paper text-ink';
+      return 'bg-navy-deep hover:bg-navy-soft text-white';
     case 'ghost':
-      return 'text-ink-soft hover:text-ink hover:bg-paper';
+      return 'text-cool-gray hover:text-white hover:bg-navy-soft';
     default:
-      return 'bg-cup-red hover:brightness-110 text-ink';
+      return 'bg-signal-red hover:brightness-110 text-white';
   }
 };

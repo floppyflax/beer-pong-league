@@ -1,20 +1,24 @@
+/**
+ * App — Beer Pong ELO mobile (Phase C)
+ */
+
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { colors } from './src/theme/tokens';
+import { palette, colors } from './src/theme/tokens';
 
 const AppTheme = {
   ...DefaultTheme,
   dark: true,
   colors: {
     ...DefaultTheme.colors,
-    primary: colors.primary,
-    background: colors.bg.primary,
-    card: colors.bg.secondary,
-    text: colors.text.primary,
-    border: colors.border.card,
-    notification: colors.primary,
+    primary:      palette.electricBlue,
+    background:   palette.navy,
+    card:         palette.navySoft,
+    text:         palette.white,
+    border:       palette.cardBorder,
+    notification: palette.signalRed,
   },
 };
 
@@ -22,7 +26,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer theme={AppTheme}>
-        <StatusBar style="light" />
+        <StatusBar style="light" backgroundColor={palette.navy} />
         <RootNavigator />
       </NavigationContainer>
     </SafeAreaProvider>

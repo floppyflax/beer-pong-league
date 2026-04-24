@@ -63,19 +63,10 @@ describe('BottomTabMenu Integration', () => {
     });
   });
 
-  describe('Visible on Core Routes (Story 14-10)', () => {
-    it('should show on join route', async () => {
-      render(<TestApp initialRoute="/join" />);
-      
-      await waitFor(() => {
-        expect(screen.getByLabelText('Home')).toBeInTheDocument();
-        expect(screen.getByText('Join Page')).toBeInTheDocument();
-      });
-    });
-
+  describe('Visible on Core Routes (read pages)', () => {
     it('should show on tournaments route', async () => {
       render(<TestApp initialRoute="/tournaments" />);
-      
+
       await waitFor(() => {
         expect(screen.getByLabelText('Home')).toBeInTheDocument();
         expect(screen.getByText('Tournaments Page')).toBeInTheDocument();
@@ -84,7 +75,7 @@ describe('BottomTabMenu Integration', () => {
 
     it('should show on leagues route', async () => {
       render(<TestApp initialRoute="/leagues" />);
-      
+
       await waitFor(() => {
         expect(screen.getByLabelText('Home')).toBeInTheDocument();
         expect(screen.getByText('Leagues Page')).toBeInTheDocument();
@@ -93,7 +84,7 @@ describe('BottomTabMenu Integration', () => {
 
     it('should show on tournament detail page', async () => {
       render(<TestApp initialRoute="/tournament/123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByLabelText('Home')).toBeInTheDocument();
         expect(screen.getByText('Tournament Detail')).toBeInTheDocument();
@@ -102,7 +93,7 @@ describe('BottomTabMenu Integration', () => {
 
     it('should show on league detail page', async () => {
       render(<TestApp initialRoute="/league/456" />);
-      
+
       await waitFor(() => {
         expect(screen.getByLabelText('Home')).toBeInTheDocument();
         expect(screen.getByText('League Detail')).toBeInTheDocument();
@@ -110,10 +101,18 @@ describe('BottomTabMenu Integration', () => {
     });
   });
 
-  describe('Hidden on Special Routes (AC4)', () => {
+  describe('Hidden on Action / Special Routes', () => {
+    // Action pages (modale-équivalent) : CTA dédié en bas, pas de menu global.
+    it('should NOT show on /join (modale-like action page)', () => {
+      render(<TestApp initialRoute="/join" />);
+
+      expect(screen.queryByLabelText('Home')).not.toBeInTheDocument();
+      expect(screen.getByText('Join Page')).toBeInTheDocument();
+    });
+
     it('should not show on auth callback', () => {
       render(<TestApp initialRoute="/auth/callback" />);
-      
+
       expect(screen.queryByLabelText('Home')).not.toBeInTheDocument();
       expect(screen.getByText('Auth Callback')).toBeInTheDocument();
     });

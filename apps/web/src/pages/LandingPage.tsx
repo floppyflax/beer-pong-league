@@ -14,7 +14,7 @@ export const LandingPage = () => {
 
   const handleCreateAccount = () => {
     setShowAuthModal(true);
-    sessionStorage.setItem("authReturnTo", "/home");
+    sessionStorage.setItem("authReturnTo", "/");
   };
 
   const handleJoinByCode = () => {
@@ -26,7 +26,7 @@ export const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-forest relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-electric-blue relative overflow-hidden">
       {/* Decorative cup pattern */}
       <svg
         className="absolute inset-0 w-full h-full opacity-[0.05] pointer-events-none"
@@ -40,20 +40,20 @@ export const LandingPage = () => {
             cx={(i * 67) % 400}
             cy={(i * 93) % 800}
             r="18"
-            fill="#F4F2E8"
+            fill="white"
           />
         ))}
       </svg>
 
       {/* Wordmark */}
       <div className="relative z-10 pt-14 px-6 pb-5">
-        <PongloWordmark size={22} color="#F4F2E8" />
+        <PongloWordmark size={22} color="#FFFFFF" />
       </div>
 
       {/* Hero */}
       <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-2">
         <h1
-          className="font-archivo font-black uppercase text-ink"
+          className="font-archivo font-black uppercase text-white"
           style={{
             fontSize: "clamp(32px, 10vw, 48px)",
             lineHeight: 0.92,
@@ -64,8 +64,8 @@ export const LandingPage = () => {
           Le beer pong. Enfin avec un{" "}
           <span className="text-lime">vrai classement.</span>
         </h1>
-        <p className="mt-[18px] text-[15px] leading-[1.4] text-ink/70">
-          Ligues, tournois, ELO. Pour les amis, les assos, les semi-pros du
+        <p className="mt-[18px] text-[15px] leading-[1.4] text-white/70">
+          Ligues, événements, ELO. Pour les amis, les assos, les semi-pros du
           mercredi soir.
         </p>
       </div>
@@ -80,13 +80,13 @@ export const LandingPage = () => {
           size="md"
           full
           onClick={handleJoinByCode}
-          className="!text-ink !border-[rgba(244,242,232,0.25)]"
+          className="!text-white !border-[rgba(244,242,232,0.25)]"
         >
-          J'ai un code de tournoi →
+          J'ai un code d'événement →
         </PButton>
         <button
           onClick={handleSignIn}
-          className="text-center mt-1.5 text-[13px] text-ink/60 hover:text-ink/80 transition-colors"
+          className="text-center mt-1.5 text-[13px] text-white/60 hover:text-white/80 transition-colors"
         >
           Déjà membre ?{" "}
           <span className="text-lime font-bold">Se connecter</span>

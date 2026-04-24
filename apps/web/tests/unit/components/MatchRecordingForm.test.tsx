@@ -109,7 +109,7 @@ describe("MatchRecordingForm - Story 5.1", () => {
       // Should have 1 select for team A and 1 for team B
       const selects = screen.getAllByRole("combobox");
       const teamASelects = selects.filter((select) =>
-        select.closest(".bg-paper")?.textContent?.includes("Équipe A"),
+        select.closest(".bg-navy-soft")?.textContent?.includes("Équipe A"),
       );
       expect(teamASelects.length).toBeGreaterThanOrEqual(1);
     });

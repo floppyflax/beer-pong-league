@@ -108,7 +108,7 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => (
 
 /** Wait for form to be visible (skipPremiumCheck bypasses loading) */
 const waitForFormReady = async () => {
-  return screen.findByLabelText(/nom du tournoi/i, {}, { timeout: 3000 });
+  return screen.findByLabelText(/nom de l'événement/i, {}, { timeout: 3000 });
 };
 
 describe("CreateTournament - Story 14.19", () => {
@@ -122,10 +122,10 @@ describe("CreateTournament - Story 14.19", () => {
   });
 
   describe("AC1: Header with title + back", () => {
-    it("should render header with title Créer un Tournoi", async () => {
+    it("should render header with title Créer un Événement", async () => {
       render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
-      expect(screen.getByRole("heading", { name: /créer un tournoi/i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /créer un événement/i })).toBeInTheDocument();
     });
 
     it("should have back button that navigates to /", async () => {
@@ -141,7 +141,7 @@ describe("CreateTournament - Story 14.19", () => {
     it("should render name field with label", async () => {
       render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
-      expect(screen.getByLabelText(/nom du tournoi/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/nom de l'événement/i)).toBeInTheDocument();
     });
 
     it("should render format selection with label", async () => {
@@ -159,7 +159,7 @@ describe("CreateTournament - Story 14.19", () => {
       await userEvent.click(nameInput);
       await userEvent.tab();
       await waitFor(() => {
-        expect(screen.getByText(/le nom du tournoi est requis/i)).toBeInTheDocument();
+        expect(screen.getByText(/le nom de l'événement est requis/i)).toBeInTheDocument();
       });
     });
 
@@ -182,13 +182,13 @@ describe("CreateTournament - Story 14.19", () => {
       await userEvent.click(nameInput);
       await userEvent.tab();
       await waitFor(() => {
-        expect(screen.getByText(/le nom du tournoi est requis/i)).toBeInTheDocument();
+        expect(screen.getByText(/le nom de l'événement est requis/i)).toBeInTheDocument();
       });
       await userEvent.type(nameInput, "Summer Cup 2026");
       await userEvent.tab(); // Blur to trigger re-validation
       await waitFor(() => {
         expect(
-          screen.queryByText(/le nom du tournoi est requis/i)
+          screen.queryByText(/le nom de l'événement est requis/i)
         ).not.toBeInTheDocument();
       });
     });
@@ -198,13 +198,13 @@ describe("CreateTournament - Story 14.19", () => {
     it("should render submit button with CTA text", async () => {
       render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
-      expect(screen.getByRole("button", { name: /créer le tournoi/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /créer l'événement/i })).toBeInTheDocument();
     });
 
     it("should disable submit when name is empty", async () => {
       render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
-      const submitButton = screen.getByRole("button", { name: /créer le tournoi/i });
+      const submitButton = screen.getByRole("button", { name: /créer l'événement/i });
       expect(submitButton).toBeDisabled();
     });
 
@@ -226,7 +226,7 @@ describe("CreateTournament - Story 14.19", () => {
       expect(form).toBeTruthy();
       fireEvent.submit(form!);
       await waitFor(() => {
-        expect(screen.getByText(/le nom du tournoi est requis/i)).toBeInTheDocument();
+        expect(screen.getByText(/le nom de l'événement est requis/i)).toBeInTheDocument();
       });
     });
   });
@@ -236,7 +236,7 @@ describe("CreateTournament - Story 14.19", () => {
       render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
       const nameInput = await waitForFormReady();
       await userEvent.type(nameInput, "Summer Cup 2026");
-      const submitButton = screen.getByRole("button", { name: /créer le tournoi/i });
+      const submitButton = screen.getByRole("button", { name: /créer l'événement/i });
       await userEvent.click(submitButton);
 
       await waitFor(() => {
@@ -249,9 +249,9 @@ describe("CreateTournament - Story 14.19", () => {
       render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       await userEvent.click(screen.getByText(/libre/i));
-      const nameInput = screen.getByLabelText(/nom du tournoi/i);
+      const nameInput = screen.getByLabelText(/nom de l'événement/i);
       await userEvent.type(nameInput, "Free Format Tourney");
-      const submitButton = screen.getByRole("button", { name: /créer le tournoi/i });
+      const submitButton = screen.getByRole("button", { name: /créer l'événement/i });
       await userEvent.click(submitButton);
 
       await waitFor(() => {
@@ -280,7 +280,7 @@ describe("CreateTournament - Story 14.19", () => {
     it("should render form after premium check completes (without skipPremiumCheck)", async () => {
       render(<CreateTournament />, { wrapper: Wrapper });
       await waitForFormReady();
-      expect(screen.getByLabelText(/nom du tournoi/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/nom de l'événement/i)).toBeInTheDocument();
     });
 
     it("should show limit-reached modal when canCreateTournament returns allowed: false", async () => {
@@ -307,7 +307,7 @@ describe("CreateTournament - Story 14.19", () => {
       render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
       const nameInput = await waitForFormReady();
       await userEvent.type(nameInput, "Summer Cup 2026");
-      const submitButton = screen.getByRole("button", { name: /créer le tournoi/i });
+      const submitButton = screen.getByRole("button", { name: /créer l'événement/i });
       await userEvent.click(submitButton);
 
       await waitFor(() => {

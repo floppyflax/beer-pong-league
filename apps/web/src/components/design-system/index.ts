@@ -62,5 +62,44 @@ export type {
 } from './PlayerCard';
 export { ScreenLayout } from './ScreenLayout';
 export type { ScreenLayoutProps } from './ScreenLayout';
+export { PageHero } from './PageHero';
+export type { PageHeroProps } from './PageHero';
+export { DetailHero } from './DetailHero';
+export type {
+  DetailHeroProps,
+  DetailHeroStat,
+  DetailHeroAction,
+  DetailHeroMenuItem,
+  DetailHeroStatus,
+  DetailHeroStatusVariant,
+} from './DetailHero';
 export { LastActivityCard } from './LastActivityCard';
 export type { LastActivityCardProps } from './LastActivityCard';
+
+// PR3 — Everything ELO DS form + input primitives (§5.2)
+export { FormField } from './FormField';
+export type { FormFieldProps } from './FormField';
+
+export { ToggleRow } from './ToggleRow';
+export type { ToggleRowProps } from './ToggleRow';
+
+export { CodeInput } from './CodeInput';
+export type { CodeInputProps } from './CodeInput';
+
+export { InviteSheet } from './InviteSheet';
+export type {
+  InviteSheetProps,
+  InviteSheetShareData,
+  InviteSheetLeaguePlayer,
+} from './InviteSheet';
+
+export { StickyCTA } from './StickyCTA';
+export type { StickyCTAProps } from './StickyCTA';
+
+export { SettingsSheet } from './SettingsSheet';
+export type {
+  SettingsSheetTournamentValues,
+  SettingsSheetLeagueValues,
+  SettingsSheetTournamentUpdates,
+  SettingsSheetLeagueUpdates,
+} from './SettingsSheet';

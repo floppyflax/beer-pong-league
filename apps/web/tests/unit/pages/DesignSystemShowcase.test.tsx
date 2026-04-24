@@ -172,11 +172,11 @@ describe.skip("DesignSystemShowcase", () => {
   it("should update active tab when clicking BottomTabMenu in preview (Story 14-10b)", () => {
     renderWithRouter();
     const homeTab = screen.getByLabelText("Home");
-    const tournamentsTab = screen.getByLabelText("Tournaments");
+    const playTab = screen.getByLabelText("Jouer");
     expect(homeTab).toHaveAttribute("aria-current", "page");
-    expect(tournamentsTab).not.toHaveAttribute("aria-current");
-    fireEvent.click(tournamentsTab);
-    expect(tournamentsTab).toHaveAttribute("aria-current", "page");
+    expect(playTab).not.toHaveAttribute("aria-current");
+    fireEvent.click(playTab);
+    expect(playTab).toHaveAttribute("aria-current", "page");
     expect(homeTab).not.toHaveAttribute("aria-current");
   });
 

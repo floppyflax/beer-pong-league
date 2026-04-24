@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { useRequireIdentity } from "../hooks/useRequireIdentity";
 import { CreateIdentityModal } from "../components/CreateIdentityModal";
@@ -7,15 +7,14 @@ import { ContextualHeader } from "../components/navigation/ContextualHeader";
 import { TournamentCard } from "../components/tournaments/TournamentCard";
 import { PlayerCard } from "../components/design-system/PlayerCard";
 import { HelpCard } from "../components/design-system/HelpCard";
+import { PButton } from "../components/ponglo/PButton";
 import { UserPlus, Users } from "lucide-react";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import toast from "react-hot-toast";
-import { getContentPaddingBottom } from "../utils/navigationHelpers";
 
 export const TournamentJoin = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
   const {
     tournaments,
     leagues,
@@ -139,7 +138,7 @@ export const TournamentJoin = () => {
 
   if (isLoadingInitialData) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="min-h-screen bg-navy flex items-center justify-center">
         <LoadingSpinner size={48} />
       </div>
     );
@@ -147,50 +146,44 @@ export const TournamentJoin = () => {
 
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
+      <div className="min-h-screen bg-navy flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-ink mb-4">
+          <h1 className="text-2xl font-bold text-white mb-4">
             Tournoi introuvable
           </h1>
-          <p className="text-ink-soft mb-4">Redirection en cours...</p>
+          <p className="text-cool-gray mb-4">Redirection en cours…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream">
-      {/* Contextual Header (Story 13.2) */}
+    <div className="min-h-screen bg-navy">
       <ContextualHeader
         title={tournament.name}
         showBackButton={true}
         onBack={() => navigate("/")}
       />
 
-      {/* Content */}
-      <div
-        className={`px-4 md:px-6 ${getContentPaddingBottom(location.pathname) || "pb-20 lg:pb-6"}`}
-      >
-        <div className="max-w-md mx-auto space-y-6">
-          {/* Tournament Card — même format que la page Mes tournois */}
+      {/* Scrollable content — padded above sticky CTA */}
+      <div className="px-4 md:px-6 pb-[120px]">
+        <div className="max-w-md mx-auto space-y-4">
           <TournamentCard tournament={tournament} interactive={false} />
 
-          {/* Join Options */}
           {!showCreatePlayer ? (
             <>
-              {/* Existing Players */}
               {tournamentPlayers.length > 0 && (
-                <div className="bg-gradient-card rounded-xl p-4 md:p-6 border border-card/50">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Users size={20} className="text-cup-red" />
-                    <h2 className="text-lg font-bold text-ink">
+                <div className="bg-navy-soft rounded-card p-4 md:p-6 border border-card">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Users size={18} className="text-electric-blue flex-shrink-0" />
+                    <h2 className="font-archivo font-extrabold uppercase tracking-tight text-white text-sm">
                       Sélectionner un joueur existant
                     </h2>
                   </div>
-                  <p className="text-sm text-ink-soft mb-4">
-                    Cliquez sur votre nom pour rejoindre le tournoi.
+                  <p className="text-sm text-cool-gray mb-4">
+                    Clique sur ton nom pour rejoindre le tournoi.
                   </p>
-                  <div className="space-y-2 mb-4">
+                  <div className="space-y-2">
                     {tournamentPlayers.map((player) => (
                       <PlayerCard
                         key={player.id}
@@ -201,50 +194,33 @@ export const TournamentJoin = () => {
                       />
                     ))}
                   </div>
-                  {selectedPlayerId && (
-                    <button
-                      onClick={handleJoinAsExistingPlayer}
-                      disabled={isJoining}
-                      className="w-full bg-gradient-to-r from-cup-blue to-violet-600 hover:from-blue-600 hover:to-violet-700 text-ink font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isJoining
-                        ? "Rejoindre..."
-                        : "Rejoindre en tant que ce joueur"}
-                    </button>
-                  )}
                 </div>
               )}
 
-              {/* Create New Player */}
-              <div className="bg-gradient-card rounded-xl p-4 md:p-6 border border-card/50">
-                <div className="flex items-center gap-3 mb-4">
-                  <UserPlus size={20} className="text-cup-red" />
-                  <h2 className="text-lg font-bold text-ink">
+              <div className="bg-navy-soft rounded-card p-4 md:p-6 border border-card">
+                <div className="flex items-center gap-3 mb-3">
+                  <UserPlus size={18} className="text-electric-blue flex-shrink-0" />
+                  <h2 className="font-archivo font-extrabold uppercase tracking-tight text-white text-sm">
                     Créer un nouveau joueur
                   </h2>
                 </div>
-                <p className="text-sm text-ink-soft mb-4">
+                <p className="text-sm text-cool-gray">
                   Crée un nouveau joueur pour ce tournoi. Tu pourras associer ce
                   joueur à ton compte plus tard.
                 </p>
-                <button
-                  onClick={() => setShowCreatePlayer(true)}
-                  className="w-full bg-gradient-to-r from-cup-blue to-violet-600 hover:from-blue-600 hover:to-violet-700 text-ink font-bold py-3 px-4 rounded-xl transition-colors"
-                >
-                  Créer un nouveau joueur
-                </button>
               </div>
             </>
           ) : (
-            /* Create Player Form */
-            <div className="bg-gradient-card rounded-xl p-4 md:p-6 border border-card/50">
+            <div className="bg-navy-soft rounded-card p-4 md:p-6 border border-card">
               <div className="flex items-center gap-3 mb-4">
-                <UserPlus size={20} className="text-cup-red" />
-                <h2 className="text-lg font-bold text-ink">Nouveau joueur</h2>
+                <UserPlus size={18} className="text-electric-blue flex-shrink-0" />
+                <h2 className="font-archivo font-extrabold uppercase tracking-tight text-white text-sm">
+                  Nouveau joueur
+                </h2>
               </div>
-              <form onSubmit={handleCreateNewPlayer} className="space-y-4">
+              <form id="create-player-form" onSubmit={handleCreateNewPlayer} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-ink-soft mb-2">
+                  <label className="block text-xs font-mono font-bold uppercase tracking-widest text-cool-gray mb-2">
                     Nom du joueur
                   </label>
                   <input
@@ -252,7 +228,7 @@ export const TournamentJoin = () => {
                     value={newPlayerName}
                     onChange={(e) => setNewPlayerName(e.target.value)}
                     placeholder="Ton pseudo"
-                    className="w-full bg-paper border border-card rounded-xl px-4 py-3 text-ink placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-lime/30 text-base"
+                    className="w-full bg-navy border border-card rounded-input px-4 py-3 text-white placeholder-cool-gray/50 focus:outline-none focus:ring-2 focus:ring-lime/30 text-base"
                     required
                     autoFocus
                     minLength={1}
@@ -260,61 +236,73 @@ export const TournamentJoin = () => {
                     autoComplete="name"
                   />
                   {newPlayerName.length > 0 && (
-                    <p className="text-xs text-ink-soft mt-1">
-                      {newPlayerName.trim().length}/100 caractères
+                    <p className="text-xs text-cool-gray mt-1 font-mono">
+                      {newPlayerName.trim().length}/100
                     </p>
                   )}
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreatePlayer(false);
-                      setNewPlayerName("");
-                    }}
-                    className="flex-1 bg-cream-deep hover:bg-paper text-ink font-bold py-3 px-4 rounded-lg transition-colors"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={
-                      isJoining ||
-                      !newPlayerName.trim() ||
-                      newPlayerName.trim().length > 100
-                    }
-                    className="flex-1 bg-gradient-to-r from-cup-blue to-violet-600 hover:from-blue-600 hover:to-violet-700 text-ink font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg min-h-[44px]"
-                  >
-                    {isJoining ? "Rejoindre..." : "Rejoindre"}
-                  </button>
                 </div>
               </form>
             </div>
           )}
 
-          {/* Comment ça marche ? — HelpCard variante aide/tuto */}
           <HelpCard
             title="Comment ça marche ?"
             steps={[
-              {
-                number: 1,
-                text: "Sélectionne un joueur existant ou crée un nouveau joueur",
-              },
-              {
-                number: 2,
-                text: "Tu rejoins le tournoi et accèdes au classement",
-              },
-              {
-                number: 3,
-                text: "Tu pourras associer ton joueur à ton compte plus tard",
-              },
+              { number: 1, text: "Sélectionne un joueur existant ou crée un nouveau joueur" },
+              { number: 2, text: "Tu rejoins le tournoi et accèdes au classement" },
+              { number: 3, text: "Tu pourras associer ton joueur à ton compte plus tard" },
             ]}
             successMessage="C'est parti pour la compétition !"
           />
         </div>
       </div>
 
-      {/* Just-in-time identity creation modal */}
+      {/* Sticky bottom CTA */}
+      <div className="fixed left-0 right-0 bottom-0 px-6 pt-4 pb-bottom-nav lg:pb-bottom-nav-lg bg-gradient-to-t from-navy via-navy/95 to-transparent">
+        {showCreatePlayer ? (
+          <div className="flex gap-3 max-w-md mx-auto">
+            <PButton
+              type="button"
+              variant="ghost"
+              size="lg"
+              className="flex-1"
+              onClick={() => { setShowCreatePlayer(false); setNewPlayerName(""); }}
+            >
+              Annuler
+            </PButton>
+            <PButton
+              type="submit"
+              form="create-player-form"
+              variant="primary"
+              size="lg"
+              className="flex-1"
+              disabled={isJoining || !newPlayerName.trim() || newPlayerName.trim().length > 100}
+            >
+              {isJoining ? "Rejoindre…" : "Rejoindre"}
+            </PButton>
+          </div>
+        ) : selectedPlayerId ? (
+          <PButton
+            variant="primary"
+            size="lg"
+            full
+            onClick={handleJoinAsExistingPlayer}
+            disabled={isJoining}
+          >
+            {isJoining ? "Rejoindre…" : "Rejoindre en tant que ce joueur"}
+          </PButton>
+        ) : (
+          <PButton
+            variant="primary"
+            size="lg"
+            full
+            onClick={() => setShowCreatePlayer(true)}
+          >
+            Créer un nouveau joueur
+          </PButton>
+        )}
+      </div>
+
       <CreateIdentityModal
         isOpen={showModal}
         onClose={handleCancel}

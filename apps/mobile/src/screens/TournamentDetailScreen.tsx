@@ -12,7 +12,7 @@ export function TournamentDetailScreen({ route }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>Tournoi</Text>
+      <Text style={styles.title}>Événement</Text>
       <Text style={styles.id}>ID: {id}</Text>
     </SafeAreaView>
   );

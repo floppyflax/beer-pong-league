@@ -1,0 +1,132 @@
+/**
+ * MatchRow — Everything ELO DS (§5.3)
+ *
+ * Match history or live match row. Two variants:
+ * - `history`: border-left lime (won) / signal-red (lost) + personal ELO delta
+ * - `match`: neutral score display, no border-left (used in event bracket view)
+ */
+
+import type { Match } from '@/types';
+
+export interface MatchRowProps {
+  match: Match;
+  variant: 'history' | 'match';
+  /** Current player perspective — determines won/lost coloring in history variant */
+  userPerspective?: 'won' | 'lost';
+  /** Current player's ID — used to derive perspective if userPerspective not given */
+  currentPlayerId?: string;
+  /** Player name lookup for displaying team names */
+  playerNames?: Record<string, string>;
+  className?: string;
+}
+
+function formatPlayerList(ids: string[], names?: Record<string, string>): string {
+  if (!names) return ids.slice(0, 2).join(', ');
+  return ids.map((id) => names[id] ?? id.slice(0, 6)).join(' & ');
+}
+
+function formatDate(dateStr: string): string {
+  try {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+export function MatchRow({
+  match,
+  variant,
+  userPerspective,
+  currentPlayerId,
+  playerNames,
+  className,
+}: MatchRowProps) {
+  // Derive perspective from currentPlayerId if not explicitly given
+  const effectivePerspective =
+    userPerspective ??
+    (currentPlayerId
+      ? match.teamA.includes(currentPlayerId)
+        ? match.scoreA > match.scoreB
+          ? 'won'
+          : 'lost'
+        : match.teamB.includes(currentPlayerId)
+          ? match.scoreB > match.scoreA
+            ? 'won'
+            : 'lost'
+          : undefined
+      : undefined);
+
+  const teamALabel = formatPlayerList(match.teamA, playerNames);
+  const teamBLabel = formatPlayerList(match.teamB, playerNames);
+
+  // Personal ELO delta for history variant
+  const personalDelta =
+    currentPlayerId && match.eloChanges
+      ? match.eloChanges[currentPlayerId]
+      : undefined;
+
+  const borderColor =
+    variant === 'history' && effectivePerspective
+      ? effectivePerspective === 'won'
+        ? 'border-l-lime'
+        : 'border-l-signal-red'
+      : 'border-l-transparent';
+
+  const outcomeLabel =
+    variant === 'history' && effectivePerspective
+      ? effectivePerspective === 'won'
+        ? 'Victoire'
+        : 'Défaite'
+      : null;
+
+  const outcomeLabelClass =
+    effectivePerspective === 'won'
+      ? 'text-lime'
+      : 'text-signal-red';
+
+  return (
+    <div
+      className={`flex items-center gap-3 px-3 py-2.5 bg-navy-soft rounded-lg border border-card border-l-4 ${borderColor} ${className ?? ''}`}
+      data-testid="match-row"
+    >
+      {/* Date */}
+      <div className="flex-shrink-0 text-[10px] font-mono text-cool-gray w-12">
+        {formatDate(match.date)}
+      </div>
+
+      {/* Teams + score */}
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-white truncate font-medium">{teamALabel}</span>
+          <span className="text-cool-gray font-mono tabular-nums flex-shrink-0">
+            {match.scoreA} – {match.scoreB}
+          </span>
+          <span className="text-white truncate font-medium">{teamBLabel}</span>
+        </div>
+      </div>
+
+      {/* Outcome + delta (history variant) */}
+      {variant === 'history' && (
+        <div className="flex-shrink-0 flex flex-col items-end gap-0.5">
+          {outcomeLabel && (
+            <span className={`text-[10px] font-bold uppercase tracking-wide ${outcomeLabelClass}`}>
+              {outcomeLabel}
+            </span>
+          )}
+          {personalDelta !== undefined && personalDelta !== 0 && (
+            <span
+              className={`text-[10px] font-mono tabular-nums ${
+                personalDelta > 0 ? 'text-lime' : 'text-signal-red'
+              }`}
+            >
+              {personalDelta > 0 ? '+' : ''}{personalDelta} ELO
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

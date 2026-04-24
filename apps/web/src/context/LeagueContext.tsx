@@ -24,7 +24,10 @@ import { League, Player, Match, Tournament } from "../types";
 import { calculateEloChange } from "../utils/elo";
 import { useAuth } from "../hooks/useAuth";
 import { useIdentity } from "../hooks/useIdentity";
-import { databaseService } from "../services/DatabaseService";
+import {
+  databaseService,
+  type TournamentUpdates,
+} from "../services/DatabaseService";
 import { migrationService } from "../services/MigrationService";
 import { localUserService } from "../services/LocalUserService";
 import { getDeviceFingerprint } from "../utils/deviceFingerprint";
@@ -82,11 +85,8 @@ interface LeagueContextType {
     type: "event" | "season"
   ) => Promise<void>;
   updateTournament: (
-    tournamentId: string, 
-    name: string, 
-    date: string, 
-    antiCheatEnabled?: boolean,
-    format?: '1v1' | '2v2' | '3v3' | 'libre'
+    tournamentId: string,
+    updates: TournamentUpdates
   ) => Promise<void>;
   updatePlayer: (leagueId: string, playerId: string, name: string) => Promise<void>;
   deletePlayer: (leagueId: string, playerId: string) => Promise<void>;
@@ -366,10 +366,10 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     // Save to Supabase
     try {
       await databaseService.saveTournament(newTournament);
-      toast.success(`Tournoi "${name}" créé avec succès`);
+      toast.success(`Événement "${name}" créé avec succès`);
     } catch (error) {
       console.error('Error saving tournament to Supabase:', error);
-      toast.error('Erreur lors de la sauvegarde du tournoi');
+      toast.error("Erreur lors de la sauvegarde de l'événement");
     }
     
     return newTournament.id;
@@ -430,7 +430,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       await databaseService.deleteTournament(id);
     } catch (error) {
       console.error('Error deleting tournament from Supabase:', error);
-      toast.error('Erreur lors de la suppression du tournoi');
+      toast.error("Erreur lors de la suppression de l'événement");
       return;
     }
 
@@ -455,7 +455,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     if (currentTournamentId === id) {
       setCurrentTournamentId(null);
     }
-    toast.success('Tournoi supprimé avec succès');
+    toast.success("Événement supprimé avec succès");
   };
 
   const toggleTournamentStatus = async (tournamentId: string) => {
@@ -474,7 +474,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     // Update in Supabase
     try {
       await databaseService.toggleTournamentStatus(tournamentId, newStatus);
-      toast.success(newStatus ? 'Tournoi clôturé' : 'Tournoi rouvert');
+      toast.success(newStatus ? "Événement clôturé" : "Événement rouvert");
     } catch (error) {
       console.error('Error toggling tournament status:', error);
       toast.error('Erreur lors du changement de statut');
@@ -948,32 +948,36 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
   const updateTournament = async (
     tournamentId: string,
-    name: string,
-    date: string,
-    antiCheatEnabled?: boolean,
-    format?: '1v1' | '2v2' | '3v3' | 'libre'
+    updates: TournamentUpdates
   ) => {
+    // Optimistic local update — apply the same diff we'll send to Supabase so
+    // the UI doesn't wait on a round-trip. The field-name mapping is 1:1 with
+    // the Tournament type; we keep the branching explicit to avoid the
+    // snake_case/camelCase quirk on `anti_cheat_enabled`.
     setTournaments((prev) =>
       prev.map((tournament) => {
         if (tournament.id !== tournamentId) return tournament;
-        const updates: Partial<Tournament> = { name, date };
-        if (antiCheatEnabled !== undefined) {
-          updates.anti_cheat_enabled = antiCheatEnabled;
-        }
-        if (format !== undefined) {
-          updates.format = format;
-        }
-        return { ...tournament, ...updates };
+        const next: Partial<Tournament> = {};
+        if (updates.name !== undefined) next.name = updates.name;
+        if (updates.date !== undefined) next.date = updates.date;
+        if (updates.antiCheatEnabled !== undefined)
+          next.anti_cheat_enabled = updates.antiCheatEnabled;
+        if (updates.format !== undefined) next.format = updates.format;
+        if (updates.maxPlayers !== undefined)
+          next.maxPlayers = updates.maxPlayers;
+        if (updates.isPrivate !== undefined)
+          next.isPrivate = updates.isPrivate;
+        return { ...tournament, ...next };
       })
     );
 
     // Update in Supabase
     try {
-      await databaseService.updateTournament(tournamentId, name, date, antiCheatEnabled, format);
-      toast.success('Tournoi mis à jour');
+      await databaseService.updateTournament(tournamentId, updates);
+      toast.success("Événement mis à jour");
     } catch (error) {
       console.error('Error updating tournament:', error);
-      toast.error('Erreur lors de la mise à jour du tournoi');
+      toast.error("Erreur lors de la mise à jour de l'événement");
     }
   };
 

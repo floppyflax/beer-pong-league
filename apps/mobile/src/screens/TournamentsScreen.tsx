@@ -6,14 +6,14 @@ import { colors, spacing, typography } from '../theme/tokens';
 export function TournamentsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>Mes Tournois</Text>
+      <Text style={styles.title}>Mes Événements</Text>
       <FlatList
         data={[]}
         keyExtractor={() => ''}
         renderItem={() => null}
         ListEmptyComponent={
           <View style={styles.emptyPlaceholder}>
-            <Text style={styles.placeholderText}>Aucun tournoi</Text>
+            <Text style={styles.placeholderText}>Aucun événement</Text>
           </View>
         }
       />

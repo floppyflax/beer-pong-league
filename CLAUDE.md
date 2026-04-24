@@ -1,6 +1,6 @@
 # Beer Pong League — Agent Context
 
-Application web + mobile de gestion de ligues et tournois de beer-pong avec classement ELO. Backend Supabase, paiement Stripe, hébergement Vercel. Monorepo **web (React + Vite) / mobile (React Native) / shared**.
+Application web + mobile de gestion de ligues et événements de beer-pong avec classement ELO. Backend Supabase, paiement Stripe, hébergement Vercel. Monorepo **web (React + Vite) / mobile (React Native) / shared**.
 
 > **Ce fichier est lu par Claude à chaque session.** Il reste volontairement court : pointeurs denses vers `docs/` et `.claude/`. Pour les règles complètes, voir `docs/product-context.md`.
 
@@ -43,7 +43,7 @@ Depuis la racine (`npm` est configuré avec workspaces) :
 1. **Toujours vérifier `isSupabaseAvailable()`** avant toute opération DB. Fallback `localStorage` sinon.
 2. **Data transformation snake_case ↔ camelCase** systématique entre DB et app. Helpers dans `DataTransformer`.
 3. **State updates immutables uniquement** : `setLeagues(prev => [...prev, x])`, jamais `leagues.push(x)`.
-4. **Tokens Arcade obligatoires** — aucune couleur hardcodée. Palette dans `apps/web/tailwind.config.js` (`cream`, `paper`, `ink`, `cup-red`/`cup-blue`/`lime`, `gold`, `ruby`). Utilitaires : `p-page`, `rounded-card`, `shadow-modal`.
+4. **Tokens Everything ELO obligatoires** — aucune couleur hardcodée. Palette dans `apps/web/tailwind.config.js` (`navy`, `electric-blue`, `ping-yellow`, `signal-red`, `lime`, `cool-gray`, `bronze`). Utilitaires : `rounded-card`, `shadow-modal`, `border-card`.
 5. **Secrets serveur uniquement** — `STRIPE_SECRET_KEY`, `service_role` key restent en edge function. Aucune exception.
 6. **RLS sur chaque table Supabase** — pas de table sans policies. Voir skill `supabase-migrations`.
 7. **ELO calculé côté serveur** pour les matchs ranked confirmés (anti-cheat). Voir skill `elo-logic`.
@@ -76,7 +76,7 @@ Depuis la racine (`npm` est configuré avec workspaces) :
 - **`bpl-qa`** — suite de tests (unit + E2E), analyse des échecs, fixes ciblés.
 
 **Skills** (`.claude/skills/`) :
-- **`ui-component`** — créer/modifier un composant UI conforme au DS Ponglo Arcade.
+- **`ui-component`** — créer/modifier un composant UI conforme au DS Everything ELO (Beer Pong ELO).
 - **`elo-logic`** — calculs ELO, confirmation de match, anti-cheat.
 - **`supabase-migrations`** — nouvelles migrations SQL conformes (RLS, types générés).
 - **`stripe-premium`** — checkout, entitlement premium, edge functions.

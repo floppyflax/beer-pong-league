@@ -63,10 +63,10 @@ const CONFIG: Record<LastActivityKind, KindConfig> = {
 };
 
 const Skeleton = () => (
-  <div className="bg-paper rounded-card p-6 border border-card animate-pulse">
-    <div className="h-6 bg-cream-deep rounded w-3/4 mb-4" />
-    <div className="h-4 bg-cream-deep rounded w-1/2 mb-4" />
-    <div className="h-10 bg-cream-deep rounded" />
+  <div className="bg-navy-soft rounded-card p-6 border border-card animate-pulse">
+    <div className="h-6 bg-navy-deep rounded w-3/4 mb-4" />
+    <div className="h-4 bg-navy-deep rounded w-1/2 mb-4" />
+    <div className="h-10 bg-navy-deep rounded" />
   </div>
 );
 
@@ -87,18 +87,18 @@ export function LastActivityCard({
     const handleEmpty = onEmptyAction ?? (() => navigate(cfg.emptyHref));
     return (
       <div
-        className="bg-paper rounded-card p-6 border border-card text-center"
+        className="bg-navy-soft rounded-card p-6 border border-card text-center"
         data-testid="last-activity-card-empty"
       >
-        <Icon size={32} className="mx-auto mb-4 text-ink-mute" aria-hidden />
-        <h3 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-ink mb-2">
+        <Icon size={32} className="mx-auto mb-4 text-cool-gray" aria-hidden />
+        <h3 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-white mb-2">
           {cfg.emptyTitle}
         </h3>
-        <p className="text-sm text-ink-soft mb-4">{cfg.emptyDescription}</p>
+        <p className="text-sm text-cool-gray mb-4">{cfg.emptyDescription}</p>
         <button
           type="button"
           onClick={handleEmpty}
-          className="w-full bg-cup-red text-ink border-[1.5px] border-cup-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 rounded-full transition-[transform,box-shadow,filter] duration-75 flex items-center justify-center gap-2"
+          className="w-full bg-signal-red text-white border-[1.5px] border-signal-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 rounded-full transition-[transform,box-shadow,filter] duration-75 flex items-center justify-center gap-2"
         >
           {cfg.emptyCta}
           {emptyActionLocked && <span aria-label="Premium requis">🔒</span>}
@@ -111,22 +111,22 @@ export function LastActivityCard({
     <button
       type="button"
       onClick={() => navigate(cfg.detailHref(activity.id))}
-      className="w-full text-left bg-paper rounded-card p-6 border border-card hover:border-card-muted transition-colors cursor-pointer"
+      className="w-full text-left bg-navy-soft rounded-card p-6 border border-card hover:border-card-muted transition-colors cursor-pointer"
       data-testid="last-activity-card"
     >
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-ink">
+          <h3 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-white">
             {activity.name}
           </h3>
-          <p className="text-sm text-ink-soft mt-1">
+          <p className="text-sm text-cool-gray mt-1">
             {cfg.countLabel(activity.count)}
           </p>
         </div>
         <span
           className={`px-3 py-1 rounded-sm text-xs font-archivo font-extrabold uppercase tracking-[0.6px] ${
             activity.finished
-              ? "bg-cream-deep text-ink-soft border border-card"
+              ? "bg-navy-deep text-cool-gray border border-card"
               : "bg-lime/20 text-lime"
           }`}
         >
@@ -134,11 +134,11 @@ export function LastActivityCard({
         </span>
       </div>
 
-      <p className="text-xs text-ink-mute mb-4">
+      <p className="text-xs text-cool-gray mb-4">
         Dernière activité : {formatRelativeTime(activity.updatedAt)}
       </p>
 
-      <div className="w-full bg-cup-red text-ink border-[1.5px] border-cup-red-deep shadow-[0_3px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 rounded-full text-center">
+      <div className="w-full bg-signal-red text-white border-[1.5px] border-signal-red-deep shadow-[0_3px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 rounded-full text-center">
         Voir le classement
       </div>
     </button>

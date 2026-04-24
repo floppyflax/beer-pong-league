@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useIdentityContext } from '../context/IdentityContext';
 // import { useAuthContext } from '../context/AuthContext'; // Unused
 import { identityMergeService } from '../services/IdentityMergeService';
+import { PongloGlyph } from '../components/ponglo/Wordmark';
+import { PButton } from '../components/ponglo/PButton';
 
 /**
  * Callback page for Supabase Auth OTP
@@ -85,13 +88,13 @@ export const AuthCallback = () => {
         }
 
         setStatus('success');
-        
+
         // Check for returnTo in sessionStorage
         const returnTo = sessionStorage.getItem('authReturnTo');
         if (returnTo) {
           sessionStorage.removeItem('authReturnTo'); // Clean up
         }
-        
+
         // Redirect after a short delay
         setTimeout(() => {
           navigate(returnTo || '/');
@@ -108,10 +111,16 @@ export const AuthCallback = () => {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="min-h-screen bg-navy flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4 animate-bounce">🍺</div>
-          <div className="text-ink-soft">Connexion en cours...</div>
+          <div className="flex justify-center mb-5">
+            <div className="animate-pulse">
+              <PongloGlyph size={56} color="#B7FF3B" />
+            </div>
+          </div>
+          <p className="text-cool-gray text-sm font-mono uppercase tracking-widest">
+            Connexion en cours…
+          </p>
         </div>
       </div>
     );
@@ -119,32 +128,36 @@ export const AuthCallback = () => {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
-        <div className="bg-paper rounded-2xl p-6 border border-red-500/50 max-w-sm w-full text-center">
-          <div className="text-ruby text-4xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-ink mb-2">Erreur de connexion</h2>
-          <p className="text-ink-soft mb-6">{error || 'Une erreur est survenue'}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="w-full bg-cup-red hover:brightness-110 text-ink font-bold py-3 rounded-xl"
-          >
+      <div className="min-h-screen bg-navy flex items-center justify-center p-4">
+        <div className="bg-navy-soft rounded-card p-6 border border-signal-red/40 max-w-sm w-full text-center">
+          <div className="flex justify-center mb-4">
+            <AlertCircle size={44} className="text-signal-red" />
+          </div>
+          <h2 className="font-archivo font-extrabold uppercase tracking-tight text-white text-xl mb-2">
+            Erreur de connexion
+          </h2>
+          <p className="text-cool-gray text-sm mb-6">
+            {error || 'Une erreur est survenue'}
+          </p>
+          <PButton variant="primary" full onClick={() => navigate('/')}>
             Retour à l'accueil
-          </button>
+          </PButton>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center">
+    <div className="min-h-screen bg-navy flex items-center justify-center">
       <div className="text-center">
-        <div className="text-4xl mb-4">✅</div>
-        <div className="text-ink font-bold text-xl mb-2">Connexion réussie !</div>
-        <div className="text-ink-soft">Redirection en cours...</div>
+        <div className="flex justify-center mb-4">
+          <CheckCircle size={52} className="text-lime" />
+        </div>
+        <p className="font-archivo font-extrabold uppercase tracking-tight text-white text-xl mb-2">
+          Connexion réussie !
+        </p>
+        <p className="text-cool-gray text-sm font-mono">Redirection en cours…</p>
       </div>
     </div>
   );
 };
-
-
-

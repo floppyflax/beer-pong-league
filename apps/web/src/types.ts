@@ -29,6 +29,10 @@ export interface Match {
   // Story 14-24: Enriched match data
   cups_remaining?: number | null; // 1-10, winning team only
   photo_url?: string | null; // Supabase Storage URL for winning team photo
+  // Phase D.4: Live match tracking
+  is_live?: boolean; // True while the match is actively in progress
+  balloon_possession?: "team_a" | "team_b" | null; // Which team holds the service
+  is_match_point?: boolean; // True when the leading team is one cup from winning
 }
 
 export interface League {
@@ -67,5 +71,8 @@ export interface Tournament {
   maxPlayers?: number; // Maximum number of players (999 = unlimited for free users)
   isPrivate?: boolean; // Private tournament (not listed publicly)
   status?: 'active' | 'finished' | 'cancelled'; // Tournament status
+  // Phase A.5: competition mode (ELO = classement ponctuel, Bracket = élimination directe)
+  // Set at creation time and immutable afterwards (see CreateTournament).
+  mode?: 'elo' | 'bracket';
   // Local ranking is calculated on-the-fly from matches, starting from base ELO
 }

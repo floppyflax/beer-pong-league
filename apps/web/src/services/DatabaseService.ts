@@ -15,9 +15,16 @@
 
 import type { League, Tournament, Player, Match } from '../types';
 import { leaguesRepository } from './repositories/LeaguesRepository';
-import { tournamentsRepository } from './repositories/TournamentsRepository';
+import {
+  tournamentsRepository,
+  type TournamentUpdates,
+} from './repositories/TournamentsRepository';
 import { playersRepository } from './repositories/PlayersRepository';
 import { matchesRepository } from './repositories/MatchesRepository';
+
+// Re-export so external callers (LeagueContext, tests) can import the shape
+// of the updates object without digging into the repository module.
+export type { TournamentUpdates };
 
 class DatabaseService {
   // ===== Leagues =====
@@ -58,18 +65,9 @@ class DatabaseService {
 
   updateTournament(
     tournamentId: string,
-    name: string,
-    date: string,
-    antiCheatEnabled?: boolean,
-    format?: '1v1' | '2v2' | '3v3' | 'libre'
+    updates: TournamentUpdates
   ): Promise<void> {
-    return tournamentsRepository.updateTournament(
-      tournamentId,
-      name,
-      date,
-      antiCheatEnabled,
-      format
-    );
+    return tournamentsRepository.updateTournament(tournamentId, updates);
   }
 
   toggleTournamentStatus(tournamentId: string, isFinished: boolean): Promise<void> {
@@ -84,6 +82,10 @@ class DatabaseService {
     team2Size: number | null;
     maxPlayers: number;
     isPrivate: boolean;
+    // Competition mode — defaults to 'elo' server-side (see migration 011).
+    // Only passed when caller wants to create a Bracket tournament; the DB
+    // default handles the common ELO case.
+    mode?: 'elo' | 'bracket';
     creatorUserId: string | null;
     creatorAnonymousUserId: string | null;
   }): Promise<string> {

@@ -3,10 +3,14 @@ import { useAuthContext } from "@/context/AuthContext";
 import { useLeague } from "@/context/LeagueContext";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useFullDisconnect } from "@/hooks/useFullDisconnect";
-import { ContextualHeader } from "@/components/navigation/ContextualHeader";
+import { PageHero } from "@/components/design-system";
 import { StatCard } from "@/components/design-system/StatCard";
-import { Trophy, Calendar, User, Mail, LogOut } from "lucide-react";
-import { useMemo, useState } from "react";
+import { PAvatar } from "@/components/ponglo/PAvatar";
+import { PButton } from "@/components/ponglo/PButton";
+import { PaymentModal } from "@/components/PaymentModal";
+import { premiumService } from "@/services/PremiumService";
+import { Trophy, Calendar, Mail, LogOut, Crown, ChevronRight } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 
 export const UserProfile = () => {
   const navigate = useNavigate();
@@ -14,7 +18,15 @@ export const UserProfile = () => {
   const { localUser } = useIdentity();
   const { fullDisconnect } = useFullDisconnect();
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const { leagues, tournaments } = useLeague();
+
+  useEffect(() => {
+    const userId = user?.id ?? null;
+    const anonymousUserId = localUser?.anonymousUserId ?? null;
+    premiumService.isPremium(userId, anonymousUserId).then(setIsPremium);
+  }, [user, localUser]);
 
   // Calculate user stats
   const userStats = useMemo(() => {
@@ -52,69 +64,113 @@ export const UserProfile = () => {
       ? user.email?.split("@")[0] || "Utilisateur"
       : localUser?.pseudo || "Invité";
 
-  return (
-    <div className="min-h-0 flex flex-col">
-      {/* Contextual Header (design system 2.4) */}
-      <ContextualHeader
-        title="Mon Profil"
-        showBackButton={true}
-        onBack={() => navigate(-1)}
-      />
+  const showLogout = isAuthenticated || Boolean(localUser);
 
-      {/* Content: p-4 mobile, p-6 desktop (design system 3.4) */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+  return (
+    <div className="min-h-0 flex flex-col relative">
+      {/* pt-6 / pt-8 aligns PageHero eyebrow with ScreenLayout pages (py-6 / py-8) */}
+      <div
+        className={`flex-1 overflow-y-auto px-4 md:px-6 pt-6 md:pt-8 space-y-4 ${
+          showLogout ? "pb-[160px] lg:pb-24" : "pb-6 md:pb-8"
+        }`}
+      >
+        <PageHero
+          eyebrow="Profil"
+          title="Mon profil"
+          subtitle="Ton identité, tes leagues et tes événements — tout au même endroit."
+        />
+
         {/* User status badge */}
-        <div className="text-xs text-ink-soft text-center">
+        <div className="text-xs text-cool-gray text-center">
           {isAuthenticated ? "Compte authentifié" : "Mode local"}
         </div>
 
-        {/* Profile Info card (bg-paper, design system 3.7) */}
-        <div className="bg-paper rounded-xl p-4 md:p-6 border border-card/50">
+        {/* Profile Info card */}
+        <div className="bg-navy-soft rounded-card p-4 md:p-6 border border-card">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-tab-active rounded-full flex items-center justify-center shrink-0">
-              <User size={32} className="text-ink" />
-            </div>
+            <PAvatar
+              name={displayName}
+              size={64}
+              ring="#2F6BFF"
+              className="flex-shrink-0"
+            />
             <div className="flex-1 min-w-0">
-              <h3 className="text-xl font-bold text-ink truncate">
+              <h3 className="text-xl font-archivo font-extrabold uppercase tracking-tight text-white truncate flex items-center gap-2">
                 {displayName}
+                {isPremium && (
+                  <Crown
+                    size={16}
+                    className="text-ping-yellow shrink-0"
+                    aria-label="Premium"
+                  />
+                )}
               </h3>
               {isAuthenticated && user && (
-                <div className="text-sm text-ink-soft flex items-center gap-2 mt-1 truncate">
+                <div className="text-sm text-cool-gray flex items-center gap-2 mt-1 truncate">
                   <Mail size={14} className="shrink-0" />
                   <span className="truncate">{user.email}</span>
                 </div>
               )}
               {!isAuthenticated && localUser && (
-                <div className="text-sm text-ink-soft flex items-center gap-2 mt-1">
-                  <span>📱 Mode local</span>
+                <div className="text-sm text-cool-gray flex items-center gap-2 mt-1">
+                  <span className="font-mono text-xs uppercase tracking-widest">Mode local</span>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* StatCards (design system 4.1) */}
+        {/* Premium upsell — shown only when not premium */}
+        {!isPremium && (
+          <div
+            className="w-full bg-gradient-to-br from-ping-yellow/20 via-ping-yellow/10 to-ping-yellow/5 border-2 border-ping-yellow/50 rounded-card p-4 flex items-center gap-4"
+            role="region"
+            aria-label="Statut Premium"
+          >
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-ping-yellow/25 flex items-center justify-center">
+              <Crown size={24} className="text-ping-yellow" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-archivo font-extrabold uppercase tracking-tight text-base leading-tight text-white">
+                Passe Premium
+              </div>
+              <p className="text-white/70 text-sm mt-0.5">
+                Événements illimités, ligues et stats —{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(true)}
+                  className="inline-flex items-center gap-0.5 text-ping-yellow font-archivo font-extrabold uppercase tracking-tight underline-offset-2 hover:underline"
+                >
+                  3€
+                  <ChevronRight size={14} className="-mr-1" />
+                </button>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* StatCards */}
         <div className="grid grid-cols-3 gap-2 md:gap-4">
           <StatCard
             value={userStats.leagues}
-            label="Leagues"
+            label="Ligues"
             variant="primary"
           />
           <StatCard
             value={userStats.tournaments}
-            label="Tournois"
+            label="Événements"
             variant="accent"
           />
           <StatCard value={userStats.totalMatches} label="Matchs" />
         </div>
 
-        {/* My Leagues */}
-        {userStats.userLeagues.length > 0 && (
-          <div>
-            <h3 className="text-lg font-bold text-ink mb-3 flex items-center gap-2">
-              <Trophy size={20} className="text-info" />
-              Mes Leagues
-            </h3>
+        {/* My Leagues — always visible */}
+        <div>
+          <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <Trophy size={20} className="text-electric-blue" />
+            Mes Ligues
+          </h3>
+          {userStats.userLeagues.length > 0 ? (
             <div className="space-y-2">
               {userStats.userLeagues.map((league) => (
                 <div
@@ -128,26 +184,29 @@ export const UserProfile = () => {
                       navigate(`/league/${league.id}`);
                     }
                   }}
-                  className="bg-gradient-card rounded-xl p-4 border border-card/50 hover:border-card-muted cursor-pointer transition-colors"
+                  className="bg-navy-soft rounded-card p-4 border border-card hover:border-card-muted cursor-pointer transition-colors"
                 >
-                  <div className="font-bold text-ink">{league.name}</div>
-                  <div className="text-xs text-ink-soft mt-1">
-                    {league.players.length} joueurs • {league.matches.length}{" "}
-                    matchs
+                  <div className="font-bold text-white">{league.name}</div>
+                  <div className="text-xs text-cool-gray mt-1">
+                    {league.players.length} joueurs • {league.matches.length} matchs
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="bg-navy-soft rounded-card p-4 border border-card text-center">
+              <p className="text-cool-gray text-sm">Aucune ligue pour l'instant.</p>
+            </div>
+          )}
+        </div>
 
-        {/* My Tournaments */}
-        {userStats.userTournaments.length > 0 && (
-          <div>
-            <h3 className="text-lg font-bold text-ink mb-3 flex items-center gap-2">
-              <Calendar size={20} className="text-info" />
-              Mes Tournois
-            </h3>
+        {/* My Tournaments — always visible */}
+        <div>
+          <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <Calendar size={20} className="text-electric-blue" />
+            Mes Événements
+          </h3>
+          {userStats.userTournaments.length > 0 ? (
             <div className="space-y-2">
               {userStats.userTournaments.map((tournament) => (
                 <div
@@ -161,17 +220,17 @@ export const UserProfile = () => {
                       navigate(`/tournament/${tournament.id}`);
                     }
                   }}
-                  className="bg-gradient-card rounded-xl p-4 border border-card/50 hover:border-card-muted cursor-pointer transition-colors"
+                  className="bg-navy-soft rounded-card p-4 border border-card hover:border-card-muted cursor-pointer transition-colors"
                 >
-                  <div className="font-bold text-ink flex items-center gap-2">
+                  <div className="font-bold text-white flex items-center gap-2">
                     {tournament.name}
                     {tournament.isFinished && (
-                      <span className="text-xs bg-cream-deep text-ink-soft px-2 py-1 rounded">
+                      <span className="text-xs bg-navy-deep text-cool-gray px-2 py-1 rounded">
                         Terminé
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-ink-soft mt-1">
+                  <div className="text-xs text-cool-gray mt-1">
                     {tournament.date
                       ? new Date(tournament.date).toLocaleDateString("fr-FR")
                       : "—"}{" "}
@@ -180,13 +239,24 @@ export const UserProfile = () => {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="bg-navy-soft rounded-card p-4 border border-card text-center">
+              <p className="text-cool-gray text-sm">Aucun événement pour l'instant.</p>
+            </div>
+          )}
+        </div>
+      </div>
 
-        {/* Actions */}
-        <div className="space-y-2 pt-4">
-          {(isAuthenticated || localUser) && (
-            <button
+      {/* Sticky logout CTA */}
+      {showLogout && (
+        <div className="fixed left-0 right-0 bottom-0 px-4 sm:px-6 pt-4 pb-bottom-nav lg:pb-bottom-nav-lg bg-gradient-to-t from-navy via-navy/95 to-transparent pointer-events-none z-20">
+          <div className="max-w-[720px] mx-auto pointer-events-auto">
+            <PButton
+              variant="ghost"
+              size="lg"
+              full
+              icon={<LogOut size={18} />}
+              className="!bg-signal-red !border-[#B22830] !text-white shadow-[0_3px_0_#B22830] hover:!brightness-105 active:!translate-y-[2px] active:!shadow-[0_1px_0_#B22830]"
               onClick={async () => {
                 setIsDisconnecting(true);
                 try {
@@ -196,14 +266,18 @@ export const UserProfile = () => {
                 }
               }}
               disabled={isDisconnecting}
-              className="w-full bg-ruby/20 hover:bg-ruby/30 text-ruby font-bold py-3 rounded-xl border border-red-500/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <LogOut size={18} />
-              <span>{isDisconnecting ? "Déconnexion…" : "Déconnexion"}</span>
-            </button>
-          )}
+              {isDisconnecting ? "Déconnexion…" : "Déconnexion"}
+            </PButton>
+          </div>
         </div>
-      </div>
+      )}
+
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => setIsPremium(true)}
+      />
     </div>
   );
 };

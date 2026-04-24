@@ -119,7 +119,6 @@ class MatchesRepository extends BaseRepository {
               losses: newLosses,
               matches_played: (player.matches_played || 0) + 1,
               streak: newStreak,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any)
             .eq('id', playerId)
             .eq('league_id', leagueId);
@@ -260,7 +259,6 @@ class MatchesRepository extends BaseRepository {
                 losses: newLosses,
                 matches_played: (player.matches_played || 0) + 1,
                 streak: newStreak,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } as any)
               .eq('id', leaguePlayerId)
               .eq('league_id', tournamentInfo.league_id);

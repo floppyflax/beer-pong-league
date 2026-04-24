@@ -6,17 +6,23 @@
  */
 
 /**
- * Core routes where bottom nav should always be visible (design system 2.1)
- * Story 14-18: /create-league and /create-tournament (design-system 5.3 forms)
+ * Core routes where bottom nav should always be visible (design system 2.1).
+ *
+ * NOTE — action-oriented pages (modale-équivalent) masquent le BottomTabMenu :
+ *   /join, /create-tournament, /create-league, /record-match.
+ *
+ * Ces écrans ont un CTA primaire qui doit rester seul en bas d'écran
+ * (ex. "Rejoindre l'événement", "Créer", "Lancer la ligue") et leur propre
+ * back button dans un header minimal. Le menu global reviendrait parasiter
+ * la hiérarchie visuelle.
  */
 const CORE_ROUTES = [
   "/",
-  "/join",
   "/tournaments",
   "/leagues",
+  "/competitions",
+  "/leaderboard",
   "/user/profile",
-  "/create-league",
-  "/create-tournament",
 ] as const;
 
 /**
@@ -43,12 +49,14 @@ const EXCLUDED_PATTERNS = [
 ];
 
 /**
- * Determines if the bottom menu should be visible for a given route
+ * Determines if the bottom menu should be visible for a given route.
  *
- * Bottom Menu Visibility Rules (Story 14-10, design system 2.1):
- * - SHOW on core routes: /, /join, /tournaments, /leagues, /user/profile
- * - SHOW on detail pages: /tournament/:id, /league/:id, /player/:id
- * - HIDE on exclusions: Display views (/display/*), Auth (/auth/*), payment, modals
+ * Bottom Menu Visibility Rules (design system 2.1, post refonte 4 onglets) :
+ * - SHOW on core routes : /, /competitions, /leaderboard, /user/profile
+ *   (+ legacy /tournaments, /leagues)
+ * - SHOW on detail pages (lecture) : /tournament/:id, /league/:id, /player/:id
+ * - HIDE on action pages (modale-équivalent) : /join, /create-tournament,
+ *   /create-league, /auth/*, /display/*, /payment-*
  *
  * @param pathname - The current route pathname
  * @returns true if bottom menu should be visible, false otherwise
@@ -76,10 +84,15 @@ export function shouldShowBottomMenu(pathname: string): boolean {
   return false;
 }
 
-/** Routes that use BottomMenuSpecific (action bar) - need extra padding when visible */
-/** Story 14-12: /tournaments uses FAB instead of BottomMenuSpecific */
-/** Story 14-16: /leagues uses FAB instead of BottomMenuSpecific */
-export const PAGES_WITH_SPECIFIC_MENU = ["/join"] as const;
+/**
+ * Routes that historically rendered `BottomMenuSpecific` (secondary action bar)
+ * on top of the global `BottomTabMenu` and needed extra bottom padding.
+ *
+ * Post-refonte : `/join` est maintenant modale-like (pas de BottomTabMenu),
+ * donc plus besoin de padding empilé. La liste est vide mais l'export reste
+ * pour compat (consumers existants).
+ */
+export const PAGES_WITH_SPECIFIC_MENU = [] as const;
 
 /**
  * Returns the bottom padding class for scrollable content when bottom nav is visible.

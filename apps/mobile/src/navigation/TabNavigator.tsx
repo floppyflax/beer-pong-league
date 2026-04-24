@@ -1,21 +1,28 @@
+/**
+ * TabNavigator — Everything ELO 5-tab bar (Phase C.5)
+ * Tabs: Accueil | Classement | Rejoindre | Historique | Profil
+ */
+
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/tokens';
+import { palette } from '../theme/tokens';
 
-import { HomeScreen } from '../screens/HomeScreen';
-import { TournamentsScreen } from '../screens/TournamentsScreen';
-import { JoinScreen } from '../screens/JoinScreen';
-import { LeaguesScreen } from '../screens/LeaguesScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
+import { HomeScreen }        from '../screens/HomeScreen';
+import { LeaderboardScreen } from '../screens/LeaderboardScreen';
+import { JoinScreen }        from '../screens/JoinScreen';
+import { HistoryScreen }     from '../screens/HistoryScreen';
+import { ProfileScreen }     from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
-const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  Home: 'home',
-  Tournaments: 'trophy',
-  Join: 'qr-code',
-  Leagues: 'shield',
-  Profile: 'person',
+type IoniconsName = keyof typeof Ionicons.glyphMap;
+
+const TAB_ICONS: Record<string, IoniconsName> = {
+  Home:        'home',
+  Leaderboard: 'podium',
+  Join:        'qr-code',
+  History:     'time',
+  Profile:     'person',
 };
 
 export function TabNavigator() {
@@ -24,28 +31,59 @@ export function TabNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ color, size }) => (
-          <Ionicons name={TAB_ICONS[route.name] ?? 'ellipse'} size={size} color={color} />
+          <Ionicons
+            name={TAB_ICONS[route.name] ?? 'ellipse'}
+            size={size}
+            color={color}
+          />
         ),
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.text.muted,
+        tabBarActiveTintColor: palette.electricBlue,
+        tabBarInactiveTintColor: palette.coolGray,
         tabBarStyle: {
-          backgroundColor: colors.bg.secondary,
-          borderTopColor: colors.border.card,
+          backgroundColor: palette.navySoft,
+          borderTopColor: palette.cardBorder,
           borderTopWidth: 1,
           paddingBottom: 4,
-          height: 56,
+          height: 60,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
+          fontSize: 10,
+          fontWeight: '700',
+          letterSpacing: 0.3,
+          textTransform: 'uppercase',
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Accueil' }} />
-      <Tab.Screen name="Tournaments" component={TournamentsScreen} options={{ tabBarLabel: 'Tournois' }} />
-      <Tab.Screen name="Join" component={JoinScreen} options={{ tabBarLabel: 'Rejoindre' }} />
-      <Tab.Screen name="Leagues" component={LeaguesScreen} options={{ tabBarLabel: 'Ligues' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profil' }} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ tabBarLabel: 'Accueil' }}
+      />
+      <Tab.Screen
+        name="Leaderboard"
+        component={LeaderboardScreen}
+        options={{ tabBarLabel: 'Classement' }}
+      />
+      <Tab.Screen
+        name="Join"
+        component={JoinScreen}
+        options={{
+          tabBarLabel: 'Rejoindre',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="qr-code" size={size + 2} color={palette.electricBlue} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{ tabBarLabel: 'Historique' }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ tabBarLabel: 'Profil' }}
+      />
     </Tab.Navigator>
   );
 }

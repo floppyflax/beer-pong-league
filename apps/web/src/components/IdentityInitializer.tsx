@@ -92,10 +92,10 @@ export const IdentityInitializer = ({
   // Show loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="min-h-screen bg-navy flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">🍺</div>
-          <div className="text-ink-soft">Chargement...</div>
+          <div className="text-cool-gray">Chargement...</div>
         </div>
       </div>
     );

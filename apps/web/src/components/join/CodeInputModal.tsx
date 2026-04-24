@@ -53,7 +53,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
       title="Saisir le Code"
       disableClose={isLoading}
     >
-      <p className="text-text-tertiary text-sm mb-4">
+      <p className="text-cool-gray text-sm mb-4">
         Entrez le code du tournoi (6 à 8 caractères alphanumériques)
       </p>
 
@@ -64,26 +64,26 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
         onKeyDown={handleKeyDown}
         placeholder="Ex: ABC123"
         maxLength={8}
-        className="w-full px-4 py-4 bg-background-primary border border-card rounded-button text-white text-center text-2xl font-bold tracking-wider uppercase focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+        className="w-full px-4 py-4 bg-navy border border-card rounded-button text-white text-center text-2xl font-bold tracking-wider uppercase focus:border-electric-blue focus:outline-none focus:ring-2 focus:ring-electric-blue/50 transition-all"
         autoFocus
         disabled={isLoading}
         aria-label="Code du tournoi"
       />
 
       <div className="text-right mt-2">
-        <span className={`text-sm ${code.length >= 6 && code.length <= 8 ? 'text-success' : 'text-text-muted'}`}>
+        <span className={`text-sm ${code.length >= 6 && code.length <= 8 ? 'text-lime' : 'text-cool-gray'}`}>
           {code.length}/8
         </span>
       </div>
 
       {error && (
-        <p className="text-error text-sm mt-3 text-center">{error}</p>
+        <p className="text-signal-red text-sm mt-3 text-center">{error}</p>
       )}
 
       <button
         onClick={handleSubmit}
         disabled={!isValid || isLoading}
-        className="w-full mt-6 py-4 bg-primary hover:bg-amber-600 text-white font-bold rounded-input transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+        className="w-full mt-6 py-4 bg-electric-blue hover:bg-amber-600 text-white font-bold rounded-input transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
       >
         {isLoading ? (
           <div className="flex items-center justify-center gap-2">
@@ -95,7 +95,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
         )}
       </button>
 
-      <p className="text-text-muted text-xs text-center mt-4">
+      <p className="text-cool-gray text-xs text-center mt-4">
         Le code vous a été partagé par l'organisateur du tournoi
       </p>
     </Modal>

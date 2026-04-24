@@ -130,7 +130,7 @@ describe.skip("LandingPage Integration Tests", () => {
 
   describe("Public Access to Join (AC2)", () => {
     it("should allow joining tournament without authentication", () => {
-      const { container } = render(
+      render(
         <BrowserRouter>
           <LandingPage />
         </BrowserRouter>,

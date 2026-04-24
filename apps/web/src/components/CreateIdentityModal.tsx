@@ -57,7 +57,7 @@ export const CreateIdentityModal = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="text-sm text-text-tertiary mb-2 block">
+          <label className="text-sm text-cool-gray mb-2 block">
             Choisis un pseudo
           </label>
           <input
@@ -65,12 +65,12 @@ export const CreateIdentityModal = ({
             value={pseudo}
             onChange={(e) => setPseudo(e.target.value)}
             placeholder="Ton pseudo"
-            className="w-full bg-background-tertiary border border-card rounded-input p-4 text-white focus:ring-2 focus:ring-primary outline-none"
+            className="w-full bg-navy-soft border border-card rounded-input p-4 text-white focus:ring-2 focus:ring-electric-blue outline-none"
             autoFocus
             disabled={isCreating}
             maxLength={50}
           />
-          <p className="text-xs text-text-muted mt-2">
+          <p className="text-xs text-cool-gray mt-2">
             Tu pourras le modifier plus tard
           </p>
         </div>
@@ -78,7 +78,7 @@ export const CreateIdentityModal = ({
         <button
           type="submit"
           disabled={!pseudo.trim() || isCreating}
-          className="w-full bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-input transition-colors"
+          className="w-full bg-electric-blue disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-input transition-colors"
         >
           {isCreating ? "Création..." : "Créer mon profil"}
         </button>

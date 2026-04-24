@@ -110,7 +110,7 @@ describe("TournamentInvite - Story 14-14", () => {
     it("should display QR code", () => {
       renderWithRouter();
       const qrCodes = screen.getAllByRole("img", {
-        name: "QR code pour rejoindre le tournoi",
+        name: "QR code pour rejoindre l'événement",
       });
       expect(qrCodes.length).toBeGreaterThanOrEqual(1);
     });
@@ -189,7 +189,7 @@ describe("TournamentInvite - Story 14-14", () => {
     it("should display instruction steps", () => {
       renderWithRouter();
       expect(
-        screen.getByText(/Partage le QR code ou le lien avec les joueurs/)
+        screen.getByText(/Partage le QR code, le lien ou le code court/)
       ).toBeInTheDocument();
     });
 
@@ -209,7 +209,7 @@ describe("TournamentInvite - Story 14-14", () => {
         isLoadingInitialData: false,
       } as ReturnType<typeof LeagueContext.useLeague>);
       renderWithRouter();
-      expect(screen.getByText("Tournoi introuvable")).toBeInTheDocument();
+      expect(screen.getByText("Événement introuvable")).toBeInTheDocument();
     });
 
     it("should display back to home button when tournament not found", () => {

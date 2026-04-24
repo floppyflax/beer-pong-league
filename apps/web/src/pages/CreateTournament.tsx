@@ -1,13 +1,13 @@
 /**
- * CreateTournament Page - Story 14.19
+ * CreateTournament Page — Everything ELO refonte (Phase 2)
  *
- * Tournament creation form aligned with design system (design-system-convergence 5.3).
- * - Header: title + back
- * - Fields with labels, inline validation
- * - Primary CTA sticky at bottom
- * - Matches Frame 10
+ * Tournament creation form aligné DS Everything ELO :
+ * - PageHero (titre éditorial) au lieu de ContextualHeader sticky
+ * - Premium banner mis en avant avec couronne (upgrade urgency)
+ * - Sélecteur Type d'événement (ELO vs Bracket)
+ * - Sticky bottom CTA (pattern page Rejoindre) — pas de divider
  *
- * Also: Freemium limit enforcement, unique code generation, QR code for sharing.
+ * Règle freemium : 2 événements gratuits, puis Premium.
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -20,10 +20,10 @@ import { databaseService } from "@/services/DatabaseService";
 import { generateTournamentCode } from "@/utils/tournamentCode";
 import { PaymentModal } from "@/components/PaymentModal";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { ContextualHeader } from "@/components/navigation/ContextualHeader";
-import { ScreenLayout } from "@/components/design-system";
+import { PageHero, StickyCTA } from "@/components/design-system";
 import toast from "react-hot-toast";
-import { Info, X } from "lucide-react";
+import { Crown, ChevronRight, Trophy, Target, X } from "lucide-react";
+import { PButton } from "@/components/ponglo/PButton";
 
 /** Value used for "unlimited" players when hasPlayerLimit is false (design-system) */
 const UNLIMITED_PLAYERS = 999;
@@ -67,6 +67,28 @@ const FORMAT_OPTIONS: FormatOption[] = [
   },
 ];
 
+interface ModeOption {
+  value: 'elo' | 'bracket';
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+const MODE_OPTIONS: ModeOption[] = [
+  {
+    value: 'elo',
+    label: 'ELO',
+    description: 'Classement évolutif, tous les matchs comptent.',
+    icon: <Target size={22} />,
+  },
+  {
+    value: 'bracket',
+    label: 'Bracket',
+    description: 'Élimination directe, un vainqueur au bout.',
+    icon: <Trophy size={22} />,
+  },
+];
+
 interface CreateTournamentProps {
   /** Skip premium check (testing only) — bypasses loading state */
   skipPremiumCheck?: boolean;
@@ -77,7 +99,7 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
   const { reloadData } = useLeague();
-  
+
   // Premium status and limits
   const [isLoadingPremium, setIsLoadingPremium] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
@@ -85,15 +107,16 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
   const [canCreate, setCanCreate] = useState(false);
   const [remainingTournaments, setRemainingTournaments] = useState(0);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  
+
   // Form state
   const [name, setName] = useState("");
   const [format, setFormat] = useState<'2v2' | '1v1' | 'libre'>('2v2');
+  const [mode, setMode] = useState<'elo' | 'bracket'>('elo');
   const [hasPlayerLimit, setHasPlayerLimit] = useState(false);
   const [playerLimit, setPlayerLimit] = useState<string>("16");
   const [isPrivate, setIsPrivate] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -102,28 +125,20 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
 
   const checkPremiumStatus = useCallback(async () => {
     setIsLoadingPremium(true);
-    
+
     try {
       const userId = user?.id || null;
       const anonymousUserId = localUser?.anonymousUserId || null;
-      
-      // Get premium status
+
       const premiumStatus = await premiumService.isPremium(userId, anonymousUserId);
       setIsPremium(premiumStatus);
-      
-      // Get tournament count
+
       const count = await premiumService.getTournamentCount(userId, anonymousUserId);
       setTournamentCount(count);
-      
-      // Check if can create
+
       const result = await premiumService.canCreateTournament(userId, anonymousUserId);
       setCanCreate(result.allowed);
       setRemainingTournaments(result.remaining || 0);
-      
-      // If limit reached, show LimitReached modal (design-system 6.2) — no toast, no auto-redirect
-      if (!result.allowed) {
-        // Modal with Passer à Premium / Plus tard will be shown
-      }
     } catch (error) {
       console.error('Error checking premium status:', error);
       toast.error('Erreur lors de la vérification du statut premium');
@@ -132,7 +147,6 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
     }
   }, [user?.id, localUser?.anonymousUserId]);
 
-  // Check premium status and limits on mount (skip when skipPremiumCheck for testing)
   useEffect(() => {
     if (skipPremiumCheck) {
       setIsLoadingPremium(false);
@@ -144,7 +158,7 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
     checkPremiumStatus();
   }, [skipPremiumCheck, checkPremiumStatus]);
 
-  // Limit modal: Escape key closes (UX spec), focus trap when open
+  // Limit modal: Escape key closes, focus trap when open
   const showLimitReachedModal = !canCreate;
   useEffect(() => {
     if (!showLimitReachedModal) return;
@@ -168,15 +182,13 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
-    // Name required and max 50 chars (AC2, AC3)
+
     if (!name.trim()) {
-      newErrors.name = 'Le nom du tournoi est requis';
+      newErrors.name = "Le nom de l'événement est requis";
     } else if (name.length > 50) {
       newErrors.name = 'Le nom ne peut pas dépasser 50 caractères';
     }
-    
-    // Player limit validation (required if toggle is ON, max 100)
+
     if (hasPlayerLimit) {
       const limitNum = parseInt(playerLimit);
       if (!playerLimit || isNaN(limitNum) || limitNum < 2) {
@@ -185,54 +197,42 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
         newErrors.playerLimit = 'Maximum 100 joueurs';
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const generateUniqueCode = async (): Promise<string> => {
     const maxAttempts = 10;
-
     for (let attempts = 0; attempts < maxAttempts; attempts++) {
       const code = generateTournamentCode();
       const exists = await databaseService.tournamentCodeExists(code);
-
-      if (!exists) {
-        return code;
-      }
+      if (!exists) return code;
     }
-
-    // DB constraint: join_code must be exactly 6 chars — no fallback to 8 chars
     throw new Error('Impossible de générer un code unique. Réessayez.');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate form
+
     if (!validateForm()) {
       toast.error('Veuillez corriger les erreurs dans le formulaire');
       return;
     }
-    
-    // Double-check if can create (safeguard, AC8)
+
     if (!canCreate) {
-      toast.error('Limite de tournois atteinte. Passez Premium pour créer sans limite !');
+      toast.error('Limite d\'événements atteinte. Passez Premium pour créer sans limite !');
       setShowPaymentModal(true);
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      // Generate unique tournament code (AC4)
       const joinCode = await generateUniqueCode();
-      
-      // Get selected format configuration
       const selectedFormat = FORMAT_OPTIONS.find(f => f.value === format)!;
-      
-      // Create tournament in database (AC6)
       const maxPlayersValue = hasPlayerLimit ? parseInt(playerLimit) : null;
+
       const tournamentId = await databaseService.createTournament({
         name: name.trim(),
         joinCode,
@@ -241,17 +241,13 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
         team2Size: selectedFormat.team2Size,
         maxPlayers: maxPlayersValue || UNLIMITED_PLAYERS,
         isPrivate,
+        mode,
         creatorUserId: user?.id || null,
         creatorAnonymousUserId: localUser?.anonymousUserId || null,
       });
-      
-      // Success toast (AC7)
-      toast.success('Tournoi créé ! 🎉');
-      
-      // Reload context data to include the new tournament (AC7)
+
+      toast.success('Événement créé ! 🎉');
       await reloadData();
-      
-      // Navigate to tournament dashboard (AC7)
       navigate(`/tournament/${tournamentId}`);
     } catch (error) {
       console.error('Error creating tournament:', error);
@@ -267,8 +263,8 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
 
   if (isLoadingPremium) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="text-ink text-center">
+      <div className="min-h-screen bg-navy flex items-center justify-center">
+        <div className="text-white text-center">
           <LoadingSpinner size={48} />
           <p className="mt-4 font-archivo font-extrabold uppercase tracking-tight">
             Vérification du statut…
@@ -280,288 +276,360 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
 
   const toggleClass = (on: boolean) =>
     `relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-      on ? "bg-cup-red" : "bg-cream-deep border border-card"
+      on ? "bg-electric-blue" : "bg-navy-deep border border-card"
     }`;
   const toggleKnob = (on: boolean) =>
-    `inline-block h-4 w-4 transform rounded-full bg-ink transition-transform ${
+    `inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
       on ? "translate-x-6" : "translate-x-1"
     }`;
   const fieldInputClass = (hasError: boolean) =>
-    `w-full bg-paper border-[1.5px] rounded-md p-4 text-ink placeholder-ink-mute focus:outline-none focus:ring-2 transition-colors ${
+    `w-full bg-navy-soft border-[1.5px] rounded-md p-4 text-white placeholder-cool-gray focus:outline-none focus:ring-2 transition-colors ${
       hasError
-        ? "border-ruby focus:ring-ruby/30"
+        ? "border-signal-red focus:ring-signal-red/30"
         : "border-card focus:border-lime focus:ring-lime/20"
     }`;
 
   return (
-    <ScreenLayout
-      header={
-        <ContextualHeader
-          title="Créer un Tournoi"
-          showBackButton={true}
-          onBack={() => navigate("/")}
+    <div className="min-h-screen bg-navy text-white flex flex-col relative">
+      {/* Content wrapper (max-width narrow, sticky CTA compensated with pb-[160px]) */}
+      <div className="flex-1 max-w-[720px] w-full mx-auto px-4 sm:px-6 lg:px-8 pb-[160px]">
+        <PageHero
+          eyebrow="Nouvel événement"
+          title={<>Crée ton<br />événement.</>}
+          onBack={() => navigate("/competitions?tab=events")}
         />
-      }
-      maxWidth="narrow"
-      contentClassName="pb-44"
-      overlay={
-        <>
-          {showLimitReachedModal && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="limit-modal-title"
-            >
-              <div
-                ref={limitModalRef}
-                className="bg-paper rounded-card p-6 border border-card max-w-md w-full relative shadow-modal"
-              >
-                <button
-                  onClick={() => navigate("/")}
-                  className="absolute top-4 right-4 text-ink-soft hover:text-ink transition-colors p-1"
-                  aria-label="Fermer"
-                >
-                  <X size={24} />
-                </button>
-                <h2
-                  id="limit-modal-title"
-                  className="text-2xl font-archivo font-extrabold uppercase tracking-tight text-ink mb-4 pr-10"
-                >
-                  Limite atteinte
-                </h2>
-                <p className="text-ink-soft mb-6">
-                  Tu as créé {tournamentCount} tournoi
-                  {tournamentCount > 1 ? "s" : ""}. Passe Premium pour créer des
-                  tournois illimités !
-                </p>
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="w-full bg-gold text-cream border-[1.5px] border-[#C08800] shadow-[0_3px_0_#C08800] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C08800] font-archivo font-bold uppercase tracking-tight py-3 rounded-full transition-[transform,box-shadow,filter] duration-75"
-                  >
-                    ✨ Passer Premium — {PREMIUM_PRICE}
-                  </button>
-                  <button
-                    onClick={() => navigate("/")}
-                    className="w-full bg-paper text-ink border-[1.5px] border-card hover:border-card-muted font-archivo font-bold uppercase tracking-tight py-3 rounded-full transition-colors"
-                  >
-                    Plus tard
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
-          <PaymentModal
-            isOpen={showPaymentModal}
-            onClose={() => setShowPaymentModal(false)}
-          />
-
-          {!showLimitReachedModal && (
-            <div className="fixed bottom-16 inset-x-0 z-20 bg-cream border-t border-card p-4 md:p-6">
-              <div className="max-w-[720px] mx-auto">
-                <button
-                  type="submit"
-                  form="create-tournament-form"
-                  disabled={!name.trim() || isSubmitting}
-                  className="w-full bg-cup-red text-ink border-[1.5px] border-cup-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:shadow-none font-archivo font-bold uppercase tracking-tight py-4 rounded-full transition-[transform,box-shadow,filter] duration-75"
-                >
-                  {isSubmitting ? "Création…" : "Créer le tournoi"}
-                </button>
-              </div>
+        {/* Premium banner — "X restant sur N" + CTA secondaire flèche */}
+        {!isPremium && (
+          <div
+            className="w-full bg-gradient-to-br from-ping-yellow/20 via-ping-yellow/10 to-ping-yellow/5 border-2 border-ping-yellow/50 rounded-card p-4 mb-6 flex items-center gap-4"
+            role="region"
+            aria-label="Statut Premium"
+          >
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-ping-yellow/25 flex items-center justify-center">
+              <Crown size={24} className="text-ping-yellow" />
             </div>
-          )}
-        </>
-      }
-    >
-      {!isPremium && (
-        <div className="bg-paper border border-card rounded-card p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <Info size={20} className="text-cup-blue flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-ink text-sm font-archivo font-extrabold uppercase tracking-tight">
-                {remainingTournaments} tournoi
-                {remainingTournaments > 1 ? "s" : ""} restant
-                {remainingTournaments > 1 ? "s" : ""} sur 2 (gratuit)
-              </p>
-              <p className="text-ink-soft text-xs mt-1">
-                Passe Premium pour créer des tournois illimités
+            <div className="flex-1 min-w-0">
+              <div className="font-archivo font-extrabold uppercase tracking-tight text-base leading-tight">
+                <span className="text-ping-yellow text-2xl">
+                  {remainingTournaments}
+                </span>{" "}
+                <span className="text-white">
+                  événement{remainingTournaments > 1 ? "s" : ""} restant
+                  {remainingTournaments > 1 ? "s" : ""} sur 2
+                </span>
+              </div>
+              <p className="text-white/70 text-sm mt-0.5">
+                Passe{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(true)}
+                  className="inline-flex items-center gap-0.5 text-ping-yellow font-archivo font-extrabold uppercase tracking-tight underline-offset-2 hover:underline"
+                >
+                  Premium
+                  <ChevronRight size={14} className="-mr-1" />
+                </button>{" "}
+                pour des événements illimités — {PREMIUM_PRICE}
               </p>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {isPremium && (
-        <div className="bg-gold/15 border border-gold/40 rounded-card p-4 mb-6">
-          <p className="text-gold text-sm font-archivo font-extrabold uppercase tracking-tight flex items-center gap-2">
-            <span>✨</span>
-            Tournois illimités — Premium actif
-          </p>
-        </div>
-      )}
-
-      {!showLimitReachedModal && (
-        <form
-          id="create-tournament-form"
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-6"
-          noValidate
-        >
-          <div className="space-y-2">
-            <label
-              htmlFor="name"
-              className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-ink-soft block"
-            >
-              Nom du tournoi *
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={() => validateForm()}
-              placeholder="Ex: Summer Cup 2026"
-              className={fieldInputClass(!!errors.name)}
-              maxLength={50}
-              autoFocus
-              aria-label="Nom du tournoi"
-              aria-invalid={!!errors.name}
-              aria-describedby={errors.name ? "name-error" : undefined}
-            />
-            {errors.name && (
-              <p id="name-error" className="text-sm text-ruby" role="alert">
-                {errors.name}
-              </p>
-            )}
-            <p className="text-ink-mute text-xs font-mono">
-              {name.length}/50 caractères
+        {isPremium && (
+          <div className="bg-ping-yellow/15 border border-ping-yellow/40 rounded-card p-4 mb-6 flex items-center gap-3">
+            <Crown size={20} className="text-ping-yellow flex-shrink-0" />
+            <p className="text-ping-yellow text-sm font-archivo font-extrabold uppercase tracking-tight">
+              Événements illimités — Premium actif
             </p>
           </div>
+        )}
 
-          <div className="space-y-2">
-            <span className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-ink-soft block">
-              Format du match *
-            </span>
+        {!showLimitReachedModal && (
+          <form
+            id="create-tournament-form"
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-6"
+            noValidate
+          >
+            {/* Nom */}
             <div className="space-y-2">
-              {FORMAT_OPTIONS.map((option) => {
-                const active = format === option.value;
-                return (
-                  <label
-                    key={option.value}
-                    className={`flex items-start gap-3 p-4 rounded-card border cursor-pointer transition-colors ${
-                      active
-                        ? "border-cup-red bg-cup-red/10"
-                        : "border-card bg-paper hover:border-card-muted"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="format"
-                      value={option.value}
-                      checked={active}
-                      onChange={(e) =>
-                        setFormat(
-                          e.target.value as "2v2" | "1v1" | "libre",
-                        )
-                      }
-                      className="mt-1 accent-cup-red"
-                    />
-                    <div className="flex-1">
-                      <div className="text-ink font-archivo font-extrabold uppercase tracking-tight">
+              <label
+                htmlFor="name"
+                className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-cool-gray block"
+              >
+                Nom de l'événement *
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={() => validateForm()}
+                placeholder="Ex: Summer Cup 2026"
+                className={fieldInputClass(!!errors.name)}
+                maxLength={50}
+                autoFocus
+                aria-label="Nom de l'événement"
+                aria-invalid={!!errors.name}
+                aria-describedby={errors.name ? "name-error" : undefined}
+              />
+              {errors.name && (
+                <p id="name-error" className="text-sm text-signal-red" role="alert">
+                  {errors.name}
+                </p>
+              )}
+              <p className="text-cool-gray text-xs font-mono">
+                {name.length}/50 caractères
+              </p>
+            </div>
+
+            {/* Format du match */}
+            <div className="space-y-2">
+              <span className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-cool-gray block">
+                Format du match *
+              </span>
+              <div className="space-y-2">
+                {FORMAT_OPTIONS.map((option) => {
+                  const active = format === option.value;
+                  return (
+                    <label
+                      key={option.value}
+                      className={`flex items-start gap-3 p-4 rounded-card border cursor-pointer transition-colors ${
+                        active
+                          ? "border-electric-blue bg-electric-blue/10"
+                          : "border-card bg-navy-soft hover:border-card-muted"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="format"
+                        value={option.value}
+                        checked={active}
+                        onChange={(e) =>
+                          setFormat(
+                            e.target.value as "2v2" | "1v1" | "libre",
+                          )
+                        }
+                        className="mt-1 accent-electric-blue"
+                      />
+                      <div className="flex-1">
+                        <div className="text-white font-archivo font-extrabold uppercase tracking-tight">
+                          {option.label}
+                        </div>
+                        <div className="text-cool-gray text-sm">
+                          {option.description}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Type d'événement — ELO vs Bracket */}
+            <div className="space-y-2">
+              <span className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-cool-gray block">
+                Type d'événement *
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                {MODE_OPTIONS.map((option) => {
+                  const active = mode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setMode(option.value)}
+                      aria-pressed={active}
+                      className={`p-4 rounded-card border text-left transition-colors ${
+                        active
+                          ? "border-electric-blue bg-electric-blue/10"
+                          : "border-card bg-navy-soft hover:border-card-muted"
+                      }`}
+                    >
+                      <div
+                        className={`w-10 h-10 rounded-md flex items-center justify-center mb-3 ${
+                          active
+                            ? "bg-electric-blue text-white"
+                            : "bg-navy-deep text-cool-gray"
+                        }`}
+                      >
+                        {option.icon}
+                      </div>
+                      <div
+                        className={`font-archivo font-extrabold uppercase tracking-tight ${
+                          active ? "text-electric-blue" : "text-white"
+                        }`}
+                      >
                         {option.label}
                       </div>
-                      <div className="text-ink-soft text-sm">
+                      <div className="text-cool-gray text-xs mt-1">
                         {option.description}
                       </div>
-                    </div>
-                  </label>
-                );
-              })}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 bg-paper border border-card rounded-card">
-              <div className="flex-1">
-                <div className="text-ink font-archivo font-extrabold uppercase tracking-tight">
-                  Limiter le nombre de joueurs
+            {/* Limite joueurs */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-4 bg-navy-soft border border-card rounded-card">
+                <div className="flex-1">
+                  <div className="text-white font-archivo font-extrabold uppercase tracking-tight">
+                    Limiter le nombre de joueurs
+                  </div>
+                  <div className="text-cool-gray text-sm mt-1">
+                    Par défaut : aucune limite
+                  </div>
                 </div>
-                <div className="text-ink-soft text-sm mt-1">
-                  Par défaut : aucune limite
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasPlayerLimit(!hasPlayerLimit);
+                    if (!hasPlayerLimit) setPlayerLimit("16");
+                  }}
+                  className={toggleClass(hasPlayerLimit)}
+                  aria-label="Limiter le nombre de joueurs"
+                >
+                  <span className={toggleKnob(hasPlayerLimit)} />
+                </button>
+              </div>
+
+              {hasPlayerLimit && (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="playerLimit"
+                    className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-cool-gray block"
+                  >
+                    Nombre maximum de joueurs *
+                  </label>
+                  <input
+                    id="playerLimit"
+                    type="number"
+                    value={playerLimit}
+                    onChange={(e) => setPlayerLimit(e.target.value)}
+                    onBlur={() => validateForm()}
+                    placeholder="Ex: 16"
+                    min={2}
+                    max={100}
+                    className={fieldInputClass(!!errors.playerLimit)}
+                    aria-label="Nombre maximum de joueurs"
+                    aria-invalid={!!errors.playerLimit}
+                    aria-describedby={
+                      errors.playerLimit ? "playerLimit-error" : undefined
+                    }
+                  />
+                  {errors.playerLimit && (
+                    <p
+                      id="playerLimit-error"
+                      className="text-sm text-signal-red"
+                      role="alert"
+                    >
+                      {errors.playerLimit}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Privé */}
+            <div className="flex items-center justify-between p-4 bg-navy-soft border border-card rounded-card">
+              <div className="flex-1">
+                <div className="text-white font-archivo font-extrabold uppercase tracking-tight">
+                  🔒 Événement privé
+                </div>
+                <div className="text-cool-gray text-sm mt-1">
+                  Seuls ceux qui ont le code peuvent rejoindre
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setHasPlayerLimit(!hasPlayerLimit);
-                  if (!hasPlayerLimit) setPlayerLimit("16");
-                }}
-                className={toggleClass(hasPlayerLimit)}
-                aria-label="Limiter le nombre de joueurs"
+                onClick={() => setIsPrivate(!isPrivate)}
+                className={toggleClass(isPrivate)}
+                aria-label="Événement privé"
               >
-                <span className={toggleKnob(hasPlayerLimit)} />
+                <span className={toggleKnob(isPrivate)} />
               </button>
             </div>
+          </form>
+        )}
+      </div>
 
-            {hasPlayerLimit && (
-              <div className="space-y-2">
-                <label
-                  htmlFor="playerLimit"
-                  className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-ink-soft block"
-                >
-                  Nombre maximum de joueurs *
-                </label>
-                <input
-                  id="playerLimit"
-                  type="number"
-                  value={playerLimit}
-                  onChange={(e) => setPlayerLimit(e.target.value)}
-                  onBlur={() => validateForm()}
-                  placeholder="Ex: 16"
-                  min={2}
-                  max={100}
-                  className={fieldInputClass(!!errors.playerLimit)}
-                  aria-label="Nombre maximum de joueurs"
-                  aria-invalid={!!errors.playerLimit}
-                  aria-describedby={
-                    errors.playerLimit ? "playerLimit-error" : undefined
-                  }
-                />
-                {errors.playerLimit && (
-                  <p
-                    id="playerLimit-error"
-                    className="text-sm text-ruby"
-                    role="alert"
-                  >
-                    {errors.playerLimit}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-paper border border-card rounded-card">
-            <div className="flex-1">
-              <div className="text-ink font-archivo font-extrabold uppercase tracking-tight">
-                🔒 Tournoi privé
-              </div>
-              <div className="text-ink-soft text-sm mt-1">
-                Seuls ceux qui ont le code peuvent rejoindre
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsPrivate(!isPrivate)}
-              className={toggleClass(isPrivate)}
-              aria-label="Tournoi privé"
-            >
-              <span className={toggleKnob(isPrivate)} />
-            </button>
-          </div>
-        </form>
+      {/* Sticky bottom CTA — DS primitive */}
+      {!showLimitReachedModal && (
+        <StickyCTA>
+          <PButton
+            type="submit"
+            form="create-tournament-form"
+            variant="primary"
+            size="lg"
+            full
+            disabled={!name.trim() || isSubmitting}
+          >
+            {isSubmitting ? "Création…" : "Créer l'événement"}
+          </PButton>
+        </StickyCTA>
       )}
-    </ScreenLayout>
+
+      {/* Limit reached modal */}
+      {showLimitReachedModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="limit-modal-title"
+        >
+          <div
+            ref={limitModalRef}
+            className="bg-navy-soft rounded-card p-6 border border-card max-w-md w-full relative shadow-modal"
+          >
+            <button
+              onClick={() => navigate("/")}
+              className="absolute top-4 right-4 text-cool-gray hover:text-white transition-colors p-1"
+              aria-label="Fermer"
+            >
+              <X size={24} />
+            </button>
+            <div className="w-14 h-14 rounded-full bg-ping-yellow/20 flex items-center justify-center mb-4">
+              <Crown size={28} className="text-ping-yellow" />
+            </div>
+            <h2
+              id="limit-modal-title"
+              className="text-2xl font-archivo font-extrabold uppercase tracking-tight text-white mb-4 pr-10"
+            >
+              Limite atteinte
+            </h2>
+            <p className="text-cool-gray mb-6">
+              Tu as créé {tournamentCount} événement
+              {tournamentCount > 1 ? "s" : ""}. Passe Premium pour créer des
+              événements illimités !
+            </p>
+            <div className="flex flex-col gap-3">
+              <PButton
+                variant="tertiary"
+                size="lg"
+                full
+                onClick={() => setShowPaymentModal(true)}
+              >
+                ✨ Passer Premium — {PREMIUM_PRICE}
+              </PButton>
+              <PButton
+                variant="ghost"
+                size="md"
+                full
+                onClick={() => navigate("/")}
+              >
+                Plus tard
+              </PButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+      />
+    </div>
   );
 };

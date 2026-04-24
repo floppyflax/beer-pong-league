@@ -242,7 +242,7 @@ describe('BottomMenuSpecific', () => {
       );
       
       const bottomBar = container.firstChild as Element;
-      expect(bottomBar).toHaveClass('bg-cream/80');
+      expect(bottomBar).toHaveClass('bg-navy/80');
       expect(bottomBar).toHaveClass('backdrop-blur-md');
       expect(bottomBar).toHaveClass('border-t');
       expect(bottomBar).toHaveClass('border-card');
@@ -266,9 +266,9 @@ describe('BottomMenuSpecific', () => {
       );
       
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('bg-cup-red');
+      expect(button).toHaveClass('bg-signal-red');
       expect(button).toHaveClass('hover:brightness-110');
-      expect(button).toHaveClass('text-ink');
+      expect(button).toHaveClass('text-white');
       expect(button).toHaveClass('font-bold');
       expect(button).toHaveClass('rounded-xl');
       expect(button).toHaveClass('shadow-lg');

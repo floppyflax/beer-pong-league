@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
@@ -245,8 +245,8 @@ describe("LeagueCard", () => {
     );
 
     const statusBadge = screen.getByText("TERMINÉE");
-    expect(statusBadge).toHaveClass("bg-cream-deep");
-    expect(statusBadge).toHaveClass("text-ink-soft");
+    expect(statusBadge).toHaveClass("bg-navy-deep");
+    expect(statusBadge).toHaveClass("text-cool-gray");
   });
 
   it("should apply hover and cursor styles", () => {
@@ -258,7 +258,7 @@ describe("LeagueCard", () => {
 
     const card = screen.getByTestId("league-card");
     expect(card).toHaveClass("cursor-pointer");
-    expect(card).toHaveClass("hover:border-cup-red");
+    expect(card).toHaveClass("hover:border-signal-red");
   });
 
   it("should display 'Date inconnue' when createdAt is invalid", () => {

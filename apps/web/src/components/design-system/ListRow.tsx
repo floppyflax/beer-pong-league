@@ -63,19 +63,19 @@ export type ListRowProps =
 function getRankBadgeClass(rank: number): string {
   switch (rank) {
     case 1:
-      return 'bg-gold text-cream';
+      return 'bg-ping-yellow text-navy';
     case 2:
-      return 'bg-ink-soft text-cream';
+      return 'bg-cool-gray text-navy';
     case 3:
-      return 'bg-cup-red-deep text-ink';
+      return 'bg-signal-red-deep text-white';
     default:
-      return 'bg-cream-deep text-ink-soft border border-card';
+      return 'bg-navy-deep text-cool-gray border border-card';
   }
 }
 
 export function ListRow(props: ListRowProps) {
   const baseClasses =
-    'flex items-center gap-3 p-4 w-full bg-paper rounded-card border border-card transition-colors hover:border-card-muted';
+    'flex items-center gap-3 p-4 w-full bg-navy-soft rounded-card border border-card transition-colors hover:border-card-muted';
   const clickableClasses = props.onClick ? ' cursor-pointer' : '';
 
   const handleClick = () => {
@@ -92,12 +92,12 @@ export function ListRow(props: ListRowProps) {
     const initials = getInitials(props.name);
     const rankBadgeClass = props.rank
       ? getRankBadgeClass(props.rank)
-      : 'bg-cream-deep text-ink-soft border border-card';
+      : 'bg-navy-deep text-cool-gray border border-card';
     const deltaClass =
       props.delta !== undefined
         ? props.delta >= 0
           ? 'text-lime'
-          : 'text-ruby'
+          : 'text-signal-red'
         : '';
 
     return (
@@ -108,7 +108,7 @@ export function ListRow(props: ListRowProps) {
         {...wrapperProps}
       >
         {/* Avatar ou initiales */}
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-cream-deep flex items-center justify-center text-sm font-mono font-bold text-ink-soft overflow-hidden border border-card">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-navy-deep flex items-center justify-center text-sm font-mono font-bold text-cool-gray overflow-hidden border border-card">
           {props.avatarUrl ? (
             <img
               src={props.avatarUrl}
@@ -131,18 +131,18 @@ export function ListRow(props: ListRowProps) {
 
         {/* Nom + sous-texte + cercles derniers matchs */}
         <div className="flex-1 min-w-0">
-          <div className="text-base font-archivo font-extrabold uppercase tracking-tight text-ink truncate">
+          <div className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate">
             {props.name}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-ink-soft truncate">{props.subtitle}</span>
+            <span className="text-sm text-cool-gray truncate">{props.subtitle}</span>
             {props.recentResults && props.recentResults.length > 0 && (
               <div className="flex gap-0.5" role="img" aria-label="Derniers résultats">
                 {props.recentResults.slice(0, 5).map((won, i) => (
                   <div
                     key={i}
                     className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                      won ? 'bg-lime' : 'bg-ruby'
+                      won ? 'bg-lime' : 'bg-signal-red'
                     }`}
                     title={won ? 'Victoire' : 'Défaite'}
                   />
@@ -171,7 +171,7 @@ export function ListRow(props: ListRowProps) {
         {/* Chevron */}
         <ChevronRight
           size={20}
-          className="flex-shrink-0 text-ink-mute"
+          className="flex-shrink-0 text-cool-gray"
           data-testid="listrow-chevron"
           aria-hidden
         />
@@ -190,22 +190,22 @@ export function ListRow(props: ListRowProps) {
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-base font-archivo font-extrabold uppercase tracking-tight text-ink truncate">
+          <span className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate">
             {name}
           </span>
           <span
             className={`px-2 py-0.5 rounded-sm text-xs font-archivo font-extrabold uppercase tracking-[0.6px] ${
               status.toLowerCase().includes('terminé') ||
               status.toLowerCase().includes('finished')
-                ? 'bg-cream-deep text-ink-soft border border-card'
+                ? 'bg-navy-deep text-cool-gray border border-card'
                 : 'bg-lime/20 text-lime'
             }`}
           >
             {status}
           </span>
         </div>
-        <div className="text-sm text-ink-soft mt-0.5">{date}</div>
-        <div className="flex gap-4 mt-2 text-xs text-ink-mute">
+        <div className="text-sm text-cool-gray mt-0.5">{date}</div>
+        <div className="flex gap-4 mt-2 text-xs text-cool-gray">
           <span>{metrics.matches} matchs</span>
           <span>{metrics.players} joueurs</span>
           <span>{metrics.format}</span>
@@ -214,7 +214,7 @@ export function ListRow(props: ListRowProps) {
 
       <ChevronRight
         size={20}
-        className="flex-shrink-0 text-ink-mute"
+        className="flex-shrink-0 text-cool-gray"
         data-testid="listrow-chevron"
         aria-hidden
       />

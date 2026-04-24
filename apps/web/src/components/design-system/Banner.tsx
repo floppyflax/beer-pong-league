@@ -28,12 +28,12 @@ const variantConfig: Record<
 > = {
   success: {
     bgClass: "bg-lime",
-    textClass: "text-cream",
+    textClass: "text-navy",
     Icon: CheckCircle,
   },
   error: {
-    bgClass: "bg-ruby",
-    textClass: "text-ink",
+    bgClass: "bg-signal-red",
+    textClass: "text-white",
     Icon: XCircle,
   },
 };

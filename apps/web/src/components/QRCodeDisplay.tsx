@@ -29,12 +29,12 @@ export const QRCodeDisplay = ({
   return (
     <>
       {/* Regular QR Code Display */}
-      <div className="bg-paper rounded-lg p-6 text-center">
-        <h3 className="text-xl font-bold text-ink mb-2">
+      <div className="bg-navy-soft rounded-lg p-6 text-center">
+        <h3 className="text-xl font-bold text-white mb-2">
           Inviter des participants
         </h3>
         
-        <p className="text-ink-soft mb-4">
+        <p className="text-cool-gray mb-4">
           Scannez ce QR code pour rejoindre le tournament
         </p>
         
@@ -50,7 +50,7 @@ export const QRCodeDisplay = ({
         <div className="mt-4 flex gap-2 justify-center">
           <button
             onClick={handleFullScreen}
-            className="flex items-center gap-2 px-4 py-2 bg-gold text-ink rounded-lg font-semibold hover:brightness-110 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-ping-yellow text-white rounded-lg font-semibold hover:brightness-110 transition-colors"
             aria-label="Display QR code in full screen"
           >
             <Maximize2 size={20} />
@@ -58,7 +58,7 @@ export const QRCodeDisplay = ({
           </button>
         </div>
         
-        <p className="text-sm text-ink-mute mt-4 break-all">
+        <p className="text-sm text-cool-gray mt-4 break-all">
           {joinUrl}
         </p>
       </div>
@@ -71,14 +71,14 @@ export const QRCodeDisplay = ({
         >
           <button
             onClick={closeFullScreen}
-            className="absolute top-4 right-4 text-ink hover:text-gray-300 transition-colors"
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
             aria-label="Close full screen"
           >
             <X size={32} />
           </button>
           
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-ink mb-8">
+            <h1 className="text-4xl font-bold text-white mb-8">
               {tournamentName}
             </h1>
             
@@ -91,11 +91,11 @@ export const QRCodeDisplay = ({
               />
             </div>
             
-            <p className="text-2xl text-ink mt-8">
+            <p className="text-2xl text-white mt-8">
               Scannez pour rejoindre
             </p>
             
-            <p className="text-lg text-ink-soft mt-4 break-all max-w-2xl mx-auto">
+            <p className="text-lg text-cool-gray mt-4 break-all max-w-2xl mx-auto">
               {joinUrl}
             </p>
           </div>

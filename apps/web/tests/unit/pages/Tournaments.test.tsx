@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
 import { Tournaments } from "../../../src/pages/Tournaments";
 import * as UseTournamentsList from "../../../src/hooks/useTournamentsList";
@@ -141,9 +141,9 @@ describe("Tournaments Page", () => {
 
       renderWithRouter(<Tournaments />);
 
-      expect(screen.getByText("Aucun tournoi")).toBeInTheDocument();
+      expect(screen.getByText("Aucun événement")).toBeInTheDocument();
       expect(
-        screen.getByText(/Rejoignez votre premier tournoi/i),
+        screen.getByText(/Rejoignez votre premier événement/i),
       ).toBeInTheDocument();
     });
 
@@ -155,8 +155,8 @@ describe("Tournaments Page", () => {
 
       renderWithRouter(<Tournaments />);
 
-      expect(screen.getByText("Rejoindre un tournoi")).toBeInTheDocument();
-      expect(screen.getByText("Créer un tournoi")).toBeInTheDocument();
+      expect(screen.getByText("Rejoindre un événement")).toBeInTheDocument();
+      expect(screen.getByText("Créer un événement")).toBeInTheDocument();
     });
 
     it('should navigate to /join when clicking "Rejoindre"', () => {
@@ -167,7 +167,7 @@ describe("Tournaments Page", () => {
 
       renderWithRouter(<Tournaments />);
 
-      const joinButton = screen.getByText("Rejoindre un tournoi");
+      const joinButton = screen.getByText("Rejoindre un événement");
       fireEvent.click(joinButton);
 
       expect(mockNavigate).toHaveBeenCalledWith("/join");
@@ -181,7 +181,7 @@ describe("Tournaments Page", () => {
 
       renderWithRouter(<Tournaments />);
 
-      const createButton = screen.getByText("Créer un tournoi");
+      const createButton = screen.getByText("Créer un événement");
       fireEvent.click(createButton);
 
       expect(mockNavigate).toHaveBeenCalledWith("/create-tournament");
@@ -210,7 +210,7 @@ describe("Tournaments Page", () => {
 
       renderWithRouter(<Tournaments />);
 
-      expect(screen.getByText("Mes Tournois")).toBeInTheDocument();
+      expect(screen.getByText("Mes Événements")).toBeInTheDocument();
     });
   });
 
@@ -224,7 +224,7 @@ describe("Tournaments Page", () => {
       renderWithRouter(<Tournaments />);
 
       expect(
-        screen.getByPlaceholderText("Rechercher un tournoi..."),
+        screen.getByPlaceholderText("Rechercher un événement..."),
       ).toBeInTheDocument();
     });
 
@@ -237,7 +237,7 @@ describe("Tournaments Page", () => {
       renderWithRouter(<Tournaments />);
 
       const searchInput = screen.getByPlaceholderText(
-        "Rechercher un tournoi...",
+        "Rechercher un événement...",
       );
       fireEvent.change(searchInput, { target: { value: "finished" } });
 
@@ -261,7 +261,7 @@ describe("Tournaments Page", () => {
       renderWithRouter(<Tournaments />);
 
       const searchInput = screen.getByPlaceholderText(
-        "Rechercher un tournoi...",
+        "Rechercher un événement...",
       );
       fireEvent.change(searchInput, {
         target: { value: "NonExistentTournament" },
@@ -282,7 +282,7 @@ describe("Tournaments Page", () => {
       renderWithRouter(<Tournaments />);
 
       const searchInput = screen.getByPlaceholderText(
-        "Rechercher un tournoi...",
+        "Rechercher un événement...",
       );
 
       // Type "finished" - filter should NOT apply immediately
@@ -467,7 +467,7 @@ describe("Tournaments Page", () => {
       expect(screen.getByTestId("fab")).toBeInTheDocument();
       // Header: create action for desktop (hidden on mobile via lg:flex)
       expect(
-        screen.getByRole("button", { name: /CRÉER TOURNOI/i }),
+        screen.getByRole("button", { name: /CRÉER ÉVÉNEMENT/i }),
       ).toBeInTheDocument();
     });
 
@@ -491,7 +491,7 @@ describe("Tournaments Page", () => {
       renderWithRouter(<Tournaments />);
 
       expect(
-        screen.getByPlaceholderText("Rechercher un tournoi..."),
+        screen.getByPlaceholderText("Rechercher un événement..."),
       ).toBeInTheDocument();
       expect(screen.getByRole("searchbox")).toBeInTheDocument();
     });

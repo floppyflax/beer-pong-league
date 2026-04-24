@@ -43,6 +43,8 @@ export interface TournamentRow {
   is_private?: boolean;
   status?: string;
   format?: string;
+  // Competition mode — introduced by migration 011.
+  mode?: 'elo' | 'bracket';
 }
 
 export interface LeaguePlayerRow {

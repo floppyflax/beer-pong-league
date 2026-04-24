@@ -41,8 +41,8 @@ describe("HelpCard", () => {
       <HelpCard title="T" steps={[]} />
     );
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass("bg-cup-blue/10");
-    expect(card).toHaveClass("border-cup-blue/30");
+    expect(card).toHaveClass("bg-electric-blue/10");
+    expect(card).toHaveClass("border-electric-blue/30");
   });
 
   it("should support children for custom content", () => {

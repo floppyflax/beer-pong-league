@@ -287,27 +287,27 @@ export const PaymentModal = ({
         onClose={() => setShowCloseConfirmation(false)}
         title={
           <span className="flex items-center gap-2">
-            <AlertCircle size={22} className="text-primary" />
+            <AlertCircle size={22} className="text-electric-blue" />
             Annuler le paiement ?
           </span>
         }
         maxWidth="max-w-sm"
         layer="top"
       >
-        <p className="text-sm text-text-tertiary mb-6">
+        <p className="text-sm text-cool-gray mb-6">
           Le paiement est en cours. Êtes-vous sûr de vouloir annuler ?
         </p>
 
         <div className="flex gap-3">
           <button
             onClick={() => setShowCloseConfirmation(false)}
-            className="flex-1 bg-background-tertiary hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
+            className="flex-1 bg-navy-soft hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
           >
             Continuer
           </button>
           <button
             onClick={handleConfirmClose}
-            className="flex-1 bg-error/20 border border-error/50 hover:bg-error/30 text-error font-bold py-3 rounded-input transition-colors"
+            className="flex-1 bg-signal-red/20 border border-signal-red/50 hover:bg-signal-red/30 text-signal-red font-bold py-3 rounded-input transition-colors"
           >
             Annuler
           </button>
@@ -326,16 +326,16 @@ export const PaymentModal = ({
         layer="top"
       >
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-success/20 rounded-full">
-            <CheckCircle size={32} className="text-success" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-lime/20 rounded-full">
+            <CheckCircle size={32} className="text-lime" />
           </div>
-          <p className="text-text-tertiary">
+          <p className="text-cool-gray">
             Ton compte est maintenant Premium. Profite de toutes les
             fonctionnalités illimitées !
           </p>
           <div className="pt-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-            <p className="text-sm text-text-muted mt-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-blue mx-auto" />
+            <p className="text-sm text-cool-gray mt-2">
               Fermeture automatique...
             </p>
           </div>
@@ -351,7 +351,7 @@ export const PaymentModal = ({
       onClose={handleClose}
       title={
         <span className="flex items-center gap-2">
-          <Sparkles size={22} className="text-primary" />
+          <Sparkles size={22} className="text-electric-blue" />
           {title ?? "Passe Premium"}
         </span>
       }
@@ -359,58 +359,58 @@ export const PaymentModal = ({
     >
       <div className="space-y-6">
         {subtitle && (
-          <div className="bg-primary/10 border border-primary/30 rounded-input p-4">
-            <p className="text-primary text-sm">{subtitle}</p>
+          <div className="bg-electric-blue/10 border border-electric-blue/30 rounded-input p-4">
+            <p className="text-electric-blue text-sm">{subtitle}</p>
           </div>
         )}
-        <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-card p-6 text-center border border-primary/30">
+        <div className="bg-gradient-to-br from-electric-blue/20 to-electric-blue/20 rounded-card p-6 text-center border border-electric-blue/30">
           <div className="text-5xl font-black text-white mb-2">3€</div>
-          <div className="text-sm text-text-secondary">
+          <div className="text-sm text-cool-gray">
             Paiement unique - À vie
           </div>
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-start gap-3 bg-background-tertiary/50 p-4 rounded-input">
+          <div className="flex items-start gap-3 bg-navy-soft/50 p-4 rounded-input">
             <CheckCircle
               size={20}
-              className="text-success mt-0.5 flex-shrink-0"
+              className="text-lime mt-0.5 flex-shrink-0"
             />
             <div>
               <div className="font-semibold text-white">
                 Tournois illimités
               </div>
-              <div className="text-sm text-text-tertiary">
+              <div className="text-sm text-cool-gray">
                 Crée autant de tournois que tu veux
               </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 bg-background-tertiary/50 p-4 rounded-input">
+          <div className="flex items-start gap-3 bg-navy-soft/50 p-4 rounded-input">
             <CheckCircle
               size={20}
-              className="text-success mt-0.5 flex-shrink-0"
+              className="text-lime mt-0.5 flex-shrink-0"
             />
             <div>
               <div className="font-semibold text-white">
                 Ligues illimitées
               </div>
-              <div className="text-sm text-text-tertiary">
+              <div className="text-sm text-cool-gray">
                 Crée et gère des ligues avec saisons
               </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 bg-background-tertiary/50 p-4 rounded-input">
+          <div className="flex items-start gap-3 bg-navy-soft/50 p-4 rounded-input">
             <CheckCircle
               size={20}
-              className="text-success mt-0.5 flex-shrink-0"
+              className="text-lime mt-0.5 flex-shrink-0"
             />
             <div>
               <div className="font-semibold text-white">
                 Joueurs illimités
               </div>
-              <div className="text-sm text-text-tertiary">
+              <div className="text-sm text-cool-gray">
                 Aucune limite de participants par tournoi
               </div>
             </div>
@@ -418,14 +418,14 @@ export const PaymentModal = ({
         </div>
 
         {paymentState === "error" && error && (
-          <div className="bg-error/20 border border-error/50 rounded-input p-4">
+          <div className="bg-signal-red/20 border border-signal-red/50 rounded-input p-4">
             <div className="flex items-start gap-3">
               <AlertCircle
                 size={20}
-                className="text-error mt-0.5 flex-shrink-0"
+                className="text-signal-red mt-0.5 flex-shrink-0"
               />
               <div>
-                <div className="font-semibold text-error mb-1">
+                <div className="font-semibold text-signal-red mb-1">
                   Erreur de paiement
                 </div>
                 <div className="text-red-400 text-sm">{error}</div>
@@ -437,7 +437,7 @@ export const PaymentModal = ({
         {paymentState === "error" ? (
           <button
             onClick={handleRetry}
-            className="w-full bg-background-tertiary hover:bg-slate-600 text-white font-bold py-4 rounded-input transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-navy-soft hover:bg-slate-600 text-white font-bold py-4 rounded-input transition-colors flex items-center justify-center gap-2"
           >
             <span>Réessayer</span>
           </button>
@@ -445,7 +445,7 @@ export const PaymentModal = ({
           <button
             onClick={handlePayment}
             disabled={paymentState === "processing"}
-            className="w-full bg-primary hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-input transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-electric-blue hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-input transition-colors flex items-center justify-center gap-2"
           >
             {paymentState === "processing" ? (
               <>
@@ -461,7 +461,7 @@ export const PaymentModal = ({
           </button>
         )}
 
-        <div className="text-xs text-text-muted text-center">
+        <div className="text-xs text-cool-gray text-center">
           {import.meta.env.DEV ? (
             <>
               🧪 Mode développement: Simulation de paiement

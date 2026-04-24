@@ -15,7 +15,7 @@ describe("ScreenLayout", () => {
 
   it("applies Arcade cream background by default", () => {
     render(<ScreenLayout>content</ScreenLayout>);
-    expect(screen.getByTestId("screen-layout")).toHaveClass("bg-cream");
+    expect(screen.getByTestId("screen-layout")).toHaveClass("bg-navy");
     expect(screen.getByTestId("screen-layout")).toHaveClass("min-h-screen");
   });
 
