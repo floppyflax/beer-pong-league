@@ -151,6 +151,13 @@ class DatabaseService {
     );
   }
 
+  addGuestPlayerToTournament(
+    tournamentId: string,
+    playerName: string
+  ): Promise<string> {
+    return playersRepository.addGuestPlayerToTournament(tournamentId, playerName);
+  }
+
   addLeaguePlayerToTournament(
     tournamentId: string,
     leaguePlayerId: string

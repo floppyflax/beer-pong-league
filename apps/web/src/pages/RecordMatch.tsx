@@ -414,7 +414,7 @@ export const RecordMatch = () => {
     leagues,
     recordTournamentMatch,
     recordMatch,
-    addAnonymousPlayerToTournament,
+    addGuestPlayerToTournament,
     addPlayer,
     isLoadingInitialData,
   } = useLeague();
@@ -598,7 +598,7 @@ export const RecordMatch = () => {
       let newPlayerId: string | null = null;
 
       if (contextType === "tournament") {
-        newPlayerId = await addAnonymousPlayerToTournament(id, name);
+        newPlayerId = await addGuestPlayerToTournament(id, name);
         setParticipants((prev) => [
           ...prev,
           {

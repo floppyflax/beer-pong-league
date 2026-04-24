@@ -457,6 +457,77 @@ class PlayersRepository extends BaseRepository {
   }
 
   /**
+   * Ajoute un "guest" (joueur fantôme sans compte propre) à un tournoi standalone.
+   *
+   * Crée systématiquement un nouvel `anonymous_users` avec un UUID frais, puis
+   * une entrée `tournament_players` qui le référence. Contrairement à
+   * `addAnonymousPlayerToTournament`, on ne réutilise jamais l'identité d'un
+   * utilisateur existant — chaque appel produit un nouveau guest distinct, ce
+   * qui évite la collision sur la contrainte
+   * `UNIQUE(tournament_id, anonymous_user_id)`.
+   *
+   * Usage : ajout manuel par l'admin depuis TournamentDashboard / RecordMatch
+   * pour des invités physiques qui n'utilisent pas l'app.
+   */
+  async addGuestPlayerToTournament(
+    tournamentId: string,
+    playerName: string
+  ): Promise<string> {
+    if (!this.isSupabaseAvailable()) {
+      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find((t) => t.id === tournamentId);
+      if (tournament) {
+        const newPlayerId = crypto.randomUUID();
+        tournament.playerIds.push(newPlayerId);
+        tournamentsRepository.saveTournamentToLocalStorage(tournament);
+        return newPlayerId;
+      }
+      throw new Error('Tournament not found');
+    }
+
+    try {
+      // 1. Crée un anonymous_user dédié à ce guest (UUID frais à chaque appel).
+      const guestAnonymousId = crypto.randomUUID();
+      const { error: createError } = await supabase!
+        .from('anonymous_users')
+        .insert({
+          id: guestAnonymousId,
+          pseudo: playerName,
+        });
+
+      if (createError) throw createError;
+
+      // 2. Crée l'entrée tournament_players liée à ce nouvel anonymous_user.
+      const playerId = crypto.randomUUID();
+      const joinedAt = new Date().toISOString();
+      const { error: insertError } = await supabase!
+        .from('tournament_players')
+        .insert({
+          id: playerId,
+          tournament_id: tournamentId,
+          anonymous_user_id: guestAnonymousId,
+          pseudo_in_tournament: playerName,
+          joined_at: joinedAt,
+        });
+
+      if (insertError) throw insertError;
+
+      // 3. Synchronise le cache localStorage.
+      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find((t) => t.id === tournamentId);
+      if (tournament && !tournament.playerIds.includes(playerId)) {
+        tournament.playerIds.push(playerId);
+        tournamentsRepository.saveTournamentToLocalStorage(tournament);
+      }
+
+      return playerId;
+    } catch (error) {
+      console.error('Error adding guest player to tournament:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Ajoute un joueur de la league au tournoi (crée une entrée tournament_players)
    */
   async addLeaguePlayerToTournament(

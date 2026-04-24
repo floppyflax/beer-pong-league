@@ -62,6 +62,7 @@ interface LeagueContextType {
   addPlayer: (leagueId: string, name: string) => Promise<void>;
   addPlayerToTournament: (tournamentId: string, playerId: string) => void;
   addAnonymousPlayerToTournament: (tournamentId: string, playerName: string) => Promise<string>;
+  addGuestPlayerToTournament: (tournamentId: string, playerName: string) => Promise<string>;
   recordMatch: (
     leagueId: string,
     teamAIds: string[],
@@ -585,6 +586,22 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     return playerId;
   };
 
+  const addGuestPlayerToTournament = async (
+    tournamentId: string,
+    playerName: string
+  ): Promise<string> => {
+    // Crée un guest distinct (nouvel anonymous_user à chaque appel) — pour
+    // l'ajout manuel de joueurs invités par l'admin du tournoi.
+    const playerId = await databaseService.addGuestPlayerToTournament(
+      tournamentId,
+      playerName
+    );
+
+    addPlayerToTournament(tournamentId, playerId);
+
+    return playerId;
+  };
+
   const recordMatch = async (
     leagueId: string,
     teamAIds: string[],
@@ -1054,6 +1071,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         addPlayer,
         addPlayerToTournament,
         addAnonymousPlayerToTournament,
+        addGuestPlayerToTournament,
         recordMatch,
         recordTournamentMatch,
         deleteLeague,

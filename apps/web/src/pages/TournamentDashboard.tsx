@@ -80,7 +80,7 @@ export const TournamentDashboard = () => {
     getLeagueGlobalRanking,
     addPlayer,
     addPlayerToTournament,
-    addAnonymousPlayerToTournament,
+    addGuestPlayerToTournament,
     associateTournamentToLeague,
     isLoadingInitialData,
     reloadData,
@@ -263,8 +263,10 @@ export const TournamentDashboard = () => {
         // Tournoi rattaché : on ajoute dans la ligue, la sync auto propage au tournoi.
         addPlayer(tournament.leagueId, trimmed);
       } else {
-        // Tournoi standalone : ajout direct du joueur anonyme au tournoi.
-        await addAnonymousPlayerToTournament(tournament.id, trimmed);
+        // Tournoi standalone : ajout d'un guest distinct (nouvel anonymous_user
+        // créé à chaque appel — sinon collision sur la contrainte unique
+        // (tournament_id, anonymous_user_id) au 2e ajout).
+        await addGuestPlayerToTournament(tournament.id, trimmed);
         await reloadData();
       }
       toast.success(`${trimmed} ajouté·e`);
