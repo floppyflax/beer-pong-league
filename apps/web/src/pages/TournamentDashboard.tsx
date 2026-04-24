@@ -28,8 +28,6 @@ import {
   DetailHero,
   InviteSheet,
   SettingsSheet,
-  ClaimGuestBanner,
-  ClaimGuestSheet,
 } from "@/components/design-system";
 import type {
   DetailHeroAction,
@@ -40,8 +38,6 @@ import { Podium } from "@/components/ponglo/Podium";
 import { LeaderRow } from "@/components/ponglo/LeaderRow";
 
 import { getDeltaFromLastMatch } from "@/utils/playerStats";
-import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
-import { identityMergeService } from "@/services/IdentityMergeService";
 
 // Task 4 - Utility function for relative timestamps (AC4)
 function getRelativeTimestamp(date: string): string {
@@ -98,20 +94,6 @@ export const TournamentDashboard = () => {
   const [lastEloChanges] = useState<Record<string, number>>({});
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-
-  // Claim ghost flow — only relevant for authenticated users.
-  // We keep the dismissal in sessionStorage so the banner doesn't keep popping
-  // while the user navigates around. A page reload re-evaluates.
-  const [showClaimSheet, setShowClaimSheet] = useState(false);
-  const claimDismissKey = `bpl:claim-dismissed:tournament:${id ?? ""}`;
-  const [claimDismissed, setClaimDismissed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return sessionStorage.getItem(claimDismissKey) === "1";
-  });
-  const {
-    guests: unclaimedGuests,
-    refresh: refreshUnclaimedGuests,
-  } = useUnclaimedGuests("tournament", id);
 
   // Escape key closes Add Player modal (InviteSheet manages its own but we keep
   // for backward compat with other modals that might be open)
@@ -434,35 +416,6 @@ export const TournamentDashboard = () => {
     navigate("/");
   };
 
-  // Claim a ghost row → assigns the row + matches + elo_history to the user.
-  const handleClaimGuest = async (playerId: string) => {
-    if (!user?.id) return;
-    const result = await identityMergeService.claimAnonymousPlayer(
-      "tournament",
-      playerId,
-      user.id,
-    );
-    if (!result.success) {
-      toast.error(result.error || "Impossible de réclamer ce joueur");
-      return;
-    }
-    toast.success("Joueur réclamé !");
-    await refreshUnclaimedGuests();
-    await reloadData();
-    if ((unclaimedGuests.length - 1) <= 0) {
-      setShowClaimSheet(false);
-    }
-  };
-
-  const handleDismissAllClaims = () => {
-    sessionStorage.setItem(claimDismissKey, "1");
-    setClaimDismissed(true);
-    setShowClaimSheet(false);
-  };
-
-  const showClaimBanner =
-    isAuthenticated && !claimDismissed && unclaimedGuests.length > 0;
-
   return (
     <div className="min-h-screen bg-navy text-white flex flex-col relative">
       {/* DetailHero — bloc bleu pleine largeur (bleed sous padding ResponsiveLayout + App) */}
@@ -494,19 +447,6 @@ export const TournamentDashboard = () => {
         actions={detailHeroActions}
         menuItems={detailHeroMenuItems}
       />
-
-      {/* Claim ghost banner — only visible to authenticated users when guests exist */}
-      {showClaimBanner && (
-        <div className="px-4 pt-4">
-          <ClaimGuestBanner
-            count={unclaimedGuests.length}
-            singlePseudo={
-              unclaimedGuests.length === 1 ? unclaimedGuests[0].pseudo : undefined
-            }
-            onOpen={() => setShowClaimSheet(true)}
-          />
-        </div>
-      )}
 
       {/* SegmentedTabs: Matchs / Classement */}
       <div className="px-4 pt-4 pb-4">
@@ -821,14 +761,6 @@ export const TournamentDashboard = () => {
         />
       )}
 
-      {/* Claim ghost sheet — sibling of the banner */}
-      <ClaimGuestSheet
-        isOpen={showClaimSheet}
-        onClose={() => setShowClaimSheet(false)}
-        guests={unclaimedGuests}
-        onClaim={handleClaimGuest}
-        onDismissAll={handleDismissAllClaims}
-      />
     </div>
   );
 };
