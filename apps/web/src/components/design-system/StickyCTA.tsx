@@ -58,9 +58,9 @@ export const StickyCTA = ({
 
   return (
     <div
-      className={`fixed left-0 right-0 bottom-0 px-6 pt-4 ${paddingClass} bg-gradient-to-t from-navy via-navy/95 to-transparent z-20 ${className}`}
+      className={`fixed left-0 right-0 bottom-0 px-6 pt-4 ${paddingClass} bg-gradient-to-t from-navy via-navy/95 to-transparent z-20 pointer-events-none ${className}`}
     >
-      <div className={`max-w-[720px] mx-auto ${innerClassName}`}>
+      <div className={`max-w-[720px] mx-auto pointer-events-auto ${innerClassName}`}>
         {children}
       </div>
     </div>

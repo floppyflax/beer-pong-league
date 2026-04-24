@@ -18,7 +18,7 @@ import { databaseService } from "@/services/DatabaseService";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Modal } from "@/components/Modal";
 import { PButton } from "@/components/ponglo/PButton";
-import { SearchBar, PageHero, ScreenLayout } from "@/components/design-system";
+import { SearchBar, PageHero, ScreenLayout, StickyCTA } from "@/components/design-system";
 import { X, UserPlus, Check, RotateCcw, ChevronDown, Trophy, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Player } from "@/types";
@@ -740,35 +740,33 @@ export const RecordMatch = () => {
   );
 
   const overlay = (
-    <div className="fixed bottom-0 left-0 right-0 px-4 pt-4 pb-bottom-nav lg:pb-bottom-nav-lg bg-gradient-to-t from-navy via-navy/95 to-transparent z-40 pointer-events-none">
-      <div className="max-w-[720px] mx-auto pointer-events-auto">
-        {step === "compose" ? (
-          <PButton
-            variant="primary"
-            size="lg"
-            full
-            disabled={!hasContext || !isComposeValid}
-            onClick={() => setStep("score")}
-          >
-            {hasContext ? "Continuer →" : "Choisir un contexte"}
-          </PButton>
-        ) : (
-          <PButton
-            variant="primary"
-            size="lg"
-            full
-            disabled={!isScoreValid || isSubmitting}
-            onClick={() => void handleSubmit()}
-          >
-            {isSubmitting ? "Enregistrement…" : "Enregistrer le match"}
-          </PButton>
-        )}
-      </div>
-    </div>
+    <StickyCTA>
+      {step === "compose" ? (
+        <PButton
+          variant="primary"
+          size="lg"
+          full
+          disabled={!hasContext || !isComposeValid}
+          onClick={() => setStep("score")}
+        >
+          {hasContext ? "Continuer →" : "Choisir un contexte"}
+        </PButton>
+      ) : (
+        <PButton
+          variant="primary"
+          size="lg"
+          full
+          disabled={!isScoreValid || isSubmitting}
+          onClick={() => void handleSubmit()}
+        >
+          {isSubmitting ? "Enregistrement…" : "Enregistrer le match"}
+        </PButton>
+      )}
+    </StickyCTA>
   );
 
   return (
-    <ScreenLayout maxWidth="narrow" overlay={overlay} contentClassName="pb-[140px] space-y-5">
+    <ScreenLayout maxWidth="narrow" overlay={overlay} contentClassName="pb-28 space-y-5">
       {hero}
       {contextChip}
 
