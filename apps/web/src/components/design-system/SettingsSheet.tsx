@@ -118,13 +118,11 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
     props.kind === "tournament" ? props.initial.isPrivate : true,
   );
   const [isSaving, setIsSaving] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Reset local state every time the sheet is opened (props may have changed).
   useEffect(() => {
     if (!isOpen) return;
     setName(props.initial.name);
-    setConfirmDelete(false);
     if (props.kind === "tournament") {
       setFormat(props.initial.format);
       setHasPlayerLimit(
@@ -203,15 +201,6 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
     }
   };
 
-  const handleDelete = () => {
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      return;
-    }
-    if (props.kind === "tournament") props.onDelete?.();
-    else props.onDelete?.();
-  };
-
   const inputClass =
     "w-full bg-navy-deep border-[1.5px] border-card rounded-md p-3 text-white placeholder-cool-gray focus:outline-none focus:border-lime focus:ring-2 focus:ring-lime/20 transition-colors";
 
@@ -263,88 +252,187 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
         {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className="px-5 pb-6 overflow-y-auto flex flex-col gap-5"
+          className="flex flex-col flex-1 min-h-0"
           noValidate
         >
-          {/* Nom */}
-          <div className="space-y-2">
-            <label
-              htmlFor="settings-name"
-              className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray"
-            >
-              Nom
-            </label>
-            <input
-              id="settings-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={100}
-              className={inputClass}
-            />
-          </div>
+          {/* Scrollable fields */}
+          <div className="overflow-y-auto flex-1 px-5 py-5 flex flex-col gap-5">
+            {/* Nom */}
+            <div className="space-y-2">
+              <label
+                htmlFor="settings-name"
+                className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray"
+              >
+                Nom
+              </label>
+              <input
+                id="settings-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={100}
+                className={inputClass}
+              />
+            </div>
 
-          {/* Tournament-specific fields */}
-          {props.kind === "tournament" && (
-            <>
-              {/* Format */}
-              <div className="space-y-2">
-                <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-                  Format du match
-                </span>
-                <div className="space-y-1.5">
-                  {FORMAT_OPTIONS.map((option) => {
-                    const active = format === option.value;
-                    return (
-                      <label
-                        key={option.value}
-                        className={`flex items-center gap-3 p-3 rounded-card border cursor-pointer transition-colors ${
-                          active
-                            ? "border-electric-blue bg-electric-blue/10"
-                            : "border-card bg-navy-deep hover:border-card-muted"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="settings-format"
-                          value={option.value}
-                          checked={active}
-                          onChange={() => setFormat(option.value)}
-                          className="accent-electric-blue"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white font-archivo font-semibold text-sm">
-                            {option.label}
+            {/* Tournament-specific fields */}
+            {props.kind === "tournament" && (
+              <>
+                {/* Format */}
+                <div className="space-y-2">
+                  <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+                    Format du match
+                  </span>
+                  <div className="space-y-1.5">
+                    {FORMAT_OPTIONS.map((option) => {
+                      const active = format === option.value;
+                      return (
+                        <label
+                          key={option.value}
+                          className={`flex items-center gap-3 p-3 rounded-card border cursor-pointer transition-colors ${
+                            active
+                              ? "border-electric-blue bg-electric-blue/10"
+                              : "border-card bg-navy-deep hover:border-card-muted"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="settings-format"
+                            value={option.value}
+                            checked={active}
+                            onChange={() => setFormat(option.value)}
+                            className="accent-electric-blue"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white font-archivo font-semibold text-sm">
+                              {option.label}
+                            </div>
+                            <div className="text-cool-gray text-xs">
+                              {option.description}
+                            </div>
                           </div>
-                          <div className="text-cool-gray text-xs">
-                            {option.description}
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              {/* Mode (read-only) */}
+                {/* Mode (read-only) */}
+                <div className="space-y-2">
+                  <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+                    Type d'événement
+                  </span>
+                  <div
+                    className="flex items-center gap-3 p-3 rounded-card border border-card bg-navy-deep/50 opacity-90"
+                    aria-readonly="true"
+                  >
+                    <div className="w-9 h-9 rounded-md bg-electric-blue/20 text-electric-blue flex items-center justify-center">
+                      {props.mode === "elo" ? (
+                        <Target size={18} />
+                      ) : (
+                        <Trophy size={18} />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-extrabold uppercase tracking-tight text-sm flex items-center gap-2">
+                        {props.mode === "elo" ? "ELO" : "Bracket"}
+                        <Lock size={12} className="text-cool-gray" />
+                      </div>
+                      <div className="text-cool-gray text-xs">
+                        Verrouillé — défini à la création
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Player limit */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-semibold text-sm">
+                        Limiter le nombre de joueurs
+                      </div>
+                      <div className="text-cool-gray text-xs mt-0.5">
+                        Par défaut : aucune limite
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setHasPlayerLimit((v) => !v)}
+                      className={toggleClass(hasPlayerLimit)}
+                      aria-label="Limiter le nombre de joueurs"
+                      aria-pressed={hasPlayerLimit}
+                    >
+                      <span className={toggleKnob(hasPlayerLimit)} />
+                    </button>
+                  </div>
+
+                  {hasPlayerLimit && (
+                    <>
+                      <input
+                        id="settings-player-limit"
+                        type="number"
+                        value={playerLimit}
+                        onChange={(e) => setPlayerLimit(e.target.value)}
+                        min={2}
+                        max={100}
+                        className={inputClass}
+                        aria-label="Nombre maximum de joueurs"
+                      />
+                      {playerLimitWarning && (
+                        <div className="flex items-start gap-2 p-3 rounded-card bg-ping-yellow/10 border border-ping-yellow/30 text-ping-yellow text-xs">
+                          <AlertTriangle
+                            size={16}
+                            className="flex-shrink-0 mt-0.5"
+                          />
+                          <p>{playerLimitWarning}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Private */}
+                <div className="flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-archivo font-semibold text-sm">
+                      🔒 Événement privé
+                    </div>
+                    <div className="text-cool-gray text-xs mt-0.5">
+                      Seuls ceux qui ont le code peuvent rejoindre
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPrivate((v) => !v)}
+                    className={toggleClass(isPrivate)}
+                    aria-label="Événement privé"
+                    aria-pressed={isPrivate}
+                  >
+                    <span className={toggleKnob(isPrivate)} />
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* League read-only type */}
+            {props.kind === "league" && (
               <div className="space-y-2">
                 <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-                  Type d'événement
+                  Type de compétition
                 </span>
                 <div
-                  className="flex items-center gap-3 p-3 rounded-card border border-card bg-navy-deep/50 opacity-90"
+                  className="flex items-center gap-3 p-3 rounded-card border border-card bg-navy-deep/50"
                   aria-readonly="true"
                 >
                   <div className="w-9 h-9 rounded-md bg-electric-blue/20 text-electric-blue flex items-center justify-center">
-                    {props.mode === "elo" ? (
-                      <Target size={18} />
-                    ) : (
-                      <Trophy size={18} />
-                    )}
+                    <Trophy size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-white font-archivo font-extrabold uppercase tracking-tight text-sm flex items-center gap-2">
-                      {props.mode === "elo" ? "ELO" : "Bracket"}
+                      {props.leagueType === "event"
+                        ? "League Continue"
+                        : "League par Saison"}
                       <Lock size={12} className="text-cool-gray" />
                     </div>
                     <div className="text-cool-gray text-xs">
@@ -353,149 +441,29 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Player limit */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white font-archivo font-semibold text-sm">
-                      Limiter le nombre de joueurs
-                    </div>
-                    <div className="text-cool-gray text-xs mt-0.5">
-                      Par défaut : aucune limite
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setHasPlayerLimit((v) => !v)}
-                    className={toggleClass(hasPlayerLimit)}
-                    aria-label="Limiter le nombre de joueurs"
-                    aria-pressed={hasPlayerLimit}
-                  >
-                    <span className={toggleKnob(hasPlayerLimit)} />
-                  </button>
-                </div>
+            {/* Extra content (e.g. league association) */}
+            {props.extraContent && (
+              <div className="pt-1">{props.extraContent}</div>
+            )}
+          </div>
 
-                {hasPlayerLimit && (
-                  <>
-                    <input
-                      id="settings-player-limit"
-                      type="number"
-                      value={playerLimit}
-                      onChange={(e) => setPlayerLimit(e.target.value)}
-                      min={2}
-                      max={100}
-                      className={inputClass}
-                      aria-label="Nombre maximum de joueurs"
-                    />
-                    {playerLimitWarning && (
-                      <div className="flex items-start gap-2 p-3 rounded-card bg-ping-yellow/10 border border-ping-yellow/30 text-ping-yellow text-xs">
-                        <AlertTriangle
-                          size={16}
-                          className="flex-shrink-0 mt-0.5"
-                        />
-                        <p>{playerLimitWarning}</p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Private */}
-              <div className="flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card">
-                <div className="flex-1 min-w-0">
-                  <div className="text-white font-archivo font-semibold text-sm">
-                    🔒 Événement privé
-                  </div>
-                  <div className="text-cool-gray text-xs mt-0.5">
-                    Seuls ceux qui ont le code peuvent rejoindre
-                  </div>
-                </div>
-                <button
+          {/* Sticky footer */}
+          <div className="px-5 pb-6 pt-3 border-t border-card flex flex-col gap-3">
+            {props.kind === "tournament" &&
+              !props.isFinished &&
+              props.onFinish && (
+                <PButton
                   type="button"
-                  onClick={() => setIsPrivate((v) => !v)}
-                  className={toggleClass(isPrivate)}
-                  aria-label="Événement privé"
-                  aria-pressed={isPrivate}
+                  variant="ghost"
+                  size="lg"
+                  full
+                  onClick={props.onFinish}
                 >
-                  <span className={toggleKnob(isPrivate)} />
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* League read-only type */}
-          {props.kind === "league" && (
-            <div className="space-y-2">
-              <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-                Type de compétition
-              </span>
-              <div
-                className="flex items-center gap-3 p-3 rounded-card border border-card bg-navy-deep/50"
-                aria-readonly="true"
-              >
-                <div className="w-9 h-9 rounded-md bg-electric-blue/20 text-electric-blue flex items-center justify-center">
-                  <Trophy size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-white font-archivo font-extrabold uppercase tracking-tight text-sm flex items-center gap-2">
-                    {props.leagueType === "event"
-                      ? "League Continue"
-                      : "League par Saison"}
-                    <Lock size={12} className="text-cool-gray" />
-                  </div>
-                  <div className="text-cool-gray text-xs">
-                    Verrouillé — défini à la création
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Extra content (e.g. league association) */}
-          {props.extraContent && (
-            <div className="pt-1">{props.extraContent}</div>
-          )}
-
-          {/* Destructive actions */}
-          {(("onFinish" in props && props.onFinish) ||
-            ("onDelete" in props && props.onDelete)) && (
-            <div className="border-t border-card pt-4 flex flex-col gap-2">
-              {props.kind === "tournament" &&
-                !props.isFinished &&
-                props.onFinish && (
-                  <PButton
-                    type="button"
-                    variant="ghost"
-                    size="md"
-                    full
-                    onClick={props.onFinish}
-                  >
-                    Clôturer l'événement
-                  </PButton>
-                )}
-              {props.onDelete && (
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className={`w-full h-11 rounded-full border-2 font-archivo font-extrabold uppercase text-[11px] tracking-[1px] transition-colors ${
-                    confirmDelete
-                      ? "bg-signal-red border-signal-red text-white hover:bg-signal-red/90"
-                      : "border-signal-red/60 text-signal-red hover:bg-signal-red/10"
-                  }`}
-                >
-                  {confirmDelete
-                    ? "Confirmer la suppression"
-                    : props.kind === "tournament"
-                      ? "Supprimer l'événement"
-                      : "Supprimer la ligue"}
-                </button>
+                  Clôturer l'événement
+                </PButton>
               )}
-            </div>
-          )}
-
-          {/* Save CTA */}
-          <div className="pt-2">
             <PButton
               type="submit"
               variant="primary"
