@@ -15,11 +15,11 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import { databaseService } from "@/services/DatabaseService";
-import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { Modal } from "@/components/Modal";
 import { PButton } from "@/components/ponglo/PButton";
-import { SearchBar } from "@/components/design-system";
-import { X, UserPlus, Check, RotateCcw } from "lucide-react";
+import { SearchBar, PageHero, ScreenLayout } from "@/components/design-system";
+import { X, UserPlus, Check, RotateCcw, ChevronDown, Trophy, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Player } from "@/types";
 
@@ -265,7 +265,7 @@ function PlayerPool({
             className="flex items-center gap-2 text-electric-blue hover:text-white text-sm font-archivo font-bold uppercase tracking-tight transition-colors"
           >
             <UserPlus size={14} />
-            Nouveau joueur
+            Ajouter un joueur
           </button>
         )
       )}
@@ -404,7 +404,10 @@ function TeamScoreCard({
 /* Main page                                                                   */
 /* ─────────────────────────────────────────────────────────────────────────── */
 export const RecordMatch = () => {
-  const { contextType, id } = useParams<{ contextType: ContextType; id: string }>();
+  const { contextType: urlContextType, id: urlId } = useParams<{
+    contextType: ContextType;
+    id: string;
+  }>();
   const navigate = useNavigate();
   const {
     tournaments,
@@ -415,6 +418,13 @@ export const RecordMatch = () => {
     addPlayer,
     isLoadingInitialData,
   } = useLeague();
+
+  /* Context is URL-seeded but locally switchable */
+  const [contextType, setContextType] = useState<ContextType | null>(
+    urlContextType ?? null,
+  );
+  const [contextId, setContextId] = useState<string | null>(urlId ?? null);
+  const [showContextPicker, setShowContextPicker] = useState(false);
 
   const [step, setStep] = useState<Step>("compose");
   const [activeTeam, setActiveTeam] = useState<Team>("A");
@@ -429,15 +439,43 @@ export const RecordMatch = () => {
 
   /* Context resolution */
   const tournament =
-    contextType === "tournament" ? tournaments.find((t) => t.id === id) : null;
+    contextType === "tournament" && contextId
+      ? tournaments.find((t) => t.id === contextId)
+      : null;
   const league =
-    contextType === "league" ? leagues.find((l) => l.id === id) : null;
+    contextType === "league" && contextId
+      ? leagues.find((l) => l.id === contextId)
+      : null;
 
+  const hasContext = Boolean(tournament || league);
   const contextName = tournament?.name ?? league?.name ?? "";
   const format = tournament?.format ?? "libre";
   const teamSize = TEAM_SIZE_BY_FORMAT[format] ?? null;
   const backPath =
-    contextType === "tournament" ? `/tournament/${id}` : `/league/${id}`;
+    contextType === "tournament" && contextId
+      ? `/tournament/${contextId}`
+      : contextType === "league" && contextId
+        ? `/league/${contextId}`
+        : "/";
+
+  const id = contextId;
+
+  const handlePickContext = (type: ContextType, nextId: string) => {
+    if (type === contextType && nextId === contextId) {
+      setShowContextPicker(false);
+      return;
+    }
+    setContextType(type);
+    setContextId(nextId);
+    setPlayerTeams({});
+    setParticipants([]);
+    setSearchQuery("");
+    setActiveTeam("A");
+    setCupsA(makeCups());
+    setCupsB(makeCups());
+    setStep("compose");
+    setShowContextPicker(false);
+  };
 
   /* Load participants */
   useEffect(() => {
@@ -465,7 +503,7 @@ export const RecordMatch = () => {
     } else if (contextType === "league" && league) {
       setParticipants(league.players);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [id, contextType]);
 
   /* Keep league participants in sync with context */
@@ -644,8 +682,8 @@ export const RecordMatch = () => {
     }
   };
 
-  /* Loading + not-found */
-  if (isLoadingInitialData || isLoadingParticipants) {
+  /* Loading */
+  if (isLoadingInitialData || (hasContext && isLoadingParticipants)) {
     return (
       <div className="min-h-screen bg-navy flex items-center justify-center">
         <LoadingSpinner size={48} />
@@ -653,48 +691,103 @@ export const RecordMatch = () => {
     );
   }
 
-  if (!tournament && !league) {
-    return (
-      <div className="min-h-screen bg-navy flex items-center justify-center p-4">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-archivo font-extrabold uppercase tracking-tight text-white">
-            Contexte introuvable
-          </h1>
-          <PButton variant="primary" onClick={() => navigate("/")}>
-            Retour à l'accueil
-          </PButton>
-        </div>
-      </div>
-    );
-  }
-
   const formatLabel = format === "libre" ? "Libre" : format.toUpperCase().replace("V", "v");
 
-  return (
-    <div className="min-h-screen bg-navy">
-      <ContextualHeader
-        title="Nouveau match"
-        showBackButton
-        onBack={() => {
-          if (step === "score") setStep("compose");
-          else navigate(backPath);
-        }}
-      />
+  const handleBack = () => {
+    if (step === "score") setStep("compose");
+    else navigate(backPath);
+  };
 
-      <div className="max-w-lg mx-auto px-4 md:px-6 pt-4 pb-[140px] space-y-4">
-        {/* Sub-header: event + format */}
-        <div className="text-center space-y-1">
-          <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-cool-gray">
-            {contextType === "tournament" ? "Événement" : "Ligue"} · {formatLabel}
-          </div>
-          <div className="text-sm font-archivo font-extrabold uppercase tracking-tight text-white truncate">
-            {contextName}
-          </div>
+  const hero = (
+    <PageHero
+      eyebrow="Nouveau match"
+      title="Score ton match."
+      subtitle="Compose les équipes puis renseigne le score pour mettre à jour l'ELO."
+      onBack={handleBack}
+    />
+  );
+
+  const contextChip = (
+    <button
+      type="button"
+      onClick={() => setShowContextPicker(true)}
+      className="w-full flex items-center gap-3 bg-navy-soft border border-card hover:border-cool-gray rounded-card px-4 py-3 transition-colors text-left"
+      aria-label="Changer de contexte"
+    >
+      <div
+        className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center ${
+          contextType === "league"
+            ? "bg-electric-blue/15 text-electric-blue"
+            : "bg-ping-yellow/15 text-ping-yellow"
+        }`}
+      >
+        {contextType === "league" ? <Trophy size={16} /> : <Calendar size={16} />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-cool-gray">
+          {hasContext
+            ? contextType === "tournament"
+              ? `Événement · ${formatLabel}`
+              : "Ligue · Libre"
+            : "Contexte"}
         </div>
+        <div className="text-sm font-archivo font-extrabold uppercase tracking-tight text-white truncate">
+          {hasContext ? contextName : "Choisir un contexte"}
+        </div>
+      </div>
+      <ChevronDown size={18} className="text-cool-gray shrink-0" />
+    </button>
+  );
 
-        <Stepper current={step === "compose" ? 1 : 2} />
-
+  const overlay = (
+    <div className="fixed bottom-0 left-0 right-0 px-4 pt-4 pb-bottom-nav lg:pb-bottom-nav-lg bg-gradient-to-t from-navy via-navy/95 to-transparent z-40 pointer-events-none">
+      <div className="max-w-[720px] mx-auto pointer-events-auto">
         {step === "compose" ? (
+          <PButton
+            variant="primary"
+            size="lg"
+            full
+            disabled={!hasContext || !isComposeValid}
+            onClick={() => setStep("score")}
+          >
+            {hasContext ? "Continuer →" : "Choisir un contexte"}
+          </PButton>
+        ) : (
+          <PButton
+            variant="primary"
+            size="lg"
+            full
+            disabled={!isScoreValid || isSubmitting}
+            onClick={() => void handleSubmit()}
+          >
+            {isSubmitting ? "Enregistrement…" : "Enregistrer le match"}
+          </PButton>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <ScreenLayout maxWidth="narrow" overlay={overlay} contentClassName="pb-[140px] space-y-5">
+      {hero}
+      {contextChip}
+
+      <Stepper current={step === "compose" ? 1 : 2} />
+
+      {!hasContext ? (
+        <div className="bg-navy-soft rounded-card p-6 border border-card text-center space-y-3">
+          <p className="text-sm text-cool-gray">
+            Sélectionne un événement ou une ligue pour commencer.
+          </p>
+          <PButton
+            variant="accent"
+            size="md"
+            onClick={() => setShowContextPicker(true)}
+          >
+            Choisir un contexte
+          </PButton>
+        </div>
+      ) : step === "compose" ? (
           <>
             <TeamCompositionCard
               team="A"
@@ -765,34 +858,121 @@ export const RecordMatch = () => {
             </div>
           </>
         )}
-      </div>
 
-      {/* Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pt-4 pb-bottom-nav lg:pb-bottom-nav-lg bg-gradient-to-t from-navy via-navy/95 to-transparent">
-        <div className="max-w-lg mx-auto">
-          {step === "compose" ? (
-            <PButton
-              variant="primary"
-              size="lg"
-              full
-              disabled={!isComposeValid}
-              onClick={() => setStep("score")}
-            >
-              Continuer →
-            </PButton>
+      <ContextPickerModal
+        isOpen={showContextPicker}
+        onClose={() => setShowContextPicker(false)}
+        tournaments={tournaments}
+        leagues={leagues}
+        currentType={contextType}
+        currentId={contextId}
+        onPick={handlePickContext}
+      />
+    </ScreenLayout>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Context picker modal                                                        */
+/* ─────────────────────────────────────────────────────────────────────────── */
+function ContextPickerModal({
+  isOpen,
+  onClose,
+  tournaments,
+  leagues,
+  currentType,
+  currentId,
+  onPick,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  tournaments: Array<{ id: string; name: string; isFinished?: boolean; format?: string }>;
+  leagues: Array<{ id: string; name: string; status?: string }>;
+  currentType: ContextType | null;
+  currentId: string | null;
+  onPick: (type: ContextType, id: string) => void;
+}) {
+  const activeTournaments = tournaments.filter((t) => !t.isFinished);
+  const activeLeagues = leagues.filter((l) => l.status !== "finished");
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Choisir un contexte" maxWidth="max-w-md">
+      <div className="space-y-5 max-h-[60vh] overflow-y-auto">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar size={14} className="text-ping-yellow" />
+            <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-cool-gray">
+              Événements
+            </h3>
+          </div>
+          {activeTournaments.length === 0 ? (
+            <p className="text-xs text-cool-gray/60 italic px-1 py-2">
+              Aucun événement actif.
+            </p>
           ) : (
-            <PButton
-              variant="primary"
-              size="lg"
-              full
-              disabled={!isScoreValid || isSubmitting}
-              onClick={() => void handleSubmit()}
-            >
-              {isSubmitting ? "Enregistrement…" : "Enregistrer le match"}
-            </PButton>
+            <div className="space-y-1.5">
+              {activeTournaments.map((t) => {
+                const active = currentType === "tournament" && currentId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => onPick("tournament", t.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-card border transition-colors ${
+                      active
+                        ? "bg-electric-blue/15 border-electric-blue text-white"
+                        : "bg-navy border-card hover:border-cool-gray text-white"
+                    }`}
+                  >
+                    <div className="font-archivo font-bold uppercase tracking-tight text-sm truncate">
+                      {t.name}
+                    </div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-cool-gray mt-0.5">
+                      {t.format ?? "libre"}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Trophy size={14} className="text-electric-blue" />
+            <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-cool-gray">
+              Ligues
+            </h3>
+          </div>
+          {activeLeagues.length === 0 ? (
+            <p className="text-xs text-cool-gray/60 italic px-1 py-2">
+              Aucune ligue active.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {activeLeagues.map((l) => {
+                const active = currentType === "league" && currentId === l.id;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => onPick("league", l.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-card border transition-colors ${
+                      active
+                        ? "bg-electric-blue/15 border-electric-blue text-white"
+                        : "bg-navy border-card hover:border-cool-gray text-white"
+                    }`}
+                  >
+                    <div className="font-archivo font-bold uppercase tracking-tight text-sm truncate">
+                      {l.name}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
-};
+}

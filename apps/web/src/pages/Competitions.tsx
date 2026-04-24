@@ -55,7 +55,7 @@ export const Competitions: React.FC = () => {
       next.set("tab", scope);
       setSearchParams(next, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [scope]);
 
   const {

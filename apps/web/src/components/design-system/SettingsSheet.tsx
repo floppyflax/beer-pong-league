@@ -132,7 +132,7 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
       setIsPrivate(props.initial.isPrivate);
     }
     // props.initial contents are captured here by design
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOpen]);
 
   // Escape → close
@@ -159,7 +159,7 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
       }. Abaisser la limite en-dessous peut empêcher de nouvelles inscriptions mais ne retirera pas les joueurs déjà présents.`;
     }
     return null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [parsedLimit, hasPlayerLimit, props.kind]);
 
   if (!isOpen) return null;

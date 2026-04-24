@@ -80,6 +80,7 @@ export const TournamentDashboard = () => {
     getLeagueGlobalRanking,
     addPlayer,
     addPlayerToTournament,
+    addAnonymousPlayerToTournament,
     associateTournamentToLeague,
     isLoadingInitialData,
     reloadData,
@@ -254,20 +255,28 @@ export const TournamentDashboard = () => {
     }
   };
 
-  const handleInviteAddManual = (name: string) => {
+  const handleInviteAddManual = async (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    if (!tournament.leagueId) {
-      toast.error(
-        "Pour ajouter des joueurs manuellement, rattache d'abord cet événement à une ligue via Paramètres.",
-      );
+    try {
+      if (tournament.leagueId) {
+        // Tournoi rattaché : on ajoute dans la ligue, la sync auto propage au tournoi.
+        addPlayer(tournament.leagueId, trimmed);
+      } else {
+        // Tournoi standalone : ajout direct du joueur anonyme au tournoi.
+        await addAnonymousPlayerToTournament(tournament.id, trimmed);
+        await reloadData();
+      }
+      toast.success(`${trimmed} ajouté·e`);
       setShowAddPlayer(false);
-      if (isAdmin) setShowSettings(true);
-      return;
+    } catch (error) {
+      console.error("Error adding manual player:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de l'ajout du joueur",
+      );
     }
-    addPlayer(tournament.leagueId, trimmed);
-    toast.success(`${trimmed} ajouté·e`);
-    setShowAddPlayer(false);
   };
 
   const handleInviteAddFromLeague = async (leaguePlayerId: string) => {

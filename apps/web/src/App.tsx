@@ -244,6 +244,7 @@ function AppContent() {
     location.pathname.startsWith("/tournament/") ||
     location.pathname.startsWith("/league/") ||
     location.pathname.startsWith("/player/") ||
+    location.pathname === "/record-match" ||
     location.pathname.startsWith("/record-match/");
 
   const showHeader = !isDisplayView && !isLandingPage && !hasContextualHeader;
@@ -388,6 +389,10 @@ function AppContent() {
                     <Route
                       path="/design-system"
                       element={<DesignSystemShowcase />}
+                    />
+                    <Route
+                      path="/record-match"
+                      element={<RecordMatch />}
                     />
                     <Route
                       path="/record-match/:contextType/:id"
