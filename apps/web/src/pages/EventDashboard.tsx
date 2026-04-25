@@ -400,15 +400,7 @@ export const EventDashboard = () => {
           destructive: true,
         },
       ]
-    : tournamentGhosts.length > 0
-      ? [
-          {
-            label: "Joueurs fantômes",
-            icon: <Ghost size={20} />,
-            onClick: () => setShowGhostMgmt(true),
-          },
-        ]
-      : [];
+    : [];
 
   // SettingsSheet handlers
   const handleSaveSettings = async (updates: SettingsSheetTournamentUpdates) => {
@@ -754,7 +746,35 @@ export const EventDashboard = () => {
           onDelete={handleDeleteFromSettings}
           isFinished={tournament.isFinished}
           extraContent={
-            <div className="space-y-2">
+            <div className="space-y-4">
+              {tournamentGhosts.length > 0 && (
+                <div className="space-y-2">
+                  <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Ghost size={12} />
+                      Joueurs fantômes ({tournamentGhosts.length})
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettings(false);
+                      setShowGhostMgmt(true);
+                    }}
+                    className="w-full p-3 rounded-card border border-card bg-navy-deep flex items-center gap-3 hover:border-white/60 transition-colors text-left"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-semibold text-sm">
+                        Gérer les joueurs fantômes
+                      </div>
+                      <div className="text-cool-gray text-xs">
+                        Renommer, supprimer, envoyer un lien d'invitation
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+              <div className="space-y-2">
               <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
                 <span className="inline-flex items-center gap-1.5">
                   <LinkIcon size={12} />
@@ -810,6 +830,7 @@ export const EventDashboard = () => {
                   Aucune ligue disponible. Crée-en une pour pouvoir rattacher.
                 </p>
               )}
+              </div>
             </div>
           }
         />

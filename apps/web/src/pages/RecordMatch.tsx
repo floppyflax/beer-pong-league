@@ -18,8 +18,8 @@ import { databaseService } from "@/services/DatabaseService";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Sheet } from "@/components/design-system/Sheet";
 import { PButton } from "@/components/ponglo/PButton";
-import { SearchBar, PageHero, ScreenLayout, StickyCTA } from "@/components/design-system";
-import { X, UserPlus, Check, RotateCcw, ChevronDown, Trophy, Calendar } from "lucide-react";
+import { SearchBar, ScreenLayout, StickyCTA } from "@/components/design-system";
+import { X, UserPlus, Check, RotateCcw, ChevronDown, ChevronLeft, Trophy, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Player } from "@/types";
 
@@ -44,6 +44,7 @@ const makeCups = () => Array.from({ length: TOTAL_CUPS }, () => true);
 /* Stepper                                                                     */
 /* ─────────────────────────────────────────────────────────────────────────── */
 function Stepper({ current }: { current: 1 | 2 }) {
+  const label = current === 1 ? "Saisir équipes" : "Saisir score";
   return (
     <div className="flex items-center justify-center gap-2">
       {[1, 2].map((n) => (
@@ -55,7 +56,7 @@ function Stepper({ current }: { current: 1 | 2 }) {
         />
       ))}
       <span className="ml-2 text-[10px] font-mono uppercase tracking-widest text-cool-gray">
-        Étape {current}/2
+        Étape {current}/2 — {label}
       </span>
     </div>
   );
@@ -700,12 +701,19 @@ export const RecordMatch = () => {
   };
 
   const hero = (
-    <PageHero
-      eyebrow="Nouveau match"
-      title="Score ton match."
-      subtitle="Compose les équipes puis renseigne le score pour mettre à jour l'ELO."
-      onBack={handleBack}
-    />
+    <div className="flex items-center gap-2.5 pt-2 pb-2">
+      <button
+        type="button"
+        onClick={handleBack}
+        aria-label="Retour"
+        className="w-9 h-9 rounded-full border-[1.5px] border-card flex items-center justify-center text-white hover:bg-navy-soft transition-colors"
+      >
+        <ChevronLeft size={16} />
+      </button>
+      <div className="font-archivo font-extrabold uppercase text-[17px] tracking-[-0.3px] text-white">
+        Nouveau match
+      </div>
+    </div>
   );
 
   const contextChip = (
