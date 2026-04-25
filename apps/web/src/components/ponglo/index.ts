@@ -31,3 +31,6 @@ export type { MatchRowProps } from './MatchRow';
 
 export { DayGroup } from './DayGroup';
 export type { DayGroupProps } from './DayGroup';
+
+export { BeerCupLoader } from './BeerCupLoader';
+export type { BeerCupLoaderProps } from './BeerCupLoader';

@@ -41,9 +41,9 @@ export function Podium({
 }: PodiumProps) {
   if (top3.length < 3) return null;
 
-  // Columns displayed: [2nd, 1st, 3rd] — visual order
+  // Columns displayed left → center → right = [2nd, 1st, 3rd] — visual order.
+  // `heights` is in the same order: [2nd, 1st, 3rd], so we read it directly.
   const displayOrder: [number, number, number] = [1, 0, 2];
-  const displayHeights: [number, number, number] = [heights[1], heights[0], heights[2]];
 
   return (
     <div
@@ -59,7 +59,7 @@ export function Podium({
       <div className="flex items-end justify-center gap-3">
         {displayOrder.map((playerIdx, colIdx) => {
           const player = top3[playerIdx];
-          const barHeight = displayHeights[colIdx];
+          const barHeight = heights[colIdx];
           const rank = playerIdx + 1;
           const ring = RINGS[playerIdx];
 

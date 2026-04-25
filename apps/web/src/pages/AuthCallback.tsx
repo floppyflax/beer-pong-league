@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useIdentityContext } from '../context/IdentityContext';
 // import { useAuthContext } from '../context/AuthContext'; // Unused
 import { identityMergeService } from '../services/IdentityMergeService';
-import { PongloGlyph } from '../components/ponglo/Wordmark';
+import { BeerCupLoader } from '../components/ponglo/BeerCupLoader';
 import { PButton } from '../components/ponglo/PButton';
 
 /**
@@ -112,16 +112,7 @@ export const AuthCallback = () => {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-navy flex items-center justify-center">
-        <div className="text-center">
-          <div className="flex justify-center mb-5">
-            <div className="animate-pulse">
-              <PongloGlyph size={56} color="#B7FF3B" />
-            </div>
-          </div>
-          <p className="text-cool-gray text-sm font-mono uppercase tracking-widest">
-            Connexion en cours…
-          </p>
-        </div>
+        <BeerCupLoader size={72} />
       </div>
     );
   }

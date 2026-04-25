@@ -3,7 +3,7 @@ import { useAuthContext } from "@/context/AuthContext";
 import { useLeague } from "@/context/LeagueContext";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useFullDisconnect } from "@/hooks/useFullDisconnect";
-import { PageHero } from "@/components/design-system";
+import { PageHero, Sheet } from "@/components/design-system";
 import { StatCard } from "@/components/design-system/StatCard";
 import { PAvatar } from "@/components/ponglo/PAvatar";
 import { PButton } from "@/components/ponglo/PButton";
@@ -11,8 +11,9 @@ import { PaymentModal } from "@/components/PaymentModal";
 import { premiumService } from "@/services/PremiumService";
 import { authService } from "@/services/AuthService";
 import { localUserService } from "@/services/LocalUserService";
-import { Trophy, Calendar, Mail, LogOut, Crown, ChevronRight, Camera, Pencil, Check, X } from "lucide-react";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { PhotoService } from "@/services/PhotoService";
+import { Trophy, Calendar, Mail, LogOut, Crown, ChevronRight, Camera, Image as ImageIcon, Pencil, Check, X } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 
 export const UserProfile = () => {
@@ -32,7 +33,7 @@ export const UserProfile = () => {
   const [editedName, setEditedName] = useState("");
   const [isSavingName, setIsSavingName] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [showAvatarSourceSheet, setShowAvatarSourceSheet] = useState(false);
 
   // Load profile on mount
   useEffect(() => {
@@ -95,21 +96,27 @@ export const UserProfile = () => {
   };
 
   // ── Avatar upload ──────────────────────────────────────────────────────────
-  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
-    // Reset input so re-selecting the same file re-triggers onChange
-    e.target.value = "";
-
+  const handlePickAvatar = async (source: "camera" | "gallery") => {
+    if (!user?.id) return;
+    setShowAvatarSourceSheet(false);
     setIsUploadingAvatar(true);
     try {
+      const result =
+        source === "camera"
+          ? await PhotoService.takePhoto()
+          : await PhotoService.pickFromGallery();
+      const mime = result.blob.type || "image/jpeg";
+      const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+      const file = new File([result.blob], `avatar.${ext}`, { type: mime });
       const url = await authService.uploadAvatar(user.id, file);
       if (!url) throw new Error("upload failed");
       const ok = await authService.updateUserProfile(user.id, { avatar_url: url });
       if (!ok) throw new Error("db update failed");
       setAvatarUrl(url);
       toast.success("Photo de profil mise à jour");
-    } catch {
+    } catch (err) {
+      // Utilisateur a annulé la sélection — pas une erreur
+      if (err instanceof Error && err.message === "No file selected") return;
       toast.error("Impossible d'uploader la photo");
     } finally {
       setIsUploadingAvatar(false);
@@ -176,28 +183,19 @@ export const UserProfile = () => {
                 imageUrl={avatarUrl ?? undefined}
               />
               {isAuthenticated && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={isUploadingAvatar}
-                    aria-label="Changer la photo de profil"
-                    className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity disabled:cursor-wait"
-                  >
-                    {isUploadingAvatar ? (
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Camera size={18} className="text-white" />
-                    )}
-                  </button>
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    onChange={handleAvatarFileChange}
-                  />
-                </>
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarSourceSheet(true)}
+                  disabled={isUploadingAvatar}
+                  aria-label="Changer la photo de profil"
+                  className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity disabled:cursor-wait"
+                >
+                  {isUploadingAvatar ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Camera size={18} className="text-white" />
+                  )}
+                </button>
               )}
             </div>
 
@@ -391,16 +389,16 @@ export const UserProfile = () => {
         </div>
       </div>
 
-      {/* Sticky logout CTA */}
+      {/* Logout CTA — secondary red, dans le flux (non sticky) */}
       {showLogout && (
-        <div className="fixed left-0 right-0 bottom-0 px-4 sm:px-6 pt-4 pb-bottom-nav lg:pb-bottom-nav-lg bg-gradient-to-t from-navy via-navy/95 to-transparent pointer-events-none z-20">
-          <div className="max-w-[720px] mx-auto pointer-events-auto">
+        <div className="px-4 sm:px-6 mt-6 mb-6">
+          <div className="max-w-[720px] mx-auto">
             <PButton
               variant="ghost"
-              size="lg"
+              size="md"
               full
               icon={<LogOut size={18} />}
-              className="!bg-signal-red !border-[#B22830] !text-white shadow-[0_3px_0_#B22830] hover:!brightness-105 active:!translate-y-[2px] active:!shadow-[0_1px_0_#B22830]"
+              className="!text-signal-red !border-signal-red/40 hover:!bg-signal-red/10 active:!bg-signal-red/20"
               onClick={async () => {
                 setIsDisconnecting(true);
                 try {
@@ -422,6 +420,34 @@ export const UserProfile = () => {
         onClose={() => setShowPaymentModal(false)}
         onSuccess={() => setIsPremium(true)}
       />
+
+      <Sheet
+        isOpen={showAvatarSourceSheet}
+        onClose={() => setShowAvatarSourceSheet(false)}
+        title="Photo de profil"
+        maxWidth="sm"
+      >
+        <div className="flex flex-col gap-3 pt-2">
+          <PButton
+            variant="primary"
+            size="md"
+            full
+            icon={<Camera size={18} />}
+            onClick={() => void handlePickAvatar("camera")}
+          >
+            Prendre une photo
+          </PButton>
+          <PButton
+            variant="accent"
+            size="md"
+            full
+            icon={<ImageIcon size={18} />}
+            onClick={() => void handlePickAvatar("gallery")}
+          >
+            Choisir depuis la galerie
+          </PButton>
+        </div>
+      </Sheet>
     </div>
   );
 };

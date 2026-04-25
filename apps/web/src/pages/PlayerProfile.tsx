@@ -377,7 +377,7 @@ export const PlayerProfile = () => {
         onBack={() => navigate(-1)}
       />
 
-      {/* AC1, AC2: PAvatar 72px + PRankBadge + infos + Membre depuis */}
+      {/* AC1, AC2: PAvatar 72px + infos + Membre depuis */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center gap-4">
           <PAvatar

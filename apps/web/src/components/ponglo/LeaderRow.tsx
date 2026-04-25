@@ -1,7 +1,7 @@
 /**
  * LeaderRow — Everything ELO DS (§5.3)
  *
- * Full leaderboard row: rank # + PAvatar + name + PRankBadge + Sparkline + ELO + delta.
+ * Full leaderboard row: rank # + PAvatar + name + Sparkline + ELO + delta.
  * "MOI" badge highlights the current user's row.
  *
  * Built on top of PAvatar + Sparkline (DS primitives) rather than wrapping ListRow,
@@ -10,7 +10,6 @@
 
 import { PAvatar } from './PAvatar';
 import { Sparkline } from './Sparkline';
-import { PRankBadge } from './PRankBadge';
 
 export interface LeaderboardPlayer {
   id: string;
@@ -82,7 +81,6 @@ export function LeaderRow({ rank, player, isMe = false, onClick }: LeaderRowProp
             MOI
           </span>
         )}
-        <PRankBadge elo={player.elo} size="sm" showStar={false} className="flex-shrink-0" />
       </div>
 
       {/* Sparkline */}

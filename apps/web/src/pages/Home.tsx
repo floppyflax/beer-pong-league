@@ -11,7 +11,6 @@ import { PaymentModal } from "../components/PaymentModal";
 import { PongloGlyph } from "../components/ponglo/Wordmark";
 import { PButton } from "../components/ponglo/PButton";
 import { EloDelta } from "../components/ponglo/EloDelta";
-import { PRankBadge } from "../components/ponglo/PRankBadge";
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -83,9 +82,6 @@ export const Home = () => {
             <div>
               <div className="font-mono text-[10px] uppercase tracking-[1.5px] opacity-55">
                 {isLoading ? "ELO · —" : `ELO · ${lastLeague?.name ?? "Ta saison"}`}
-              </div>
-              <div className="mt-1.5">
-                <PRankBadge elo={elo} size="sm" />
               </div>
             </div>
             <EloDelta value={0} />
