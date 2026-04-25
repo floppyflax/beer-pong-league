@@ -17,6 +17,7 @@ import {
   SegmentedTabs,
   SearchBar,
   LastActivityCard,
+  MatchHistoryCard,
   ScreenLayout,
 } from "@/components/design-system";
 import {
@@ -586,6 +587,60 @@ export function DesignSystemShowcase() {
                 }}
               />
               <LastActivityCard kind="league" />
+            </div>
+          </div>
+
+          <div>
+            <SubHeading>MatchHistoryCard — feed des matchs (Tournament/League)</SubHeading>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <MatchHistoryCard
+                teamA={[{ id: "p1", name: "Florian" }]}
+                teamB={[{ id: "p2", name: "Niko" }]}
+                scoreA={10}
+                scoreB={6}
+                date={new Date(Date.now() - 30_000).toISOString()}
+                eloChanges={{ p1: 16, p2: -16 }}
+              />
+              <MatchHistoryCard
+                teamA={[
+                  { id: "p1", name: "Florian" },
+                  { id: "p3", name: "Amar" },
+                ]}
+                teamB={[
+                  { id: "p2", name: "Niko" },
+                  { id: "p4", name: "Winnie" },
+                ]}
+                scoreA={6}
+                scoreB={10}
+                date={new Date(Date.now() - 2 * 3600_000).toISOString()}
+                eloChanges={{ p1: -16, p3: -16, p2: 16, p4: 16 }}
+                cupsRemaining={4}
+              />
+              <MatchHistoryCard
+                teamA={[
+                  { id: "p1", name: "Florian" },
+                  { id: "p3", name: "Amar" },
+                  { id: "p5", name: "Tom" },
+                ]}
+                teamB={[
+                  { id: "p2", name: "Niko" },
+                  { id: "p4", name: "Winnie" },
+                  { id: "p6", name: "Jules" },
+                ]}
+                scoreA={10}
+                scoreB={3}
+                date={new Date(Date.now() - 26 * 3600_000).toISOString()}
+                eloChanges={{ p1: 24, p3: 24, p5: 24, p2: -24, p4: -24, p6: -24 }}
+                isLive
+              />
+              <MatchHistoryCard
+                teamA={[{ id: "p1", name: "AlexandreLeGrandJoueurDuMonde" }]}
+                teamB={[{ id: "p2", name: "JeanPhilippeDuBeerPong" }]}
+                scoreA={8}
+                scoreB={10}
+                date={new Date(Date.now() - 5 * 86400_000).toISOString()}
+                eloChanges={{ p1: -12, p2: 12 }}
+              />
             </div>
           </div>
         </Section>

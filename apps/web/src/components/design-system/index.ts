@@ -104,6 +104,13 @@ export type {
   SettingsSheetLeagueUpdates,
 } from './SettingsSheet';
 
+// Match history card (per-row in dashboards / profile)
+export { MatchHistoryCard } from './MatchHistoryCard';
+export type {
+  MatchHistoryCardProps,
+  MatchHistoryCardPlayer,
+} from './MatchHistoryCard';
+
 // Claim ghost player (post-account creation flow — see migration 012)
 export { ClaimGuestBanner } from './ClaimGuestBanner';
 export type { ClaimGuestBannerProps } from './ClaimGuestBanner';
