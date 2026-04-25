@@ -127,3 +127,7 @@ export type {
 // Admin ghost player management (rename / invite link / delete)
 export { GhostManagementSheet } from './GhostManagementSheet';
 export type { GhostManagementSheetProps } from './GhostManagementSheet';
+
+// Generic sheet shell — bottom-sheet (mobile) / centered (desktop)
+export { Sheet } from './Sheet';
+export type { SheetProps, SheetMaxWidth } from './Sheet';

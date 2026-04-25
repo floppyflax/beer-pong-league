@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Modal } from '../Modal';
+import { useState } from "react";
+import { Sheet } from "../design-system/Sheet";
+import { PButton } from "../ponglo/PButton";
 
 interface CodeInputModalProps {
   onSubmit: (code: string) => Promise<void>;
@@ -7,18 +8,18 @@ interface CodeInputModalProps {
 }
 
 /**
- * Modal for manual entry of tournament join codes.
+ * Modal for manual entry of join codes (events or leagues).
  * Auto-uppercases, filters non-alphanumeric, validates 6-8 chars.
  */
 export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleCodeChange = (value: string) => {
-    const filtered = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const filtered = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     setCode(filtered);
-    setError('');
+    setError("");
   };
 
   const isValid = /^[A-Z0-9]{6,8}$/.test(code);
@@ -26,13 +27,14 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
   const handleSubmit = async () => {
     if (!isValid) return;
 
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
       await onSubmit(code);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      const message =
+        err instanceof Error ? err.message : "Une erreur est survenue";
       setError(message);
     } finally {
       setIsLoading(false);
@@ -40,15 +42,15 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && isValid && !isLoading) {
+    if (e.key === "Enter" && isValid && !isLoading) {
       e.preventDefault();
       handleSubmit();
     }
   };
 
   return (
-    <Modal
-      isOpen={true}
+    <Sheet
+      isOpen
       onClose={onClose}
       title="Saisir le Code"
       disableClose={isLoading}
@@ -71,7 +73,13 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
       />
 
       <div className="text-right mt-2">
-        <span className={`text-sm ${code.length >= 6 && code.length <= 8 ? 'text-lime' : 'text-cool-gray'}`}>
+        <span
+          className={`text-sm ${
+            code.length >= 6 && code.length <= 8
+              ? "text-lime"
+              : "text-cool-gray"
+          }`}
+        >
           {code.length}/8
         </span>
       </div>
@@ -80,24 +88,19 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
         <p className="text-signal-red text-sm mt-3 text-center">{error}</p>
       )}
 
-      <button
-        onClick={handleSubmit}
+      <PButton
+        variant="accent"
+        full
+        className="mt-6"
         disabled={!isValid || isLoading}
-        className="w-full mt-6 py-4 bg-electric-blue hover:bg-amber-600 text-white font-bold rounded-input transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+        onClick={handleSubmit}
       >
-        {isLoading ? (
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <span>VÉRIFICATION...</span>
-          </div>
-        ) : (
-          'REJOINDRE'
-        )}
-      </button>
+        {isLoading ? "VÉRIFICATION..." : "REJOINDRE"}
+      </PButton>
 
       <p className="text-cool-gray text-xs text-center mt-4">
         Le code vous a été partagé par l'organisateur de l'événement
       </p>
-    </Modal>
+    </Sheet>
   );
 };

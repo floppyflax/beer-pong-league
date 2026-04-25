@@ -16,7 +16,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import { databaseService } from "@/services/DatabaseService";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { Modal } from "@/components/Modal";
+import { Sheet } from "@/components/design-system/Sheet";
 import { PButton } from "@/components/ponglo/PButton";
 import { SearchBar, PageHero, ScreenLayout, StickyCTA } from "@/components/design-system";
 import { X, UserPlus, Check, RotateCcw, ChevronDown, Trophy, Calendar } from "lucide-react";
@@ -895,8 +895,8 @@ function ContextPickerModal({
   const activeLeagues = leagues.filter((l) => l.status !== "finished");
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Choisir un contexte" maxWidth="max-w-md">
-      <div className="space-y-5 max-h-[60vh] overflow-y-auto">
+    <Sheet isOpen={isOpen} onClose={onClose} title="Choisir un contexte" maxWidth="md">
+      <div className="space-y-5">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Calendar size={14} className="text-ping-yellow" />
@@ -972,6 +972,6 @@ function ContextPickerModal({
           )}
         </div>
       </div>
-    </Modal>
+    </Sheet>
   );
 }

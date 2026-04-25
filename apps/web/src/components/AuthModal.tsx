@@ -1,7 +1,8 @@
 import { useState, useCallback, FormEvent } from "react";
 import { Mail, CheckCircle } from "lucide-react";
 import { authService } from "../services/AuthService";
-import { Modal } from "./Modal";
+import { Sheet } from "./design-system/Sheet";
+import { PButton } from "./ponglo/PButton";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -62,7 +63,6 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
       }
 
       if (isTestAccount(email) && usedOTP === false) {
-        console.log("🧪 Test account logged in with password, closing modal");
         setIsLoading(false);
         handleClose();
 
@@ -74,25 +74,23 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
 
       setStep("sent");
       setIsLoading(false);
-    } catch (error) {
+    } catch {
       setError("Une erreur est survenue");
       setIsLoading(false);
     }
   };
 
   return (
-    <Modal
+    <Sheet
       isOpen={isOpen}
       onClose={handleClose}
       title={step === "email" ? "Créer un compte" : "Email envoyé !"}
-      maxWidth="max-w-sm"
+      maxWidth="sm"
     >
       {step === "email" ? (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm text-cool-gray mb-2 block">
-              Email
-            </label>
+            <label className="text-sm text-cool-gray mb-2 block">Email</label>
             <div className="relative">
               <Mail
                 size={20}
@@ -106,7 +104,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                   setError(null);
                 }}
                 placeholder="ton@email.com"
-                className="w-full bg-navy-soft border border-card rounded-input pl-10 pr-4 py-4 text-white focus:ring-2 focus:ring-electric-blue outline-none"
+                className="w-full bg-navy border border-card rounded-input pl-10 pr-4 py-4 text-white focus:ring-2 focus:ring-electric-blue outline-none"
                 autoFocus
                 disabled={isLoading}
               />
@@ -115,7 +113,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
             {isTestAccount(email) ? (
               <div className="bg-lime/20 border border-lime/50 rounded-button p-2 mt-2">
                 <p className="text-xs text-lime font-semibold">
-                  🧪 Compte test détecté - Connexion directe
+                  🧪 Compte test détecté — Connexion directe
                 </p>
               </div>
             ) : (
@@ -135,17 +133,16 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
                 <span className="text-white">devadmin@test.com</span>
                 <br />• <span className="text-white">devtest@test.com</span>
                 <br />
-                <span className="text-cool-gray">
-                  (connexion instantanée)
-                </span>
+                <span className="text-cool-gray">(connexion instantanée)</span>
               </p>
             </div>
           )}
 
-          <button
+          <PButton
             type="submit"
+            variant="accent"
+            full
             disabled={!email.trim() || isLoading}
-            className="w-full bg-electric-blue disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-input transition-colors"
           >
             {isLoading
               ? isTestAccount(email)
@@ -154,39 +151,38 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
               : isTestAccount(email)
                 ? "Se connecter"
                 : "Envoyer le lien magique"}
-          </button>
+          </PButton>
         </form>
       ) : (
         <div className="space-y-4">
-          <div className="bg-lime/20 border border-lime/50 rounded-input p-4 flex items-center gap-3">
-            <CheckCircle size={24} className="text-lime" />
+          <div className="bg-lime/15 border border-lime/40 rounded-card p-4 flex items-center gap-3">
+            <CheckCircle size={24} className="text-lime flex-shrink-0" />
             <div>
-              <div className="font-bold text-lime">Email envoyé !</div>
-              <div className="text-sm text-cool-gray">
+              <div className="font-archivo font-extrabold uppercase text-lime text-[13px] tracking-tight">
+                Email envoyé !
+              </div>
+              <div className="text-[12px] text-cool-gray mt-0.5">
                 Vérifie ta boîte mail et clique sur le lien
               </div>
             </div>
           </div>
 
-          <div className="bg-navy-soft p-4 rounded-input">
-            <div className="text-sm text-cool-gray mb-2">
-              Email envoyé à :
+          <div className="bg-navy border border-card p-4 rounded-card">
+            <div className="text-[11px] uppercase tracking-[0.5px] text-cool-gray mb-1 font-mono">
+              Email envoyé à
             </div>
-            <div className="font-bold text-white">{email}</div>
+            <div className="font-bold text-white break-all">{email}</div>
           </div>
 
-          <div className="text-xs text-cool-gray text-center">
+          <p className="text-xs text-cool-gray text-center">
             Une fois le lien cliqué, tu seras automatiquement connecté
-          </div>
+          </p>
 
-          <button
-            onClick={handleClose}
-            className="w-full bg-navy-soft hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
-          >
+          <PButton variant="ghost" full onClick={handleClose}>
             Fermer
-          </button>
+          </PButton>
         </div>
       )}
-    </Modal>
+    </Sheet>
   );
 };

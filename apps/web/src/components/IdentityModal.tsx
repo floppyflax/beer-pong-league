@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { localUserService, type LocalUser } from "../services/LocalUserService";
-import { Modal } from "./Modal";
+import { Sheet } from "./design-system/Sheet";
+import { PButton } from "./ponglo/PButton";
 
 interface IdentityModalProps {
   isOpen: boolean;
@@ -19,8 +20,7 @@ export const IdentityModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      const user = localUserService.getLocalUser();
-      setLocalUser(user);
+      setLocalUser(localUserService.getLocalUser());
     }
   }, [isOpen]);
 
@@ -37,16 +37,18 @@ export const IdentityModal = ({
   };
 
   return (
-    <Modal
+    <Sheet
       isOpen={isOpen}
       onClose={onClose}
       title="Reprendre ton profil ?"
-      maxWidth="max-w-sm"
+      maxWidth="sm"
     >
       {localUser ? (
         <div className="space-y-4">
-          <div className="bg-navy-soft p-4 rounded-input">
-            <div className="text-sm text-cool-gray mb-1">Ton pseudo</div>
+          <div className="bg-navy border border-card p-4 rounded-card">
+            <div className="text-[11px] uppercase tracking-[0.5px] text-cool-gray mb-1 font-mono">
+              Ton pseudo
+            </div>
             <div className="text-lg font-bold text-white">
               {localUser.pseudo}
             </div>
@@ -57,33 +59,24 @@ export const IdentityModal = ({
           </div>
 
           <div className="flex gap-3">
-            <button
-              onClick={handleResume}
-              className="flex-1 bg-electric-blue hover:bg-amber-600 text-white font-bold py-3 rounded-input transition-colors"
-            >
+            <PButton variant="accent" full onClick={handleResume}>
               Reprendre
-            </button>
-            <button
-              onClick={handleCreateNew}
-              className="flex-1 bg-navy-soft hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
-            >
+            </PButton>
+            <PButton variant="ghost" full onClick={handleCreateNew}>
               Nouveau profil
-            </button>
+            </PButton>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-cool-gray">
+          <p className="text-cool-gray text-sm">
             Aucun profil local trouvé. Crée un nouveau profil pour commencer.
           </p>
-          <button
-            onClick={handleCreateNew}
-            className="w-full bg-electric-blue hover:bg-amber-600 text-white font-bold py-3 rounded-input transition-colors"
-          >
+          <PButton variant="accent" full onClick={handleCreateNew}>
             Créer un profil
-          </button>
+          </PButton>
         </div>
       )}
-    </Modal>
+    </Sheet>
   );
 };

@@ -2,7 +2,8 @@ import { useState, FormEvent } from "react";
 import { localUserService, type LocalUser } from "../services/LocalUserService";
 import { getDeviceFingerprint } from "../utils/deviceFingerprint";
 import { anonymousUserService } from "../services/AnonymousUserService";
-import { Modal } from "./Modal";
+import { Sheet } from "./design-system/Sheet";
+import { PButton } from "./ponglo/PButton";
 
 interface CreateIdentityModalProps {
   isOpen: boolean;
@@ -33,26 +34,24 @@ export const CreateIdentityModal = ({
         deviceFingerprint,
       );
 
-      anonymousUserService.syncLocalUserToSupabase(localUser).catch((error) => {
-        console.warn("Failed to sync to Supabase (will retry later):", error);
+      anonymousUserService.syncLocalUserToSupabase(localUser).catch(() => {
+        // Silent retry happens later via background sync.
       });
 
       onIdentityCreated(localUser);
       setPseudo("");
       onClose();
-    } catch (error) {
-      console.error("Error creating identity:", error);
     } finally {
       setIsCreating(false);
     }
   };
 
   return (
-    <Modal
+    <Sheet
       isOpen={isOpen}
       onClose={onClose}
       title="Créer ton profil"
-      maxWidth="max-w-sm"
+      maxWidth="sm"
       disableClose={isCreating}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -65,7 +64,7 @@ export const CreateIdentityModal = ({
             value={pseudo}
             onChange={(e) => setPseudo(e.target.value)}
             placeholder="Ton pseudo"
-            className="w-full bg-navy-soft border border-card rounded-input p-4 text-white focus:ring-2 focus:ring-electric-blue outline-none"
+            className="w-full bg-navy border border-card rounded-input p-4 text-white focus:ring-2 focus:ring-electric-blue outline-none"
             autoFocus
             disabled={isCreating}
             maxLength={50}
@@ -75,14 +74,15 @@ export const CreateIdentityModal = ({
           </p>
         </div>
 
-        <button
+        <PButton
           type="submit"
+          variant="accent"
+          full
           disabled={!pseudo.trim() || isCreating}
-          className="w-full bg-electric-blue disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 text-white font-bold py-4 rounded-input transition-colors"
         >
           {isCreating ? "Création..." : "Créer mon profil"}
-        </button>
+        </PButton>
       </form>
-    </Modal>
+    </Sheet>
   );
 };

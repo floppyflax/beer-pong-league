@@ -5,7 +5,8 @@ import { useAuthContext } from "../context/AuthContext";
 import { premiumService } from "../services/PremiumService";
 import { stripeService } from "../services/StripeService";
 import { supabase } from "../lib/supabase";
-import { Modal } from "./Modal";
+import { Sheet } from "./design-system/Sheet";
+import { PButton } from "./ponglo/PButton";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -187,36 +188,44 @@ export const PaymentModal = ({
   // Close confirmation (overlay modal on top)
   if (showCloseConfirmation) {
     return (
-      <Modal
-        isOpen={true}
+      <Sheet
+        isOpen
         onClose={() => setShowCloseConfirmation(false)}
         title={
-          <span className="flex items-center gap-2">
-            <AlertCircle size={22} className="text-electric-blue" />
+          <span className="flex items-center justify-center gap-2">
+            <AlertCircle size={18} className="text-electric-blue" />
             Annuler le paiement ?
           </span>
         }
-        maxWidth="max-w-sm"
+        maxWidth="sm"
         layer="top"
       >
         <p className="text-sm text-cool-gray mb-6">
-          Le paiement est en cours. Êtes-vous sûr de vouloir annuler ?
+          Le paiement est en cours. Es-tu sûr de vouloir annuler ?
         </p>
         <div className="flex gap-3">
-          <button
+          <PButton
+            variant="ghost"
+            full
             onClick={() => setShowCloseConfirmation(false)}
-            className="flex-1 bg-navy-soft hover:bg-slate-600 text-white font-bold py-3 rounded-input transition-colors"
           >
             Continuer
-          </button>
-          <button
-            onClick={() => { setPaymentState("idle"); setError(null); setShowCloseConfirmation(false); onClose(); }}
-            className="flex-1 bg-signal-red/20 border border-signal-red/50 hover:bg-signal-red/30 text-signal-red font-bold py-3 rounded-input transition-colors"
+          </PButton>
+          <PButton
+            variant="dark"
+            full
+            className="!bg-signal-red/15 !text-signal-red !border-signal-red/40 !shadow-[0_3px_0_rgba(255,59,59,0.4)]"
+            onClick={() => {
+              setPaymentState("idle");
+              setError(null);
+              setShowCloseConfirmation(false);
+              onClose();
+            }}
           >
             Annuler
-          </button>
+          </PButton>
         </div>
-      </Modal>
+      </Sheet>
     );
   }
 
