@@ -118,7 +118,7 @@ export const Home = () => {
             color="text-navy"
             onClick={() =>
               activeTournament
-                ? navigate(`/tournament/${activeTournament.id}`)
+                ? navigate(`/event/${activeTournament.id}`)
                 : navigate("/competitions?tab=events")
             }
           />
@@ -158,7 +158,7 @@ export const Home = () => {
         {activeTournament && (
           <button
             className="mt-5 w-full bg-navy-soft border-[1.5px] border-white rounded-lg p-4 shadow-[0_3px_0_#F4F2E8] flex items-center gap-3 text-left"
-            onClick={() => navigate(`/tournament/${activeTournament.id}`)}
+            onClick={() => navigate(`/event/${activeTournament.id}`)}
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Join } from '../../src/pages/Join';
-import { Tournaments } from '../../src/pages/Tournaments';
+import { Tournaments } from '../../src/pages/Events';
 import { Leagues } from '../../src/pages/Leagues';
 import { AuthProvider } from '../../src/context/AuthContext';
 import { IdentityProvider } from '../../src/context/IdentityContext';
@@ -29,9 +29,9 @@ function TestApp({ initialRoute = '/' }: { initialRoute?: string }) {
           <MemoryRouter initialEntries={[initialRoute]}>
             <Routes>
               <Route path="/join" element={<Join />} />
-              <Route path="/tournaments" element={<Tournaments />} />
+              <Route path="/events" element={<Tournaments />} />
               <Route path="/leagues" element={<Leagues />} />
-              <Route path="/create-tournament" element={<div>Create Tournament Page</div>} />
+              <Route path="/create-event" element={<div>Create Tournament Page</div>} />
               <Route path="/create-league" element={<div>Create League Page</div>} />
             </Routes>
           </MemoryRouter>
@@ -100,14 +100,14 @@ describe.skip('BottomMenuSpecific Integration', () => {
 
   describe('Tournaments Page (AC3)', () => {
     it('should display single Créer button', () => {
-      render(<TestApp initialRoute="/tournaments" />);
+      render(<TestApp initialRoute="/events" />);
       
       // Should have at least one CRÉER button (mobile or desktop)
       expect(screen.getAllByText('CRÉER').length).toBeGreaterThanOrEqual(1);
     });
 
     it('should show tournaments page title', () => {
-      render(<TestApp initialRoute="/tournaments" />);
+      render(<TestApp initialRoute="/events" />);
       
       // May have multiple titles (mobile/desktop headers)
       const titles = screen.getAllByText('Mes Tournois');
@@ -115,20 +115,20 @@ describe.skip('BottomMenuSpecific Integration', () => {
     });
 
     it('should show empty state when no tournaments', () => {
-      render(<TestApp initialRoute="/tournaments" />);
+      render(<TestApp initialRoute="/events" />);
       
       expect(screen.getByText('Aucun tournoi')).toBeInTheDocument();
     });
 
     it('should navigate to create-tournament when Créer button is clicked (free user)', async () => {
-      render(<TestApp initialRoute="/tournaments" />);
+      render(<TestApp initialRoute="/events" />);
       
       const createButton = screen.getAllByText('CRÉER')[0];
       fireEvent.click(createButton);
       
       // Should navigate to create-tournament page (no premium limit for 0 tournaments)
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/create-tournament');
+        expect(mockNavigate).toHaveBeenCalledWith('/create-event');
       });
     });
   });
@@ -178,7 +178,7 @@ describe.skip('BottomMenuSpecific Integration', () => {
     });
 
     it('should render desktop actions on tournaments page', () => {
-      render(<TestApp initialRoute="/tournaments" />);
+      render(<TestApp initialRoute="/events" />);
       
       // Desktop actions have 'hidden lg:flex' class
       // Mobile menu has 'lg:hidden' class
@@ -197,7 +197,7 @@ describe.skip('BottomMenuSpecific Integration', () => {
 
     it('should render Tournaments page without errors', () => {
       expect(() => {
-        render(<TestApp initialRoute="/tournaments" />);
+        render(<TestApp initialRoute="/events" />);
       }).not.toThrow();
     });
 

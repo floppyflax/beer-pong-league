@@ -18,7 +18,7 @@ describe('DatabaseService - Tournament Participants (Story 3.3)', () => {
       const mockLeague = {
         id: 'league-1',
         name: 'Test League',
-        type: 'event',
+        type: 'one-shot',
         players: [
           { id: 'player-1', name: 'Alice', elo: 1200, wins: 5, losses: 3, matchesPlayed: 8, streak: 2 },
           { id: 'player-2', name: 'Bob', elo: 1150, wins: 4, losses: 4, matchesPlayed: 8, streak: -1 },
@@ -92,7 +92,7 @@ describe('DatabaseService - Tournament Participants (Story 3.3)', () => {
       const mockLeague = {
         id: 'league-1',
         name: 'Test League',
-        type: 'event',
+        type: 'one-shot',
         players: [
           { id: 'player-1', name: 'Alice', elo: 1200, wins: 5, losses: 3, matchesPlayed: 8, streak: 2 },
         ],

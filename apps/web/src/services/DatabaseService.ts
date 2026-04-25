@@ -41,7 +41,7 @@ class DatabaseService {
     return leaguesRepository.deleteLeague(leagueId);
   }
 
-  updateLeague(leagueId: string, name: string, type: 'event' | 'season'): Promise<void> {
+  updateLeague(leagueId: string, name: string, type: 'one-shot' | 'season'): Promise<void> {
     return leaguesRepository.updateLeague(leagueId, name, type);
   }
 

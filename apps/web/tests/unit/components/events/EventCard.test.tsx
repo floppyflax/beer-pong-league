@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
-import { TournamentCard } from "../../../../src/components/tournaments/TournamentCard";
+import { EventCard } from "../../../../src/components/events/EventCard";
 import type { Tournament } from "../../../../src/types";
 
 const mockNavigate = vi.fn();
@@ -14,7 +14,7 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-describe("TournamentCard", () => {
+describe("EventCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -43,60 +43,60 @@ describe("TournamentCard", () => {
   };
 
   it("should render tournament name", () => {
-    renderWithRouter(<TournamentCard tournament={mockActiveTournament} />);
+    renderWithRouter(<EventCard tournament={mockActiveTournament} />);
     expect(screen.getByText("Beer Pong Championship 2024")).toBeInTheDocument();
   });
 
   it('should show "ACTIF" badge for active tournaments', () => {
-    renderWithRouter(<TournamentCard tournament={mockActiveTournament} />);
+    renderWithRouter(<EventCard tournament={mockActiveTournament} />);
     expect(screen.getByText("ACTIF")).toBeInTheDocument();
   });
 
   it('should show "TERMINÉ" badge for finished tournaments', () => {
-    renderWithRouter(<TournamentCard tournament={mockFinishedTournament} />);
+    renderWithRouter(<EventCard tournament={mockFinishedTournament} />);
     expect(screen.getByText("TERMINÉ")).toBeInTheDocument();
   });
 
   it("should display player count and match count", () => {
-    renderWithRouter(<TournamentCard tournament={mockActiveTournament} />);
+    renderWithRouter(<EventCard tournament={mockActiveTournament} />);
     expect(screen.getByText("Joueurs")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("Matchs")).toBeInTheDocument();
   });
 
   it("should display format in blue", () => {
-    renderWithRouter(<TournamentCard tournament={mockActiveTournament} />);
+    renderWithRouter(<EventCard tournament={mockActiveTournament} />);
     expect(screen.getByText("2v2")).toBeInTheDocument();
     expect(screen.getByText("Format")).toBeInTheDocument();
   });
 
   it("should display tournament date formatted", () => {
-    renderWithRouter(<TournamentCard tournament={mockActiveTournament} />);
+    renderWithRouter(<EventCard tournament={mockActiveTournament} />);
     expect(screen.getByText(/juin 2024/i)).toBeInTheDocument();
   });
 
   it("should navigate to tournament detail on click", () => {
-    renderWithRouter(<TournamentCard tournament={mockActiveTournament} />);
+    renderWithRouter(<EventCard tournament={mockActiveTournament} />);
     const card = screen.getByTestId("tournament-card");
     fireEvent.click(card);
-    expect(mockNavigate).toHaveBeenCalledWith("/tournament/tournament-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/event/tournament-1");
   });
 
   it("should navigate on keyboard Enter", () => {
-    renderWithRouter(<TournamentCard tournament={mockActiveTournament} />);
+    renderWithRouter(<EventCard tournament={mockActiveTournament} />);
     const card = screen.getByTestId("tournament-card");
     fireEvent.keyDown(card, { key: "Enter" });
-    expect(mockNavigate).toHaveBeenCalledWith("/tournament/tournament-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/event/tournament-1");
   });
 
   it("should display chevron when interactive", () => {
-    renderWithRouter(<TournamentCard tournament={mockActiveTournament} />);
+    renderWithRouter(<EventCard tournament={mockActiveTournament} />);
     expect(screen.getByTestId("tournament-card-chevron")).toBeInTheDocument();
   });
 
   it("should use bg-gradient-card and border-card/50", () => {
     const { getByTestId } = renderWithRouter(
-      <TournamentCard tournament={mockActiveTournament} />,
+      <EventCard tournament={mockActiveTournament} />,
     );
     const card = getByTestId("tournament-card");
     expect(card).toHaveClass("bg-gradient-card");
@@ -105,7 +105,7 @@ describe("TournamentCard", () => {
 
   it("should have hover and active styles", () => {
     const { getByTestId } = renderWithRouter(
-      <TournamentCard tournament={mockActiveTournament} />,
+      <EventCard tournament={mockActiveTournament} />,
     );
     const card = getByTestId("tournament-card");
     expect(card).toHaveClass("hover:border-signal-red");
@@ -117,14 +117,14 @@ describe("TournamentCard", () => {
       ...mockActiveTournament,
       playerIds: undefined,
     };
-    renderWithRouter(<TournamentCard tournament={noPlayersTournament} />);
+    renderWithRouter(<EventCard tournament={noPlayersTournament} />);
     expect(screen.getByText("Joueurs")).toBeInTheDocument();
     expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(1);
   });
 
   it("should not navigate when interactive=false (display mode)", () => {
     renderWithRouter(
-      <TournamentCard tournament={mockActiveTournament} interactive={false} />,
+      <EventCard tournament={mockActiveTournament} interactive={false} />,
     );
     const card = screen.getByTestId("tournament-card");
     fireEvent.click(card);
@@ -133,7 +133,7 @@ describe("TournamentCard", () => {
 
   it("should not display chevron when interactive=false", () => {
     renderWithRouter(
-      <TournamentCard tournament={mockActiveTournament} interactive={false} />,
+      <EventCard tournament={mockActiveTournament} interactive={false} />,
     );
     expect(
       screen.queryByTestId("tournament-card-chevron"),
@@ -145,7 +145,7 @@ describe("TournamentCard", () => {
       ...mockActiveTournament,
       format: "libre" as const,
     };
-    renderWithRouter(<TournamentCard tournament={libreTournament} />);
+    renderWithRouter(<EventCard tournament={libreTournament} />);
     expect(screen.getByText("Libre")).toBeInTheDocument();
   });
 });

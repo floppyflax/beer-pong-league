@@ -197,7 +197,7 @@ describe("CreateLeague - Story 14.18", () => {
       await waitFor(() => {
         expect(mockCreateLeague).toHaveBeenCalledWith(
           "Ma Super League",
-          "event",
+          "one-shot",
         );
         expect(mockNavigate).toHaveBeenCalledWith("/league/league-123");
       });

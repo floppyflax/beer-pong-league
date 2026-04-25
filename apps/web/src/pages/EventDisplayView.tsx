@@ -6,7 +6,7 @@ import { TrendingUp, TrendingDown, Zap, Calendar } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import type { Player } from "../types";
 
-export const TournamentDisplayView = () => {
+export const EventDisplayView = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const variant = searchParams.get("variant") === "drama" ? "drama" : "split";
@@ -60,7 +60,7 @@ export const TournamentDisplayView = () => {
   // Generate join URL (points to join page)
   const joinUrl = useMemo(() => {
     if (!tournament) return "";
-    return `${window.location.origin}/tournament/${tournament.id}/join`;
+    return `${window.location.origin}/event/${tournament.id}/join`;
   }, [tournament]);
 
   // Auto-scroll logic
@@ -121,7 +121,7 @@ export const TournamentDisplayView = () => {
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        navigate(`/tournament/${id}`);
+        navigate(`/event/${id}`);
       }
     };
 
@@ -132,7 +132,7 @@ export const TournamentDisplayView = () => {
   if (!tournament) {
     return (
       <div className="h-screen flex items-center justify-center bg-navy text-white">
-        <p>Tournoi introuvable.</p>
+        <p>Événement introuvable.</p>
       </div>
     );
   }
@@ -446,7 +446,7 @@ export const TournamentDisplayView = () => {
           {/* QR Code */}
           <div className="bg-navy-soft/90 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-card/50 flex flex-col items-center">
             <h3 className="text-lg md:text-xl font-black mb-3 md:mb-4 text-center">
-              Rejoins le tournoi !
+              Rejoins l'événement !
             </h3>
             <div className="bg-white p-3 md:p-5 rounded-lg md:rounded-xl mb-3 md:mb-4 shadow-2xl">
               <QRCodeSVG value={joinUrl} size={150} className="md:hidden" />

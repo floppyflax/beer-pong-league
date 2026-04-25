@@ -52,7 +52,7 @@ describe("useFullDisconnect - Story 14.34", () => {
   });
 
   it("should remove authReturnTo from sessionStorage", async () => {
-    sessionStorage.setItem("authReturnTo", "/create-tournament");
+    sessionStorage.setItem("authReturnTo", "/create-event");
     const { result } = renderHook(() => useFullDisconnect());
 
     await act(async () => {

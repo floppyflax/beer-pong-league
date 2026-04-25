@@ -4,7 +4,7 @@ import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { Plus } from "lucide-react";
 import { PaymentModal } from "@/components/PaymentModal";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { TournamentCard } from "@/components/tournaments/TournamentCard";
+import { EventCard } from "@/components/events/EventCard";
 import {
   SearchBar,
   SegmentedTabs,
@@ -13,7 +13,7 @@ import {
   ScreenLayout,
 } from "@/components/design-system";
 import { usePremiumLimits } from "@/hooks/usePremiumLimits";
-import { useTournamentsList } from "@/hooks/useTournamentsList";
+import { useEventsList } from "@/hooks/useEventsList";
 import { useLeague } from "@/context/LeagueContext";
 
 /**
@@ -34,7 +34,7 @@ import { useLeague } from "@/context/LeagueContext";
 
 type FilterStatus = "all" | "active" | "finished";
 
-export const Tournaments: React.FC = () => {
+export const Events: React.FC = () => {
   const navigate = useNavigate();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -42,7 +42,7 @@ export const Tournaments: React.FC = () => {
 
   const { canCreateTournament, isAtTournamentLimit, refetchPremium } =
     usePremiumLimits();
-  const { tournaments, isLoading, loadError } = useTournamentsList();
+  const { tournaments, isLoading, loadError } = useEventsList();
   const { reloadData } = useLeague();
 
   const handlePaymentSuccess = () => {
@@ -56,7 +56,7 @@ export const Tournaments: React.FC = () => {
   // Handle create tournament action
   const handleCreate = () => {
     if (canCreateTournament) {
-      navigate("/create-tournament");
+      navigate("/create-event");
     } else {
       setShowPaymentModal(true);
     }
@@ -228,7 +228,7 @@ export const Tournaments: React.FC = () => {
         ) : (
           <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
             {filteredTournaments.map((tournament) => (
-              <TournamentCard key={tournament.id} tournament={tournament} />
+              <EventCard key={tournament.id} tournament={tournament} />
             ))}
           </div>
         )}

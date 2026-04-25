@@ -6,7 +6,7 @@
  *
  * @example
  * // Créer tournoi / Créer league
- * <FAB icon={Plus} onClick={handleCreate} ariaLabel="Créer un tournoi" />
+ * <FAB icon={Plus} onClick={handleCreate} ariaLabel="Créer un événement" />
  *
  * @example
  * // Nouveau match (icône identitaire BeerPongMatchIcon — dashboards tournoi/league)

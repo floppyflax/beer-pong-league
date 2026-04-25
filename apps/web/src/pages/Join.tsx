@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Camera, ChevronLeft } from "lucide-react";
 import { QRScanner } from "@/components/join/QRScanner";
-import { useJoinTournament } from "@/hooks/useJoinTournament";
+import { useJoinEvent } from "@/hooks/useJoinEvent";
 import { extractCodeFromQR } from "@/utils/extractCodeFromQR";
 import { PButton } from "@/components/ponglo/PButton";
 import { StickyCTA } from "@/components/design-system";
@@ -17,7 +17,7 @@ export const Join = () => {
   const [code, setCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { joinByCode } = useJoinTournament();
+  const { joinByCode } = useJoinEvent();
 
   const handleCodeChange = (value: string) => {
     const filtered = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);

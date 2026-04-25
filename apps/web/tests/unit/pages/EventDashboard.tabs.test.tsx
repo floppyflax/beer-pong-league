@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import { TournamentDashboard } from "../../../src/pages/TournamentDashboard";
+import { EventDashboard } from "../../../src/pages/EventDashboard";
 
 // Mock react-router-dom useParams
 vi.mock("react-router-dom", async () => {
@@ -86,11 +86,11 @@ vi.mock("../../../src/services/DatabaseService", () => ({
   },
 }));
 
-describe("TournamentDashboard - Tab Navigation (Task 1)", () => {
+describe("EventDashboard - Tab Navigation (Task 1)", () => {
   const renderDashboard = () => {
     return render(
       <BrowserRouter>
-        <TournamentDashboard />
+        <EventDashboard />
       </BrowserRouter>,
     );
   };

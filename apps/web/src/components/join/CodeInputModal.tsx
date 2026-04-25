@@ -54,7 +54,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
       disableClose={isLoading}
     >
       <p className="text-cool-gray text-sm mb-4">
-        Entrez le code du tournoi (6 à 8 caractères alphanumériques)
+        Entrez le code de l'événement (6 à 8 caractères alphanumériques)
       </p>
 
       <input
@@ -67,7 +67,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
         className="w-full px-4 py-4 bg-navy border border-card rounded-button text-white text-center text-2xl font-bold tracking-wider uppercase focus:border-electric-blue focus:outline-none focus:ring-2 focus:ring-electric-blue/50 transition-all"
         autoFocus
         disabled={isLoading}
-        aria-label="Code du tournoi"
+        aria-label="Code de l'événement"
       />
 
       <div className="text-right mt-2">
@@ -96,7 +96,7 @@ export const CodeInputModal = ({ onSubmit, onClose }: CodeInputModalProps) => {
       </button>
 
       <p className="text-cool-gray text-xs text-center mt-4">
-        Le code vous a été partagé par l'organisateur du tournoi
+        Le code vous a été partagé par l'organisateur de l'événement
       </p>
     </Modal>
   );

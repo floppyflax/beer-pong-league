@@ -357,11 +357,11 @@ export const UserProfile = () => {
                   key={tournament.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => navigate(`/tournament/${tournament.id}`)}
+                  onClick={() => navigate(`/event/${tournament.id}`)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      navigate(`/tournament/${tournament.id}`);
+                      navigate(`/event/${tournament.id}`);
                     }
                   }}
                   className="bg-navy-soft rounded-card p-4 border border-card hover:border-card-muted cursor-pointer transition-colors"

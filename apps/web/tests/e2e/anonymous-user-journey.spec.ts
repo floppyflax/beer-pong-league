@@ -49,7 +49,7 @@ test.describe('Anonymous User Journey', () => {
     await page.waitForLoadState('networkidle');
 
     // Navigate to create tournament
-    await page.click('text=Créer un tournoi');
+    await page.click('text=Créer un événement');
     
     // Fill tournament form
     await page.fill('[name="name"]', 'Test Tournament E2E');
@@ -58,8 +58,8 @@ test.describe('Anonymous User Journey', () => {
     // Submit form
     await page.click('button[type="submit"]');
 
-    // Should redirect to tournament page
-    await expect(page).toHaveURL(/\/tournament\/[a-z0-9-]+/);
+    // Should redirect to event page
+    await expect(page).toHaveURL(/\/event\/[a-z0-9-]+/);
     
     // Tournament name should be visible
     await expect(page.locator('h1')).toContainText('Test Tournament E2E');
@@ -93,7 +93,7 @@ test.describe('Anonymous User Journey', () => {
     await page.waitForLoadState('networkidle');
     
     // Create tournament
-    await page.click('text=Créer un tournoi');
+    await page.click('text=Créer un événement');
     await page.fill('[name="name"]', 'Test Tournament for Join');
     await page.fill('[name="location"]', 'Bar Test');
     await page.click('button[type="submit"]');
@@ -101,7 +101,7 @@ test.describe('Anonymous User Journey', () => {
     // Get tournament invite URL from QR code or share button
     const inviteUrl = await page.evaluate(() => {
       const url = new URL(window.location.href);
-      return url.origin + '/tournament-join/' + url.pathname.split('/').pop();
+      return url.origin + '/event/' + url.pathname.split('/').pop() + '/join';
     });
 
     // Open new incognito tab (simulating different anonymous user B)
@@ -109,7 +109,7 @@ test.describe('Anonymous User Journey', () => {
     await newPage.goto(inviteUrl);
     
     // Should show join form
-    await expect(newPage.locator('h1')).toContainText('Rejoindre le tournoi');
+    await expect(newPage.locator('h1')).toContainText("Rejoindre l'événement");
     
     // Enter pseudo and join
     await newPage.fill('[name="pseudo"]', 'Anonymous Player 2');
@@ -125,7 +125,7 @@ test.describe('Anonymous User Journey', () => {
 
     // Navigate to a tournament (assuming one exists in test DB)
     // Or create one first
-    await page.click('text=Créer un tournoi');
+    await page.click('text=Créer un événement');
     await page.fill('[name="name"]', 'Leaderboard Test');
     await page.fill('[name="location"]', 'Test Bar');
     await page.click('button[type="submit"]');
@@ -145,7 +145,7 @@ test.describe('Anonymous User Journey', () => {
     await context.setOffline(true);
 
     // Try to create tournament (should work with localStorage)
-    await page.click('text=Créer un tournoi');
+    await page.click('text=Créer un événement');
     await page.fill('[name="name"]', 'Offline Tournament');
     await page.fill('[name="location"]', 'Offline Location');
     
@@ -170,7 +170,7 @@ test.describe('Anonymous User Journey', () => {
     await page.waitForLoadState('networkidle');
 
     // Create tournament
-    await page.click('text=Créer un tournoi');
+    await page.click('text=Créer un événement');
     await page.fill('[name="name"]', 'Match Recording Test');
     await page.fill('[name="location"]', 'Test Location');
     await page.click('button[type="submit"]');

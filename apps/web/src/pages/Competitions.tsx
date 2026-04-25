@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, Crown } from "lucide-react";
 import { PaymentModal } from "@/components/PaymentModal";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { TournamentCard } from "@/components/tournaments/TournamentCard";
+import { EventCard } from "@/components/events/EventCard";
 import { LeagueCard } from "@/components/leagues/LeagueCard";
 import { PButton } from "@/components/ponglo/PButton";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
@@ -15,7 +15,7 @@ import {
   PageHero,
 } from "@/components/design-system";
 import { usePremiumLimits } from "@/hooks/usePremiumLimits";
-import { useTournamentsList } from "@/hooks/useTournamentsList";
+import { useEventsList } from "@/hooks/useEventsList";
 import { useLeaguesList } from "@/hooks/useLeaguesList";
 import { useLeague } from "@/context/LeagueContext";
 import toast from "react-hot-toast";
@@ -23,7 +23,7 @@ import toast from "react-hot-toast";
 /**
  * Competitions — unified page for Événements + Leagues
  *
- * Remplace les pages `/tournaments` et `/leagues` séparées par un écran unique
+ * Remplace les pages `/events` et `/leagues` séparées par un écran unique
  * avec SegmentedTabs [Événements | Leagues] et un FAB qui ouvre un sheet
  * "Créer un événement" / "Créer une ligue".
  *
@@ -66,7 +66,7 @@ export const Competitions: React.FC = () => {
     refetchPremium,
   } = usePremiumLimits();
   const { tournaments, isLoading: isLoadingTournaments, loadError } =
-    useTournamentsList();
+    useEventsList();
   const { leagues, isLoading: isLoadingLeagues } = useLeaguesList();
   const { reloadData } = useLeague();
 
@@ -80,7 +80,7 @@ export const Competitions: React.FC = () => {
 
   const handleCreateEvent = () => {
     if (canCreateTournament) {
-      navigate("/create-tournament");
+      navigate("/create-event");
     } else {
       setShowPaymentModal(true);
     }
@@ -278,7 +278,7 @@ export const Competitions: React.FC = () => {
             ) : scope === "events" ? (
               <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
                 {filteredEvents.map((tournament) => (
-                  <TournamentCard key={tournament.id} tournament={tournament} />
+                  <EventCard key={tournament.id} tournament={tournament} />
                 ))}
               </div>
             ) : (

@@ -9,7 +9,7 @@
  * Core routes where bottom nav should always be visible (design system 2.1).
  *
  * NOTE — action-oriented pages (modale-équivalent) masquent le BottomTabMenu :
- *   /join, /create-tournament, /create-league, /record-match.
+ *   /join, /create-event, /create-league, /record-match.
  *
  * Ces écrans ont un CTA primaire qui doit rester seul en bas d'écran
  * (ex. "Rejoindre l'événement", "Créer", "Lancer la ligue") et leur propre
@@ -18,7 +18,7 @@
  */
 const CORE_ROUTES = [
   "/",
-  "/tournaments",
+  "/events",
   "/leagues",
   "/competitions",
   "/leaderboard",
@@ -27,12 +27,12 @@ const CORE_ROUTES = [
 
 /**
  * Route patterns for detail pages (bottom nav visible)
- * Story 14-14: /tournament/:id/invite and /tournament/:id/join show bottom nav (design-system 5.5)
+ * Canonical event/league detail routes — /tournament/* are kept as backward-compat redirects.
  */
 const CORE_ROUTE_PATTERNS = [
-  /^\/tournament\/[^/]+$/, // /tournament/:id (exclude /tournament/:id/display)
-  /^\/tournament\/[^/]+\/invite$/, // /tournament/:id/invite
-  /^\/tournament\/[^/]+\/join$/, // /tournament/:id/join
+  /^\/event\/[^/]+$/, // /event/:id (exclude /event/:id/display)
+  /^\/event\/[^/]+\/invite$/, // /event/:id/invite
+  /^\/event\/[^/]+\/join$/, // /event/:id/join
   /^\/league\/[^/]+$/, // /league/:id (exclude /league/:id/display)
   /^\/league\/[^/]+\/join$/, // /league/:id/join (mig 016 parity)
   /^\/player\/[^/]+$/, // /player/:id
@@ -54,9 +54,9 @@ const EXCLUDED_PATTERNS = [
  *
  * Bottom Menu Visibility Rules (design system 2.1, post refonte 4 onglets) :
  * - SHOW on core routes : /, /competitions, /leaderboard, /user/profile
- *   (+ legacy /tournaments, /leagues)
- * - SHOW on detail pages (lecture) : /tournament/:id, /league/:id, /player/:id
- * - HIDE on action pages (modale-équivalent) : /join, /create-tournament,
+ *   (+ /events, /leagues)
+ * - SHOW on detail pages (lecture) : /event/:id, /league/:id, /player/:id
+ * - HIDE on action pages (modale-équivalent) : /join, /create-event,
  *   /create-league, /auth/*, /display/*, /payment-*
  *
  * @param pathname - The current route pathname
@@ -121,7 +121,7 @@ export function getContentPaddingBottom(pathname: string): string {
  *
  * Back Button Visibility Rules:
  * - SHOW on pages with specific menu: /join
- * - SHOW on detail pages: /tournament/:id, /league/:id
+ * - SHOW on detail pages: /event/:id, /league/:id
  * - HIDE on main navigation pages: /, /user/profile
  * - HIDE on auth and display routes
  *
@@ -140,7 +140,7 @@ export function shouldShowBackButton(pathname: string): boolean {
   }
 
   // Show on detail pages
-  if (pathname.startsWith("/tournament/") || pathname.startsWith("/league/")) {
+  if (pathname.startsWith("/event/") || pathname.startsWith("/league/")) {
     return true;
   }
 
@@ -152,8 +152,8 @@ export function shouldShowBackButton(pathname: string): boolean {
  * Determines if the desktop sidebar should be shown based on the current pathname.
  *
  * Sidebar Visibility Rules:
- * - SHOW on all main pages: /, /join, /tournaments, /leagues, /user/profile
- * - SHOW on detail pages: /tournament/:id, /league/:id
+ * - SHOW on all main pages: /, /join, /events, /leagues, /user/profile
+ * - SHOW on detail pages: /event/:id, /league/:id
  * - HIDE on auth routes: /auth/*
  * - HIDE on display routes (full-screen): /display/*
  *

@@ -87,7 +87,7 @@ describe('useLeaguesList', () => {
       {
         id: 'league-finished',
         name: 'Finished League',
-        type: 'event',
+        type: 'one-shot',
         createdAt: '2024-02-01T00:00:00Z',
         creator_user_id: 'user-1',
         creator_anonymous_user_id: null,
@@ -157,7 +157,7 @@ describe('useLeaguesList', () => {
       {
         id: 'league-empty',
         name: 'Empty League',
-        type: 'event',
+        type: 'one-shot',
         createdAt: '2024-01-01T00:00:00Z',
         creator_user_id: 'user-1',
         creator_anonymous_user_id: null,

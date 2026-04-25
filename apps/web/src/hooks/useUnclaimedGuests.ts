@@ -5,7 +5,7 @@
  * source anonymous_users not yet merged) for a given tournament or league.
  *
  * Use case (PR3 of the join-flow refactor): both authenticated AND anonymous
- * users land on `/tournament/:id/join` or `/league/:id/join` and may want to
+ * users land on `/event/:id/join` or `/league/:id/join` and may want to
  * adopt a ghost row pre-created by an admin (e.g. "L'admin a créé un joueur
  * 'Toto' — c'est moi"). We expose the same list for both, and the consuming
  * page picks the right RPC:

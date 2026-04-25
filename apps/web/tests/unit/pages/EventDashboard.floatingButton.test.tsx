@@ -1,5 +1,5 @@
 /**
- * TournamentDashboard - FAB (Story 14-13 AC6)
+ * EventDashboard - FAB (Story 14-13 AC6)
  *
  * Design system: FAB "Nouveau match" with BeerPongMatchIcon when tournament not finished.
  */
@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import { TournamentDashboard } from "../../../src/pages/TournamentDashboard";
+import { EventDashboard } from "../../../src/pages/EventDashboard";
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -86,11 +86,11 @@ vi.mock("../../../src/services/DatabaseService", () => ({
   },
 }));
 
-describe("TournamentDashboard - FAB (Story 14-13 AC6)", () => {
+describe("EventDashboard - FAB (Story 14-13 AC6)", () => {
   const renderDashboard = () => {
     return render(
       <BrowserRouter>
-        <TournamentDashboard />
+        <EventDashboard />
       </BrowserRouter>,
     );
   };

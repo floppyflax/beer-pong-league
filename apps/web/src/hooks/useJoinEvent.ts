@@ -8,18 +8,17 @@ import toast from "react-hot-toast";
 const NETWORK_ERR = "Connexion internet requise pour rejoindre";
 
 /**
- * useJoinTournament — code-driven join, supports BOTH tournaments and leagues.
+ * useJoinEvent — code-driven join, supports BOTH events (tournaments table) and leagues.
  *
  * The 6-char alphanumeric code namespace is shared (mig 006 + mig 016 both
  * enforce UNIQUE on the same code shape, but across different tables). We
- * probe tournaments first, then leagues; whichever matches wins. Routes:
- *   - tournament  →  /tournament/:id/join
- *   - league      →  /league/:id/join
+ * probe events first, then leagues; whichever matches wins. Routes:
+ *   - event   →  /event/:id/join
+ *   - league  →  /league/:id/join
  *
- * Hook name is kept for backward compatibility with existing call sites
- * (Join.tsx). Conceptually this is `useJoinByCode`.
+ * Conceptually this is `useJoinByCode`.
  */
-export const useJoinTournament = () => {
+export const useJoinEvent = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthContext();
   const { localUser, initializeAnonymousUser } = useIdentity();
@@ -65,13 +64,13 @@ export const useJoinTournament = () => {
       }
 
       if (tournament) {
-        if (tournament.is_finished) throw new Error("Ce tournoi est terminé");
+        if (tournament.is_finished) throw new Error("Cet événement est terminé");
 
         if (!isAuthenticated && !localUser) {
           await initializeAnonymousUser();
         }
-        toast.success(`Bienvenue dans le tournoi ${tournament.name} !`);
-        navigate(`/tournament/${tournament.id}/join`);
+        toast.success(`Bienvenue dans ${tournament.name} !`);
+        navigate(`/event/${tournament.id}/join`);
         return;
       }
 
@@ -103,7 +102,7 @@ export const useJoinTournament = () => {
         return;
       }
 
-      throw new Error("Code invalide — aucun tournoi ni ligue trouvé");
+      throw new Error("Code invalide — aucun événement ni ligue trouvé");
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Une erreur est survenue";

@@ -301,7 +301,7 @@ export const DisplayView = () => {
           {/* QR Code */}
           <div className="bg-navy-soft/90 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-card/50 flex flex-col items-center">
             <h3 className="text-lg md:text-xl font-black mb-3 md:mb-4 text-center">
-              Rejoins le tournoi !
+              Rejoins l'événement !
             </h3>
             <div className="bg-white p-3 md:p-5 rounded-lg md:rounded-xl mb-3 md:mb-4 shadow-2xl">
               <QRCodeSVG value={joinUrl} size={150} className="md:hidden" />

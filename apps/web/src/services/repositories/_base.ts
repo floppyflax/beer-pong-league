@@ -15,7 +15,7 @@ export { supabase };
 export interface LeagueRow {
   id: string;
   name: string;
-  type: 'event' | 'season';
+  type: 'one-shot' | 'season';
   created_at: string;
   creator_user_id: string | null;
   creator_anonymous_user_id: string | null;

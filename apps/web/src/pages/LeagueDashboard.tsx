@@ -441,7 +441,7 @@ export const LeagueDashboard = () => {
                 .map((tournament) => (
                   <div
                     key={tournament.id}
-                    onClick={() => navigate(`/tournament/${tournament.id}`)}
+                    onClick={() => navigate(`/event/${tournament.id}`)}
                     className="bg-navy-soft p-3 rounded-xl flex justify-between items-center hover:border-card cursor-pointer transition-colors border border-card/50"
                   >
                     <div className="flex-1">
@@ -473,7 +473,7 @@ export const LeagueDashboard = () => {
                 action={
                   <button
                     onClick={() =>
-                      navigate(`/create-tournament?leagueId=${league.id}`)
+                      navigate(`/create-event?leagueId=${league.id}`)
                     }
                     className="px-4 py-2 bg-signal-red text-white rounded-lg font-bold hover:brightness-110 transition-colors"
                   >
@@ -486,7 +486,7 @@ export const LeagueDashboard = () => {
             {league.tournaments && league.tournaments.length > 0 && (
               <button
                 onClick={() =>
-                  navigate(`/create-tournament?leagueId=${league.id}`)
+                  navigate(`/create-event?leagueId=${league.id}`)
                 }
                 className="w-full bg-navy-soft hover:bg-navy-deep text-white font-bold py-3 rounded-lg mt-2 border border-card/50"
               >
@@ -520,10 +520,10 @@ export const LeagueDashboard = () => {
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() =>
-                        updateLeague(league.id, league.name, "event")
+                        updateLeague(league.id, league.name, "one-shot")
                       }
                       className={`flex-1 py-2 rounded-lg font-bold text-sm ${
-                        league.type === "event"
+                        league.type === "one-shot"
                           ? "bg-electric-blue text-white"
                           : "bg-navy-deep text-white"
                       }`}
@@ -557,7 +557,7 @@ export const LeagueDashboard = () => {
                     .map((tournament) => (
                       <div
                         key={tournament.id}
-                        onClick={() => navigate(`/tournament/${tournament.id}`)}
+                        onClick={() => navigate(`/event/${tournament.id}`)}
                         className="bg-navy-deep/50 p-3 rounded-xl flex justify-between items-center hover:border-card-muted cursor-pointer transition-colors border border-transparent"
                       >
                         <div className="flex-1">
@@ -582,17 +582,17 @@ export const LeagueDashboard = () => {
                 </div>
               ) : (
                 <p className="text-cool-gray text-sm mb-4">
-                  Aucun tournoi associé.
+                  Aucun événement associé.
                 </p>
               )}
               <button
                 onClick={() =>
-                  navigate(`/create-tournament?leagueId=${league.id}`)
+                  navigate(`/create-event?leagueId=${league.id}`)
                 }
                 className="w-full bg-navy-deep hover:bg-navy-deep text-white font-bold py-3 rounded-lg"
               >
                 <Plus size={16} className="inline mr-2" />
-                Créer un tournoi
+                Créer un événement
               </button>
             </div>
 

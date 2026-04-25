@@ -45,7 +45,7 @@ const mockLeagues = [
   {
     id: "league-1",
     name: "League des Pingouins",
-    type: "event" as const,
+    type: "one-shot" as const,
     createdAt: "2026-01-01",
     players: [
       {

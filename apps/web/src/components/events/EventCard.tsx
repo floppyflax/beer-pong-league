@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import type { Tournament } from "../../types";
 
-interface TournamentCardProps {
+interface EventCardProps {
   tournament: Tournament;
   interactive?: boolean;
 }
 
-export const TournamentCard: React.FC<TournamentCardProps> = ({
+export const EventCard: React.FC<EventCardProps> = ({
   tournament,
   interactive = true,
 }) => {
@@ -94,9 +94,9 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({
   return (
     <button
       className="w-full bg-navy-soft border-[1.5px] border-white rounded-lg p-4 shadow-[0_3px_0_#F4F2E8] flex items-center gap-3 text-left hover:brightness-110 transition-[filter] duration-75 active:translate-y-[2px] active:shadow-none"
-      onClick={() => navigate(`/tournament/${tournament.id}`)}
+      onClick={() => navigate(`/event/${tournament.id}`)}
       data-testid="tournament-card"
-      aria-label={`Voir le tournoi ${tournament.name}`}
+      aria-label={`Voir l'événement ${tournament.name}`}
     >
       {content}
     </button>

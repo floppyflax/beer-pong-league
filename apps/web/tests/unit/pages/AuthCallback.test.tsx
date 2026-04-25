@@ -56,7 +56,7 @@ describe('AuthCallback - returnTo Handling (Story 9.1 Fix)', () => {
   describe('SessionStorage returnTo', () => {
     it('should redirect to returnTo destination from sessionStorage', async () => {
       // Setup: Store returnTo
-      sessionStorage.setItem('authReturnTo', '/create-tournament');
+      sessionStorage.setItem('authReturnTo', '/create-event');
 
       // Mock successful auth
       mockGetSession.mockResolvedValue({
@@ -78,7 +78,7 @@ describe('AuthCallback - returnTo Handling (Story 9.1 Fix)', () => {
 
       // Wait for redirect
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/create-tournament');
+        expect(mockNavigate).toHaveBeenCalledWith('/create-event');
       }, { timeout: 3000 });
     });
 

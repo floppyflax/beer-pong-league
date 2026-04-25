@@ -33,8 +33,8 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
 });
 
 // Mock child components
-vi.mock("../../../src/components/home/LastTournamentCard", () => ({
-  LastTournamentCard: ({ tournament, isLoading }: any) => (
+vi.mock("../../../src/components/home/LastEventCard", () => ({
+  LastEventCard: ({ tournament, isLoading }: any) => (
     <div data-testid="last-tournament-card">
       {isLoading
         ? "Loading tournament..."
@@ -83,7 +83,7 @@ import { usePremium } from "../../../src/hooks/usePremium";
 import { usePremiumLimits } from "../../../src/hooks/usePremiumLimits";
 
 // TODO: re-enable after Epic 15 — Home page was fully refactored and no longer
-// uses LastTournamentCard/LastLeagueCard/PersonalStatsSummary sub-components.
+// uses LastEventCard/LastLeagueCard/PersonalStatsSummary sub-components.
 // The new Home renders a dashboard hero with a greeting, stat tiles, and inline
 // sections. These assertions target a component composition that no longer exists.
 describe.skip("Home (Refactored)", () => {

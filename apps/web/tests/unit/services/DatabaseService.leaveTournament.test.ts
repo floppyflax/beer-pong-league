@@ -97,7 +97,7 @@ describe('DatabaseService.leaveTournament - Story 8.3 Task 8', () => {
 
     await expect(
       databaseService.leaveTournament('tournament-id', 'user-id', undefined)
-    ).rejects.toThrow('Le créateur du tournoi ne peut pas quitter');
+    ).rejects.toThrow('Le créateur de l\'événement ne peut pas quitter');
   });
 
   it('should throw error if anonymous user is tournament creator', async () => {
@@ -118,7 +118,7 @@ describe('DatabaseService.leaveTournament - Story 8.3 Task 8', () => {
 
     await expect(
       databaseService.leaveTournament('tournament-id', undefined, 'anon-user-id')
-    ).rejects.toThrow('Le créateur du tournoi ne peut pas quitter');
+    ).rejects.toThrow('Le créateur de l\'événement ne peut pas quitter');
   });
 
   it('should throw error if no user identity provided', async () => {

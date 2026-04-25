@@ -1,5 +1,5 @@
 /**
- * CreateTournament Page Tests - Story 14.19
+ * CreateEvent Page Tests - Story 14.19
  *
  * Tests for design system alignment:
  * - AC1: Header with title + back
@@ -14,7 +14,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
 import toast from "react-hot-toast";
-import { CreateTournament } from "@/pages/CreateTournament";
+import { CreateEvent } from "@/pages/CreateEvent";
 import { AuthProvider } from "../../../src/context/AuthContext";
 import { IdentityProvider } from "../../../src/context/IdentityContext";
 import { databaseService } from "@/services/DatabaseService";
@@ -111,7 +111,7 @@ const waitForFormReady = async () => {
   return screen.findByLabelText(/nom de l'événement/i, {}, { timeout: 3000 });
 };
 
-describe("CreateTournament - Story 14.19", () => {
+describe("CreateEvent - Story 14.19", () => {
   beforeEach(() => {
     mockNavigate.mockClear();
     if (typeof mockReloadData === 'function' && 'mockClear' in mockReloadData) {
@@ -123,13 +123,13 @@ describe("CreateTournament - Story 14.19", () => {
 
   describe("AC1: Header with title + back", () => {
     it("should render header with title Créer un Événement", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       expect(screen.getByRole("heading", { name: /créer un événement/i })).toBeInTheDocument();
     });
 
     it("should have back button that navigates to /", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       const backButton = screen.getByRole("button", { name: /retour/i });
       await userEvent.click(backButton);
@@ -139,13 +139,13 @@ describe("CreateTournament - Story 14.19", () => {
 
   describe("AC2: Fields with labels, inline validation", () => {
     it("should render name field with label", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       expect(screen.getByLabelText(/nom de l'événement/i)).toBeInTheDocument();
     });
 
     it("should render format selection with label", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       expect(screen.getByText(/format du match/i)).toBeInTheDocument();
       expect(screen.getByText(/2v2 strict/i)).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe("CreateTournament - Story 14.19", () => {
     });
 
     it("should show inline validation error when name is empty on blur", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       const nameInput = await waitForFormReady();
       await userEvent.click(nameInput);
       await userEvent.tab();
@@ -164,7 +164,7 @@ describe("CreateTournament - Story 14.19", () => {
     });
 
     it("should show inline validation error when name exceeds 50 chars", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       const nameInput = await waitForFormReady();
       // Use fireEvent.change to bypass maxLength (userEvent.type is limited to 50 chars)
       fireEvent.change(nameInput, { target: { value: "a".repeat(51) } });
@@ -177,7 +177,7 @@ describe("CreateTournament - Story 14.19", () => {
     });
 
     it("should clear validation error when user types valid name", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       const nameInput = await waitForFormReady();
       await userEvent.click(nameInput);
       await userEvent.tab();
@@ -196,20 +196,20 @@ describe("CreateTournament - Story 14.19", () => {
 
   describe("AC3: Primary CTA at bottom", () => {
     it("should render submit button with CTA text", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       expect(screen.getByRole("button", { name: /créer l'événement/i })).toBeInTheDocument();
     });
 
     it("should disable submit when name is empty", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       const submitButton = screen.getByRole("button", { name: /créer l'événement/i });
       expect(submitButton).toBeDisabled();
     });
 
     it("should not submit when name is empty", async () => {
-      const { container } = render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      const { container } = render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       const form = container.querySelector("form");
       expect(form).toBeTruthy();
@@ -220,7 +220,7 @@ describe("CreateTournament - Story 14.19", () => {
     });
 
     it("should show validation error on submit when name is empty", async () => {
-      const { container } = render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      const { container } = render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       const form = container.querySelector("form");
       expect(form).toBeTruthy();
@@ -233,7 +233,7 @@ describe("CreateTournament - Story 14.19", () => {
 
   describe("Form submission", () => {
     it("should call createTournament and navigate on valid submit", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       const nameInput = await waitForFormReady();
       await userEvent.type(nameInput, "Summer Cup 2026");
       const submitButton = screen.getByRole("button", { name: /créer l'événement/i });
@@ -241,12 +241,12 @@ describe("CreateTournament - Story 14.19", () => {
 
       await waitFor(() => {
         expect(databaseService.createTournament).toHaveBeenCalled();
-        expect(mockNavigate).toHaveBeenCalledWith("/tournament/tournament-123");
+        expect(mockNavigate).toHaveBeenCalledWith("/event/tournament-123");
       });
     });
 
     it("should allow selecting format (libre)", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       await userEvent.click(screen.getByText(/libre/i));
       const nameInput = screen.getByLabelText(/nom de l'événement/i);
@@ -268,7 +268,7 @@ describe("CreateTournament - Story 14.19", () => {
 
   describe("AC4: Design tokens (Frame 10 alignment)", () => {
     it("should have form with design system structure", async () => {
-      const { container } = render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      const { container } = render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       const form = container.querySelector("#create-tournament-form");
       expect(form).toBeInTheDocument();
@@ -278,7 +278,7 @@ describe("CreateTournament - Story 14.19", () => {
 
   describe("Premium flow (with PremiumService mock)", () => {
     it("should render form after premium check completes (without skipPremiumCheck)", async () => {
-      render(<CreateTournament />, { wrapper: Wrapper });
+      render(<CreateEvent />, { wrapper: Wrapper });
       await waitForFormReady();
       expect(screen.getByLabelText(/nom de l'événement/i)).toBeInTheDocument();
     });
@@ -291,7 +291,7 @@ describe("CreateTournament - Story 14.19", () => {
       vi.mocked(premiumService.getTournamentCount).mockResolvedValue(2);
       vi.mocked(premiumService.isPremium).mockResolvedValue(false);
 
-      render(<CreateTournament />, { wrapper: Wrapper });
+      render(<CreateEvent />, { wrapper: Wrapper });
 
       await waitFor(() => {
         expect(screen.getByRole("heading", { name: /limite atteinte/i })).toBeInTheDocument();
@@ -304,7 +304,7 @@ describe("CreateTournament - Story 14.19", () => {
   describe("Code generation error", () => {
     it("should show user-friendly error when unique code cannot be generated", async () => {
       vi.mocked(databaseService.tournamentCodeExists).mockResolvedValue(true);
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       const nameInput = await waitForFormReady();
       await userEvent.type(nameInput, "Summer Cup 2026");
       const submitButton = screen.getByRole("button", { name: /créer l'événement/i });
@@ -320,7 +320,7 @@ describe("CreateTournament - Story 14.19", () => {
 
   describe("Player limit validation", () => {
     it("should reject player limit above 100", async () => {
-      render(<CreateTournament skipPremiumCheck />, { wrapper: Wrapper });
+      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
       await userEvent.click(screen.getByRole("button", { name: /limiter le nombre de joueurs/i }));
       const limitInput = screen.getByLabelText(/nombre maximum de joueurs/i);

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useJoinTournament } from '../../../src/hooks/useJoinTournament';
+import { useJoinEvent } from '../../../src/hooks/useJoinEvent';
 import { supabase } from '../../../src/lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -67,14 +67,14 @@ function mockSupabaseProbes(...responses: ProbeResult[]) {
   return { eqMocks };
 }
 
-describe('useJoinTournament', () => {
+describe('useJoinEvent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('joinByCode', () => {
     it('should validate code format and reject invalid codes', async () => {
-      const { result } = renderHook(() => useJoinTournament());
+      const { result } = renderHook(() => useJoinEvent());
 
       // Test invalid codes
       await expect(result.current.joinByCode('ABC')).rejects.toThrow('Code invalide');
@@ -88,7 +88,7 @@ describe('useJoinTournament', () => {
         error: null,
       });
 
-      const { result } = renderHook(() => useJoinTournament());
+      const { result } = renderHook(() => useJoinEvent());
 
       await result.current.joinByCode('abc123');
 
@@ -103,12 +103,12 @@ describe('useJoinTournament', () => {
         error: null,
       });
 
-      const { result } = renderHook(() => useJoinTournament());
+      const { result } = renderHook(() => useJoinEvent());
 
       await result.current.joinByCode('ABC123');
 
       expect(supabase.from).toHaveBeenNthCalledWith(1, 'tournaments');
-      expect(mockNavigate).toHaveBeenCalledWith('/tournament/123/join');
+      expect(mockNavigate).toHaveBeenCalledWith('/event/123/join');
     });
 
     it('should reject finished tournaments', async () => {
@@ -117,10 +117,10 @@ describe('useJoinTournament', () => {
         error: null,
       });
 
-      const { result } = renderHook(() => useJoinTournament());
+      const { result } = renderHook(() => useJoinEvent());
 
-      await expect(result.current.joinByCode('ABC123')).rejects.toThrow('Ce tournoi est terminé');
-      expect(toast.error).toHaveBeenCalledWith('Ce tournoi est terminé');
+      await expect(result.current.joinByCode('ABC123')).rejects.toThrow('Cet événement est terminé');
+      expect(toast.error).toHaveBeenCalledWith('Cet événement est terminé');
     });
 
     it('should fall through to leagues when tournament misses, and route accordingly', async () => {
@@ -129,7 +129,7 @@ describe('useJoinTournament', () => {
         { data: { id: 'lg-1', name: 'Beer Pong Spring', join_code: 'LEAG12' }, error: null },
       );
 
-      const { result } = renderHook(() => useJoinTournament());
+      const { result } = renderHook(() => useJoinEvent());
 
       await result.current.joinByCode('LEAG12');
 
@@ -144,10 +144,10 @@ describe('useJoinTournament', () => {
         { data: null, error: null },
       );
 
-      const { result } = renderHook(() => useJoinTournament());
+      const { result } = renderHook(() => useJoinEvent());
 
       await expect(result.current.joinByCode('NOPE12')).rejects.toThrow(
-        'Code invalide — aucun tournoi ni ligue trouvé',
+        'Code invalide — aucun événement ni ligue trouvé',
       );
     });
 
@@ -157,7 +157,7 @@ describe('useJoinTournament', () => {
         error: null,
       });
 
-      const { result } = renderHook(() => useJoinTournament());
+      const { result } = renderHook(() => useJoinEvent());
 
       expect(result.current.isLoading).toBe(false);
       await result.current.joinByCode('ABC123');
@@ -165,7 +165,7 @@ describe('useJoinTournament', () => {
     });
 
     it('should reject codes with less than 6 characters', async () => {
-      const { result } = renderHook(() => useJoinTournament());
+      const { result } = renderHook(() => useJoinEvent());
       await expect(result.current.joinByCode('ABC12')).rejects.toThrow('Code invalide');
     });
 
@@ -175,7 +175,7 @@ describe('useJoinTournament', () => {
         { data: { id: '456', name: 'Test 8', is_finished: false, join_code: 'ABCD1234' }, error: null },
       );
 
-      const { result } = renderHook(() => useJoinTournament());
+      const { result } = renderHook(() => useJoinEvent());
 
       await result.current.joinByCode('ABC123');
       await result.current.joinByCode('ABCD1234');

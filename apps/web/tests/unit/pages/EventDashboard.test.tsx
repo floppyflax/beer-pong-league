@@ -1,5 +1,5 @@
 /**
- * Unit tests for TournamentDashboard component
+ * Unit tests for EventDashboard component
  * Story 8.3 - Tournament Dashboard Management
  */
 
@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
-import { TournamentDashboard } from "../../../src/pages/TournamentDashboard";
+import { EventDashboard } from "../../../src/pages/EventDashboard";
 import * as LeagueContext from "../../../src/context/LeagueContext";
 import * as AuthContext from "../../../src/context/AuthContext";
 import * as IdentityHook from "../../../src/hooks/useIdentity";
@@ -36,7 +36,7 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-describe("TournamentDashboard - Story 8.3", () => {
+describe("EventDashboard - Story 8.3", () => {
   const mockPlayers = [
     {
       id: "player1",
@@ -61,7 +61,7 @@ describe("TournamentDashboard - Story 8.3", () => {
   const mockLeague = {
     id: "test-league-id",
     name: "Test League",
-    type: "event" as const,
+    type: "one-shot" as const,
     createdAt: "2026-02-03T10:00:00Z",
     players: mockPlayers,
     matches: [],
@@ -147,7 +147,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it("should display tournament name", () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -157,7 +157,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it("should expose an Inviter action on the hero", () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -170,7 +170,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it("should display format info", () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -181,7 +181,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it("should display player count with max", () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -192,7 +192,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it("should display status badge", () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -207,7 +207,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it.skip("should display match teams", async () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -233,7 +233,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it.skip("should display relative timestamp", async () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -248,7 +248,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it.skip("should display ELO changes for players", async () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -264,7 +264,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it.skip("should highlight winning team", async () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -281,7 +281,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it("should display photo thumbnail and cups badge when match has enriched data", async () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -300,7 +300,7 @@ describe("TournamentDashboard - Story 8.3", () => {
     it("should display leave tournament entry for non-creators in the overflow menu", async () => {
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -327,7 +327,7 @@ describe("TournamentDashboard - Story 8.3", () => {
 
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -356,7 +356,7 @@ describe("TournamentDashboard - Story 8.3", () => {
 
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 
@@ -379,12 +379,12 @@ describe("TournamentDashboard - Story 8.3", () => {
     it("should show error toast if leave fails", async () => {
       global.confirm = vi.fn(() => true);
       (databaseService.leaveTournament as any).mockRejectedValue(
-        new Error("Le créateur du tournoi ne peut pas quitter"),
+        new Error("Le créateur de l'événement ne peut pas quitter"),
       );
 
       render(
         <BrowserRouter>
-          <TournamentDashboard />
+          <EventDashboard />
         </BrowserRouter>,
       );
 

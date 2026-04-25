@@ -117,7 +117,7 @@ export const PaymentSuccess = () => {
         <div className="space-y-3">
           <div className="flex items-center gap-3 bg-navy-soft/50 p-3 rounded-xl text-left">
             <CheckCircle size={20} className="text-lime flex-shrink-0" />
-            <span className="text-sm">Tournois illimités</span>
+            <span className="text-sm">Événements illimités</span>
           </div>
           <div className="flex items-center gap-3 bg-navy-soft/50 p-3 rounded-xl text-left">
             <CheckCircle size={20} className="text-lime flex-shrink-0" />

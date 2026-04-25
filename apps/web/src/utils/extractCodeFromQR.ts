@@ -1,7 +1,7 @@
 const VALID_CODE_REGEX = /^[A-Z0-9]{6,8}$/i;
 
 export interface QRParseResult {
-  type: 'code' | 'tournament_url' | 'league_url' | 'invalid';
+  type: 'code' | 'event_url' | 'league_url' | 'invalid';
   code?: string;
   entityId?: string;
 }
@@ -11,15 +11,15 @@ export interface QRParseResult {
  *
  * QR codes can contain:
  * - Direct join code: "ABC123"
- * - Tournament URL: "https://bpl.com/tournament/{uuid}/join" or with ?code=
+ * - Event URL: "https://bpl.com/event/{uuid}/join" or "https://bpl.com/tournament/{uuid}/join" (legacy)
  * - League URL: "https://bpl.com/league/{uuid}"
  * - Code param: "...?code=ABC123"
  */
 export function parseQRData(qrData: string): QRParseResult {
   try {
-    const tournamentUrlMatch = qrData.match(/\/tournament\/([a-f0-9-]{36})(?:\/join)?/i);
-    if (tournamentUrlMatch) {
-      return { type: 'tournament_url', entityId: tournamentUrlMatch[1] };
+    const eventUrlMatch = qrData.match(/\/(?:event|tournament)\/([a-f0-9-]{36})(?:\/join)?/i);
+    if (eventUrlMatch) {
+      return { type: 'event_url', entityId: eventUrlMatch[1] };
     }
 
     const leagueUrlMatch = qrData.match(/\/league\/([a-f0-9-]{36})/i);

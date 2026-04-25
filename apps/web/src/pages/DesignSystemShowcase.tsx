@@ -516,7 +516,7 @@ export function DesignSystemShowcase() {
               steps={[
                 { number: 1, text: "Partage le QR code ou le lien" },
                 { number: 2, text: "Les joueurs scannent ou cliquent" },
-                { number: 3, text: "Ils rejoignent le tournoi" },
+                { number: 3, text: "Ils rejoignent l'événement" },
               ]}
               successMessage="C'est parti pour la compétition !"
             />

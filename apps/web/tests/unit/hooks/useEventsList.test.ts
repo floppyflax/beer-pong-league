@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useTournamentsList } from '../../../src/hooks/useTournamentsList';
+import { useEventsList } from '../../../src/hooks/useEventsList';
 import * as LeagueContext from '../../../src/context/LeagueContext';
 import * as IdentityHook from '../../../src/hooks/useIdentity';
 import type { Tournament } from '../../../src/types';
@@ -9,7 +9,7 @@ import type { Tournament } from '../../../src/types';
 vi.mock('../../../src/context/LeagueContext');
 vi.mock('../../../src/hooks/useIdentity');
 
-describe('useTournamentsList', () => {
+describe('useEventsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -27,7 +27,7 @@ describe('useTournamentsList', () => {
       isLoadingInitialData: false,
     } as any);
 
-    const { result } = renderHook(() => useTournamentsList());
+    const { result } = renderHook(() => useEventsList());
 
     expect(result.current.tournaments).toEqual([]);
     expect(result.current.isLoading).toBe(false);
@@ -82,7 +82,7 @@ describe('useTournamentsList', () => {
       isLoadingInitialData: false,
     } as any);
 
-    const { result } = renderHook(() => useTournamentsList());
+    const { result } = renderHook(() => useEventsList());
 
     // Active tournaments should come first, sorted by createdAt desc
     expect(result.current.tournaments).toHaveLength(3);
@@ -105,7 +105,7 @@ describe('useTournamentsList', () => {
       isLoadingInitialData: true,
     } as any);
 
-    const { result } = renderHook(() => useTournamentsList());
+    const { result } = renderHook(() => useEventsList());
 
     expect(result.current.isLoading).toBe(true);
   });
@@ -123,7 +123,7 @@ describe('useTournamentsList', () => {
       isLoadingInitialData: false,
     } as any);
 
-    const { result } = renderHook(() => useTournamentsList());
+    const { result } = renderHook(() => useEventsList());
 
     expect(result.current.tournaments).toEqual([]);
     expect(result.current.isLoading).toBe(false);
@@ -142,7 +142,7 @@ describe('useTournamentsList', () => {
       isLoadingInitialData: false,
     } as any);
 
-    const { result } = renderHook(() => useTournamentsList());
+    const { result } = renderHook(() => useEventsList());
 
     expect(result.current.tournaments).toEqual([]);
   });

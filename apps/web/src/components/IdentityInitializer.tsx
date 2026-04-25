@@ -24,8 +24,8 @@ export const IdentityInitializer = ({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Routes that don't require identity (tournament join, display views, invite)
-  const publicRoutes = ['/tournament/', '/league/', '/auth/callback'];
+  // Routes that don't require identity (event join, display views, invite)
+  const publicRoutes = ['/event/', '/league/', '/auth/callback'];
   const isPublicRoute = publicRoutes.some(route => location.pathname.includes(route));
 
   useEffect(() => {

@@ -78,7 +78,7 @@ type SettingsSheetProps =
       onClose: () => void;
       initial: SettingsSheetLeagueValues;
       /** Type read-only (event ou season). */
-      leagueType: "event" | "season";
+      leagueType: "one-shot" | "season";
       onSave: (updates: SettingsSheetLeagueUpdates) => Promise<void> | void;
       onDelete?: () => void;
       title?: ReactNode;
@@ -430,7 +430,7 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-white font-archivo font-extrabold uppercase tracking-tight text-sm flex items-center gap-2">
-                      {props.leagueType === "event"
+                      {props.leagueType === "one-shot"
                         ? "League Continue"
                         : "League par Saison"}
                       <Lock size={12} className="text-cool-gray" />

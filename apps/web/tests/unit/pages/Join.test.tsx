@@ -18,8 +18,8 @@ vi.mock("react-hot-toast", () => ({
 }));
 
 const mockJoinByCode = vi.fn();
-vi.mock("../../../src/hooks/useJoinTournament", () => ({
-  useJoinTournament: () => ({
+vi.mock("../../../src/hooks/useJoinEvent", () => ({
+  useJoinEvent: () => ({
     joinByCode: mockJoinByCode,
     isLoading: false,
     error: null,

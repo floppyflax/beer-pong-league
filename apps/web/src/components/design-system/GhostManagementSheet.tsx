@@ -29,7 +29,7 @@ export interface GhostManagementSheetProps {
   guests: UnclaimedGuest[];
   /** Origin URL used to build invite links (defaults to window.location.origin). */
   origin?: string;
-  /** Path prefix for the join page (e.g. "/tournament/<id>/join" or "/league/<id>/join"). */
+  /** Path prefix for the join page (e.g. "/event/<id>/join" or "/league/<id>/join"). */
   joinPath: string;
   /** Rename a ghost. Resolve to apply, throw to keep editor open. */
   onRename: (playerId: string, newPseudo: string) => Promise<void>;

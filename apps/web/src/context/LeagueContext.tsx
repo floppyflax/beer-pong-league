@@ -47,7 +47,7 @@ interface LeagueContextType {
   /** Error message when initial data load fails (e.g. network). Null when load succeeded. */
   loadError: string | null;
   reloadData: () => Promise<void>;
-  createLeague: (name: string, type: "event" | "season") => Promise<string>;
+  createLeague: (name: string, type: "one-shot" | "season") => Promise<string>;
   createTournament: (
     name: string,
     date: string,
@@ -85,7 +85,7 @@ interface LeagueContextType {
   updateLeague: (
     leagueId: string,
     name: string,
-    type: "event" | "season"
+    type: "one-shot" | "season"
   ) => Promise<void>;
   updateTournament: (
     tournamentId: string,
@@ -187,7 +187,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
           console.error('Migration error:', migrationResult.error);
         } else if (migrationResult.leaguesMigrated > 0 || migrationResult.tournamentsMigrated > 0) {
           toast.success(
-            `${migrationResult.leaguesMigrated} ligues et ${migrationResult.tournamentsMigrated} tournois migrés`,
+            `${migrationResult.leaguesMigrated} ligues et ${migrationResult.tournamentsMigrated} événements migrés`,
             { id: migrationToast }
           );
         } else {
@@ -296,7 +296,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   const currentTournament =
     tournaments.find((t) => t.id === currentTournamentId) || null;
 
-  const createLeague = async (name: string, type: "event" | "season") => {
+  const createLeague = async (name: string, type: "one-shot" | "season") => {
     // Migration 016 — generate a 6-char join_code with collision retry
     // (mirrors CreateTournament.generateUniqueCode logic).
     let joinCode: string | undefined;
@@ -970,7 +970,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   const updateLeague = async (
     leagueId: string,
     name: string,
-    type: "event" | "season"
+    type: "one-shot" | "season"
   ) => {
     setLeagues((prev) =>
       prev.map((league) => {

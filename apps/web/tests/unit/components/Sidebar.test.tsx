@@ -158,8 +158,8 @@ describe('Sidebar', () => {
       expect(playButton).toHaveClass('text-electric-blue');
     });
 
-    it('should highlight Jouer when on legacy /tournaments route', () => {
-      vi.mocked(useLocation).mockReturnValue({ pathname: '/tournaments' } as any);
+    it('should highlight Jouer when on /events route', () => {
+      vi.mocked(useLocation).mockReturnValue({ pathname: '/events' } as any);
 
       render(
         <BrowserRouter>
@@ -256,7 +256,7 @@ describe('Sidebar', () => {
     });
 
     it('should highlight Jouer on tournament detail pages (nested)', () => {
-      vi.mocked(useLocation).mockReturnValue({ pathname: '/tournament/123' } as any);
+      vi.mocked(useLocation).mockReturnValue({ pathname: '/event/123' } as any);
 
       render(
         <BrowserRouter>

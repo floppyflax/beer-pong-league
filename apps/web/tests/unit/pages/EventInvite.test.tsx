@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import { TournamentInvite } from "../../../src/pages/TournamentInvite";
+import { EventInvite } from "../../../src/pages/EventInvite";
 import * as LeagueContext from "../../../src/context/LeagueContext";
 import "@testing-library/jest-dom";
 
@@ -43,7 +43,7 @@ const mockTournament = {
   isFinished: false,
 };
 
-describe("TournamentInvite - Story 14-14", () => {
+describe("EventInvite - Story 14-14", () => {
   const originalClipboard = navigator.clipboard;
 
   beforeEach(() => {
@@ -66,7 +66,7 @@ describe("TournamentInvite - Story 14-14", () => {
   const renderWithRouter = () =>
     render(
       <BrowserRouter>
-        <TournamentInvite />
+        <EventInvite />
       </BrowserRouter>
     );
 
@@ -80,12 +80,12 @@ describe("TournamentInvite - Story 14-14", () => {
       renderWithRouter();
       const backButton = screen.getByRole("button", { name: /retour/i });
       fireEvent.click(backButton);
-      expect(mockNavigate).toHaveBeenCalledWith("/tournament/test-tournament-id");
+      expect(mockNavigate).toHaveBeenCalledWith("/event/test-tournament-id");
     });
   });
 
-  describe("AC 2: Tournament recap card (TournamentCard)", () => {
-    it("should display tournament name in TournamentCard", () => {
+  describe("AC 2: Tournament recap card (EventCard)", () => {
+    it("should display tournament name in EventCard", () => {
       renderWithRouter();
       expect(screen.getByText("Soirée Beer Pong 2024")).toBeInTheDocument();
     });
@@ -124,7 +124,7 @@ describe("TournamentInvite - Story 14-14", () => {
   describe("AC 4: Link + Copy / Share", () => {
     it("should display invite link", () => {
       renderWithRouter();
-      const inviteUrl = `${window.location.origin}/tournament/test-tournament-id/join`;
+      const inviteUrl = `${window.location.origin}/event/test-tournament-id/join`;
       const links = screen.getAllByText(inviteUrl);
       expect(links.length).toBeGreaterThanOrEqual(1);
     });
@@ -148,7 +148,7 @@ describe("TournamentInvite - Story 14-14", () => {
 
       await waitFor(() => {
         expect(writeText).toHaveBeenCalledWith(
-          `${window.location.origin}/tournament/test-tournament-id/join`
+          `${window.location.origin}/event/test-tournament-id/join`
         );
       });
     });

@@ -38,7 +38,7 @@ export interface Match {
 export interface League {
   id: string;
   name: string;
-  type: "event" | "season";
+  type: "one-shot" | "season";
   createdAt: string;
   players: Player[];
   matches: Match[];

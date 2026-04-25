@@ -2,9 +2,11 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
   Link,
   useNavigate,
   useLocation,
+  useParams,
 } from "react-router-dom";
 import { useState, lazy, Suspense } from "react";
 import { Toaster } from "react-hot-toast";
@@ -42,8 +44,8 @@ const Home = lazy(() =>
 const Join = lazy(() =>
   import("./pages/Join").then((m) => ({ default: m.Join })),
 );
-const Tournaments = lazy(() =>
-  import("./pages/Tournaments").then((m) => ({ default: m.Tournaments })),
+const Events = lazy(() =>
+  import("./pages/Events").then((m) => ({ default: m.Events })),
 );
 const Leagues = lazy(() =>
   import("./pages/Leagues").then((m) => ({ default: m.Leagues })),
@@ -56,14 +58,14 @@ const LeagueDashboard = lazy(() =>
     default: m.LeagueDashboard,
   })),
 );
-const CreateTournament = lazy(() =>
-  import("./pages/CreateTournament").then((m) => ({
-    default: m.CreateTournament,
+const CreateEvent = lazy(() =>
+  import("./pages/CreateEvent").then((m) => ({
+    default: m.CreateEvent,
   })),
 );
-const TournamentDashboard = lazy(() =>
-  import("./pages/TournamentDashboard").then((m) => ({
-    default: m.TournamentDashboard,
+const EventDashboard = lazy(() =>
+  import("./pages/EventDashboard").then((m) => ({
+    default: m.EventDashboard,
   })),
 );
 const PlayerProfile = lazy(() =>
@@ -75,18 +77,18 @@ const UserProfile = lazy(() =>
 const DisplayView = lazy(() =>
   import("./pages/DisplayView").then((m) => ({ default: m.DisplayView })),
 );
-const TournamentDisplayView = lazy(() =>
-  import("./pages/TournamentDisplayView").then((m) => ({
-    default: m.TournamentDisplayView,
+const EventDisplayView = lazy(() =>
+  import("./pages/EventDisplayView").then((m) => ({
+    default: m.EventDisplayView,
   })),
 );
-const TournamentInvite = lazy(() =>
-  import("./pages/TournamentInvite").then((m) => ({
-    default: m.TournamentInvite,
+const EventInvite = lazy(() =>
+  import("./pages/EventInvite").then((m) => ({
+    default: m.EventInvite,
   })),
 );
-const TournamentJoin = lazy(() =>
-  import("./pages/TournamentJoin").then((m) => ({ default: m.TournamentJoin })),
+const EventJoin = lazy(() =>
+  import("./pages/EventJoin").then((m) => ({ default: m.EventJoin })),
 );
 const LeagueJoin = lazy(() =>
   import("./pages/LeagueJoin").then((m) => ({ default: m.LeagueJoin })),
@@ -108,11 +110,6 @@ const DesignSystemShowcase = lazy(() =>
 const RecordMatch = lazy(() =>
   import("./pages/RecordMatch").then((m) => ({ default: m.RecordMatch })),
 );
-const EventDashboard = lazy(() =>
-  import("./pages/EventDashboard").then((m) => ({
-    default: m.EventDashboard,
-  })),
-);
 const GlobalLeaderboard = lazy(() =>
   import("./pages/GlobalLeaderboard").then((m) => ({
     default: m.GlobalLeaderboard,
@@ -123,6 +120,12 @@ const Competitions = lazy(() =>
     default: m.Competitions,
   })),
 );
+
+// Backward-compat redirect: /tournament/:id[suffix] → /event/:id[suffix]
+function EventRedirect({ suffix = "" }: { suffix?: string }) {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/event/${id}${suffix}`} replace />;
+}
 
 function App() {
   return (
@@ -233,18 +236,18 @@ function AppContent() {
   // Pages with ContextualHeader: main pages + detail pages + create/invite/join sub-pages
   const pagesWithContextualHeader = [
     "/",
-    "/tournaments",
+    "/events",
     "/leagues",
     "/competitions",
     "/leaderboard",
     "/join",
     "/user/profile",
-    "/create-tournament",
+    "/create-event",
     "/create-league",
   ];
   const hasContextualHeader =
     pagesWithContextualHeader.includes(location.pathname) ||
-    location.pathname.startsWith("/tournament/") ||
+    location.pathname.startsWith("/event/") ||
     location.pathname.startsWith("/league/") ||
     location.pathname.startsWith("/player/") ||
     location.pathname === "/record-match" ||
@@ -290,10 +293,10 @@ function AppContent() {
                 Nouvelle League
               </Link>
               <Link
-                to="/create-tournament"
+                to="/create-event"
                 className="text-cool-gray hover:text-signal-red transition-colors"
               >
-                Nouveau Tournoi
+                Nouvel Événement
               </Link>
             </nav>
             <Link
@@ -322,8 +325,13 @@ function AppContent() {
                 <Routes>
                   <Route path="/league/:id/display" element={<DisplayView />} />
                   <Route
+                    path="/event/:id/display"
+                    element={<EventDisplayView />}
+                  />
+                  {/* Backward compat — /tournament/:id/display → /event/:id/display */}
+                  <Route
                     path="/tournament/:id/display"
-                    element={<TournamentDisplayView />}
+                    element={<EventRedirect suffix="/display" />}
                   />
                 </Routes>
               </div>
@@ -346,7 +354,7 @@ function AppContent() {
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/join" element={<Join />} />
-                    <Route path="/tournaments" element={<Tournaments />} />
+                    <Route path="/events" element={<Events />} />
                     <Route path="/leagues" element={<Leagues />} />
                     <Route path="/competitions" element={<Competitions />} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
@@ -356,10 +364,7 @@ function AppContent() {
                     />
                     <Route path="/payment-cancel" element={<PaymentCancel />} />
                     <Route path="/create-league" element={<CreateLeague />} />
-                    <Route
-                      path="/create-tournament"
-                      element={<CreateTournament />}
-                    />
+                    <Route path="/create-event" element={<CreateEvent />} />
                     <Route
                       path="/league/:id"
                       element={
@@ -369,21 +374,18 @@ function AppContent() {
                       }
                     />
                     <Route
-                      path="/tournament/:id"
+                      path="/event/:id"
                       element={
                         <ErrorBoundary>
-                          <TournamentDashboard />
+                          <EventDashboard />
                         </ErrorBoundary>
                       }
                     />
                     <Route
-                      path="/tournament/:id/invite"
-                      element={<TournamentInvite />}
+                      path="/event/:id/invite"
+                      element={<EventInvite />}
                     />
-                    <Route
-                      path="/tournament/:id/join"
-                      element={<TournamentJoin />}
-                    />
+                    <Route path="/event/:id/join" element={<EventJoin />} />
                     <Route
                       path="/league/:id/join"
                       element={<LeagueJoin />}
@@ -410,10 +412,23 @@ function AppContent() {
                       path="/leaderboard"
                       element={<GlobalLeaderboard />}
                     />
-                    {/* B.6: Event = canonical rename of Tournament — redirect for backward compat */}
+                    {/* Backward compat — /tournament/* → /event/* */}
+                    <Route path="/tournaments" element={<Navigate to="/events" replace />} />
                     <Route
-                      path="/event/:id"
-                      element={<EventDashboard />}
+                      path="/create-tournament"
+                      element={<Navigate to="/create-event" replace />}
+                    />
+                    <Route
+                      path="/tournament/:id"
+                      element={<EventRedirect />}
+                    />
+                    <Route
+                      path="/tournament/:id/invite"
+                      element={<EventRedirect suffix="/invite" />}
+                    />
+                    <Route
+                      path="/tournament/:id/join"
+                      element={<EventRedirect suffix="/join" />}
                     />
                   </Routes>
                 </div>

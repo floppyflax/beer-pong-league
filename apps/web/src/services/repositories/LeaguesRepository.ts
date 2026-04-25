@@ -322,7 +322,7 @@ class LeaguesRepository extends BaseRepository {
   /**
    * Met à jour une league dans Supabase
    */
-  async updateLeague(leagueId: string, name: string, type: 'event' | 'season'): Promise<void> {
+  async updateLeague(leagueId: string, name: string, type: 'one-shot' | 'season'): Promise<void> {
     if (!this.isSupabaseAvailable()) {
       // Load from localStorage, update, save back
       const leagues = this.loadLeaguesFromLocalStorage();

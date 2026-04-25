@@ -8,7 +8,7 @@ import { useUnclaimedGuests } from "../hooks/useUnclaimedGuests";
 import { CreateIdentityModal } from "../components/CreateIdentityModal";
 import { AuthModal } from "../components/AuthModal";
 import { ContextualHeader } from "../components/navigation/ContextualHeader";
-import { TournamentCard } from "../components/tournaments/TournamentCard";
+import { EventCard } from "../components/events/EventCard";
 import { PlayerCard } from "../components/design-system/PlayerCard";
 import { HelpCard } from "../components/design-system/HelpCard";
 import { ClaimGuestSheet } from "../components/design-system/ClaimGuestSheet";
@@ -41,7 +41,7 @@ import toast from "react-hot-toast";
  * conditioned on simple boolean state. We rely on the user's explicit choice
  * to advance, and never auto-route them out of the flow.
  */
-export const TournamentJoin = () => {
+export const EventJoin = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -168,7 +168,7 @@ export const TournamentJoin = () => {
       }
 
       toast.success(`Bienvenue dans ${tournament.name} !`);
-      navigate(`/tournament/${tournament.id}`);
+      navigate(`/event/${tournament.id}`);
     })();
   }, [
     ghostToken,
@@ -242,7 +242,7 @@ export const TournamentJoin = () => {
 
     toast.success(`Tu es maintenant ${guest.pseudo} dans ${tournament.name} !`);
     setShowClaimSheet(false);
-    navigate(`/tournament/${tournament.id}`);
+    navigate(`/event/${tournament.id}`);
   };
 
   const handleDismissClaim = () => {
@@ -260,11 +260,11 @@ export const TournamentJoin = () => {
     setIsJoining(true);
     try {
       addPlayerToTournament(tournament.id, selectedPlayerId);
-      toast.success("Tu as rejoint le tournoi !");
-      navigate(`/tournament/${tournament.id}`);
+      toast.success("Tu as rejoint l'événement !");
+      navigate(`/event/${tournament.id}`);
     } catch (error) {
       console.error("Error joining tournament:", error);
-      toast.error("Erreur lors de la jonction au tournoi");
+      toast.error("Erreur lors de la jonction à l'événement");
     } finally {
       setIsJoining(false);
     }
@@ -293,8 +293,8 @@ export const TournamentJoin = () => {
     setIsJoining(true);
     try {
       await addAnonymousPlayerToTournament(tournament.id, newPlayerName.trim());
-      toast.success(`Tu as rejoint le tournoi "${tournament.name}" !`);
-      navigate(`/tournament/${tournament.id}`);
+      toast.success(`Tu as rejoint l'événement "${tournament.name}" !`);
+      navigate(`/event/${tournament.id}`);
     } catch (error) {
       console.error("Error creating player:", error);
       toast.error("Erreur lors de la création du joueur");
@@ -318,7 +318,7 @@ export const TournamentJoin = () => {
       <div className="min-h-screen bg-navy flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">
-            Tournoi introuvable
+            Événement introuvable
           </h1>
           <p className="text-cool-gray mb-4">Redirection en cours…</p>
         </div>
@@ -341,7 +341,7 @@ export const TournamentJoin = () => {
       {/* Scrollable content — padded above sticky CTA */}
       <div className="px-4 md:px-6 pb-[120px]">
         <div className="max-w-md mx-auto space-y-4">
-          <TournamentCard tournament={tournament} interactive={false} />
+          <EventCard tournament={tournament} interactive={false} />
 
           {!showCreatePlayer ? (
             <>
@@ -354,7 +354,7 @@ export const TournamentJoin = () => {
                     </h2>
                   </div>
                   <p className="text-sm text-cool-gray mb-4">
-                    Clique sur ton nom pour rejoindre le tournoi.
+                    Clique sur ton nom pour rejoindre l'événement.
                   </p>
                   <div className="space-y-2">
                     {tournamentPlayers.map((player) => (
@@ -378,7 +378,7 @@ export const TournamentJoin = () => {
                   </h2>
                 </div>
                 <p className="text-sm text-cool-gray">
-                  Crée un nouveau joueur pour ce tournoi. Tu pourras associer ce
+                  Crée un nouveau joueur pour cet événement. Tu pourras associer ce
                   joueur à ton compte plus tard.
                 </p>
               </div>
@@ -422,7 +422,7 @@ export const TournamentJoin = () => {
             title="Comment ça marche ?"
             steps={[
               { number: 1, text: "Sélectionne un joueur existant ou crée un nouveau joueur" },
-              { number: 2, text: "Tu rejoins le tournoi et accèdes au classement" },
+              { number: 2, text: "Tu rejoins l'événement et accèdes au classement" },
               { number: 3, text: "Tu pourras associer ton joueur à ton compte plus tard" },
             ]}
             successMessage="C'est parti pour la compétition !"
@@ -511,7 +511,7 @@ export const TournamentJoin = () => {
           // After creating an anon identity, also flip the gate so we don't
           // re-show it.
           setGateDecided(true);
-          // Auto-init anon user in DB if needed (mirrors useJoinTournament).
+          // Auto-init anon user in DB if needed (mirrors useJoinEvent).
           initializeAnonymousUser().catch(() => {});
         }}
       />

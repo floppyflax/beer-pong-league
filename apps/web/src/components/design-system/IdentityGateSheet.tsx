@@ -1,7 +1,7 @@
 /**
  * IdentityGateSheet — pre-flow on join (event or league).
  *
- * Shown the first time a user lands on `/tournament/:id/join` or
+ * Shown the first time a user lands on `/event/:id/join` or
  * `/league/:id/join` so they explicitly choose how they want to participate.
  * Three actions are surfaced (one is hidden when the user has no existing
  * identity to continue with):

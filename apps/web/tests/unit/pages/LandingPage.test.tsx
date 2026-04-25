@@ -101,7 +101,7 @@ describe.skip("LandingPage", () => {
       fireEvent.click(button);
 
       expect(screen.getByTestId("auth-modal")).toBeInTheDocument();
-      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-tournament");
+      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
     });
   });
 
@@ -233,7 +233,7 @@ describe.skip("LandingPage", () => {
       const button = screen.getByText(/Créer un tournoi/i);
       fireEvent.click(button);
 
-      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-tournament");
+      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
     });
 
     it("should store returnTo for league creation", () => {

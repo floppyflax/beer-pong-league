@@ -576,7 +576,7 @@ class TournamentsRepository extends BaseRepository {
         (userId && t.creator_user_id === userId) ||
         (anonymousUserId && t.creator_anonymous_user_id === anonymousUserId)
       ) {
-        throw new Error('Le créateur du tournoi ne peut pas quitter');
+        throw new Error("Le créateur de l'événement ne peut pas quitter");
       }
 
       // Remove user from tournament_players

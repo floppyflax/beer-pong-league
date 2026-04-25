@@ -73,7 +73,7 @@ export type Match = z.infer<typeof matchSchema>;
 export const leagueSchema = z.object({
   id: z.string().uuid('League ID must be a valid UUID'),
   name: z.string().min(1, 'League name is required').max(200, 'League name must be 200 characters or less'),
-  type: z.enum(['event', 'season'], { message: 'Type must be either "event" or "season"' }),
+  type: z.enum(['one-shot', 'season'], { message: 'Type must be either "one-shot" or "season"' }),
   createdAt: z.string().datetime('Created at must be a valid ISO 8601 datetime'),
   players: z.array(playerSchema).default([]),
   matches: z.array(matchSchema).default([]),

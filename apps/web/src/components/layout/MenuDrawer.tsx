@@ -155,11 +155,11 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
               </button>
 
               <button
-                onClick={() => handleNavigate("/create-tournament")}
+                onClick={() => handleNavigate("/create-event")}
                 className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-navy-soft text-cool-gray transition-colors"
               >
                 <Plus size={20} />
-                <span className="font-medium">Nouveau Tournoi</span>
+                <span className="font-medium">Nouvel Événement</span>
               </button>
             </div>
 
@@ -207,7 +207,7 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
               <div className="flex items-center gap-2 mb-3">
                 <Calendar size={18} className="text-electric-blue" />
                 <h3 className="font-bold text-sm uppercase tracking-wider text-cool-gray">
-                  Mes Tournois ({tournaments.length})
+                  Mes Événements ({tournaments.length})
                 </h3>
               </div>
 
@@ -226,10 +226,10 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
                         <button
                           key={tournament.id}
                           onClick={() =>
-                            handleNavigate(`/tournament/${tournament.id}`)
+                            handleNavigate(`/event/${tournament.id}`)
                           }
                           className={`w-full text-left flex items-center gap-3 p-2 rounded-lg transition-colors ${
-                            location.pathname === `/tournament/${tournament.id}`
+                            location.pathname === `/event/${tournament.id}`
                               ? "bg-electric-blue/20 text-electric-blue"
                               : "hover:bg-navy-soft text-cool-gray"
                           }`}
@@ -264,10 +264,10 @@ export const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
                         <button
                           key={tournament.id}
                           onClick={() =>
-                            handleNavigate(`/tournament/${tournament.id}`)
+                            handleNavigate(`/event/${tournament.id}`)
                           }
                           className={`w-full text-left flex items-center gap-3 p-2 rounded-lg transition-colors opacity-60 ${
-                            location.pathname === `/tournament/${tournament.id}`
+                            location.pathname === `/event/${tournament.id}`
                               ? "bg-electric-blue/20 text-electric-blue"
                               : "hover:bg-navy-soft text-cool-gray"
                           }`}

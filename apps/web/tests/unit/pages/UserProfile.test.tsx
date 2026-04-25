@@ -253,7 +253,7 @@ describe("UserProfile - Story 14.21", () => {
       const tournamentCard = screen.getByText("Test Tournament");
       await user.click(tournamentCard);
 
-      expect(mockNavigate).toHaveBeenCalledWith("/tournament/tournament-1");
+      expect(mockNavigate).toHaveBeenCalledWith("/event/tournament-1");
     });
   });
 

@@ -5,7 +5,7 @@ import { Copy, Check, Share2 } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { ContextualHeader } from "../components/navigation/ContextualHeader";
-import { TournamentCard } from "../components/tournaments/TournamentCard";
+import { EventCard } from "../components/events/EventCard";
 import { HelpCard } from "../components/design-system/HelpCard";
 import { PButton } from "../components/ponglo/PButton";
 
@@ -13,7 +13,7 @@ import { PButton } from "../components/ponglo/PButton";
  * TournamentInvite — partage QR + lien + code du tournoi.
  * B.1 redesign: bannière code Everything ELO, PButton pour actions, tokens canoniques.
  */
-export const TournamentInvite = () => {
+export const EventInvite = () => {
   const { id } = useParams<{ id: string }>();
   const { tournaments } = useLeague();
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export const TournamentInvite = () => {
 
   const tournament = tournaments.find((t) => t.id === id);
   const inviteUrl = tournament
-    ? `${window.location.origin}/tournament/${tournament.id}/join`
+    ? `${window.location.origin}/event/${tournament.id}/join`
     : "";
 
   const handleCopyLink = async () => {
@@ -81,12 +81,12 @@ export const TournamentInvite = () => {
       <ContextualHeader
         title="Inviter des joueurs"
         showBackButton={true}
-        onBack={() => navigate(`/tournament/${tournament.id}`)}
+        onBack={() => navigate(`/event/${tournament.id}`)}
       />
 
       <div className="p-4 md:p-6 space-y-4 max-w-lg mx-auto">
         {/* Tournament recap */}
-        <TournamentCard tournament={tournament} />
+        <EventCard tournament={tournament} />
 
         {/* ── Code bannière (Everything ELO pattern) ──────────────────── */}
         {tournament.joinCode && (

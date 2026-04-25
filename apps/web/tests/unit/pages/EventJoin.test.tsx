@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import { TournamentJoin } from "../../../src/pages/TournamentJoin";
+import { EventJoin } from "../../../src/pages/EventJoin";
 import { LeagueProvider } from "../../../src/context/LeagueContext";
 import { AuthProvider } from "../../../src/context/AuthContext";
 import { IdentityProvider } from "../../../src/context/IdentityContext";
@@ -90,7 +90,7 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => (
   </BrowserRouter>
 );
 
-describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
+describe("EventJoin - Join flow (Story 4.1 + 14-15)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseLeague.mockImplementation(() => defaultLeagueContext);
@@ -100,9 +100,9 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     });
   });
 
-  describe("Task 1: Review TournamentJoin page (AC: Page opens)", () => {
+  describe("Task 1: Review EventJoin page (AC: Page opens)", () => {
     it("should render the page when tournament exists", async () => {
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // AC: Page opens and renders correctly (Story 14-15: design system alignment)
       expect(screen.getAllByText("Test Tournament").length).toBeGreaterThan(0);
@@ -110,7 +110,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     });
 
     it("should load tournament data from URL parameter", () => {
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // AC: Tournament data is fetched (mock provides tournament for id from useParams)
       expect(screen.getAllByText("Test Tournament").length).toBeGreaterThan(0);
@@ -119,7 +119,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
 
   describe("Task 2: Implement join form (AC: Enter name)", () => {
     it("should display simple name input form", async () => {
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" to show the form
       const createButton = screen.getByRole("button", {
@@ -135,7 +135,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     });
 
     it("should validate name minimum length (1 char)", async () => {
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -155,7 +155,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
 
     it("should validate name maximum length (100 chars)", async () => {
       const _toast = await import("react-hot-toast");
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -178,7 +178,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     });
 
     it("should display character count when typing", async () => {
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -201,7 +201,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     });
 
     it('should have large, clear "Join" button', async () => {
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -218,7 +218,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     });
 
     it("should be mobile-friendly with full-width inputs", async () => {
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -242,7 +242,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
         anonymousUserId: "new-anon-id",
       });
 
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -273,7 +273,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
         anonymousUserId: "existing-anon-id",
       });
 
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -301,7 +301,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
 
   describe("Task 4: Add player to tournament (AC: Added to tournament_players)", () => {
     it("should add player to tournament via addAnonymousPlayerToTournament", async () => {
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -335,7 +335,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
 
   describe("Task 5: Optimize join flow for speed (AC: Join in < 30s)", () => {
     it("should minimize form fields (name only)", () => {
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -352,7 +352,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     it("should complete join flow quickly", async () => {
       const startTime = Date.now();
 
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -388,7 +388,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     it("should redirect to tournament dashboard after join", async () => {
       const _toast = await import("react-hot-toast");
 
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -410,7 +410,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
       // AC: Redirect to tournament dashboard
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(
-          "/tournament/test-tournament-id",
+          "/event/test-tournament-id",
         );
       });
     });
@@ -418,7 +418,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
     it("should display success message with tournament name", async () => {
       const toast = await import("react-hot-toast");
 
-      render(<TournamentJoin />, { wrapper: Wrapper });
+      render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
       const createButton = screen.getByRole("button", {
@@ -447,7 +447,7 @@ describe("TournamentJoin - Join flow (Story 4.1 + 14-15)", () => {
   });
 });
 
-describe("TournamentJoin - Story 14-15 (Design system alignment)", () => {
+describe("EventJoin - Story 14-15 (Design system alignment)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseLeague.mockImplementation(() => defaultLeagueContext);
@@ -466,7 +466,7 @@ describe("TournamentJoin - Story 14-15 (Design system alignment)", () => {
     const leagueWithPlayers = {
       id: "league-1",
       name: "Test League",
-      type: "event" as const,
+      type: "one-shot" as const,
       createdAt: new Date().toISOString(),
       players: [{ id: "player-1", name: "Alice" }],
     };
@@ -480,7 +480,7 @@ describe("TournamentJoin - Story 14-15 (Design system alignment)", () => {
       isLoadingInitialData: false,
     }));
 
-    render(<TournamentJoin />, { wrapper: Wrapper });
+    render(<EventJoin />, { wrapper: Wrapper });
 
     // Should show "Sélectionner un joueur existant" section
     expect(
@@ -510,18 +510,18 @@ describe("TournamentJoin - Story 14-15 (Design system alignment)", () => {
         "player-1",
       );
     });
-    expect(mockNavigate).toHaveBeenCalledWith("/tournament/test-tournament-id");
+    expect(mockNavigate).toHaveBeenCalledWith("/event/test-tournament-id");
   });
 
-  it("should use TournamentCard for tournament info", () => {
-    render(<TournamentJoin />, { wrapper: Wrapper });
+  it("should use EventCard for tournament info", () => {
+    render(<EventJoin />, { wrapper: Wrapper });
 
     expect(screen.getAllByText("Test Tournament").length).toBeGreaterThan(0);
     expect(screen.getByText(/actif/i)).toBeInTheDocument();
   });
 
   it("should display HelpCard with Comment ça marche block", () => {
-    render(<TournamentJoin />, { wrapper: Wrapper });
+    render(<EventJoin />, { wrapper: Wrapper });
 
     expect(screen.getByText(/comment ça marche \?/i)).toBeInTheDocument();
     expect(
@@ -535,7 +535,7 @@ describe("TournamentJoin - Story 14-15 (Design system alignment)", () => {
   });
 
   it("should have bottom nav padding for content clearance", () => {
-    const { container } = render(<TournamentJoin />, { wrapper: Wrapper });
+    const { container } = render(<EventJoin />, { wrapper: Wrapper });
 
     const contentArea = container.querySelector(".pb-20");
     expect(contentArea).toBeInTheDocument();

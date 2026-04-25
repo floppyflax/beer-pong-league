@@ -20,7 +20,7 @@ import toast from "react-hot-toast";
 
 export const CreateLeague = () => {
   const [name, setName] = useState("");
-  const [type, setType] = useState<"event" | "season">("event");
+  const [type, setType] = useState<"one-shot" | "season">("one-shot");
   const [nameError, setNameError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const { createLeague } = useLeague();
@@ -78,7 +78,7 @@ export const CreateLeague = () => {
   const isFormValid = !validateName(name) && isAuthenticated;
 
   const typeOption = (
-    value: "event" | "season",
+    value: "one-shot" | "season",
     icon: React.ReactNode,
     title: string,
     description: string,
@@ -170,7 +170,7 @@ export const CreateLeague = () => {
               Type de compétition
             </span>
             {typeOption(
-              "event",
+              "one-shot",
               <Calendar size={24} />,
               "League Continue",
               "Classement persistant dans le temps.",

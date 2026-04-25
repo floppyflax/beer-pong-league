@@ -173,7 +173,7 @@ export function MatchRecordingForm({
       }
 
       // Call onSuccess - this will handle optimistic update and save
-      // The parent component (TournamentDashboard) will call recordTournamentMatch
+      // The parent component (EventDashboard) will call recordTournamentMatch
       // which handles both optimistic UI update and Supabase save
       onSuccess(match);
 

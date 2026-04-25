@@ -12,11 +12,11 @@ function TestApp({ initialRoute = '/' }: { initialRoute?: string }) {
         <Routes>
           <Route path="/" element={<div>Home Page</div>} />
           <Route path="/join" element={<div>Join Page</div>} />
-          <Route path="/tournaments" element={<div>Tournaments Page</div>} />
+          <Route path="/events" element={<div>Tournaments Page</div>} />
           <Route path="/leagues" element={<div>Leagues Page</div>} />
           <Route path="/user/profile" element={<div>Profile Page</div>} />
-          <Route path="/tournament/:id" element={<div>Tournament Detail</div>} />
-          <Route path="/tournament/:id/display" element={<div>Tournament Display View</div>} />
+          <Route path="/event/:id" element={<div>Tournament Detail</div>} />
+          <Route path="/event/:id/display" element={<div>Tournament Display View</div>} />
           <Route path="/league/:id" element={<div>League Detail</div>} />
           <Route path="/league/:id/display" element={<div>League Display View</div>} />
           <Route path="/auth/callback" element={<div>Auth Callback</div>} />
@@ -65,7 +65,7 @@ describe('BottomTabMenu Integration', () => {
 
   describe('Visible on Core Routes (read pages)', () => {
     it('should show on tournaments route', async () => {
-      render(<TestApp initialRoute="/tournaments" />);
+      render(<TestApp initialRoute="/events" />);
 
       await waitFor(() => {
         expect(screen.getByLabelText('Home')).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('BottomTabMenu Integration', () => {
     });
 
     it('should show on tournament detail page', async () => {
-      render(<TestApp initialRoute="/tournament/123" />);
+      render(<TestApp initialRoute="/event/123" />);
 
       await waitFor(() => {
         expect(screen.getByLabelText('Home')).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('BottomTabMenu Integration', () => {
     });
 
     it('should not show on tournament display view', () => {
-      render(<TestApp initialRoute="/tournament/123/display" />);
+      render(<TestApp initialRoute="/event/123/display" />);
 
       expect(screen.queryByLabelText('Home')).not.toBeInTheDocument();
       expect(screen.getByText('Tournament Display View')).toBeInTheDocument();

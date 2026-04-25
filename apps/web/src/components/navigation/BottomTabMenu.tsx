@@ -73,14 +73,14 @@ function isTabActive(pathname: string, tab: Tab): boolean {
       return (
         pathname === "/competitions" ||
         pathname === "/leagues" ||
-        pathname === "/tournaments" ||
+        pathname === "/events" ||
         pathname === "/join" ||
         pathname.startsWith("/join/") ||
         pathname.startsWith("/league/") ||
-        pathname.startsWith("/tournament/") ||
+        pathname.startsWith("/event/") ||
         pathname.startsWith("/event/") ||
         pathname === "/create-league" ||
-        pathname === "/create-tournament"
+        pathname === "/create-event"
       );
     case "leaderboard":
       return pathname === "/leaderboard";

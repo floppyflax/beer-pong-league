@@ -52,15 +52,15 @@ describe.skip("LandingPage Integration Tests", () => {
       expect(screen.getByTestId("auth-modal")).toBeInTheDocument();
 
       // Verify returnTo was stored
-      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-tournament");
+      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
 
       // Simulate auth completion
       const completeAuthButton = screen.getByText("Complete Auth");
       fireEvent.click(completeAuthButton);
 
-      // Verify redirect would happen to /create-tournament
+      // Verify redirect would happen to /create-event
       await waitFor(() => {
-        expect(window.location.href).toContain("/create-tournament");
+        expect(window.location.href).toContain("/create-event");
       });
     });
 
@@ -96,14 +96,14 @@ describe.skip("LandingPage Integration Tests", () => {
       fireEvent.click(tournamentButton);
 
       // Verify stored immediately
-      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-tournament");
+      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
 
       // Close modal without completing auth
       const closeButton = screen.getByText("Close Modal");
       fireEvent.click(closeButton);
 
       // ReturnTo should still be in sessionStorage (not cleaned until auth completes)
-      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-tournament");
+      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
     });
 
     it("should overwrite returnTo if user clicks different action before auth", async () => {
@@ -115,7 +115,7 @@ describe.skip("LandingPage Integration Tests", () => {
 
       // Click tournament
       fireEvent.click(screen.getByText(/Créer un tournoi/i));
-      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-tournament");
+      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
 
       // Close modal
       fireEvent.click(screen.getByText("Close Modal"));
@@ -178,7 +178,7 @@ describe.skip("LandingPage Integration Tests", () => {
 
       // 1. User clicks tournament
       fireEvent.click(screen.getByText(/Créer un tournoi/i));
-      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-tournament");
+      expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
 
       // 2. User closes modal (changes mind)
       fireEvent.click(screen.getByText("Close Modal"));

@@ -89,12 +89,12 @@ const MODE_OPTIONS: ModeOption[] = [
   },
 ];
 
-interface CreateTournamentProps {
+interface CreateEventProps {
   /** Skip premium check (testing only) — bypasses loading state */
   skipPremiumCheck?: boolean;
 }
 
-export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentProps = {}) => {
+export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {}) => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
@@ -248,13 +248,13 @@ export const CreateTournament = ({ skipPremiumCheck = false }: CreateTournamentP
 
       toast.success('Événement créé ! 🎉');
       await reloadData();
-      navigate(`/tournament/${tournamentId}`);
+      navigate(`/event/${tournamentId}`);
     } catch (error) {
       console.error('Error creating tournament:', error);
       const message =
         error instanceof Error && error.message.includes('code unique')
           ? error.message
-          : 'Erreur lors de la création du tournoi';
+          : "Erreur lors de la création de l'événement";
       toast.error(message);
     } finally {
       setIsSubmitting(false);

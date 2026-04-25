@@ -275,7 +275,7 @@ describe('League Schema Validation', () => {
     const minimalLeague = {
       id: '123e4567-e89b-12d3-a456-426614174003',
       name: 'Test League',
-      type: 'event' as const,
+      type: 'one-shot' as const,
       createdAt: '2026-01-27T10:00:00Z',
     };
 
@@ -393,7 +393,7 @@ describe('Input Schemas (for forms)', () => {
   it('createLeagueInputSchema should not require ID or timestamps', () => {
     const leagueInput = {
       name: 'New League',
-      type: 'event' as const,
+      type: 'one-shot' as const,
     };
 
     const result = createLeagueInputSchema.safeParse(leagueInput);

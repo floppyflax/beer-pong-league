@@ -9,7 +9,7 @@ import { useLeague } from "../context/LeagueContext";
  *
  * @returns Object with tournaments data and loading state
  */
-export const useTournamentsList = () => {
+export const useEventsList = () => {
   const { tournaments, isLoadingInitialData, loadError } = useLeague();
 
   // Filter and sort tournaments for current user

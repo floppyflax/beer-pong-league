@@ -33,13 +33,13 @@ export const Sidebar = () => {
     if (pathname === '/') return 'home';
     if (
       pathname === '/competitions' ||
-      pathname === '/tournaments' ||
+      pathname === '/events' ||
       pathname === '/leagues' ||
       pathname.startsWith('/join') ||
-      pathname.startsWith('/tournament/') ||
+      pathname.startsWith('/event/') ||
       pathname.startsWith('/league/') ||
       pathname.startsWith('/event/') ||
-      pathname === '/create-tournament' ||
+      pathname === '/create-event' ||
       pathname === '/create-league'
     ) {
       return 'play';

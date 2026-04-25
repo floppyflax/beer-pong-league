@@ -454,7 +454,7 @@ export const RecordMatch = () => {
   const teamSize = TEAM_SIZE_BY_FORMAT[format] ?? null;
   const backPath =
     contextType === "tournament" && contextId
-      ? `/tournament/${contextId}`
+      ? `/event/${contextId}`
       : contextType === "league" && contextId
         ? `/league/${contextId}`
         : "/";

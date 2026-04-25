@@ -109,8 +109,8 @@ describe("BottomTabMenu", () => {
       expect(playButton).toHaveClass("bg-gradient-tab-active");
     });
 
-    it("should highlight Jouer tab when on legacy /tournaments route", () => {
-      mockLocation.pathname = "/tournaments";
+    it("should highlight Jouer tab when on /events route", () => {
+      mockLocation.pathname = "/events";
       render(<BottomTabMenu />);
 
       const playButton = screen.getByLabelText("Jouer");
@@ -143,8 +143,8 @@ describe("BottomTabMenu", () => {
       expect(homeButton).toHaveClass("bg-gradient-tab-active");
     });
 
-    it("should highlight Jouer tab when on /tournament/:id (nested route)", () => {
-      mockLocation.pathname = "/tournament/abc123";
+    it("should highlight Jouer tab when on /event/:id (nested route)", () => {
+      mockLocation.pathname = "/event/abc123";
       render(<BottomTabMenu />);
 
       const playButton = screen.getByLabelText("Jouer");

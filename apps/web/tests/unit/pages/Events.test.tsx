@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
-import { Tournaments } from "../../../src/pages/Tournaments";
-import * as UseTournamentsList from "../../../src/hooks/useTournamentsList";
+import { Events } from "../../../src/pages/Events";
+import * as UseEventsList from "../../../src/hooks/useEventsList";
 import * as UsePremiumLimits from "../../../src/hooks/usePremiumLimits";
 import type { Tournament } from "../../../src/types";
 
@@ -16,7 +16,7 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-vi.mock("../../../src/hooks/useTournamentsList");
+vi.mock("../../../src/hooks/useEventsList");
 vi.mock("../../../src/hooks/usePremiumLimits");
 const mockReloadData = vi.fn();
 vi.mock("../../../src/context/LeagueContext", () => ({
@@ -24,8 +24,8 @@ vi.mock("../../../src/context/LeagueContext", () => ({
 }));
 
 // Mock child components to simplify testing
-vi.mock("../../../src/components/tournaments/TournamentCard", () => ({
-  TournamentCard: ({ tournament }: { tournament: Tournament }) => (
+vi.mock("../../../src/components/events/EventCard", () => ({
+  EventCard: ({ tournament }: { tournament: Tournament }) => (
     <div data-testid={`tournament-card-${tournament.id}`}>
       {tournament.name}
     </div>
@@ -43,7 +43,7 @@ vi.mock("../../../src/components/LoadingSpinner", () => ({
   LoadingSpinner: () => <div data-testid="loading-spinner">Loading...</div>,
 }));
 
-describe("Tournaments Page", () => {
+describe("Events Page", () => {
   const mockTournaments: Tournament[] = [
     {
       id: "t1",
@@ -103,13 +103,13 @@ describe("Tournaments Page", () => {
 
   describe("Error State (H1)", () => {
     it("should show error banner and retry button when load fails", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: [],
         isLoading: false,
         loadError: "Erreur réseau",
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(screen.getByRole("alert")).toHaveTextContent("Erreur réseau");
       const retryButton = screen.getByRole("button", { name: /Réessayer/i });
@@ -122,24 +122,24 @@ describe("Tournaments Page", () => {
 
   describe("Loading State", () => {
     it("should show loading spinner while data is loading", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: [],
         isLoading: true,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
       expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
     });
   });
 
   describe("Empty State", () => {
     it("should show empty state when no tournaments", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: [],
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(screen.getByText("Aucun événement")).toBeInTheDocument();
       expect(
@@ -148,24 +148,24 @@ describe("Tournaments Page", () => {
     });
 
     it("should show action buttons in empty state", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: [],
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(screen.getByText("Rejoindre un événement")).toBeInTheDocument();
       expect(screen.getByText("Créer un événement")).toBeInTheDocument();
     });
 
     it('should navigate to /join when clicking "Rejoindre"', () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: [],
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       const joinButton = screen.getByText("Rejoindre un événement");
       fireEvent.click(joinButton);
@@ -173,29 +173,29 @@ describe("Tournaments Page", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/join");
     });
 
-    it('should navigate to /create-tournament when clicking "Créer" (if allowed)', () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+    it('should navigate to /create-event when clicking "Créer" (if allowed)', () => {
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: [],
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       const createButton = screen.getByText("Créer un événement");
       fireEvent.click(createButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith("/create-tournament");
+      expect(mockNavigate).toHaveBeenCalledWith("/create-event");
     });
   });
 
   describe("Tournament List", () => {
     it("should render list of tournaments", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(screen.getByTestId("tournament-card-t1")).toBeInTheDocument();
       expect(screen.getByTestId("tournament-card-t2")).toBeInTheDocument();
@@ -203,12 +203,12 @@ describe("Tournaments Page", () => {
     });
 
     it("should show page header", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(screen.getByText("Mes Événements")).toBeInTheDocument();
     });
@@ -216,12 +216,12 @@ describe("Tournaments Page", () => {
 
   describe("Search Functionality", () => {
     it("should show search input", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(
         screen.getByPlaceholderText("Rechercher un événement..."),
@@ -229,12 +229,12 @@ describe("Tournaments Page", () => {
     });
 
     it("should filter tournaments by name (case-insensitive)", async () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       const searchInput = screen.getByPlaceholderText(
         "Rechercher un événement...",
@@ -253,12 +253,12 @@ describe("Tournaments Page", () => {
     });
 
     it('should show "Aucun résultat" when no match', async () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       const searchInput = screen.getByPlaceholderText(
         "Rechercher un événement...",
@@ -274,12 +274,12 @@ describe("Tournaments Page", () => {
 
     it("should debounce search by 300ms (AC2, M2)", async () => {
       vi.useFakeTimers();
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       const searchInput = screen.getByPlaceholderText(
         "Rechercher un événement...",
@@ -310,12 +310,12 @@ describe("Tournaments Page", () => {
 
   describe("Filter Tabs", () => {
     it("should show filter tabs", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(screen.getByText("Tous")).toBeInTheDocument();
       expect(screen.getByText("Actifs")).toBeInTheDocument();
@@ -323,12 +323,12 @@ describe("Tournaments Page", () => {
     });
 
     it('should filter active tournaments when "Actifs" is clicked', async () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       const actifTab = screen.getByText("Actifs");
       fireEvent.click(actifTab);
@@ -343,12 +343,12 @@ describe("Tournaments Page", () => {
     });
 
     it('should filter finished tournaments when "Terminés" is clicked', async () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       const finishedTab = screen.getByText("Terminés");
       fireEvent.click(finishedTab);
@@ -365,12 +365,12 @@ describe("Tournaments Page", () => {
     });
 
     it('should show all tournaments when "Tous" is clicked', async () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       // First click "Actifs" to change filter
       fireEvent.click(screen.getByText("Actifs"));
@@ -387,22 +387,22 @@ describe("Tournaments Page", () => {
   });
 
   describe("Create Tournament Action", () => {
-    it("should navigate to /create-tournament when FAB is clicked and user can create", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+    it("should navigate to /create-event when FAB is clicked and user can create", () => {
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       const fab = screen.getByTestId("fab");
       fireEvent.click(fab);
 
-      expect(mockNavigate).toHaveBeenCalledWith("/create-tournament");
+      expect(mockNavigate).toHaveBeenCalledWith("/create-event");
     });
 
     it("should show payment modal when FAB clicked and user is at tournament limit", async () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
@@ -419,7 +419,7 @@ describe("Tournaments Page", () => {
         refetchPremium: vi.fn(),
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       const fab = screen.getByTestId("fab");
       fireEvent.click(fab);
@@ -430,7 +430,7 @@ describe("Tournaments Page", () => {
     });
 
     it("should show lock icon on header create button when at limit (desktop)", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
@@ -447,7 +447,7 @@ describe("Tournaments Page", () => {
         refetchPremium: vi.fn(),
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       // ContextualHeader shows lock on desktop action when at limit
       expect(screen.getAllByText("🔒").length).toBeGreaterThan(0);
@@ -456,12 +456,12 @@ describe("Tournaments Page", () => {
 
   describe("Design System (Story 14-12)", () => {
     it("should render FAB and header create action for responsive design (M3)", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       // FAB: primary create action on mobile (design system 2.4)
       expect(screen.getByTestId("fab")).toBeInTheDocument();
@@ -472,23 +472,23 @@ describe("Tournaments Page", () => {
     });
 
     it("should render FAB for create tournament", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(screen.getByTestId("fab")).toBeInTheDocument();
     });
 
     it("should render SearchBar with placeholder", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(
         screen.getByPlaceholderText("Rechercher un événement..."),
@@ -497,12 +497,12 @@ describe("Tournaments Page", () => {
     });
 
     it("should render SegmentedTabs (Tous, Actifs, Terminés)", () => {
-      vi.spyOn(UseTournamentsList, "useTournamentsList").mockReturnValue({
+      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         tournaments: mockTournaments,
         isLoading: false,
       });
 
-      renderWithRouter(<Tournaments />);
+      renderWithRouter(<Events />);
 
       expect(screen.getByRole("tablist")).toBeInTheDocument();
       expect(screen.getByText("Tous")).toBeInTheDocument();
