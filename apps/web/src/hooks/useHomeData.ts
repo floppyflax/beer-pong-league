@@ -217,18 +217,29 @@ async function fetchHomeData(userId: string) {
     let recentMatches: RecentMatch[] = [];
 
     if (eloHistory && eloHistory.length > 0) {
-      const totalMatches = eloHistory.length;
-      const wins = eloHistory.filter((h) => h.elo_change > 0).length;
+      // Mig 023 — un même match peut produire 2 lignes elo_history (event +
+      // league) quand l'event propage à la ligue. On dédupe par match_id
+      // pour le compte lifetime, en gardant la première occurrence (la plus
+      // récente, puisque le tri est desc). Le résultat = "matchs joués
+      // distincts", pas "delta ELO touchés".
+      const seenMatchIds = new Set<string>();
+      const uniqueByMatch: typeof eloHistory = [];
+      for (const h of eloHistory) {
+        if (h.match_id && seenMatchIds.has(h.match_id)) continue;
+        if (h.match_id) seenMatchIds.add(h.match_id);
+        uniqueByMatch.push(h);
+      }
+
+      const totalMatches = uniqueByMatch.length;
+      const wins = uniqueByMatch.filter((h) => h.elo_change > 0).length;
       const winRate =
         totalMatches > 0 ? Math.round((wins / totalMatches) * 10000) / 100 : 0;
 
-      // bestStreak — plus longue série de victoires consécutives.
-      // L'historique est trié desc (created_at). On parcourt en sens
-      // chronologique inverse (donc itération directe = nouveau → ancien),
-      // ce qui n'affecte pas le max d'une série consécutive.
+      // bestStreak — plus longue série de victoires consécutives, calculée
+      // sur les matchs dédupliqués.
       let bestStreak = 0;
       let current = 0;
-      for (const h of eloHistory) {
+      for (const h of uniqueByMatch) {
         if (h.elo_change > 0) {
           current += 1;
           if (current > bestStreak) bestStreak = current;

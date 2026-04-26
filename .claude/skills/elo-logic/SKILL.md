@@ -44,15 +44,29 @@ L'ELO ne doit **jamais** être calculé côté client pour un match ranked confi
 
 **L'ELO n'est jamais agrégé globalement.** Trois niveaux :
 
-1. **Event ELO** — par event, stocké (à terme) dans `tournament_players.elo`. Mis à jour par chaque match de l'event. ⚠️ Gap actuel : pour les events autonomes, la colonne `tournament_players.elo` n'existe pas encore (cf. `docs/roadmap.md` §Gap connu — Event ELO autonome). Pour les events liés à une ligue, on utilise pour le moment `league_players.elo`.
-2. **League ELO** — `league_players.elo`. Mis à jour par les matchs de league hors event ET, conditionnellement, par les matchs des events rattachés (toggle `propagates_to_league_elo` à venir).
-3. **Stats lifetime** — agrégat `totalMatches` / `winRate` / `bestStreak`, calculé à la volée depuis `elo_history`. **Pas d'ELO moyen agrégé** : un ELO de cluster A et un ELO de cluster B ne sont pas comparables (graphe d'adversaires déconnecté).
+1. **Event ELO** — par event, stocké dans `tournament_memberships.elo` (mig 023). Mis à jour par chaque match de l'event. Inheritance : un player déjà membre de la ligue rattachée hérite de son ELO ligue ; sinon démarre à 1000.
+2. **League ELO** — `league_memberships.elo`. Mis à jour par les matchs de league hors event ET, conditionnellement, par les matchs des events rattachés (toggle `tournaments.propagates_to_league_elo`, default TRUE).
+3. **Stats lifetime** — agrégat `totalMatches` / `winRate` / `bestStreak`, calculé à la volée depuis `elo_history` **dédupliqué par `match_id`**. **Pas d'ELO moyen agrégé** : un ELO de cluster A et un ELO de cluster B ne sont pas comparables (graphe d'adversaires déconnecté).
 
 Conséquence : ne **jamais** ajouter une colonne `users.elo` ou un champ `globalElo` quelque part. Les leaderboards cross-context (page `/leaderboard`) trient par activité (matchs / wins / win rate), pas par ELO.
 
+## Calcul des deltas event vs league
+
+Quand un match d'event est enregistré et que l'event propage vers la ligue, **deux deltas sont calculés indépendamment** :
+- Event delta : utilise `tournament_memberships.elo` comme baseline.
+- League delta : utilise `league_memberships.elo` comme baseline (peut différer du event ELO).
+
+Les deux deltas s'appliquent à leur contexte respectif. Ce n'est PAS le même nombre dupliqué : si Florian a ELO 1200 dans l'event et 1500 dans la ligue, ses deltas sont calculés avec des expected scores différents et donnent des changes différents.
+
 ## Historique
 
-Chaque match confirmé écrit dans `elo_history` : `match_id`, `tournament_id?`, `league_id?`, `player_id`, `elo_before`, `elo_after`, `elo_change`. Une ligne **par contexte** par joueur (un match d'event lié à une ligue avec propagation = 2 lignes par joueur, une avec `tournament_id`, une avec `league_id`). Immutable après écriture.
+Chaque match confirmé écrit dans `elo_history` : `match_id`, `tournament_id?`, `league_id?`, `player_id`, `elo_before`, `elo_after`, `elo_change`. Une ligne **par contexte** par joueur :
+- Match d'event autonome : 1 ligne avec `tournament_id` set, `league_id` NULL.
+- Match d'event lié sans propagation : 1 ligne avec `tournament_id` set, `league_id` NULL.
+- Match d'event lié avec propagation : 2 lignes — une `tournament_id` only, une `league_id` only.
+- Match de ligue hors event : 1 ligne avec `league_id` set, `tournament_id` NULL.
+
+Immutable après écriture. Les agrégateurs lifetime (cf. `useHomeData`) doivent dédupliquer par `match_id`.
 
 ## Tests à lancer après modif
 

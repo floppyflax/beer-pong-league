@@ -88,17 +88,16 @@ Légende : [x] livré · [~] en cours · [ ] backlog
 - [ ] Classements publics par contexte (visibles sans compte).
 - [ ] Filtres saison / période.
 
-#### Gap connu — Event ELO autonome
-L'invariant produit dit : « chaque match dans un événement compte pour le ELO de l'événement, et **optionnellement** pour le ELO de la ligue rattachée ». Implémentation actuelle :
-- Event lié à une ligue → utilise `league_players.elo` (pas de ELO event distinct).
-- Event autonome → ELO par défaut 1500 figé, **non persisté**.
+#### ✅ Event ELO indépendant (mig 023)
+L'invariant produit est désormais implémenté : chaque match dans un événement met à jour le ELO de l'événement, et propage optionnellement vers la ligue selon le paramétrage `propagates_to_league_elo`.
 
-**À faire** pour atteindre l'invariant :
-1. Migration : ajouter `tournament_players.elo` (default 1000) + index.
-2. `MatchesRepository.recordTournamentMatch` : mettre à jour `tournament_players.elo` à chaque match d'event ; conditionnellement propager à `league_players.elo` selon un nouveau toggle event (`propagates_to_league_elo`, default `true`).
-3. `tournaments` : ajouter le toggle `propagates_to_league_elo` (settings event).
-4. `elo_history` : déjà capable de logger par contexte (colonnes `tournament_id` + `league_id`) ; vérifier que `user_id`/`anonymous_user_id` sont correctement renseignés (FUTURE WORK noté dans `MatchesRepository.ts`).
-5. Profil joueur : surface ELO **par contexte** dans `EloChart` + tableau, jamais agrégé.
+- [x] Migration 023 : `tournament_memberships.elo` (default 1000) + W/L/streak/matches_played + index.
+- [x] `tournaments.propagates_to_league_elo BOOLEAN DEFAULT TRUE` + UI toggle dans SettingsSheet (visible quand event lié à une ligue).
+- [x] `MatchesRepository.recordTournamentMatch` : delta event séparé du delta league. 2 lignes `elo_history` par joueur quand propagation active (une `tournament_id` only, une `league_id` only).
+- [x] Auto-add à la ligue : (a) au join d'un event lié, le joueur est ajouté à la ligue ; (b) au rattachement a posteriori d'un event à une ligue, tous les joueurs sont synchronisés.
+- [x] Inheritance d'ELO : un joueur déjà membre de la ligue garde son ELO ligue comme baseline event ; un nouveau player démarre à 1000 dans les deux contextes.
+- [x] `useHomeData` dedupe par `match_id` pour ne pas compter 2x un match propagé dans les stats lifetime.
+- [ ] **Reste à faire** : Profil joueur — surface ELO **par contexte** dans `EloChart` + tableau (actuellement agrégé). Bracket/recalc service à adapter au modèle dual.
 
 ### Paiements & Premium
 - [x] Intégration Stripe Checkout (edge functions Supabase).

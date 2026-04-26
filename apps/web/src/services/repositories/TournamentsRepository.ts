@@ -1,25 +1,18 @@
 /**
- * TournamentsRepository - Gère le CRUD des tournaments (Supabase + fallback localStorage)
+ * TournamentsRepository — gère les tournaments + leurs membres
+ * (`tournament_memberships`) + matches (mig 022).
  */
 
 import type { Tournament, Match } from '../../types';
 import { safeValidateTournament } from '../../utils/validation';
 import {
   BaseRepository,
-  supabase,
+  sb,
   type TournamentRow,
-  type TournamentPlayerRow,
+  type TournamentMembershipRow,
   type MatchRow,
 } from './_base';
 
-/**
- * Set of tournament fields that callers are allowed to update in-place.
- * Using an object (rather than positional args) lets us extend the API
- * without breaking existing call sites every time a new field shows up.
- *
- * `name` / `date` are optional here even though they're required at
- * creation time — update is a partial mutation.
- */
 export interface TournamentUpdates {
   name?: string;
   date?: string;
@@ -27,107 +20,79 @@ export interface TournamentUpdates {
   format?: '1v1' | '2v2' | '3v3' | 'libre';
   maxPlayers?: number;
   isPrivate?: boolean;
+  /**
+   * Mig 023 — When TRUE (default) and the event is linked to a league, matches
+   * recorded in this event also update the league's ELO. Toggle off to keep
+   * the event's ELO bubble isolated from the league.
+   */
+  propagatesToLeagueElo?: boolean;
 }
 
 class TournamentsRepository extends BaseRepository {
   /**
-   * Charge toutes les tournaments depuis Supabase
-   * OPTIMIZED: Uses batch queries instead of N+1 pattern
-   *
-   * Loads tournaments where the user is EITHER:
-   * 1. The creator (creator_user_id or creator_anonymous_user_id)
-   * 2. A participant (via tournament_players table)
+   * Charge les tournaments où l'user est creator OU member (via player owned).
    */
   async loadTournaments(userId?: string, anonymousUserId?: string): Promise<Tournament[]> {
     if (!this.isSupabaseAvailable()) {
       return this.loadTournamentsFromLocalStorage();
     }
-
-    // SECURITY: If no user identity, return empty array (RLS will block anyway)
-    if (!userId && !anonymousUserId) {
+    const myUserId = userId || anonymousUserId;
+    if (!myUserId) {
       console.log('🔒 No user identity - returning empty tournaments list');
       return [];
     }
 
     try {
-      // Step 1: Get tournament IDs where user is creator OR participant
-      let tournamentIds: string[] = [];
+      const tournamentIds = new Set<string>();
 
-      // Get tournaments where user is creator
-      let creatorQuery = supabase!.from('tournaments').select('id');
-      if (userId) {
-        creatorQuery = creatorQuery.eq('creator_user_id', userId);
-      } else if (anonymousUserId) {
-        creatorQuery = creatorQuery.eq('creator_anonymous_user_id', anonymousUserId);
-      }
-      const { data: creatorTournaments, error: creatorError } = await creatorQuery;
-      if (creatorError) throw creatorError;
-
-      // Get tournaments where user is participant
-      let participantQuery = supabase!.from('tournament_players').select('tournament_id');
-      if (userId) {
-        participantQuery = participantQuery.eq('user_id', userId);
-      } else if (anonymousUserId) {
-        participantQuery = participantQuery.eq('anonymous_user_id', anonymousUserId);
-      }
-      const { data: participantTournaments, error: participantError } = await participantQuery;
-      if (participantError) throw participantError;
-
-      // Combine and deduplicate tournament IDs
-      const creatorIds = (creatorTournaments || []).map((t) => t.id);
-      const participantIds = (participantTournaments || []).map((t) => t.tournament_id);
-      tournamentIds = [...new Set([...creatorIds, ...participantIds])];
-
-      if (tournamentIds.length === 0) {
-        console.log('🏆 No tournaments found for user (neither creator nor participant)');
-        return [];
-      }
-
-      // Step 2: Load full tournament data for all relevant tournaments
-      const { data: tournamentsData, error: tournamentsError } = await supabase!
+      const { data: created, error: createdErr } = await sb!
         .from('tournaments')
-        .select('*')
-        .in('id', tournamentIds);
+        .select('id')
+        .eq('creator_user_id', myUserId);
+      if (createdErr) throw createdErr;
+      (created || []).forEach((t: { id: string }) => tournamentIds.add(t.id));
 
-      if (tournamentsError) throw tournamentsError;
-      if (!tournamentsData || tournamentsData.length === 0) return [];
+      // Member-of via my player
+      const { data: myPlayer } = await sb!
+        .from('players')
+        .select('id')
+        .eq('user_id', myUserId)
+        .maybeSingle();
+      if (myPlayer) {
+        const playerId = (myPlayer as { id: string }).id;
+        const { data: memberships } = await sb!
+          .from('tournament_memberships')
+          .select('tournament_id')
+          .eq('player_id', playerId);
+        (memberships || []).forEach((m: { tournament_id: string }) => tournamentIds.add(m.tournament_id));
+      }
 
-      // Step 3: Batch load ALL tournament players in one query
-      const { data: allPlayersData, error: playersError } = await supabase!
-        .from('tournament_players')
-        .select('id, user_id, anonymous_user_id, tournament_id')
-        .in('tournament_id', tournamentIds);
+      if (tournamentIds.size === 0) return [];
+      const ids = Array.from(tournamentIds);
 
-      if (playersError) throw playersError;
+      const [{ data: tournamentsData }, { data: allMembers }, { data: allMatches }] = await Promise.all([
+        sb!.from('tournaments').select('*').in('id', ids),
+        sb!
+          .from('tournament_memberships')
+          .select('id, tournament_id, player_id, archived_at')
+          .in('tournament_id', ids),
+        sb!.from('matches').select('*').in('tournament_id', ids).order('created_at', { ascending: false }),
+      ]);
 
-      // Step 4: Batch load ALL matches in one query
-      const { data: allMatchesData, error: matchesError } = await supabase!
-        .from('matches')
-        .select('*')
-        .in('tournament_id', tournamentIds)
-        .order('created_at', { ascending: false });
+      const tournRows = (tournamentsData ?? []) as TournamentRow[];
 
-      if (matchesError) throw matchesError;
-
-      // Step 5: Group data by tournament_id
-      const playersByTournament = new Map<string, string[]>();
-      const matchesByTournament = new Map<string, Match[]>();
-
-      // Group players
-      ((allPlayersData || []) as TournamentPlayerRow[]).forEach((p) => {
-        if (!playersByTournament.has(p.tournament_id)) {
-          playersByTournament.set(p.tournament_id, []);
-        }
-        playersByTournament.get(p.tournament_id)!.push(p.id);
+      const playerIdsByTournament = new Map<string, string[]>();
+      ((allMembers ?? []) as TournamentMembershipRow[]).forEach((m) => {
+        const list = playerIdsByTournament.get(m.tournament_id) ?? [];
+        list.push(m.id); // legacy: playerIds carries membership id
+        playerIdsByTournament.set(m.tournament_id, list);
       });
 
-      // Group matches
-      ((allMatchesData || []) as MatchRow[]).forEach((m) => {
+      const matchesByTournament = new Map<string, Match[]>();
+      ((allMatches ?? []) as MatchRow[]).forEach((m) => {
         if (!m.tournament_id) return;
-        if (!matchesByTournament.has(m.tournament_id)) {
-          matchesByTournament.set(m.tournament_id, []);
-        }
-        matchesByTournament.get(m.tournament_id)!.push({
+        const list = matchesByTournament.get(m.tournament_id) ?? [];
+        list.push({
           id: m.id,
           date: m.created_at || new Date().toISOString(),
           teamA: m.team_a_player_ids || [],
@@ -135,92 +100,18 @@ class TournamentsRepository extends BaseRepository {
           scoreA: m.score_a || 0,
           scoreB: m.score_b || 0,
           created_by_user_id: m.created_by_user_id,
-          created_by_anonymous_user_id: m.created_by_anonymous_user_id,
+          created_by_anonymous_user_id: null,
           status: (m.status as Match['status']) || 'confirmed',
           confirmed_by_user_id: m.confirmed_by_user_id,
-          confirmed_by_anonymous_user_id: m.confirmed_by_anonymous_user_id,
+          confirmed_by_anonymous_user_id: null,
           confirmed_at: m.confirmed_at,
           cups_remaining: m.cups_remaining ?? undefined,
           photo_url: m.photo_url ?? undefined,
         });
+        matchesByTournament.set(m.tournament_id, list);
       });
 
-      // Step 6: Build tournaments with grouped data
-      const tournaments: Tournament[] = (tournamentsData as TournamentRow[]).map(
-        (tournamentRow) => {
-          const playerIds = playersByTournament.get(tournamentRow.id) || [];
-          const matches = matchesByTournament.get(tournamentRow.id) || [];
-
-          return {
-            id: tournamentRow.id,
-            name: tournamentRow.name,
-            date: tournamentRow.date,
-            format: (tournamentRow.format as Tournament['format']) || '2v2',
-            location: tournamentRow.location ?? undefined,
-            leagueId: tournamentRow.league_id,
-            createdAt: tournamentRow.created_at || new Date().toISOString(),
-            updatedAt: tournamentRow.updated_at || tournamentRow.created_at, // Story 10.2: Last activity time
-            playerIds,
-            matches,
-            isFinished: tournamentRow.is_finished || false,
-            creator_user_id: tournamentRow.creator_user_id,
-            creator_anonymous_user_id: tournamentRow.creator_anonymous_user_id,
-            anti_cheat_enabled: tournamentRow.anti_cheat_enabled || false,
-            // Story 8.2 fields
-            joinCode: tournamentRow.join_code,
-            formatType: tournamentRow.format_type,
-            team1Size: tournamentRow.team1_size,
-            team2Size: tournamentRow.team2_size,
-            maxPlayers: tournamentRow.max_players,
-            isPrivate: tournamentRow.is_private,
-            status: tournamentRow.status as 'active' | 'finished' | 'cancelled' | undefined,
-            // Phase A.5 — competition mode (migration 011). Default 'elo' if DB
-            // hasn't received the migration yet (local/staging sync lag).
-            mode: tournamentRow.mode ?? 'elo',
-          };
-        }
-      );
-
-      console.log(`⚡ Loaded ${tournaments.length} tournaments with optimized batch queries`);
-
-      return tournaments;
-    } catch (error) {
-      console.error('Error loading tournaments from Supabase:', error);
-      return this.loadTournamentsFromLocalStorage();
-    }
-  }
-
-  /**
-   * Loads a single tournament by id, regardless of whether the current user
-   * is creator or participant. Used by the join page so that newcomers
-   * landing via shared link / QR can see the event before joining.
-   * RLS ("Anyone can read tournaments") allows this.
-   */
-  async loadTournamentById(tournamentId: string): Promise<Tournament | null> {
-    if (!this.isSupabaseAvailable()) {
-      const local = this.loadTournamentsFromLocalStorage();
-      return local.find((t) => t.id === tournamentId) ?? null;
-    }
-
-    try {
-      const { data: tournamentRow, error } = await supabase!
-        .from('tournaments')
-        .select('*')
-        .eq('id', tournamentId)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!tournamentRow) return null;
-
-      const { data: playersData, error: playersError } = await supabase!
-        .from('tournament_players')
-        .select('id')
-        .eq('tournament_id', tournamentId);
-
-      if (playersError) throw playersError;
-
-      const row = tournamentRow as TournamentRow;
-      return {
+      return tournRows.map((row) => ({
         id: row.id,
         name: row.name,
         date: row.date,
@@ -229,11 +120,11 @@ class TournamentsRepository extends BaseRepository {
         leagueId: row.league_id,
         createdAt: row.created_at || new Date().toISOString(),
         updatedAt: row.updated_at || row.created_at,
-        playerIds: ((playersData || []) as { id: string }[]).map((p) => p.id),
-        matches: [],
+        playerIds: playerIdsByTournament.get(row.id) || [],
+        matches: matchesByTournament.get(row.id) || [],
         isFinished: row.is_finished || false,
         creator_user_id: row.creator_user_id,
-        creator_anonymous_user_id: row.creator_anonymous_user_id,
+        creator_anonymous_user_id: null,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
         joinCode: row.join_code,
         formatType: row.format_type,
@@ -243,6 +134,60 @@ class TournamentsRepository extends BaseRepository {
         isPrivate: row.is_private,
         status: row.status as 'active' | 'finished' | 'cancelled' | undefined,
         mode: row.mode ?? 'elo',
+        propagatesToLeagueElo:
+          (row as TournamentRow & { propagates_to_league_elo?: boolean }).propagates_to_league_elo ?? true,
+      }));
+    } catch (error) {
+      console.error('Error loading tournaments from Supabase:', error);
+      return this.loadTournamentsFromLocalStorage();
+    }
+  }
+
+  async loadTournamentById(tournamentId: string): Promise<Tournament | null> {
+    if (!this.isSupabaseAvailable()) {
+      const local = this.loadTournamentsFromLocalStorage();
+      return local.find((t) => t.id === tournamentId) ?? null;
+    }
+    try {
+      const { data: tRow, error } = await sb!
+        .from('tournaments')
+        .select('*')
+        .eq('id', tournamentId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!tRow) return null;
+
+      const { data: members } = await sb!
+        .from('tournament_memberships')
+        .select('id')
+        .eq('tournament_id', tournamentId);
+
+      const row = tRow as TournamentRow;
+      return {
+        id: row.id,
+        name: row.name,
+        date: row.date,
+        format: (row.format as Tournament['format']) || '2v2',
+        location: row.location ?? undefined,
+        leagueId: row.league_id,
+        createdAt: row.created_at || new Date().toISOString(),
+        updatedAt: row.updated_at || row.created_at,
+        playerIds: ((members || []) as { id: string }[]).map((p) => p.id),
+        matches: [],
+        isFinished: row.is_finished || false,
+        creator_user_id: row.creator_user_id,
+        creator_anonymous_user_id: null,
+        anti_cheat_enabled: row.anti_cheat_enabled || false,
+        joinCode: row.join_code,
+        formatType: row.format_type,
+        team1Size: row.team1_size,
+        team2Size: row.team2_size,
+        maxPlayers: row.max_players,
+        isPrivate: row.is_private,
+        status: row.status as 'active' | 'finished' | 'cancelled' | undefined,
+        mode: row.mode ?? 'elo',
+        propagatesToLeagueElo:
+          (row as TournamentRow & { propagates_to_league_elo?: boolean }).propagates_to_league_elo ?? true,
       };
     } catch (error) {
       console.error('Error loading tournament by id:', error);
@@ -250,11 +195,7 @@ class TournamentsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Sauvegarde un tournament dans Supabase
-   */
   async saveTournament(tournament: Tournament): Promise<void> {
-    // Validate tournament data before saving
     const validationResult = safeValidateTournament(tournament);
     if (!validationResult.success) {
       console.error('Tournament validation failed:', validationResult.error.issues);
@@ -262,129 +203,60 @@ class TournamentsRepository extends BaseRepository {
         `Invalid tournament data: ${validationResult.error.issues.map((i) => i.message).join(', ')}`
       );
     }
-
     if (!this.isSupabaseAvailable()) {
       this.saveTournamentToLocalStorage(tournament);
       return;
     }
-
     try {
-      // Sauvegarder le tournament
-      const { error: tournamentError } = await supabase!
-        .from('tournaments')
-        .upsert(
-          {
-            id: tournament.id,
-            name: tournament.name,
-            date: tournament.date,
-            format: tournament.format,
-            location: tournament.location || null,
-            league_id: tournament.leagueId,
-            is_finished: tournament.isFinished,
-            created_at: tournament.createdAt,
-            creator_user_id: tournament.creator_user_id,
-            creator_anonymous_user_id: tournament.creator_anonymous_user_id,
-            anti_cheat_enabled: tournament.anti_cheat_enabled || false,
-          },
-          {
-            onConflict: 'id',
-          }
-        );
-
-      if (tournamentError) throw tournamentError;
-
-      // Sauvegarder les matches
-      if (tournament.matches.length > 0) {
-        const matchesToInsert = tournament.matches.map((match) => ({
-          id: match.id,
+      const { error } = await sb!.from('tournaments').upsert(
+        {
+          id: tournament.id,
+          name: tournament.name,
+          date: tournament.date,
+          format: tournament.format,
+          location: tournament.location || null,
           league_id: tournament.leagueId,
-          tournament_id: tournament.id,
-          format: '2v2', // Default format
-          team_a_player_ids: match.teamA,
-          team_b_player_ids: match.teamB,
-          score_a: match.scoreA,
-          score_b: match.scoreB,
-          created_at: match.date,
-          created_by_user_id: match.created_by_user_id,
-          created_by_anonymous_user_id: match.created_by_anonymous_user_id,
-          status: match.status || 'confirmed',
-          confirmed_by_user_id: match.confirmed_by_user_id || null,
-          confirmed_by_anonymous_user_id: match.confirmed_by_anonymous_user_id || null,
-          confirmed_at: match.confirmed_at || null,
-          cups_remaining: match.cups_remaining ?? null,
-          photo_url: match.photo_url ?? null,
-        }));
-
-        const { error: matchesError } = await supabase!
-          .from('matches')
-          .upsert(matchesToInsert, {
-            onConflict: 'id',
-          });
-
-        if (matchesError) throw matchesError;
-      }
-
-      // Sauvegarder aussi dans localStorage comme cache
+          is_finished: tournament.isFinished,
+          created_at: tournament.createdAt,
+          creator_user_id: tournament.creator_user_id,
+          anti_cheat_enabled: tournament.anti_cheat_enabled || false,
+        },
+        { onConflict: 'id' }
+      );
+      if (error) throw error;
       this.saveTournamentToLocalStorage(tournament);
     } catch (error) {
-      console.error('Error saving tournament to Supabase:', error);
-      // Fallback vers localStorage
+      console.error('Error saving tournament:', error);
       this.saveTournamentToLocalStorage(tournament);
     }
   }
 
-  /**
-   * Supprime un tournament de Supabase
-   */
   async deleteTournament(tournamentId: string): Promise<void> {
     if (!this.isSupabaseAvailable()) {
       this.deleteTournamentFromLocalStorage(tournamentId);
       return;
     }
-
     try {
-      // Supprimer les matches
-      await supabase!.from('matches').delete().eq('tournament_id', tournamentId);
-
-      // Supprimer les players
-      await supabase!.from('tournament_players').delete().eq('tournament_id', tournamentId);
-
-      // Supprimer le tournament
-      const { error } = await supabase!.from('tournaments').delete().eq('id', tournamentId);
-
+      // memberships + matches cascade via FK ON DELETE CASCADE
+      const { error } = await sb!.from('tournaments').delete().eq('id', tournamentId);
       if (error) throw error;
-
-      // Supprimer aussi de localStorage
       this.deleteTournamentFromLocalStorage(tournamentId);
     } catch (error) {
-      console.error('Error deleting tournament from Supabase:', error);
-      // Fallback vers localStorage
+      console.error('Error deleting tournament:', error);
       this.deleteTournamentFromLocalStorage(tournamentId);
     }
   }
 
-  /**
-   * Met à jour un tournament dans Supabase
-   */
-  async updateTournament(
-    tournamentId: string,
-    updates: TournamentUpdates
-  ): Promise<void> {
-    // Apply the same set of field updates to a Tournament instance held in
-    // localStorage. Keeps the cache coherent with whatever gets sent to
-    // Supabase.
+  async updateTournament(tournamentId: string, updates: TournamentUpdates): Promise<void> {
     const applyToLocal = (tournament: Tournament) => {
       if (updates.name !== undefined) tournament.name = updates.name;
       if (updates.date !== undefined) tournament.date = updates.date;
-      if (updates.antiCheatEnabled !== undefined)
-        tournament.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.antiCheatEnabled !== undefined) tournament.anti_cheat_enabled = updates.antiCheatEnabled;
       if (updates.format !== undefined) tournament.format = updates.format;
-      if (updates.maxPlayers !== undefined)
-        tournament.maxPlayers = updates.maxPlayers;
-      if (updates.isPrivate !== undefined)
-        tournament.isPrivate = updates.isPrivate;
+      if (updates.maxPlayers !== undefined) tournament.maxPlayers = updates.maxPlayers;
+      if (updates.isPrivate !== undefined) tournament.isPrivate = updates.isPrivate;
+      if (updates.propagatesToLeagueElo !== undefined) tournament.propagatesToLeagueElo = updates.propagatesToLeagueElo;
     };
-
     if (!this.isSupabaseAvailable()) {
       const tournaments = this.loadTournamentsFromLocalStorage();
       const tournament = tournaments.find((t) => t.id === tournamentId);
@@ -394,31 +266,18 @@ class TournamentsRepository extends BaseRepository {
       }
       return;
     }
-
     try {
       const dbUpdates: Record<string, unknown> = {};
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.date !== undefined) dbUpdates.date = updates.date;
-      if (updates.antiCheatEnabled !== undefined)
-        dbUpdates.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.antiCheatEnabled !== undefined) dbUpdates.anti_cheat_enabled = updates.antiCheatEnabled;
       if (updates.format !== undefined) dbUpdates.format = updates.format;
-      if (updates.maxPlayers !== undefined)
-        dbUpdates.max_players = updates.maxPlayers;
-      if (updates.isPrivate !== undefined)
-        dbUpdates.is_private = updates.isPrivate;
-
-      // Nothing to update (e.g. caller passed an empty object) — bail out
-      // rather than issue a no-op round-trip.
+      if (updates.maxPlayers !== undefined) dbUpdates.max_players = updates.maxPlayers;
+      if (updates.isPrivate !== undefined) dbUpdates.is_private = updates.isPrivate;
+      if (updates.propagatesToLeagueElo !== undefined) dbUpdates.propagates_to_league_elo = updates.propagatesToLeagueElo;
       if (Object.keys(dbUpdates).length === 0) return;
-
-      const { error } = await supabase!
-        .from('tournaments')
-        .update(dbUpdates)
-        .eq('id', tournamentId);
-
+      const { error } = await sb!.from('tournaments').update(dbUpdates).eq('id', tournamentId);
       if (error) throw error;
-
-      // Update localStorage cache
       const tournaments = this.loadTournamentsFromLocalStorage();
       const tournament = tournaments.find((t) => t.id === tournamentId);
       if (tournament) {
@@ -426,20 +285,113 @@ class TournamentsRepository extends BaseRepository {
         this.saveTournamentToLocalStorage(tournament);
       }
     } catch (error) {
-      console.error('Error updating tournament in Supabase:', error);
-      // Fallback vers localStorage
-      const tournaments = this.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        applyToLocal(tournament);
-        this.saveTournamentToLocalStorage(tournament);
-      }
+      console.error('Error updating tournament:', error);
     }
   }
 
   /**
-   * Change le statut is_finished d'un tournament
+   * Associe / dissocie un event à une ligue (DB + cache local).
+   *
+   * Effets de bord (mig 023) :
+   *   - Quand on rattache à une ligue (`leagueId !== null`), TOUS les
+   *     `tournament_memberships` de l'event sont synchronisés vers
+   *     `league_memberships` de la ligue cible : les players manquants y
+   *     sont ajoutés (avec ELO par défaut 1000), les présents sont laissés
+   *     intacts. Côté event, les `tournament_memberships.elo` des players
+   *     qui avaient déjà un `league_memberships.elo` sont alignés sur ce
+   *     dernier (héritage) — sinon laissés à leur valeur courante.
+   *   - Quand on dissocie (`leagueId === null`), aucune row n'est supprimée
+   *     côté ligue (les players y restent — c'est leur historique). Seul le
+   *     lien `tournaments.league_id` est nullifié.
    */
+  async associateTournamentToLeague(
+    tournamentId: string,
+    leagueId: string | null,
+  ): Promise<void> {
+    if (!this.isSupabaseAvailable()) {
+      const tournaments = this.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find((t) => t.id === tournamentId);
+      if (tournament) {
+        tournament.leagueId = leagueId;
+        this.saveTournamentToLocalStorage(tournament);
+      }
+      return;
+    }
+
+    try {
+      // Persist the link first.
+      const { error: linkErr } = await sb!
+        .from('tournaments')
+        .update({ league_id: leagueId })
+        .eq('id', tournamentId);
+      if (linkErr) throw linkErr;
+
+      // Sync players when rattaching to a league.
+      if (leagueId) {
+        const { data: memberships } = await sb!
+          .from('tournament_memberships')
+          .select('player_id, elo')
+          .eq('tournament_id', tournamentId);
+
+        const tmRows = (memberships ?? []) as Array<{ player_id: string; elo: number }>;
+        if (tmRows.length > 0) {
+          const playerIds = tmRows.map((m) => m.player_id);
+
+          // Find which league memberships already exist.
+          const { data: existingLm } = await sb!
+            .from('league_memberships')
+            .select('player_id, elo')
+            .eq('league_id', leagueId)
+            .in('player_id', playerIds);
+          const existingMap = new Map(
+            ((existingLm ?? []) as Array<{ player_id: string; elo: number }>).map(
+              (lm) => [lm.player_id, lm.elo],
+            ),
+          );
+
+          // Insert missing league_memberships in bulk.
+          const toInsert = playerIds
+            .filter((pid) => !existingMap.has(pid))
+            .map((pid) => ({ league_id: leagueId, player_id: pid }));
+          if (toInsert.length > 0) {
+            const { error: insErr } = await sb!
+              .from('league_memberships')
+              .insert(toInsert);
+            if (insErr) {
+              console.error('associateTournamentToLeague — insert lm failed', insErr);
+            }
+          }
+
+          // Inheritance pass: align tournament_memberships.elo with the league
+          // ELO when the player already had one (preserves their league
+          // baseline). Players newly added to the league inherit the event's
+          // current ELO (no realignment needed — both sides at default).
+          for (const tm of tmRows) {
+            const leagueElo = existingMap.get(tm.player_id);
+            if (leagueElo !== undefined && leagueElo !== tm.elo) {
+              await sb!
+                .from('tournament_memberships')
+                .update({ elo: leagueElo })
+                .eq('tournament_id', tournamentId)
+                .eq('player_id', tm.player_id);
+            }
+          }
+        }
+      }
+
+      // Cache local update.
+      const tournaments = this.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find((t) => t.id === tournamentId);
+      if (tournament) {
+        tournament.leagueId = leagueId;
+        this.saveTournamentToLocalStorage(tournament);
+      }
+    } catch (error) {
+      console.error('Error associating tournament to league:', error);
+      throw error;
+    }
+  }
+
   async toggleTournamentStatus(tournamentId: string, isFinished: boolean): Promise<void> {
     if (!this.isSupabaseAvailable()) {
       const tournaments = this.loadTournamentsFromLocalStorage();
@@ -450,16 +402,9 @@ class TournamentsRepository extends BaseRepository {
       }
       return;
     }
-
     try {
-      const { error } = await supabase!
-        .from('tournaments')
-        .update({ is_finished: isFinished })
-        .eq('id', tournamentId);
-
+      const { error } = await sb!.from('tournaments').update({ is_finished: isFinished }).eq('id', tournamentId);
       if (error) throw error;
-
-      // Update localStorage cache
       const tournaments = this.loadTournamentsFromLocalStorage();
       const tournament = tournaments.find((t) => t.id === tournamentId);
       if (tournament) {
@@ -467,23 +412,10 @@ class TournamentsRepository extends BaseRepository {
         this.saveTournamentToLocalStorage(tournament);
       }
     } catch (error) {
-      console.error('Error toggling tournament status in Supabase:', error);
-      // Fallback vers localStorage
-      const tournaments = this.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        tournament.isFinished = isFinished;
-        this.saveTournamentToLocalStorage(tournament);
-      }
+      console.error('Error toggling tournament status:', error);
     }
   }
 
-  /**
-   * Create a new tournament (Story 8.2)
-   *
-   * @param data - Tournament creation data
-   * @returns Tournament ID
-   */
   async createTournament(data: {
     name: string;
     joinCode: string;
@@ -492,35 +424,19 @@ class TournamentsRepository extends BaseRepository {
     team2Size: number | null;
     maxPlayers: number;
     isPrivate: boolean;
-    // Competition mode. Omit to fall back on DB default 'elo' (migration 011).
     mode?: 'elo' | 'bracket';
     creatorUserId: string | null;
     creatorAnonymousUserId: string | null;
   }): Promise<string> {
     if (!this.isSupabaseAvailable()) {
-      // Fallback to localStorage
       const tournamentId = crypto.randomUUID();
-
-      // Get creator's pseudo for localStorage mode (kept for parity; value unused beyond structure)
-      if (data.creatorUserId) {
-        const localUser = localStorage.getItem('bpl_local_user');
-        if (localUser) {
-          JSON.parse(localUser);
-        }
-      } else if (data.creatorAnonymousUserId) {
-        const anonUser = localStorage.getItem('bpl_anonymous_user');
-        if (anonUser) {
-          JSON.parse(anonUser);
-        }
-      }
-
       const tournament: Tournament = {
         id: tournamentId,
         name: data.name,
         date: new Date().toISOString(),
         format: data.formatType === 'fixed' ? '2v2' : 'libre',
         leagueId: null,
-        playerIds: [data.creatorUserId || data.creatorAnonymousUserId || ''], // Add creator as first player
+        playerIds: [data.creatorUserId || data.creatorAnonymousUserId || ''],
         matches: [],
         isFinished: false,
         createdAt: new Date().toISOString(),
@@ -528,16 +444,12 @@ class TournamentsRepository extends BaseRepository {
       this.saveTournamentToLocalStorage(tournament);
       return tournamentId;
     }
-
     try {
-      // Only send `mode` when the caller explicitly opted into Bracket.
-      // Otherwise the DB default 'elo' kicks in (migration 011) and we avoid
-      // a redundant field on every insert.
-      const { data: tournament, error } = await supabase!
+      const { data: tournament, error } = await sb!
         .from('tournaments')
         .insert({
           name: data.name,
-          date: new Date().toISOString().split('T')[0], // Date only
+          date: new Date().toISOString().split('T')[0],
           join_code: data.joinCode,
           format_type: data.formatType,
           team1_size: data.team1Size,
@@ -545,19 +457,17 @@ class TournamentsRepository extends BaseRepository {
           max_players: data.maxPlayers,
           is_private: data.isPrivate,
           status: 'active',
-          creator_user_id: data.creatorUserId,
-          creator_anonymous_user_id: data.creatorAnonymousUserId,
+          // mig 022: single creator_user_id (anon or auth, both live in users)
+          creator_user_id: data.creatorUserId || data.creatorAnonymousUserId,
           is_finished: false,
           ...(data.mode !== undefined ? { mode: data.mode } : {}),
         })
         .select('id')
         .single();
-
       if (error) {
         console.error('Error creating tournament:', error);
         throw new Error(`Failed to create tournament: ${error.message}`);
       }
-
       return (tournament as { id: string }).id;
     } catch (error) {
       console.error('Error in createTournament:', error);
@@ -565,29 +475,14 @@ class TournamentsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Check if a tournament join code already exists (Story 8.2)
-   *
-   * @param joinCode - Code to check
-   * @returns true if code exists, false otherwise
-   */
   async tournamentCodeExists(joinCode: string): Promise<boolean> {
-    if (!this.isSupabaseAvailable()) {
-      return false; // Optimistic: assume code is unique if offline
-    }
-
+    if (!this.isSupabaseAvailable()) return false;
     try {
-      const { data, error } = await supabase!
+      const { data } = await sb!
         .from('tournaments')
         .select('id')
         .eq('join_code', joinCode)
         .maybeSingle();
-
-      if (error) {
-        console.error('Error checking tournament code:', error);
-        return false;
-      }
-
       return data !== null;
     } catch (error) {
       console.error('Error in tournamentCodeExists:', error);
@@ -596,69 +491,44 @@ class TournamentsRepository extends BaseRepository {
   }
 
   /**
-   * Remove a user from a tournament (Story 8.3 - Task 7, 8)
+   * Quitte un tournoi : supprime le tournament_memberships du caller.
+   * Le creator ne peut pas quitter.
    */
   async leaveTournament(
     tournamentId: string,
     userId?: string,
     anonymousUserId?: string
   ): Promise<void> {
-    // Check user identity first
-    if (!userId && !anonymousUserId) {
-      throw new Error('User ID or Anonymous User ID required');
-    }
-
-    if (!this.isSupabaseAvailable()) {
-      // For offline mode, tournaments are managed via context/localStorage
-      throw new Error('Cannot leave tournament in offline mode');
-    }
+    const myUserId = userId || anonymousUserId;
+    if (!myUserId) throw new Error('User identity required');
+    if (!this.isSupabaseAvailable()) throw new Error('Cannot leave tournament in offline mode');
 
     try {
-      // Check if user is the tournament creator (creators cannot leave)
-      const { data: tournament, error: tournamentError } = await supabase!
+      const { data: tRow } = await sb!
         .from('tournaments')
-        .select('creator_user_id, creator_anonymous_user_id')
+        .select('creator_user_id')
         .eq('id', tournamentId)
         .single();
-
-      if (tournamentError) {
-        console.error('Error fetching tournament:', tournamentError);
-        throw new Error('Failed to fetch tournament information');
-      }
-
-      const t = tournament as {
-        creator_user_id: string | null;
-        creator_anonymous_user_id: string | null;
-      };
-
-      // Verify user is not the creator
-      if (
-        (userId && t.creator_user_id === userId) ||
-        (anonymousUserId && t.creator_anonymous_user_id === anonymousUserId)
-      ) {
+      const t = tRow as { creator_user_id: string | null } | null;
+      if (t && t.creator_user_id === myUserId) {
         throw new Error("Le créateur de l'événement ne peut pas quitter");
       }
 
-      // Remove user from tournament_players
-      let query = supabase!
-        .from('tournament_players')
+      // Find my player, then delete the membership
+      const { data: myPlayer } = await sb!
+        .from('players')
+        .select('id')
+        .eq('user_id', myUserId)
+        .maybeSingle();
+      if (!myPlayer) return;
+      const playerId = (myPlayer as { id: string }).id;
+
+      const { error } = await sb!
+        .from('tournament_memberships')
         .delete()
-        .eq('tournament_id', tournamentId);
-
-      if (userId) {
-        query = query.eq('user_id', userId);
-      } else if (anonymousUserId) {
-        query = query.eq('anonymous_user_id', anonymousUserId);
-      }
-
-      const { error: deleteError } = await query;
-
-      if (deleteError) {
-        console.error('Error leaving tournament:', deleteError);
-        throw new Error(`Failed to leave tournament: ${deleteError.message}`);
-      }
-
-      console.log('✅ Successfully left tournament:', tournamentId);
+        .eq('tournament_id', tournamentId)
+        .eq('player_id', playerId);
+      if (error) throw error;
     } catch (error) {
       console.error('Error in leaveTournament:', error);
       throw error;
@@ -675,11 +545,8 @@ class TournamentsRepository extends BaseRepository {
   saveTournamentToLocalStorage(tournament: Tournament): void {
     const tournaments = this.loadTournamentsFromLocalStorage();
     const index = tournaments.findIndex((t) => t.id === tournament.id);
-    if (index >= 0) {
-      tournaments[index] = tournament;
-    } else {
-      tournaments.push(tournament);
-    }
+    if (index >= 0) tournaments[index] = tournament;
+    else tournaments.push(tournament);
     localStorage.setItem('bpl_tournaments', JSON.stringify(tournaments));
   }
 

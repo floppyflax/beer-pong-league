@@ -88,9 +88,17 @@ Les migrations vivent dans `supabase/migrations/` : `001_initial_schema.sql` et 
 
 **Trois niveaux de granularité** :
 
-1. **Event ELO** (per-event) — chaque match enregistré dans un événement met à jour l'ELO **dans le contexte de cet événement**. Source de vérité : `tournament_players.elo` (cf. roadmap §gap connu : la colonne n'est pas encore wired pour les events autonomes — actuellement, les events liés à une ligue exposent l'ELO de la ligue, et les events autonomes affichent un ELO par défaut non persisté).
-2. **League ELO** (per-league) — les matchs d'un événement rattaché à une ligue mettent à jour `league_players.elo` **si le paramétrage de l'événement le permet** (propagation activable / désactivable). Un match de ligue hors événement met aussi à jour `league_players.elo`.
-3. **Stats lifetime** (per-user, app-wide) — agrégat lifetime non-ELO : `totalMatches`, `winRate`, `bestStreak`. Calculé à la volée depuis `elo_history`. **Pas d'ELO agrégé** — ces stats n'ont pas besoin de calibration cross-cluster.
+1. **Event ELO** (per-event) — chaque match enregistré dans un événement met à jour l'ELO **dans le contexte de cet événement**. Source de vérité : `tournament_memberships.elo` (mig 023). Les events autonomes ont leur propre bulle ELO ; les events liés à une ligue héritent du ELO ligue à l'inscription puis évoluent indépendamment.
+2. **League ELO** (per-league) — les matchs d'un événement rattaché à une ligue mettent à jour `league_memberships.elo` **si le paramétrage de l'événement le permet** (`tournaments.propagates_to_league_elo`, default TRUE). Le delta league est calculé indépendamment du delta event (chacun avec sa propre baseline). Un match de ligue hors événement met aussi à jour `league_memberships.elo`.
+3. **Stats lifetime** (per-user, app-wide) — agrégat lifetime non-ELO : `totalMatches`, `winRate`, `bestStreak`. Calculé à la volée depuis `elo_history`, **dédupliqué par `match_id`** pour éviter de compter deux fois un match propagé. **Pas d'ELO agrégé** — ces stats n'ont pas besoin de calibration cross-cluster.
+
+**Auto-add à la ligue** — quand un joueur rejoint un event rattaché à une ligue (via lien/code/admin), une `league_memberships` est créée automatiquement si elle n'existe pas. Inversement, quand un event est rattaché à une ligue _a posteriori_ (`associateTournamentToLeague`), tous les joueurs de l'event sont synchronisés vers la ligue.
+
+**`elo_history` post-mig-023** — un match peut produire jusqu'à 2 lignes par joueur :
+- Une ligne avec `tournament_id` set, `league_id` NULL → delta event.
+- Une ligne avec `league_id` set, `tournament_id` NULL → delta league (uniquement si propagation active).
+
+Cela permet de tracer l'évolution ELO **par contexte** indépendamment, et d'alimenter un futur graph ELO par contexte sans ambiguïté.
 
 **Surface UI** :
 - Event Dashboard, League Dashboard : afficher l'ELO du contexte courant (Event ELO ou League ELO).

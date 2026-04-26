@@ -59,7 +59,7 @@ interface LeagueContextType {
   ) => Promise<string>;
   selectLeague: (id: string) => void;
   selectTournament: (id: string) => void;
-  associateTournamentToLeague: (tournamentId: string, leagueId: string) => void;
+  associateTournamentToLeague: (tournamentId: string, leagueId: string) => Promise<void>;
   addPlayer: (leagueId: string, name: string) => Promise<void>;
   addPlayerToTournament: (tournamentId: string, playerId: string) => void;
   addAnonymousPlayerToTournament: (tournamentId: string, playerName: string) => Promise<string>;
@@ -97,7 +97,11 @@ interface LeagueContextType {
   getLeagueGlobalRanking: (leagueId: string) => Player[];
 }
 
+// Exported (along with the type below) so the design-system showcase can
+// wrap pages with a fixture-only League context (see MockProviders.tsx).
 const LeagueContext = createContext<LeagueContextType | undefined>(undefined);
+export { LeagueContext };
+export type { LeagueContextType };
 
 /**
  * Hook to access global application data (leagues, tournaments, players, matches).
@@ -402,14 +406,24 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     setCurrentTournamentId(id);
   };
 
-  const associateTournamentToLeague = (
+  const associateTournamentToLeague = async (
     tournamentId: string,
     leagueId: string
   ) => {
     const tournament = tournaments.find((t) => t.id === tournamentId);
     const oldLeagueId = tournament?.leagueId;
+    const newLeagueId = leagueId || null;
 
-    // Update tournament
+    // Persist + sync players (mig 023 — auto-add event players to league).
+    try {
+      await databaseService.associateTournamentToLeague(tournamentId, newLeagueId);
+    } catch (err) {
+      console.error('associateTournamentToLeague failed:', err);
+      toast.error("Erreur lors du rattachement à la ligue");
+      return;
+    }
+
+    // Update tournament local state
     setTournaments((prev) =>
       prev.map((tournament) => {
         if (tournament.id !== tournamentId) return tournament;
@@ -417,7 +431,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       })
     );
 
-    // Remove from old league if exists
+    // Remove from old league cache if exists
     if (oldLeagueId) {
       setLeagues((prev) =>
         prev.map((league) => {
@@ -430,7 +444,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
-    // Add to new league if provided
+    // Add to new league cache if provided
     if (leagueId) {
       setLeagues((prev) =>
         prev.map((league) => {
@@ -444,6 +458,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
           return league;
         })
       );
+    }
+
+    // Refresh data so the league dashboard shows the newly synced players.
+    if (leagueId) {
+      void loadDataFromSupabase();
     }
   };
 
@@ -758,20 +777,68 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     const teamA = tournamentPlayers.filter((p) => teamAIds.includes(p.id));
     const teamB = tournamentPlayers.filter((p) => teamBIds.includes(p.id));
 
-    const newRatings = calculateEloChange(teamA, teamB, winner);
+    // ── Event ELO delta — uses tournament_memberships.elo (provided via
+    //    participantsOverride from loadTournamentParticipants since mig 023).
+    const newEventRatings = calculateEloChange(teamA, teamB, winner);
     const eloChanges: Record<string, number> = {};
-    const eloChangesForDB: Record<string, { before: number; after: number; change: number }> = {};
+    const eventEloChangesDB: Record<string, { before: number; after: number; change: number }> = {};
 
     [...teamA, ...teamB].forEach((player) => {
       const oldElo = player.elo;
-      const newElo = newRatings[player.id];
+      const newElo = newEventRatings[player.id];
       eloChanges[player.id] = newElo - oldElo;
-      eloChangesForDB[player.id] = {
+      eventEloChangesDB[player.id] = {
         before: oldElo,
         after: newElo,
         change: newElo - oldElo,
       };
     });
+
+    // ── League ELO delta — only when event is league-linked AND propagation
+    //    is enabled (default true). Computed independently from the league's
+    //    own baseline (league_memberships.elo).
+    const propagates = tournament.propagatesToLeagueElo !== false;
+    let leagueEloChangesDB: Record<string, { before: number; after: number; change: number }> | undefined;
+
+    const participantsWithLeague = participantsOverride as (Player & { leaguePlayerId?: string })[] | undefined;
+    const tpIdToLpId = new Map<string, string>();
+    const lpIdToTpId = new Map<string, string>();
+    participantsWithLeague?.forEach((p) => {
+      if (p.leaguePlayerId) {
+        tpIdToLpId.set(p.id, p.leaguePlayerId);
+        lpIdToTpId.set(p.leaguePlayerId, p.id);
+      }
+    });
+
+    if (tournament.leagueId && propagates) {
+      const league = leagues.find((l) => l.id === tournament.leagueId);
+      if (league) {
+        const buildLeagueTeam = (tpIds: string[]): Player[] =>
+          tpIds.flatMap((tpId) => {
+            const lpId = tpIdToLpId.get(tpId);
+            if (!lpId) return [];
+            const lp = league.players.find((p) => p.id === lpId);
+            return lp ? [lp] : [];
+          });
+
+        const leagueTeamA = buildLeagueTeam(teamAIds);
+        const leagueTeamB = buildLeagueTeam(teamBIds);
+
+        if (leagueTeamA.length > 0 && leagueTeamB.length > 0) {
+          const newLeagueRatings = calculateEloChange(leagueTeamA, leagueTeamB, winner);
+          leagueEloChangesDB = {};
+          [...leagueTeamA, ...leagueTeamB].forEach((player) => {
+            const oldElo = player.elo;
+            const newElo = newLeagueRatings[player.id];
+            leagueEloChangesDB![player.id] = {
+              before: oldElo,
+              after: newElo,
+              change: newElo - oldElo,
+            };
+          });
+        }
+      }
+    }
 
     // Use provided scores or calculate from winner
     const scoreA = scores?.scoreA ?? (winner === "A" ? 10 : 0);
@@ -801,55 +868,32 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       })
     );
 
-    // If Tournament is linked to a League, also update League players and matches
-    // When using participantsOverride, teamAIds/teamBIds are tournament_players.id - map to league_players via leaguePlayerId
-    if (tournament.leagueId) {
-      const participantsWithLeague = participantsOverride as (Player & { leaguePlayerId?: string })[];
-      const leaguePlayerIdsInMatch = new Set(
-        [...teamAIds, ...teamBIds].flatMap((tpId) => {
-          const p = participantsWithLeague?.find((x) => x.id === tpId);
-          return p?.leaguePlayerId ? [p.leaguePlayerId] : [];
-        }),
-      );
-      const leaguePlayerIdToTpId = new Map<string, string>();
-      participantsWithLeague?.forEach((p) => {
-        if (p.leaguePlayerId) leaguePlayerIdToTpId.set(p.leaguePlayerId, p.id);
-      });
-
+    // Update league cache with the LEAGUE delta (independent from event delta)
+    // when propagation is active.
+    if (tournament.leagueId && propagates && leagueEloChangesDB) {
       setLeagues((prev) =>
         prev.map((league) => {
           if (league.id !== tournament.leagueId) return league;
 
           const updatedPlayers = league.players.map((player) => {
-            const tpId = leaguePlayerIdToTpId.get(player.id);
-            const inMatch = leaguePlayerIdsInMatch.has(player.id);
-            const newElo = tpId ? newRatings[tpId] : newRatings[player.id];
-            if (!inMatch && !newElo && !teamAIds.includes(player.id) && !teamBIds.includes(player.id)) {
-              return player;
-            }
-            if (!inMatch && !leaguePlayerIdsInMatch.has(player.id)) return player;
+            const change = leagueEloChangesDB?.[player.id];
+            if (!change) return player;
 
-            const isTeamA = tpId ? teamAIds.includes(tpId) : teamAIds.includes(player.id);
-            const isTeamB = tpId ? teamBIds.includes(tpId) : teamBIds.includes(player.id);
+            const tpId = lpIdToTpId.get(player.id);
+            const isTeamA = tpId ? teamAIds.includes(tpId) : false;
+            const isTeamB = tpId ? teamBIds.includes(tpId) : false;
             if (!isTeamA && !isTeamB) return player;
-
-            const isWinner =
-              (winner === "A" && isTeamA) || (winner === "B" && isTeamB);
-            const eloUpdate = newElo ?? player.elo;
+            const isWinner = (winner === "A" && isTeamA) || (winner === "B" && isTeamB);
 
             return {
               ...player,
-              elo: eloUpdate,
+              elo: change.after,
               matchesPlayed: player.matchesPlayed + 1,
               wins: player.wins + (isWinner ? 1 : 0),
               losses: player.losses + (isWinner ? 0 : 1),
               streak: isWinner
-                ? player.streak > 0
-                  ? player.streak + 1
-                  : 1
-                : player.streak < 0
-                ? player.streak - 1
-                : -1,
+                ? player.streak > 0 ? player.streak + 1 : 1
+                : player.streak < 0 ? player.streak - 1 : -1,
             };
           });
 
@@ -858,24 +902,18 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
             players: updatedPlayers,
             matches: [newMatch, ...league.matches],
           };
-        })
+        }),
       );
     }
-
-    // Save to Supabase - build mapping for league_players update when using tournament_players.id
-    const tournamentPlayerIdToLeaguePlayerId: Record<string, string> = {};
-    (participantsOverride as (Player & { leaguePlayerId?: string })[])?.forEach((p) => {
-      if (p.leaguePlayerId) tournamentPlayerIdToLeaguePlayerId[p.id] = p.leaguePlayerId;
-    });
 
     try {
       await databaseService.recordTournamentMatch(
         tournamentId,
         newMatch,
-        eloChangesForDB,
+        eventEloChangesDB,
         isAuthenticated && user ? user.id : null,
         !isAuthenticated && localUser ? localUser.anonymousUserId : null,
-        tournamentPlayerIdToLeaguePlayerId
+        leagueEloChangesDB
       );
       toast.success('Match enregistré !');
     } catch (error) {
@@ -1010,6 +1048,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
           next.maxPlayers = updates.maxPlayers;
         if (updates.isPrivate !== undefined)
           next.isPrivate = updates.isPrivate;
+        if (updates.propagatesToLeagueElo !== undefined)
+          next.propagatesToLeagueElo = updates.propagatesToLeagueElo;
         return { ...tournament, ...next };
       })
     );

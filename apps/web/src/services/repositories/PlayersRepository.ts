@@ -1,37 +1,47 @@
 /**
- * PlayersRepository - Gère les joueurs (league_players, tournament_players)
- * et utilise leaguesRepository / tournamentsRepository pour le fallback localStorage.
+ * PlayersRepository — gère les `players` + `league_memberships` + `tournament_memberships`
+ * (mig 022 — modèle unifié).
+ *
+ * Concepts :
+ *   - `players` : entité de jeu, avec un `pseudo` et optionnellement un `user_id`.
+ *   - `league_memberships` : appartenance d'un player à une league + ses stats ELO.
+ *   - `tournament_memberships` : appartenance à un tournoi (pas de stats — l'ELO
+ *     vit au niveau league).
+ *   - Pseudo affiché : `membership.pseudo_override` si non-NULL, sinon `players.pseudo`.
  */
 
 import type { Player } from '../../types';
-import { BaseRepository, supabase } from './_base';
+import { BaseRepository, sb } from './_base';
 import { leaguesRepository } from './LeaguesRepository';
 import { tournamentsRepository } from './TournamentsRepository';
 
-/**
- * Shape attendue d'une ligne `tournament_players` avec relations
- * (retournée par Supabase lors d'un select imbriqué).
- */
-interface TournamentPlayerWithRelations {
-  id: string;
-  tournament_id: string;
-  user_id?: string | null;
-  anonymous_user_id?: string | null;
-  pseudo_in_tournament?: string | null;
-  joined_at?: string;
-  user?: { id?: string; pseudo?: string; avatar_url?: string | null } | null;
-  anonymous_user?: { id?: string; pseudo?: string } | null;
+interface PlayerWithMembership {
+  id: string;             // membership row id (legacy callers expect a stable id per context)
+  playerId: string;       // players.id
+  leaguePlayerId?: string; // alias kept for tournament participants who also have a league membership
+  name: string;
+  elo: number;
+  matchesPlayed: number;
+  wins: number;
+  losses: number;
+  joinedAt: string;
+  avatarUrl?: string | null;
+  isArchived?: boolean;
 }
 
 class PlayersRepository extends BaseRepository {
+  // ───────────────────────────────────────────────────────────────────────
+  // CREATE — players + memberships
+  // ───────────────────────────────────────────────────────────────────────
+
   /**
-   * Ajoute un joueur à une league
+   * Ajoute un joueur (auth ou anon) à une league. Crée le `players` row si
+   * besoin, puis le `league_memberships`.
    */
   async addPlayerToLeague(
     leagueId: string,
     player: Player,
-    userId?: string | null,
-    anonymousUserId?: string | null
+    userId?: string | null
   ): Promise<void> {
     if (!this.isSupabaseAvailable()) {
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
@@ -44,33 +54,56 @@ class PlayersRepository extends BaseRepository {
     }
 
     try {
-      const { error } = await supabase!
-        .from('league_players')
+      // 1. Resolve or create the players row
+      let playerId = player.id;
+      if (userId) {
+        const { data: existing } = await sb!
+          .from('players')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (existing) {
+          playerId = (existing as { id: string }).id;
+        } else {
+          const { data: created, error: createErr } = await sb!
+            .from('players')
+            .insert({ id: player.id, pseudo: player.name, user_id: userId })
+            .select('id')
+            .single();
+          if (createErr) throw createErr;
+          playerId = (created as { id: string }).id;
+        }
+      } else {
+        const { error: createErr } = await sb!
+          .from('players')
+          .insert({ id: player.id, pseudo: player.name, user_id: null });
+        if (createErr) throw createErr;
+        playerId = player.id;
+      }
+
+      // 2. Membership
+      const { error: memErr } = await sb!
+        .from('league_memberships')
         .insert({
-          id: player.id,
           league_id: leagueId,
-          user_id: userId || null,
-          anonymous_user_id: anonymousUserId || null,
-          pseudo_in_league: player.name,
+          player_id: playerId,
           elo: player.elo,
           wins: player.wins,
           losses: player.losses,
           matches_played: player.matchesPlayed,
           streak: player.streak,
         });
+      if (memErr) throw memErr;
 
-      if (error) throw error;
-
-      // Update localStorage cache
+      // localStorage cache
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
       const league = leagues.find((l) => l.id === leagueId);
-      if (league && !league.players.find((p) => p.id === player.id)) {
-        league.players.push(player);
+      if (league && !league.players.find((p) => p.id === playerId)) {
+        league.players.push({ ...player, id: playerId });
         leaguesRepository.saveLeagueToLocalStorage(league);
       }
     } catch (error) {
-      console.error('Error adding player to league in Supabase:', error);
-      // Fallback vers localStorage
+      console.error('Error adding player to league:', error);
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
       const league = leagues.find((l) => l.id === leagueId);
       if (league && !league.players.find((p) => p.id === player.id)) {
@@ -81,7 +114,193 @@ class PlayersRepository extends BaseRepository {
   }
 
   /**
-   * Charge un joueur par ID (league_players ou tournament_players).
+   * Ajoute un guest (ghost player) directement à un tournoi standalone.
+   * Crée un nouveau `players` non-claimé puis le `tournament_memberships`.
+   */
+  async addGuestPlayerToTournament(tournamentId: string, playerName: string): Promise<string> {
+    if (!this.isSupabaseAvailable()) {
+      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find((t) => t.id === tournamentId);
+      if (tournament) {
+        const newId = crypto.randomUUID();
+        tournament.playerIds.push(newId);
+        tournamentsRepository.saveTournamentToLocalStorage(tournament);
+        return newId;
+      }
+      throw new Error('Tournament not found');
+    }
+
+    const { data: created, error: createErr } = await sb!
+      .from('players')
+      .insert({ pseudo: playerName, user_id: null })
+      .select('id')
+      .single();
+    if (createErr) throw createErr;
+    const playerId = (created as { id: string }).id;
+
+    const { data: mem, error: memErr } = await sb!
+      .from('tournament_memberships')
+      .insert({ tournament_id: tournamentId, player_id: playerId })
+      .select('id')
+      .single();
+    if (memErr) throw memErr;
+
+    // If the tournament is league-linked, also create a league_membership
+    // so the ghost gets ELO tracking.
+    const { data: tData } = await sb!
+      .from('tournaments')
+      .select('league_id')
+      .eq('id', tournamentId)
+      .single();
+    const t = tData as { league_id: string | null } | null;
+    if (t?.league_id) {
+      await sb!
+        .from('league_memberships')
+        .insert({ league_id: t.league_id, player_id: playerId })
+        .select()
+        .maybeSingle();
+    }
+
+    return (mem as { id: string }).id;
+  }
+
+  /**
+   * Ajoute un player anonyme (déjà existant via son user_id anon) à un tournoi.
+   * Réutilise le `players` lié à cet anonymous user_id, sinon en crée un.
+   */
+  async addAnonymousPlayerToTournament(
+    tournamentId: string,
+    playerName: string,
+    anonymousUserId: string
+  ): Promise<string> {
+    if (!this.isSupabaseAvailable()) {
+      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
+      const tournament = tournaments.find((t) => t.id === tournamentId);
+      if (tournament) {
+        const newId = crypto.randomUUID();
+        tournament.playerIds.push(newId);
+        tournamentsRepository.saveTournamentToLocalStorage(tournament);
+        return newId;
+      }
+      throw new Error('Tournament not found');
+    }
+
+    // Resolve or create the players row owned by this anonymous user
+    let playerId: string;
+    const { data: existingPlayer } = await sb!
+      .from('players')
+      .select('id')
+      .eq('user_id', anonymousUserId)
+      .maybeSingle();
+    if (existingPlayer) {
+      playerId = (existingPlayer as { id: string }).id;
+    } else {
+      const { data: created, error: createErr } = await sb!
+        .from('players')
+        .insert({ pseudo: playerName, user_id: anonymousUserId })
+        .select('id')
+        .single();
+      if (createErr) throw createErr;
+      playerId = (created as { id: string }).id;
+    }
+
+    // Resolve event's league context — drives both auto-add to league
+    // and ELO inheritance.
+    const { data: tData } = await sb!
+      .from('tournaments')
+      .select('league_id')
+      .eq('id', tournamentId)
+      .single();
+    const t = tData as { league_id: string | null } | null;
+
+    // If event is league-linked, ensure a league_membership exists for this
+    // player (auto-add) and inherit its ELO as the tournament_membership
+    // baseline. Otherwise, the tournament_membership starts at default 1000.
+    let inheritedElo: number | null = null;
+    if (t?.league_id) {
+      const { data: existingLm } = await sb!
+        .from('league_memberships')
+        .select('id, elo')
+        .eq('league_id', t.league_id)
+        .eq('player_id', playerId)
+        .maybeSingle();
+      if (existingLm) {
+        inheritedElo = (existingLm as { id: string; elo: number }).elo;
+      } else {
+        await sb!
+          .from('league_memberships')
+          .insert({ league_id: t.league_id, player_id: playerId });
+      }
+    }
+
+    const insertPayload: { tournament_id: string; player_id: string; elo?: number } = {
+      tournament_id: tournamentId,
+      player_id: playerId,
+    };
+    if (inheritedElo !== null) insertPayload.elo = inheritedElo;
+
+    const { data: mem, error: memErr } = await sb!
+      .from('tournament_memberships')
+      .insert(insertPayload)
+      .select('id')
+      .single();
+    if (memErr) throw memErr;
+
+    return (mem as { id: string }).id;
+  }
+
+  /**
+   * Ajoute un league_membership existant à un tournoi (= "ajouter depuis la ligue").
+   * Crée un tournament_memberships pointant vers le même player_id.
+   * Hérite de l'ELO de la ligue (mig 023 — chaque event a son propre ELO,
+   * mais on démarre depuis le ELO ligue pour une transition naturelle).
+   */
+  async addLeaguePlayerToTournament(
+    tournamentId: string,
+    leaguePlayerId: string
+  ): Promise<string> {
+    if (!this.isSupabaseAvailable()) {
+      throw new Error('Supabase required');
+    }
+
+    // leaguePlayerId is a league_memberships.id — resolve player_id + elo
+    const { data: lm, error: lmErr } = await sb!
+      .from('league_memberships')
+      .select('player_id, elo')
+      .eq('id', leaguePlayerId)
+      .single();
+    if (lmErr || !lm) throw new Error('League membership not found');
+    const lmRow = lm as { player_id: string; elo: number };
+
+    // Reuse existing tournament_memberships if present
+    const { data: existing } = await sb!
+      .from('tournament_memberships')
+      .select('id')
+      .eq('tournament_id', tournamentId)
+      .eq('player_id', lmRow.player_id)
+      .maybeSingle();
+    if (existing) return (existing as { id: string }).id;
+
+    const { data: mem, error: memErr } = await sb!
+      .from('tournament_memberships')
+      .insert({
+        tournament_id: tournamentId,
+        player_id: lmRow.player_id,
+        elo: lmRow.elo,                 // inherit league ELO baseline
+      })
+      .select('id')
+      .single();
+    if (memErr) throw memErr;
+    return (mem as { id: string }).id;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // READ — load players for display
+  // ───────────────────────────────────────────────────────────────────────
+
+  /**
+   * Charge un player par membership_id (league_memberships.id ou tournament_memberships.id)
+   * — le caller donne l'id de la row de membership (legacy comportement).
    */
   async loadPlayerById(playerId: string): Promise<{
     player: Player;
@@ -90,170 +309,118 @@ class PlayersRepository extends BaseRepository {
     tournamentId?: string;
   } | null> {
     if (!this.isSupabaseAvailable()) return null;
-
     try {
-      // 1. Essayer league_players
-      const { data: lpData } = await supabase!
-        .from('league_players')
-        .select('id, league_id, pseudo_in_league, elo, wins, losses, matches_played')
+      // 1. Try league_memberships
+      const { data: lm } = await sb!
+        .from('league_memberships')
+        .select('id, league_id, player_id, pseudo_override, elo, wins, losses, matches_played, streak, player:players(pseudo)')
         .eq('id', playerId)
         .maybeSingle();
-
-      if (lpData) {
-        const lp = lpData as unknown as {
+      if (lm) {
+        const row = lm as unknown as {
           id: string;
           league_id: string;
-          pseudo_in_league: string;
-          elo?: number;
-          wins?: number;
-          losses?: number;
-          matches_played?: number;
+          player_id: string;
+          pseudo_override: string | null;
+          elo: number;
+          wins: number;
+          losses: number;
+          matches_played: number;
+          streak: number;
+          player: { pseudo: string } | null;
         };
-        const league = await leaguesRepository.getLeagueById(lp.league_id);
+        const league = await leaguesRepository.getLeagueById(row.league_id);
         return {
           player: {
-            id: lp.id,
-            name: lp.pseudo_in_league || 'Joueur',
-            elo: lp.elo || 1000,
-            wins: lp.wins || 0,
-            losses: lp.losses || 0,
-            matchesPlayed: lp.matches_played || 0,
-            streak: 0,
+            id: row.id,
+            name: row.pseudo_override || row.player?.pseudo || 'Joueur',
+            elo: row.elo,
+            wins: row.wins,
+            losses: row.losses,
+            matchesPlayed: row.matches_played,
+            streak: row.streak,
           },
-          leagueId: lp.league_id,
+          leagueId: row.league_id,
           leagueName: league?.name,
         };
       }
 
-      // 2. Essayer tournament_players
-      const { data: tpData } = await supabase!
-        .from('tournament_players')
-        .select(
-          `
-          id,
-          pseudo_in_tournament,
-          tournament_id,
-          user_id,
-          anonymous_user_id,
-          user:users ( pseudo ),
-          anonymous_user:anonymous_users ( pseudo )
-        `
-        )
+      // 2. Try tournament_memberships
+      const { data: tm } = await sb!
+        .from('tournament_memberships')
+        .select('id, tournament_id, player_id, pseudo_override, player:players(pseudo)')
         .eq('id', playerId)
         .maybeSingle();
-
-      if (tpData) {
-        const tp = tpData as unknown as TournamentPlayerWithRelations;
-        const name =
-          tp.pseudo_in_tournament ||
-          tp.user?.pseudo ||
-          tp.anonymous_user?.pseudo ||
-          'Joueur';
-
-        // Essayer de récupérer les stats league si le tournoi a une league
-        const { data: tData } = await supabase!
+      if (tm) {
+        const row = tm as unknown as {
+          id: string;
+          tournament_id: string;
+          player_id: string;
+          pseudo_override: string | null;
+          player: { pseudo: string } | null;
+        };
+        const { data: tData } = await sb!
           .from('tournaments')
           .select('league_id')
-          .eq('id', tp.tournament_id)
+          .eq('id', row.tournament_id)
           .single();
-
-        let elo = 1500;
-        let wins = 0;
-        let losses = 0;
-        let matchesPlayed = 0;
-
-        const tournamentInfo = tData as { league_id: string | null } | null;
-
-        if (tournamentInfo?.league_id) {
-          let lpResult: {
-            data: {
-              elo: number;
-              wins: number;
-              losses: number;
-              matches_played: number;
-            } | null;
-          } = { data: null };
-          if (tp.user_id) {
-            const res = await supabase!
-              .from('league_players')
-              .select('elo, wins, losses, matches_played')
-              .eq('league_id', tournamentInfo.league_id)
-              .eq('user_id', tp.user_id)
-              .maybeSingle();
-            lpResult = { data: res.data as typeof lpResult.data };
-          } else if (tp.anonymous_user_id) {
-            const res = await supabase!
-              .from('league_players')
-              .select('elo, wins, losses, matches_played')
-              .eq('league_id', tournamentInfo.league_id)
-              .eq('anonymous_user_id', tp.anonymous_user_id)
-              .maybeSingle();
-            lpResult = { data: res.data as typeof lpResult.data };
-          }
-
-          if (lpResult?.data) {
-            elo = lpResult.data.elo || 1500;
-            wins = lpResult.data.wins || 0;
-            losses = lpResult.data.losses || 0;
-            matchesPlayed = lpResult.data.matches_played || 0;
+        const tInfo = tData as { league_id: string | null } | null;
+        let elo = 1500, wins = 0, losses = 0, matchesPlayed = 0;
+        if (tInfo?.league_id) {
+          const { data: lmStats } = await sb!
+            .from('league_memberships')
+            .select('elo, wins, losses, matches_played')
+            .eq('league_id', tInfo.league_id)
+            .eq('player_id', row.player_id)
+            .maybeSingle();
+          if (lmStats) {
+            const s = lmStats as { elo: number; wins: number; losses: number; matches_played: number };
+            elo = s.elo;
+            wins = s.wins;
+            losses = s.losses;
+            matchesPlayed = s.matches_played;
           }
         }
-
-        const leagueId = tournamentInfo?.league_id ?? undefined;
-        const league = leagueId ? await leaguesRepository.getLeagueById(leagueId) : null;
+        const league = tInfo?.league_id ? await leaguesRepository.getLeagueById(tInfo.league_id) : null;
         return {
           player: {
-            id: tp.id,
-            name,
+            id: row.id,
+            name: row.pseudo_override || row.player?.pseudo || 'Joueur',
             elo,
             wins,
             losses,
             matchesPlayed,
             streak: 0,
           },
-          leagueId,
+          leagueId: tInfo?.league_id ?? undefined,
           leagueName: league?.name,
-          tournamentId: tp.tournament_id,
+          tournamentId: row.tournament_id,
         };
       }
-
       return null;
     } catch (error) {
-      console.error('Error loading player by ID:', error);
+      console.error('Error loading player by id:', error);
       return null;
     }
   }
 
   /**
-   * Charge les participants d'un tournament depuis tournament_players
+   * Charge les participants d'un tournoi (tournament_memberships joined avec
+   * players + éventuellement league_memberships pour les stats).
    */
-  async loadTournamentParticipants(tournamentId: string): Promise<
-    {
-      id: string;
-      leaguePlayerId?: string;
-      name: string;
-      elo: number;
-      matchesPlayed: number;
-      wins: number;
-      losses: number;
-      joinedAt: string;
-      avatarUrl?: string | null;
-    }[]
-  > {
+  async loadTournamentParticipants(tournamentId: string): Promise<PlayerWithMembership[]> {
     if (!this.isSupabaseAvailable()) {
-      // Fallback to localStorage - get tournament and league data
       const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
       const tournament = tournaments.find((t) => t.id === tournamentId);
       if (!tournament || !tournament.leagueId) return [];
-
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
       const league = leagues.find((l) => l.id === tournament.leagueId);
       if (!league) return [];
-
       return league.players
         .filter((p) => tournament.playerIds.includes(p.id))
         .map((p) => ({
           id: p.id,
+          playerId: p.id,
           name: p.name,
           elo: p.elo,
           matchesPlayed: p.matchesPlayed,
@@ -264,125 +431,78 @@ class PlayersRepository extends BaseRepository {
     }
 
     try {
-      const { data, error } = await supabase!
-        .from('tournament_players')
-        .select(
-          `
+      // Since mig 023, tournament_memberships has its own ELO/W/L/streak
+      // columns (per-event ELO bubble, optionally propagating to league).
+      const { data, error } = await sb!
+        .from('tournament_memberships')
+        .select(`
           id,
-          user_id,
-          anonymous_user_id,
+          player_id,
           joined_at,
-          pseudo_in_tournament,
-          user:users (
-            id,
-            pseudo,
-            avatar_url
-          ),
-          anonymous_user:anonymous_users (
-            id,
-            pseudo
-          )
-        `
-        )
+          archived_at,
+          pseudo_override,
+          elo,
+          wins,
+          losses,
+          matches_played,
+          streak,
+          player:players ( id, pseudo, avatar_url, user_id )
+        `)
         .eq('tournament_id', tournamentId)
         .order('joined_at', { ascending: true });
-
       if (error) throw error;
-      if (!data) return [];
 
-      // Get tournament to find league_id
-      const { data: tournamentData } = await supabase!
+      const rows = (data ?? []) as unknown as Array<{
+        id: string;
+        player_id: string;
+        joined_at: string;
+        archived_at: string | null;
+        pseudo_override: string | null;
+        elo: number;
+        wins: number;
+        losses: number;
+        matches_played: number;
+        streak: number;
+        player: { id: string; pseudo: string; avatar_url: string | null; user_id: string | null } | null;
+      }>;
+
+      // Optional: still resolve league_memberships.id for the few consumers
+      // (e.g. PlayerProfile cross-context navigation) that need it.
+      const { data: tData } = await sb!
         .from('tournaments')
         .select('league_id')
         .eq('id', tournamentId)
         .single();
+      const tInfo = tData as { league_id: string | null } | null;
 
-      const tournamentInfo = tournamentData as { league_id: string | null } | null;
-
-      const typedData = data as unknown as TournamentPlayerWithRelations[];
-
-      if (!tournamentInfo || !tournamentInfo.league_id) {
-        // Autonomous tournament - return basic participant info without stats
-        return typedData.map((tp) => ({
-          id: tp.id,
-          name:
-            tp.pseudo_in_tournament ||
-            tp.user?.pseudo ||
-            tp.anonymous_user?.pseudo ||
-            'Anonymous',
-          elo: 1500, // Default ELO for autonomous tournaments
-          matchesPlayed: 0,
-          wins: 0,
-          losses: 0,
-          joinedAt: tp.joined_at || new Date().toISOString(),
-          avatarUrl: tp.user?.avatar_url ?? null,
-        }));
+      let lmIdByPlayer = new Map<string, string>();
+      if (tInfo?.league_id && rows.length > 0) {
+        const playerIds = rows.map((r) => r.player_id);
+        const { data: lmData } = await sb!
+          .from('league_memberships')
+          .select('id, player_id')
+          .eq('league_id', tInfo.league_id)
+          .in('player_id', playerIds);
+        lmIdByPlayer = new Map(
+          ((lmData ?? []) as Array<{ id: string; player_id: string }>).map(
+            (lm) => [lm.player_id, lm.id]
+          )
+        );
       }
 
-      // Load league_player stats for each participant
-      const participantsWithStats = await Promise.all(
-        typedData.map(async (tp) => {
-          // Try to find corresponding league_player
-          if (!tournamentInfo.league_id) {
-            return {
-              id: tp.id,
-              name:
-                tp.pseudo_in_tournament ||
-                tp.user?.pseudo ||
-                tp.anonymous_user?.pseudo ||
-                'Anonymous',
-              elo: 1500,
-              matchesPlayed: 0,
-              wins: 0,
-              losses: 0,
-              joinedAt: tp.joined_at || new Date().toISOString(),
-            };
-          }
-
-          let statsQuery = supabase!
-            .from('league_players')
-            .select('id, elo, matches_played, wins, losses')
-            .eq('league_id', tournamentInfo.league_id);
-
-          if (tp.user_id) {
-            statsQuery = statsQuery.eq('user_id', tp.user_id);
-          } else if (tp.anonymous_user_id) {
-            statsQuery = statsQuery.eq('anonymous_user_id', tp.anonymous_user_id);
-          }
-
-          const { data: statsData } = await statsQuery.maybeSingle();
-
-          // Type guard to ensure statsData is valid
-          const stats =
-            statsData && typeof statsData === 'object' && 'elo' in statsData
-              ? (statsData as {
-                  id: string;
-                  elo: number;
-                  matches_played: number;
-                  wins: number;
-                  losses: number;
-                })
-              : null;
-
-          return {
-            id: tp.id,
-            leaguePlayerId: stats?.id,
-            name:
-              tp.pseudo_in_tournament ||
-              tp.user?.pseudo ||
-              tp.anonymous_user?.pseudo ||
-              'Anonymous',
-            elo: stats?.elo || 1500,
-            matchesPlayed: stats?.matches_played || 0,
-            wins: stats?.wins || 0,
-            losses: stats?.losses || 0,
-            joinedAt: tp.joined_at || new Date().toISOString(),
-            avatarUrl: tp.user?.avatar_url ?? null,
-          };
-        })
-      );
-
-      return participantsWithStats;
+      return rows.map((r) => ({
+        id: r.id,                          // membership id (matches.team_a/b_player_ids ARE NOT this — see note below)
+        playerId: r.player_id,
+        leaguePlayerId: lmIdByPlayer.get(r.player_id),
+        name: r.pseudo_override || r.player?.pseudo || 'Joueur',
+        elo: r.elo,
+        matchesPlayed: r.matches_played,
+        wins: r.wins,
+        losses: r.losses,
+        joinedAt: r.joined_at,
+        avatarUrl: r.player?.avatar_url ?? null,
+        isArchived: r.archived_at != null,
+      }));
     } catch (error) {
       console.error('Error loading tournament participants:', error);
       return [];
@@ -390,230 +510,48 @@ class PlayersRepository extends BaseRepository {
   }
 
   /**
-   * Ajoute un joueur anonyme directement à un tournoi
-   */
-  async addAnonymousPlayerToTournament(
-    tournamentId: string,
-    playerName: string,
-    anonymousUserId: string
-  ): Promise<string> {
-    if (!this.isSupabaseAvailable()) {
-      // For localStorage, generate an ID and add to tournament
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        const newPlayerId = crypto.randomUUID();
-        tournament.playerIds.push(newPlayerId);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
-        return newPlayerId;
-      }
-      throw new Error('Tournament not found');
-    }
-
-    try {
-      // First, ensure anonymous_user exists
-      const { data: existingAnonymousUser } = await supabase!
-        .from('anonymous_users')
-        .select('id')
-        .eq('id', anonymousUserId)
-        .single();
-
-      if (!existingAnonymousUser) {
-        // Create anonymous user
-        const { error: createError } = await supabase!
-          .from('anonymous_users')
-          .insert({
-            id: anonymousUserId,
-            pseudo: playerName,
-          });
-
-        if (createError) throw createError;
-      }
-
-      // Create tournament_player entry
-      const playerId = crypto.randomUUID();
-      const joinedAt = new Date().toISOString();
-      const { error: insertError } = await supabase!
-        .from('tournament_players')
-        .insert({
-          id: playerId,
-          tournament_id: tournamentId,
-          anonymous_user_id: anonymousUserId,
-          pseudo_in_tournament: playerName,
-          joined_at: joinedAt,
-        });
-
-      if (insertError) throw insertError;
-
-      // Update localStorage cache
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament && !tournament.playerIds.includes(playerId)) {
-        tournament.playerIds.push(playerId);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
-      }
-
-      return playerId;
-    } catch (error) {
-      console.error('Error adding anonymous player to tournament:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Ajoute un "guest" (joueur fantôme sans compte propre) à un tournoi standalone.
+   * Note importante : depuis la mig 022, `matches.team_a/b_player_ids`
+   * référencent `players.id` directement (plus de membership id). Les
+   * consumers qui matchent `match.teamA` avec un participant doivent comparer
+   * avec `participant.playerId`, pas `participant.id`.
    *
-   * Crée systématiquement un nouvel `anonymous_users` avec un UUID frais, puis
-   * une entrée `tournament_players` qui le référence. Contrairement à
-   * `addAnonymousPlayerToTournament`, on ne réutilise jamais l'identité d'un
-   * utilisateur existant — chaque appel produit un nouveau guest distinct, ce
-   * qui évite la collision sur la contrainte
-   * `UNIQUE(tournament_id, anonymous_user_id)`.
-   *
-   * Usage : ajout manuel par l'admin depuis TournamentDashboard / RecordMatch
-   * pour des invités physiques qui n'utilisent pas l'app.
+   * Ce mapping retourne, pour un tournoi donné, la map playerId → display name
+   * pour rendre les matches sans avoir besoin de la liste complète.
    */
-  async addGuestPlayerToTournament(
-    tournamentId: string,
-    playerName: string
-  ): Promise<string> {
-    if (!this.isSupabaseAvailable()) {
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        const newPlayerId = crypto.randomUUID();
-        tournament.playerIds.push(newPlayerId);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
-        return newPlayerId;
-      }
-      throw new Error('Tournament not found');
-    }
-
-    try {
-      // 1. Crée un anonymous_user dédié à ce guest (UUID frais à chaque appel).
-      const guestAnonymousId = crypto.randomUUID();
-      const { error: createError } = await supabase!
-        .from('anonymous_users')
-        .insert({
-          id: guestAnonymousId,
-          pseudo: playerName,
-        });
-
-      if (createError) throw createError;
-
-      // 2. Crée l'entrée tournament_players liée à ce nouvel anonymous_user.
-      const playerId = crypto.randomUUID();
-      const joinedAt = new Date().toISOString();
-      const { error: insertError } = await supabase!
-        .from('tournament_players')
-        .insert({
-          id: playerId,
-          tournament_id: tournamentId,
-          anonymous_user_id: guestAnonymousId,
-          pseudo_in_tournament: playerName,
-          joined_at: joinedAt,
-        });
-
-      if (insertError) throw insertError;
-
-      // 3. Synchronise le cache localStorage.
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament && !tournament.playerIds.includes(playerId)) {
-        tournament.playerIds.push(playerId);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
-      }
-
-      return playerId;
-    } catch (error) {
-      console.error('Error adding guest player to tournament:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Ajoute un joueur de la league au tournoi (crée une entrée tournament_players)
-   */
-  async addLeaguePlayerToTournament(
-    tournamentId: string,
-    leaguePlayerId: string
-  ): Promise<string> {
-    if (!this.isSupabaseAvailable()) {
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        tournament.playerIds.push(leaguePlayerId);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
-        return leaguePlayerId;
-      }
-      throw new Error('Tournament not found');
-    }
-
-    const { data: leaguePlayer, error: lpError } = await supabase!
-      .from('league_players')
-      .select('user_id, anonymous_user_id, pseudo_in_league')
-      .eq('id', leaguePlayerId)
-      .single();
-
-    if (lpError || !leaguePlayer) throw new Error('League player not found');
-
-    const lp = leaguePlayer as {
-      user_id: string | null;
-      anonymous_user_id: string | null;
-      pseudo_in_league: string;
-    };
-
-    let existingQuery = supabase!
-      .from('tournament_players')
-      .select('id')
+  async loadMatchPlayerNames(tournamentId: string): Promise<Map<string, string>> {
+    if (!this.isSupabaseAvailable()) return new Map();
+    const { data } = await sb!
+      .from('tournament_memberships')
+      .select('player_id, pseudo_override, player:players(pseudo)')
       .eq('tournament_id', tournamentId);
-    if (lp.user_id) {
-      existingQuery = existingQuery.eq('user_id', lp.user_id);
-    } else if (lp.anonymous_user_id) {
-      existingQuery = existingQuery.eq('anonymous_user_id', lp.anonymous_user_id);
-    } else {
-      throw new Error('League player has no user identity');
-    }
-    const { data: existing } = await existingQuery.maybeSingle();
-
-    if (existing) return (existing as { id: string }).id;
-
-    const newId = crypto.randomUUID();
-    const { error: insertError } = await supabase!
-      .from('tournament_players')
-      .insert({
-        id: newId,
-        tournament_id: tournamentId,
-        user_id: lp.user_id || null,
-        anonymous_user_id: lp.anonymous_user_id || null,
-        pseudo_in_tournament: lp.pseudo_in_league,
-      });
-
-    if (insertError) throw insertError;
-
-    const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-    const tournament = tournaments.find((t) => t.id === tournamentId);
-    if (tournament && !tournament.playerIds.includes(newId)) {
-      tournament.playerIds.push(newId);
-      tournamentsRepository.saveTournamentToLocalStorage(tournament);
-    }
-
-    return newId;
+    const rows = (data ?? []) as unknown as Array<{
+      player_id: string;
+      pseudo_override: string | null;
+      player: { pseudo: string } | null;
+    }>;
+    const m = new Map<string, string>();
+    for (const r of rows) m.set(r.player_id, r.pseudo_override || r.player?.pseudo || 'Joueur');
+    return m;
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // UPDATE
+  // ───────────────────────────────────────────────────────────────────────
+
   /**
-   * Met à jour un joueur dans une league
+   * Met à jour un league_membership (legacy: Partial<Player>). Le `name`
+   * écrit dans `pseudo_override` (override par-league).
    */
   async updatePlayer(
     leagueId: string,
-    playerId: string,
+    membershipId: string,
     updates: Partial<Player>
   ): Promise<void> {
     if (!this.isSupabaseAvailable()) {
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
       const league = leagues.find((l) => l.id === leagueId);
       if (league) {
-        const player = league.players.find((p) => p.id === playerId);
+        const player = league.players.find((p) => p.id === membershipId);
         if (player) {
           Object.assign(player, updates);
           leaguesRepository.saveLeagueToLocalStorage(league);
@@ -622,184 +560,101 @@ class PlayersRepository extends BaseRepository {
       return;
     }
 
-    try {
-      const updateData: {
-        pseudo_in_league?: string;
-        elo?: number;
-        wins?: number;
-        losses?: number;
-        matches_played?: number;
-        streak?: number;
-      } = {};
-      if (updates.name !== undefined) updateData.pseudo_in_league = updates.name;
-      if (updates.elo !== undefined) updateData.elo = updates.elo;
-      if (updates.wins !== undefined) updateData.wins = updates.wins;
-      if (updates.losses !== undefined) updateData.losses = updates.losses;
-      if (updates.matchesPlayed !== undefined)
-        updateData.matches_played = updates.matchesPlayed;
-      if (updates.streak !== undefined) updateData.streak = updates.streak;
+    const updateData: Record<string, unknown> = {};
+    if (updates.name !== undefined) updateData.pseudo_override = updates.name;
+    if (updates.elo !== undefined) updateData.elo = updates.elo;
+    if (updates.wins !== undefined) updateData.wins = updates.wins;
+    if (updates.losses !== undefined) updateData.losses = updates.losses;
+    if (updates.matchesPlayed !== undefined) updateData.matches_played = updates.matchesPlayed;
+    if (updates.streak !== undefined) updateData.streak = updates.streak;
 
-      const { error } = await supabase!
-        .from('league_players')
-        .update(updateData)
-        .eq('id', playerId)
-        .eq('league_id', leagueId);
-
-      if (error) throw error;
-
-      // Update localStorage cache
-      const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
-      const league = leagues.find((l) => l.id === leagueId);
-      if (league) {
-        const player = league.players.find((p) => p.id === playerId);
-        if (player) {
-          Object.assign(player, updates);
-          leaguesRepository.saveLeagueToLocalStorage(league);
-        }
-      }
-    } catch (error) {
-      console.error('Error updating player in Supabase:', error);
-      // Fallback vers localStorage
-      const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
-      const league = leagues.find((l) => l.id === leagueId);
-      if (league) {
-        const player = league.players.find((p) => p.id === playerId);
-        if (player) {
-          Object.assign(player, updates);
-          leaguesRepository.saveLeagueToLocalStorage(league);
-        }
-      }
-    }
+    const { error } = await sb!
+      .from('league_memberships')
+      .update(updateData)
+      .eq('id', membershipId)
+      .eq('league_id', leagueId);
+    if (error) throw error;
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // DELETE
+  // ───────────────────────────────────────────────────────────────────────
+
   /**
-   * Supprime un joueur d'une league
+   * Supprime un league_membership et les matches qui référencent son player_id.
    */
-  async deletePlayer(leagueId: string, playerId: string): Promise<void> {
-    if (!this.isSupabaseAvailable()) {
-      const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
-      const league = leagues.find((l) => l.id === leagueId);
-      if (league) {
-        league.players = league.players.filter((p) => p.id !== playerId);
-        league.matches = league.matches.filter(
-          (m) => !m.teamA.includes(playerId) && !m.teamB.includes(playerId)
-        );
-        leaguesRepository.saveLeagueToLocalStorage(league);
-      }
-      return;
-    }
+  async deletePlayer(leagueId: string, membershipId: string): Promise<void> {
+    if (!this.isSupabaseAvailable()) return;
+    const { data: lm } = await sb!
+      .from('league_memberships')
+      .select('player_id')
+      .eq('id', membershipId)
+      .single();
+    if (!lm) return;
+    const playerId = (lm as { player_id: string }).player_id;
 
-    try {
-      // Delete player from league_players
-      const { error } = await supabase!
-        .from('league_players')
-        .delete()
-        .eq('id', playerId)
-        .eq('league_id', leagueId);
-
-      if (error) throw error;
-
-      // Delete matches that include this player
-      // First, get all matches for this league
-      const { data: matches } = await supabase!
-        .from('matches')
-        .select('id, team_a_player_ids, team_b_player_ids')
-        .eq('league_id', leagueId);
-
-      if (matches) {
-        const typedMatches = matches as {
-          id: string;
-          team_a_player_ids: string[] | null;
-          team_b_player_ids: string[] | null;
-        }[];
-        const matchesToDelete = typedMatches.filter(
-          (m) =>
-            (m.team_a_player_ids || []).includes(playerId) ||
-            (m.team_b_player_ids || []).includes(playerId)
-        );
-
-        for (const match of matchesToDelete) {
-          await supabase!.from('matches').delete().eq('id', match.id);
-        }
-      }
-
-      // Update localStorage cache
-      const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
-      const league = leagues.find((l) => l.id === leagueId);
-      if (league) {
-        league.players = league.players.filter((p) => p.id !== playerId);
-        league.matches = league.matches.filter(
-          (m) => !m.teamA.includes(playerId) && !m.teamB.includes(playerId)
-        );
-        leaguesRepository.saveLeagueToLocalStorage(league);
-      }
-    } catch (error) {
-      console.error('Error deleting player from Supabase:', error);
-      // Fallback vers localStorage
-      const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
-      const league = leagues.find((l) => l.id === leagueId);
-      if (league) {
-        league.players = league.players.filter((p) => p.id !== playerId);
-        league.matches = league.matches.filter(
-          (m) => !m.teamA.includes(playerId) && !m.teamB.includes(playerId)
-        );
-        leaguesRepository.saveLeagueToLocalStorage(league);
+    // Delete matches that reference this player in this league
+    const { data: matches } = await sb!
+      .from('matches')
+      .select('id, team_a_player_ids, team_b_player_ids')
+      .eq('league_id', leagueId);
+    const ms = (matches ?? []) as Array<{ id: string; team_a_player_ids: string[]; team_b_player_ids: string[] }>;
+    for (const m of ms) {
+      if (m.team_a_player_ids.includes(playerId) || m.team_b_player_ids.includes(playerId)) {
+        await sb!.from('matches').delete().eq('id', m.id);
       }
     }
+
+    await sb!
+      .from('league_memberships')
+      .delete()
+      .eq('id', membershipId)
+      .eq('league_id', leagueId);
   }
-  /**
-   * Enrichissement d'un joueur : avatar_url, joined_at, user_id.
-   * Cherche d'abord dans league_players, puis tournament_players.
-   * Retourne null si Supabase n'est pas disponible.
-   */
-  async loadPlayerEnrichment(playerId: string): Promise<{
+
+  // ───────────────────────────────────────────────────────────────────────
+  // ENRICHMENT (avatar, joined, owning user) — used by player profile page
+  // ───────────────────────────────────────────────────────────────────────
+
+  async loadPlayerEnrichment(membershipId: string): Promise<{
     avatarUrl: string | null;
     joinedAt: string | null;
     userId: string | null;
   } | null> {
     if (!this.isSupabaseAvailable()) return null;
-
     try {
-      // 1. league_players
-      const { data: lp } = await supabase!
-        .from('league_players')
-        .select('user_id, joined_at, user:users(avatar_url)')
-        .eq('id', playerId)
+      const { data: lm } = await sb!
+        .from('league_memberships')
+        .select('joined_at, player:players(user_id, avatar_url)')
+        .eq('id', membershipId)
         .maybeSingle();
-
-      if (lp) {
-        const row = lp as unknown as {
-          user_id: string | null;
+      if (lm) {
+        const row = lm as unknown as {
           joined_at: string | null;
-          user: { avatar_url: string | null } | null;
+          player: { user_id: string | null; avatar_url: string | null } | null;
         };
         return {
-          userId: row.user_id ?? null,
-          joinedAt: row.joined_at ?? null,
-          avatarUrl: row.user?.avatar_url ?? null,
+          joinedAt: row.joined_at,
+          userId: row.player?.user_id ?? null,
+          avatarUrl: row.player?.avatar_url ?? null,
         };
       }
-
-      // 2. tournament_players
-      const { data: tp } = await supabase!
-        .from('tournament_players')
-        .select('user_id, joined_at, user:users(avatar_url)')
-        .eq('id', playerId)
+      const { data: tm } = await sb!
+        .from('tournament_memberships')
+        .select('joined_at, player:players(user_id, avatar_url)')
+        .eq('id', membershipId)
         .maybeSingle();
-
-      if (tp) {
-        const row = tp as unknown as {
-          user_id: string | null;
+      if (tm) {
+        const row = tm as unknown as {
           joined_at: string | null;
-          user: { avatar_url: string | null } | null;
+          player: { user_id: string | null; avatar_url: string | null } | null;
         };
         return {
-          userId: row.user_id ?? null,
-          joinedAt: row.joined_at ?? null,
-          avatarUrl: row.user?.avatar_url ?? null,
+          joinedAt: row.joined_at,
+          userId: row.player?.user_id ?? null,
+          avatarUrl: row.player?.avatar_url ?? null,
         };
       }
-
       return null;
     } catch (error) {
       console.error('Error loading player enrichment:', error);

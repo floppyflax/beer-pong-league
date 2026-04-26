@@ -11,6 +11,9 @@ import {
   UserPlus,
   Settings,
   Ghost,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "@/components/EloChangeDisplay";
@@ -38,6 +41,8 @@ import type {
 } from "@/components/design-system";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
+import { matchAdminService } from "@/services/MatchAdminService";
+import { eloRecalcService } from "@/services/EloRecalcService";
 import { Podium } from "@/components/ponglo/Podium";
 import { LeaderRow } from "@/components/ponglo/LeaderRow";
 
@@ -99,6 +104,7 @@ export const EventDashboard = () => {
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
+  const [openMatchMenuId, setOpenMatchMenuId] = useState<string | null>(null);
 
   // Ghosts (anonymous players manually added by the admin) for this tournament.
   // We use mode: "any" so the list is loaded for the admin even though the
@@ -451,12 +457,67 @@ export const EventDashboard = () => {
       playerId,
     );
     if (!result.success) {
-      toast.error(result.error || "Suppression impossible");
+      // Suppress toast for the "matches recorded" case — the sheet will
+      // offer the archive fallback dialog right after.
+      if (!result.error || !/match/i.test(result.error)) {
+        toast.error(result.error || "Suppression impossible");
+      }
       throw new Error(result.error);
     }
     toast.success("Joueur supprimé");
     await refreshTournamentGhosts();
     reloadData();
+  };
+
+  const handleArchiveGhost = async (playerId: string) => {
+    const result = await identityMergeService.archiveAnonymousPlayer(
+      "tournament",
+      playerId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Archivage impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur archivé");
+    await refreshTournamentGhosts();
+    reloadData();
+  };
+
+  // Match admin actions (admin only). Edit navigates to RecordMatch in edit
+  // mode; delete confirms then triggers an ELO replay if league-linked.
+  const handleEditMatch = (matchId: string) => {
+    setOpenMatchMenuId(null);
+    navigate(
+      `/record-match/tournament/${tournament.id}?editMatchId=${encodeURIComponent(matchId)}`,
+    );
+  };
+
+  const handleDeleteMatch = async (matchId: string) => {
+    setOpenMatchMenuId(null);
+    if (
+      !confirm(
+        tournament.leagueId
+          ? "Supprimer ce match ? L'ELO de la ligue sera recalculé."
+          : "Supprimer ce match ?",
+      )
+    )
+      return;
+    const result = await matchAdminService.deleteMatch(matchId);
+    if (!result.success) {
+      toast.error(result.error || "Suppression impossible");
+      return;
+    }
+    if (result.leagueId) {
+      const recalc = await eloRecalcService.recalculateLeagueElo(result.leagueId);
+      if (!recalc.success) {
+        toast.error(`Match supprimé mais recalcul ELO échoué : ${recalc.error}`);
+      } else {
+        toast.success("Match supprimé, ELO recalculé");
+      }
+    } else {
+      toast.success("Match supprimé");
+    }
+    await reloadData();
   };
 
   const handleGenerateGhostInvite = async (playerId: string) => {
@@ -554,45 +615,50 @@ export const EventDashboard = () => {
               />
             ) : (
               <div className="space-y-3 w-full">
-                {/* Podium top-3 */}
+                {/* Podium top-3 — shows ELO + last-match delta */}
                 {ranking.length >= 3 && (
                   <Podium
                     top3={ranking.slice(0, 3).map((p) => ({
                       id: p.id,
                       name: p.name,
                       elo: p.elo,
+                      delta: getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
                     }))}
                     scope={rankingMode === "global" ? league?.name : undefined}
                     className="mb-1"
                   />
                 )}
-                {/* Full leaderboard with LeaderRow */}
+                {/* Leaderboard from rank 4 (top 3 are already on the podium).
+                    Fallback: show full list if there are fewer than 3 players. */}
                 <div className="space-y-1.5">
-                  {ranking.map((player, index) => {
-                    const participant = tournamentParticipants.find(
-                      (tp) => tp.id === player.id,
-                    );
-                    const profileId = getPlayerProfileId(
-                      participant || { id: player.id },
-                    );
-                    const delta = getDeltaFromLastMatch(
-                      player.id,
-                      sortedMatches,
-                    );
-                    return (
-                      <LeaderRow
-                        key={player.id}
-                        rank={index + 1}
-                        player={{
-                          id: player.id,
-                          name: player.name,
-                          elo: player.elo,
-                          delta: delta ?? undefined,
-                        }}
-                        onClick={() => navigate(`/player/${profileId}`)}
-                      />
-                    );
-                  })}
+                  {(ranking.length >= 3 ? ranking.slice(3) : ranking).map(
+                    (player, index) => {
+                      const rank = (ranking.length >= 3 ? 3 : 0) + index + 1;
+                      const participant = tournamentParticipants.find(
+                        (tp) => tp.id === player.id,
+                      );
+                      const profileId = getPlayerProfileId(
+                        participant || { id: player.id },
+                      );
+                      const delta = getDeltaFromLastMatch(
+                        player.id,
+                        sortedMatches,
+                      );
+                      return (
+                        <LeaderRow
+                          key={player.id}
+                          rank={rank}
+                          player={{
+                            id: player.id,
+                            name: player.name,
+                            elo: player.elo,
+                            delta: delta ?? undefined,
+                          }}
+                          onClick={() => navigate(`/player/${profileId}`)}
+                        />
+                      );
+                    },
+                  )}
                 </div>
               </div>
             )}
@@ -621,8 +687,59 @@ export const EventDashboard = () => {
                 return (
                   <div
                     key={match.id}
-                    className={`bg-navy-soft p-4 rounded-xl border ${match.is_live ? "border-lime/50" : "border-card/50"}`}
+                    className={`relative bg-navy-soft p-4 rounded-xl border ${match.is_live ? "border-lime/50" : "border-card/50"}`}
                   >
+                    {isAdmin && (
+                      <div className="absolute top-2 right-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenMatchMenuId((cur) =>
+                              cur === match.id ? null : match.id,
+                            )
+                          }
+                          className="w-8 h-8 rounded-full text-cool-gray hover:bg-white/10 flex items-center justify-center transition-colors"
+                          aria-label="Actions sur le match"
+                          aria-haspopup="menu"
+                          aria-expanded={openMatchMenuId === match.id}
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        {openMatchMenuId === match.id && (
+                          <>
+                            {/* Click-outside catcher */}
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => setOpenMatchMenuId(null)}
+                              aria-hidden="true"
+                            />
+                            <div
+                              className="absolute right-0 mt-1 w-44 bg-navy-deep border border-card rounded-card shadow-modal z-50 overflow-hidden"
+                              role="menu"
+                            >
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => handleEditMatch(match.id)}
+                                className="w-full px-3 py-2 text-left text-white text-sm flex items-center gap-2 hover:bg-white/5"
+                              >
+                                <Pencil size={14} />
+                                Modifier
+                              </button>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => handleDeleteMatch(match.id)}
+                                className="w-full px-3 py-2 text-left text-signal-red text-sm flex items-center gap-2 hover:bg-signal-red/10"
+                              >
+                                <Trash2 size={14} />
+                                Supprimer
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
                     {/* Phase D.4: Live badge */}
                     <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
                     {/* Match teams and winner - Task 4 AC4 */}
@@ -738,6 +855,7 @@ export const EventDashboard = () => {
             format: tournament.format,
             maxPlayers: tournament.maxPlayers ?? 999,
             isPrivate: tournament.isPrivate ?? true,
+            propagatesToLeagueElo: tournament.propagatesToLeagueElo !== false,
           }}
           mode={tournamentMode}
           currentPlayersCount={tournamentParticipants.length}
@@ -745,6 +863,7 @@ export const EventDashboard = () => {
           onFinish={handleFinishFromSettings}
           onDelete={handleDeleteFromSettings}
           isFinished={tournament.isFinished}
+          hasLeagueLink={Boolean(tournament.leagueId)}
           extraContent={
             <div className="space-y-4">
               {tournamentGhosts.length > 0 && (
@@ -845,6 +964,7 @@ export const EventDashboard = () => {
           joinPath={`/event/${tournament.id}/join`}
           onRename={handleRenameGhost}
           onDelete={handleDeleteGhost}
+          onArchive={handleArchiveGhost}
           onGenerateInvite={handleGenerateGhostInvite}
         />
       )}

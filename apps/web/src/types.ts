@@ -20,11 +20,13 @@ export interface Match {
   scoreA: number;
   scoreB: number;
   eloChanges?: Record<string, number>; // Player ID -> ELO change (positive = gain, negative = loss)
-  created_by_user_id?: string | null; // User ID if created by authenticated user
-  created_by_anonymous_user_id?: string | null; // Anonymous user ID if created by local user
+  created_by_user_id?: string | null; // FK → users.id (auth or anonymous, since mig 022)
+  /** @deprecated since mig 022. Always null. Use created_by_user_id. */
+  created_by_anonymous_user_id?: string | null;
   status?: "pending" | "confirmed" | "rejected"; // Match confirmation status
-  confirmed_by_user_id?: string | null; // User ID who confirmed the match
-  confirmed_by_anonymous_user_id?: string | null; // Anonymous user ID who confirmed the match
+  confirmed_by_user_id?: string | null; // FK → users.id
+  /** @deprecated since mig 022. Always null. Use confirmed_by_user_id. */
+  confirmed_by_anonymous_user_id?: string | null;
   confirmed_at?: string | null; // When the match was confirmed
   // Story 14-24: Enriched match data
   cups_remaining?: number | null; // 1-10, winning team only
@@ -44,8 +46,9 @@ export interface League {
   matches: Match[];
   tournaments?: string[]; // Tournament IDs associated with this League
   joinCode?: string; // Unique 6-character alphanumeric code (parity with Tournament)
-  creator_user_id?: string | null; // User ID if created by authenticated user
-  creator_anonymous_user_id?: string | null; // Anonymous user ID if created by local user
+  creator_user_id?: string | null; // FK → users.id (auth or anonymous, since mig 022)
+  /** @deprecated since mig 022. Always null. Kept for legacy callers; use creator_user_id. */
+  creator_anonymous_user_id?: string | null;
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
 }
 
@@ -61,8 +64,9 @@ export interface Tournament {
   playerIds: string[]; // Subset of League players (or all if autonomous)
   matches: Match[];
   isFinished: boolean; // true if tournament is finished
-  creator_user_id?: string | null; // User ID if created by authenticated user
-  creator_anonymous_user_id?: string | null; // Anonymous user ID if created by local user
+  creator_user_id?: string | null; // FK → users.id (auth or anonymous, since mig 022)
+  /** @deprecated since mig 022. Always null. Kept for legacy callers; use creator_user_id. */
+  creator_anonymous_user_id?: string | null;
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
   // Story 8.2 fields
   joinCode?: string; // Unique 6-character alphanumeric code for joining
@@ -75,5 +79,12 @@ export interface Tournament {
   // Phase A.5: competition mode (ELO = classement ponctuel, Bracket = élimination directe)
   // Set at creation time and immutable afterwards (see CreateTournament).
   mode?: 'elo' | 'bracket';
+  /**
+   * Mig 023 — When TRUE (default) and the event is linked to a league, matches
+   * recorded in this event also update the league's ELO. Toggle off to keep
+   * the event's ELO bubble isolated from the league. Only meaningful when
+   * `leagueId` is set.
+   */
+  propagatesToLeagueElo?: boolean;
   // Local ranking is calculated on-the-fly from matches, starting from base ELO
 }

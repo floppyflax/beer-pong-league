@@ -32,6 +32,9 @@ export interface SettingsSheetTournamentValues {
   format: "1v1" | "2v2" | "3v3" | "libre";
   maxPlayers: number;
   isPrivate: boolean;
+  /** Mig 023 — propage les ELO event vers la ligue rattachée. Toggle visible
+   *  uniquement quand l'event a une ligue (`hasLeagueLink`). */
+  propagatesToLeagueElo?: boolean;
 }
 
 /** Valeurs éditables côté league. */
@@ -45,6 +48,7 @@ export interface SettingsSheetTournamentUpdates {
   format?: "1v1" | "2v2" | "3v3" | "libre";
   maxPlayers?: number;
   isPrivate?: boolean;
+  propagatesToLeagueElo?: boolean;
 }
 
 export interface SettingsSheetLeagueUpdates {
@@ -71,6 +75,9 @@ type SettingsSheetProps =
       title?: ReactNode;
       /** Bloc supplémentaire (ex: rattachement à une ligue) rendu après les champs, avant la zone destructive. */
       extraContent?: ReactNode;
+      /** Mig 023 — affiche le toggle "Propager ELO vers la ligue". Vrai uniquement
+       *  quand l'event est rattaché à une ligue. */
+      hasLeagueLink?: boolean;
     }
   | {
       kind: "league";
@@ -117,6 +124,9 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
   const [isPrivate, setIsPrivate] = useState<boolean>(
     props.kind === "tournament" ? props.initial.isPrivate : true,
   );
+  const [propagatesToLeagueElo, setPropagatesToLeagueElo] = useState<boolean>(
+    props.kind === "tournament" ? props.initial.propagatesToLeagueElo !== false : true,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   // Reset local state every time the sheet is opened (props may have changed).
@@ -130,6 +140,7 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
       );
       setPlayerLimit(String(props.initial.maxPlayers));
       setIsPrivate(props.initial.isPrivate);
+      setPropagatesToLeagueElo(props.initial.propagatesToLeagueElo !== false);
     }
     // props.initial contents are captured here by design
      
@@ -184,6 +195,11 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
           updates.maxPlayers = effectiveLimit;
         }
         if (isPrivate !== props.initial.isPrivate) updates.isPrivate = isPrivate;
+
+        const initialPropagation = props.initial.propagatesToLeagueElo !== false;
+        if (props.hasLeagueLink && propagatesToLeagueElo !== initialPropagation) {
+          updates.propagatesToLeagueElo = propagatesToLeagueElo;
+        }
 
         if (Object.keys(updates).length > 0) {
           await props.onSave(updates);
@@ -412,6 +428,30 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
                     <span className={toggleKnob(isPrivate)} />
                   </button>
                 </div>
+
+                {/* Propagation ELO vers la ligue (mig 023) — visible uniquement
+                    si l'event est rattaché à une ligue. */}
+                {props.hasLeagueLink && (
+                  <div className="flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-semibold text-sm">
+                        Propager l'ELO vers la ligue
+                      </div>
+                      <div className="text-cool-gray text-xs mt-0.5">
+                        Quand activé, chaque match de l'event met aussi à jour l'ELO de la ligue rattachée. Désactive pour isoler l'event.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPropagatesToLeagueElo((v) => !v)}
+                      className={toggleClass(propagatesToLeagueElo)}
+                      aria-label="Propager l'ELO vers la ligue"
+                      aria-pressed={propagatesToLeagueElo}
+                    >
+                      <span className={toggleKnob(propagatesToLeagueElo)} />
+                    </button>
+                  </div>
+                )}
               </>
             )}
 

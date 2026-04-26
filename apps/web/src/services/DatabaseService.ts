@@ -82,6 +82,13 @@ class DatabaseService {
     return tournamentsRepository.toggleTournamentStatus(tournamentId, isFinished);
   }
 
+  associateTournamentToLeague(
+    tournamentId: string,
+    leagueId: string | null,
+  ): Promise<void> {
+    return tournamentsRepository.associateTournamentToLeague(tournamentId, leagueId);
+  }
+
   createTournament(data: {
     name: string;
     /** Human-facing format ('1v1' | '2v2' | '3v3' | 'libre'). Written to the
@@ -123,7 +130,8 @@ class DatabaseService {
     userId?: string | null,
     anonymousUserId?: string | null
   ): Promise<void> {
-    return playersRepository.addPlayerToLeague(leagueId, player, userId, anonymousUserId);
+    // mig 022: anonymousUserId merged into userId namespace (single users table)
+    return playersRepository.addPlayerToLeague(leagueId, player, userId || anonymousUserId);
   }
 
   loadPlayerById(playerId: string): Promise<{
@@ -154,6 +162,7 @@ class DatabaseService {
       losses: number;
       joinedAt: string;
       avatarUrl?: string | null;
+      isArchived?: boolean;
     }[]
   > {
     return playersRepository.loadTournamentParticipants(tournamentId);
@@ -212,17 +221,20 @@ class DatabaseService {
   recordTournamentMatch(
     tournamentId: string,
     match: Match,
-    eloChanges: Record<string, { before: number; after: number; change: number }>,
+    eventEloChanges: Record<string, { before: number; after: number; change: number }>,
     userId?: string | null,
     anonymousUserId?: string | null,
+    leagueEloChanges?: Record<string, { before: number; after: number; change: number }>,
+    /** @deprecated since mig 022. */
     tournamentPlayerIdToLeaguePlayerId?: Record<string, string>
   ): Promise<void> {
     return matchesRepository.recordTournamentMatch(
       tournamentId,
       match,
-      eloChanges,
+      eventEloChanges,
       userId,
       anonymousUserId,
+      leagueEloChanges,
       tournamentPlayerIdToLeaguePlayerId
     );
   }
