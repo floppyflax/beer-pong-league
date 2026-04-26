@@ -2,7 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/context/AuthContext";
 import { useLeague } from "@/context/LeagueContext";
 import { useIdentity } from "@/hooks/useIdentity";
+import { useIsAnonymous } from "@/hooks/useIsAnonymous";
 import { useFullDisconnect } from "@/hooks/useFullDisconnect";
+import { AnonGatePlaceholder } from "@/components/AnonGatePlaceholder";
 import { PageHero, Sheet } from "@/components/design-system";
 import { StatCard } from "@/components/design-system/StatCard";
 import { PAvatar } from "@/components/ponglo/PAvatar";
@@ -22,6 +24,7 @@ export const UserProfile = () => {
   const { user, isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
   const { fullDisconnect } = useFullDisconnect();
+  const isAnonymous = useIsAnonymous();
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -298,8 +301,19 @@ export const UserProfile = () => {
           </div>
         </div>
 
+        {/* Anon CTA — sur le profil anon, on affiche juste l'avatar/pseudo
+            (au-dessus) + une carte qui invite à créer un compte. Le reste
+            (premium, stats, leagues, events détaillés) est masqué. L'anon peut
+            voir ses ligues/events depuis l'onglet "Jouer". */}
+        {isAnonymous && (
+          <AnonGatePlaceholder
+            title="Crée ton compte"
+            description="Tu joues actuellement en mode invité. Crée un compte gratuit pour conserver ton historique sur tous tes appareils, débloquer les stats et profiter du premium."
+          />
+        )}
+
         {/* Premium upsell */}
-        {!isPremium && (
+        {!isAnonymous && !isPremium && (
           <div
             className="w-full bg-gradient-to-br from-ping-yellow/20 via-ping-yellow/10 to-ping-yellow/5 border-2 border-ping-yellow/50 rounded-card p-4 flex items-center gap-4"
             role="region"
@@ -327,14 +341,17 @@ export const UserProfile = () => {
           </div>
         )}
 
-        {/* StatCards */}
-        <div className="grid grid-cols-3 gap-2 md:gap-4">
-          <StatCard value={userStats.leagues} label="Ligues" variant="primary" />
-          <StatCard value={userStats.events} label="Événements" variant="accent" />
-          <StatCard value={userStats.totalMatches} label="Matchs" />
-        </div>
+        {/* StatCards — masquées pour l'anon */}
+        {!isAnonymous && (
+          <div className="grid grid-cols-3 gap-2 md:gap-4">
+            <StatCard value={userStats.leagues} label="Ligues" variant="primary" />
+            <StatCard value={userStats.events} label="Événements" variant="accent" />
+            <StatCard value={userStats.totalMatches} label="Matchs" />
+          </div>
+        )}
 
-        {/* My Leagues */}
+        {/* My Leagues — masquées pour l'anon */}
+        {!isAnonymous && (
         <div>
           <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
             <Trophy size={20} className="text-electric-blue" />
@@ -369,8 +386,10 @@ export const UserProfile = () => {
             </div>
           )}
         </div>
+        )}
 
-        {/* My Events */}
+        {/* My Events — masquées pour l'anon */}
+        {!isAnonymous && (
         <div>
           <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
             <Calendar size={20} className="text-electric-blue" />
@@ -415,6 +434,7 @@ export const UserProfile = () => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Logout CTA — secondary red, dans le flux (non sticky) */}

@@ -19,6 +19,8 @@ import { SegmentedTabs } from "@/components/design-system";
 import { LeaderRow } from "@/components/ponglo/LeaderRow";
 import type { LeaderboardPlayer } from "@/components/ponglo/LeaderRow";
 import { Trophy } from "lucide-react";
+import { useIsAnonymous } from "@/hooks/useIsAnonymous";
+import { AnonGatePlaceholder } from "@/components/AnonGatePlaceholder";
 
 // ── Sort options ────────────────────────────────────────────────────────────
 
@@ -45,6 +47,7 @@ export function GlobalLeaderboard() {
   const { leagues } = useLeague();
   const navigate = useNavigate();
   const [sort, setSort] = useState<SortKey>("matches");
+  const isAnonymous = useIsAnonymous();
 
   // Agrège les joueurs de toutes les ligues — cumul lifetime W/L/matches.
   // L'ELO max est conservé par compatibilité avec LeaderRow mais n'est PAS
@@ -101,6 +104,19 @@ export function GlobalLeaderboard() {
   }, [aggregated, sort]);
 
   const hasData = sorted.length > 0;
+
+  // Anon users don't have access to the lifetime stats feed — they are guest
+  // participants in events, not community members. Surface a paywall-style
+  // placeholder that nudges sign-up. (Early return AFTER all hooks.)
+  if (isAnonymous) {
+    return (
+      <AnonGatePlaceholder
+        fullScreen
+        title="Stats verrouillées"
+        description="Crée un compte gratuit pour suivre tes matchs, ton win rate et tes streaks à travers toutes tes ligues et événements."
+      />
+    );
+  }
 
   return (
     <ScreenLayout>

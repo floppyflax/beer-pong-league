@@ -4,7 +4,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Zap, Radio, Diamond, Trophy, ChevronRight } from "lucide-react";
 import { useAuthContext } from "../context/AuthContext";
 import { useIdentity } from "../hooks/useIdentity";
+import { useIsAnonymous } from "../hooks/useIsAnonymous";
 import { useHomeData } from "../hooks/useHomeData";
+import { AnonGatePlaceholder } from "../components/AnonGatePlaceholder";
 import { usePremium } from "../hooks/usePremium";
 import { usePremiumLimits } from "../hooks/usePremiumLimits";
 import { PaymentModal } from "../components/PaymentModal";
@@ -20,6 +22,7 @@ export const Home = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const userId = user?.id ?? localUser?.anonymousUserId ?? null;
+  const isAnonymous = useIsAnonymous();
 
   const { lastEvent, personalStats, recentMatches, isLoading, error } =
     useHomeData(userId);
@@ -76,30 +79,39 @@ export const Home = () => {
 
       {/* Main scroll area */}
       <div className="flex-1 px-[18px] pb-[110px] overflow-auto">
-        {/* Stats hero card — lifetime activity (no global ELO, cf. docs §ELO model) */}
-        <div className="relative overflow-hidden bg-electric-blue text-navy rounded-xl p-[22px] shadow-card-lg">
-          <div className="flex justify-between items-start mb-3.5">
-            <div className="font-mono text-[10px] uppercase tracking-[1.5px] opacity-55">
-              {isLoading ? "Matchs joués · —" : "Matchs joués · Lifetime"}
-            </div>
-          </div>
-          <div
-            className="font-archivo font-black text-lime"
-            style={{ fontSize: 72, lineHeight: 0.9, letterSpacing: -2 }}
-          >
-            {totalMatches}
-          </div>
-          <div className="text-xs opacity-60 mt-1 font-mono">
-            {totalMatches > 0
-              ? `${wins}W — ${losses}L${bestStreak > 1 ? ` · streak max ${bestStreak}` : ""}`
-              : "Pas encore de matchs"}
-          </div>
-          {/* lime glow decoration */}
-          <div
-            className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-lime pointer-events-none"
-            style={{ opacity: 0.1 }}
+        {/* Stats hero — masked for anon users behind a sign-up CTA. Anon users
+            keep access to "Jouer" (active event banner + quick actions below)
+            but lifetime stats live behind an account. */}
+        {isAnonymous ? (
+          <AnonGatePlaceholder
+            title="Suis tes stats"
+            description="Crée un compte gratuit pour voir tes matchs joués, ton win rate et ta meilleure streak en cumul lifetime."
           />
-        </div>
+        ) : (
+          <div className="relative overflow-hidden bg-electric-blue text-navy rounded-xl p-[22px] shadow-card-lg">
+            <div className="flex justify-between items-start mb-3.5">
+              <div className="font-mono text-[10px] uppercase tracking-[1.5px] opacity-55">
+                {isLoading ? "Matchs joués · —" : "Matchs joués · Lifetime"}
+              </div>
+            </div>
+            <div
+              className="font-archivo font-black text-lime"
+              style={{ fontSize: 72, lineHeight: 0.9, letterSpacing: -2 }}
+            >
+              {totalMatches}
+            </div>
+            <div className="text-xs opacity-60 mt-1 font-mono">
+              {totalMatches > 0
+                ? `${wins}W — ${losses}L${bestStreak > 1 ? ` · streak max ${bestStreak}` : ""}`
+                : "Pas encore de matchs"}
+            </div>
+            {/* lime glow decoration */}
+            <div
+              className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-lime pointer-events-none"
+              style={{ opacity: 0.1 }}
+            />
+          </div>
+        )}
 
         {/* Quick actions */}
         <div className="grid grid-cols-2 gap-2.5 mt-4">

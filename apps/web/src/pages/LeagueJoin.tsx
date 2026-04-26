@@ -55,7 +55,7 @@ export const LeagueJoin = () => {
   const [claimDismissed, setClaimDismissed] = useState(false);
 
   // ---- Token (?ghost=TOKEN) state ----
-  const ghostToken = searchParams.get("ghost");
+  const ghostPlayerId = searchParams.get("ghost");
   const [tokenProcessed, setTokenProcessed] = useState(false);
 
   const league = leagues.find((l) => l.id === id);
@@ -87,7 +87,7 @@ export const LeagueJoin = () => {
 
   // Token short-circuit: claim and bounce to the dashboard.
   useEffect(() => {
-    if (!ghostToken || tokenProcessed || !league) return;
+    if (!ghostPlayerId || tokenProcessed || !league) return;
     setTokenProcessed(true);
 
     (async () => {
@@ -101,8 +101,8 @@ export const LeagueJoin = () => {
                 .anonymousUserId,
             };
 
-      const result = await identityMergeService.claimGhostByToken(
-        ghostToken,
+      const result = await identityMergeService.claimPlayerById(
+        ghostPlayerId,
         caller,
       );
 
@@ -119,7 +119,7 @@ export const LeagueJoin = () => {
       navigate(`/league/${league.id}`);
     })();
   }, [
-    ghostToken,
+    ghostPlayerId,
     tokenProcessed,
     league,
     ensureIdentity,
@@ -273,7 +273,7 @@ export const LeagueJoin = () => {
     );
   }
 
-  const showGateSheet = !gateDecided && !ghostToken && !tokenProcessed;
+  const showGateSheet = !gateDecided && !ghostPlayerId && !tokenProcessed;
 
   return (
     <div className="min-h-screen bg-navy">

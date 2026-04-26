@@ -103,16 +103,17 @@ class IdentityMergeService {
   }
 
   /**
-   * Anonymous claim (caller has no auth account yet). Post-mig 022 we don't
-   * support anon→ghost reassignment as a separate flow — anonymous users are
-   * just `users` rows themselves, and the canonical "this is me" gesture is
-   * to first sign in (or anon-sign-in) then call claim_player. Kept as a
-   * shim that bubbles up a "auth required" message so the UI nudges sign-in.
+   * Anonymous claim (caller has no Supabase Auth session — just an anon
+   * `users` row identified by device fingerprint). Direct UPDATE on the
+   * players row, gated by RLS (currently permissive on players.update).
+   *
+   * The server-side `claim_player` RPC requires `auth.uid()`, which is null
+   * for anon callers — so we can't use it. Instead, we update directly.
    */
   async claimAnonymousPlayerAsAnonymous(
-    _kind: "event" | "league",
-    _playerId: string,
-    _claimerAnonymousUserId: string,
+    kind: "event" | "league",
+    membershipOrPlayerId: string,
+    claimerAnonymousUserId: string,
   ): Promise<{
     success: boolean;
     error?: string;
@@ -123,13 +124,81 @@ class IdentityMergeService {
       noop?: boolean;
     };
   }> {
-    void _kind;
-    void _playerId;
-    void _claimerAnonymousUserId;
-    return {
-      success: false,
-      error: "Connecte-toi pour réclamer ce joueur",
-    };
+    if (!sb) return { success: false, error: "Supabase not configured" };
+    try {
+      const playerId = await this.resolvePlayerId(kind, membershipOrPlayerId);
+
+      // Refuse if the anon caller already owns another player (1:1 user→player).
+      const { data: existing } = await sb
+        .from("players")
+        .select("id")
+        .eq("user_id", claimerAnonymousUserId)
+        .neq("id", playerId)
+        .maybeSingle();
+      if (existing) {
+        return {
+          success: false,
+          error: "Tu possèdes déjà un autre joueur — un user = un player.",
+        };
+      }
+
+      // Refuse if the target player is already claimed by someone else.
+      const { data: target } = await sb
+        .from("players")
+        .select("user_id")
+        .eq("id", playerId)
+        .maybeSingle();
+      if (!target) return { success: false, error: "Joueur introuvable" };
+      const targetUserId = (target as { user_id: string | null }).user_id;
+      if (targetUserId && targetUserId !== claimerAnonymousUserId) {
+        return { success: false, error: "Ce joueur appartient déjà à un autre compte" };
+      }
+
+      const { error } = await sb
+        .from("players")
+        .update({ user_id: claimerAnonymousUserId } as never)
+        .eq("id", playerId)
+        .is("user_id", null);
+      if (error) return { success: false, error: error.message };
+
+      return {
+        success: true,
+        stats: {
+          matchesMigrated: 0,
+          eloHistoryMigrated: 0,
+          anonymousFullyConsumed: true,
+        },
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Unknown error",
+      };
+    }
+  }
+
+  /**
+   * Unified claim by `players.id` — used by the `?ghost=<player_id>` URL
+   * shortcut. Routes to the right backend depending on the caller's identity.
+   */
+  async claimPlayerById(
+    playerId: string,
+    opts: { userId?: string | null; anonymousUserId?: string | null },
+  ): Promise<{ success: boolean; error?: string; playerId?: string }> {
+    if (!sb) return { success: false, error: "Supabase not configured" };
+    if (opts.userId) {
+      const result = await this.claimAnonymousPlayer("event", playerId, opts.userId);
+      return { success: result.success, error: result.error, playerId };
+    }
+    if (opts.anonymousUserId) {
+      const result = await this.claimAnonymousPlayerAsAnonymous(
+        "event",
+        playerId,
+        opts.anonymousUserId,
+      );
+      return { success: result.success, error: result.error, playerId };
+    }
+    return { success: false, error: "No identity provided" };
   }
 
   // ────────────────────────────────────────────────────────────────────────

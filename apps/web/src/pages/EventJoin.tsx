@@ -76,11 +76,12 @@ export const EventJoin = () => {
   const [showClaimSheet, setShowClaimSheet] = useState(false);
   const [claimDismissed, setClaimDismissed] = useState(false);
 
-  // ---- Token (?ghost=TOKEN) state ----
-  // We consume the token only ONCE per mount so a re-render doesn't double-fire
-  // the RPC. After processing we clear the search param to prevent re-runs on
-  // back/forward navigation.
-  const ghostToken = searchParams.get("ghost");
+  // ---- Ghost-targeted invite shortcut (?ghost=<player_id>) ----
+  // Mig 022 dropped the signed-token mechanism in favor of passing the
+  // players.id directly. claim_player (auth) / direct UPDATE (anon) refuses
+  // if the player is already claimed, so the worst case is "lien expiré".
+  // We consume the param ONCE per mount to avoid double-fire on re-render.
+  const ghostPlayerId = searchParams.get("ghost");
   const [tokenProcessed, setTokenProcessed] = useState(false);
 
   // `events` from context only contains events the user belongs to.
@@ -160,9 +161,9 @@ export const EventJoin = () => {
     }
   }, [event, isLoadingInitialData, eventFetchAttempted, navigate]);
 
-  // Token short-circuit: claim and bounce to the dashboard.
+  // Ghost-targeted shortcut: claim the player_id from the URL and bounce.
   useEffect(() => {
-    if (!ghostToken || tokenProcessed || !event) return;
+    if (!ghostPlayerId || tokenProcessed || !event) return;
     setTokenProcessed(true);
 
     (async () => {
@@ -176,12 +177,12 @@ export const EventJoin = () => {
                 .anonymousUserId,
             };
 
-      const result = await identityMergeService.claimGhostByToken(
-        ghostToken,
+      const result = await identityMergeService.claimPlayerById(
+        ghostPlayerId,
         caller,
       );
 
-      // Always wipe the token from the URL so refresh doesn't replay it.
+      // Always wipe the param from the URL so refresh doesn't replay it.
       const next = new URLSearchParams(searchParams);
       next.delete("ghost");
       setSearchParams(next, { replace: true });
@@ -196,7 +197,7 @@ export const EventJoin = () => {
       navigate(`/event/${event.id}`);
     })();
   }, [
-    ghostToken,
+    ghostPlayerId,
     tokenProcessed,
     event,
     ensureIdentity,
@@ -351,9 +352,9 @@ export const EventJoin = () => {
     );
   }
 
-  // Show the gate sheet on first visit, unless we're processing a token
-  // (which has its own flow).
-  const showGateSheet = !gateDecided && !ghostToken && !tokenProcessed;
+  // Show the gate sheet on first visit, unless we're processing a ghost
+  // shortcut (which has its own flow).
+  const showGateSheet = !gateDecided && !ghostPlayerId && !tokenProcessed;
 
   return (
     <div className="min-h-screen bg-navy">
