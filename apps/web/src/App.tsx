@@ -2,9 +2,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,
   useLocation,
-  useParams,
 } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Toaster } from "react-hot-toast";
@@ -115,12 +113,6 @@ const Competitions = lazy(() =>
   })),
 );
 
-// Backward-compat redirect: /event/:id[suffix] → /event/:id[suffix]
-function EventRedirect({ suffix = "" }: { suffix?: string }) {
-  const { id } = useParams<{ id: string }>();
-  return <Navigate to={`/event/${id}${suffix}`} replace />;
-}
-
 function App() {
   return (
     <SportProvider>
@@ -215,11 +207,6 @@ function AppContent() {
                     path="/event/:id/display"
                     element={<EventDisplayView />}
                   />
-                  {/* Backward compat — /event/:id/display → /event/:id/display */}
-                  <Route
-                    path="/event/:id/display"
-                    element={<EventRedirect suffix="/display" />}
-                  />
                 </Routes>
               </div>
             ) : isLandingPage ? (
@@ -299,24 +286,11 @@ function AppContent() {
                       path="/leaderboard"
                       element={<GlobalLeaderboard />}
                     />
-                    {/* Backward compat — /event/* → /event/* */}
-                    <Route path="/events" element={<Navigate to="/events" replace />} />
-                    <Route
-                      path="/create-event"
-                      element={<Navigate to="/create-event" replace />}
-                    />
-                    <Route
-                      path="/event/:id"
-                      element={<EventRedirect />}
-                    />
-                    <Route
-                      path="/event/:id/invite"
-                      element={<EventRedirect suffix="/invite" />}
-                    />
-                    <Route
-                      path="/event/:id/join"
-                      element={<EventRedirect suffix="/join" />}
-                    />
+                    {/* Backward-compat redirects from the old /tournament/*
+                        URLs were removed: the schema migration renamed every
+                        path /tournament → /event, so these redirects became
+                        infinite self-loops. EventRedirect can also be removed
+                        if no inbound link remains in the wild. */}
                   </Routes>
                 </div>
               </ResponsiveLayout>

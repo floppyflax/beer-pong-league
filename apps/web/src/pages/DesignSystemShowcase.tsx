@@ -19,6 +19,7 @@ import {
   LastActivityCard,
   MatchHistoryCard,
   ScreenLayout,
+  EventCard,
 } from "@/components/design-system";
 import {
   PongloWordmark,
@@ -635,7 +636,9 @@ export function DesignSystemShowcase() {
           </div>
 
           <div>
-            <SubHeading>ListRow</SubHeading>
+            <SubHeading>
+              ListRow — variant&nbsp;<code>player</code> seulement (les variants <code>event</code> / <code>league</code> sont legacy : EventCard / LeagueCard les remplacent en prod)
+            </SubHeading>
             <div className="space-y-2">
               <ListRow
                 variant="player"
@@ -654,6 +657,9 @@ export function DesignSystemShowcase() {
                 rank={2}
                 delta={-12}
               />
+              <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pt-2">
+                ↓ Variants event / league legacy — utilisés nulle part en prod, voir EventCard / LeagueCard à la place
+              </p>
               <ListRow
                 variant="event"
                 name="Tournoi d'été"
@@ -685,7 +691,9 @@ export function DesignSystemShowcase() {
           </div>
 
           <div>
-            <SubHeading>InfoCard</SubHeading>
+            <SubHeading>
+              InfoCard — <span className="text-signal-red">legacy / unused en prod</span> (DetailHero a remplacé son usage sur les dashboards)
+            </SubHeading>
             <InfoCard
               title="Tournoi Beer Pong Mars 2025"
               statusBadge="En cours"
@@ -696,6 +704,65 @@ export function DesignSystemShowcase() {
                 { icon: LayoutGrid, text: "2v2" },
               ]}
             />
+          </div>
+
+          {/* EventCard / LeagueCard / AchievementCard — nouveau spot dans §5 pour
+              les rendre découvrables (avant section "10 · Molecules"). */}
+          <div>
+            <SubHeading>EventCard — utilisé sur Events/Competitions list</SubHeading>
+            <div className="max-w-md space-y-2">
+              <EventCard
+                event={{
+                  id: "demo-1",
+                  name: "Méchoui XIII",
+                  date: new Date().toISOString(),
+                  format: "2v2",
+                  leagueId: null,
+                  createdAt: new Date().toISOString(),
+                  playerIds: ["a", "b", "c", "d"],
+                  matches: [{}, {}, {}] as never,
+                  isFinished: false,
+                }}
+                interactive={false}
+              />
+              <EventCard
+                event={{
+                  id: "demo-2",
+                  name: "Tournoi Halloween",
+                  date: "2025-10-31T00:00:00Z",
+                  format: "1v1",
+                  leagueId: null,
+                  createdAt: new Date().toISOString(),
+                  playerIds: ["a", "b"],
+                  matches: [{}] as never,
+                  isFinished: true,
+                }}
+                interactive={false}
+              />
+            </div>
+          </div>
+          <div>
+            <SubHeading>AchievementCard — récompenses joueur</SubHeading>
+            <div className="max-w-md space-y-2">
+              <AchievementCard
+                achievement={{
+                  slug: "first_match",
+                  label: "Premier Match",
+                  description: "Tu as enregistré ton premier match.",
+                  icon_key: "flag",
+                  earned_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+                }}
+              />
+              <AchievementCard
+                achievement={{
+                  slug: "five_wins",
+                  label: "5 Victoires",
+                  description: "Tu as remporté 5 matchs au total.",
+                  icon_key: "star",
+                  earned_at: new Date(Date.now() - 86400000 * 7).toISOString(),
+                }}
+              />
+            </div>
           </div>
 
           <div>
@@ -1260,15 +1327,18 @@ export function DesignSystemShowcase() {
  */
 function PagesArchetypesSection() {
   const { leagues, events } = useLeague();
-  const firstLeagueId = leagues[0]?.id ?? "no-league";
-  const firstEventId = events[0]?.id ?? "no-event";
+  // Fallbacks must be valid UUIDs so the iframe doesn't trigger Postgres
+  // 22P02 errors when the user has no events / leagues yet.
+  const FALLBACK_UUID = "00000000-0000-0000-0000-000000000000";
+  const firstLeagueId = leagues[0]?.id ?? FALLBACK_UUID;
+  const firstEventId = events[0]?.id ?? FALLBACK_UUID;
   // Try every source we know — league.players (legacy), event.playerIds
   // (current). Fall back to a placeholder id that will trigger the
   // "joueur introuvable" empty state, which is itself useful to preview.
   const firstPlayerId =
     leagues[0]?.players[0]?.id ??
     events[0]?.playerIds?.[0] ??
-    "no-player";
+    FALLBACK_UUID;
 
   return (
     <Section
