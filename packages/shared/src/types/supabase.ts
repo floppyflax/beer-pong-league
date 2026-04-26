@@ -528,6 +528,10 @@ export type Database = {
         Args: { p_anonymous_user_id: string; p_user_id: string };
         Returns: Json;
       };
+      propagate_user_pseudo: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;

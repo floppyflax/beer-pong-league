@@ -191,6 +191,66 @@ class TournamentsRepository extends BaseRepository {
   }
 
   /**
+   * Loads a single tournament by id, regardless of whether the current user
+   * is creator or participant. Used by the join page so that newcomers
+   * landing via shared link / QR can see the event before joining.
+   * RLS ("Anyone can read tournaments") allows this.
+   */
+  async loadTournamentById(tournamentId: string): Promise<Tournament | null> {
+    if (!this.isSupabaseAvailable()) {
+      const local = this.loadTournamentsFromLocalStorage();
+      return local.find((t) => t.id === tournamentId) ?? null;
+    }
+
+    try {
+      const { data: tournamentRow, error } = await supabase!
+        .from('tournaments')
+        .select('*')
+        .eq('id', tournamentId)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!tournamentRow) return null;
+
+      const { data: playersData, error: playersError } = await supabase!
+        .from('tournament_players')
+        .select('id')
+        .eq('tournament_id', tournamentId);
+
+      if (playersError) throw playersError;
+
+      const row = tournamentRow as TournamentRow;
+      return {
+        id: row.id,
+        name: row.name,
+        date: row.date,
+        format: (row.format as Tournament['format']) || '2v2',
+        location: row.location ?? undefined,
+        leagueId: row.league_id,
+        createdAt: row.created_at || new Date().toISOString(),
+        updatedAt: row.updated_at || row.created_at,
+        playerIds: ((playersData || []) as { id: string }[]).map((p) => p.id),
+        matches: [],
+        isFinished: row.is_finished || false,
+        creator_user_id: row.creator_user_id,
+        creator_anonymous_user_id: row.creator_anonymous_user_id,
+        anti_cheat_enabled: row.anti_cheat_enabled || false,
+        joinCode: row.join_code,
+        formatType: row.format_type,
+        team1Size: row.team1_size,
+        team2Size: row.team2_size,
+        maxPlayers: row.max_players,
+        isPrivate: row.is_private,
+        status: row.status as 'active' | 'finished' | 'cancelled' | undefined,
+        mode: row.mode ?? 'elo',
+      };
+    } catch (error) {
+      console.error('Error loading tournament by id:', error);
+      return null;
+    }
+  }
+
+  /**
    * Sauvegarde un tournament dans Supabase
    */
   async saveTournament(tournament: Tournament): Promise<void> {

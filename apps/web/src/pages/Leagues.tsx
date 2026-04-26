@@ -8,9 +8,10 @@ import { LeagueCard } from "@/components/leagues/LeagueCard";
 import {
   SearchBar,
   SegmentedTabs,
-  FAB,
   ScreenLayout,
 } from "@/components/design-system";
+import { PButton } from "@/components/ponglo/PButton";
+import { Lock } from "lucide-react";
 import { usePremiumLimits } from "@/hooks/usePremiumLimits";
 import { useLeaguesList } from "@/hooks/useLeaguesList";
 import { useLeague } from "@/context/LeagueContext";
@@ -125,11 +126,16 @@ export const Leagues: React.FC = () => {
         header={header}
         overlay={
           <>
-            <FAB
-              icon={Plus}
-              onClick={handleCreate}
-              ariaLabel="Créer une league"
-            />
+            <div className="fixed bottom-24 right-5 z-30 lg:hidden">
+              <PButton
+                variant="primary"
+                size="lg"
+                onClick={handleCreate}
+                aria-label="Créer une league"
+                icon={<Plus size={22} />}
+                className="!rounded-full !h-14 !w-14 !p-0 shadow-modal"
+              />
+            </div>
             {paymentModal}
           </>
         }
@@ -143,14 +149,17 @@ export const Leagues: React.FC = () => {
             Créez votre première league pour organiser des compétitions long
             terme
           </p>
-          <button
+          <PButton
+            variant="primary"
+            size="md"
+            icon={<Plus size={18} />}
             onClick={handleCreate}
-            className="bg-signal-red text-white border-[1.5px] border-signal-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 px-6 rounded-full transition-[transform,box-shadow,filter] duration-75 inline-flex items-center gap-2"
           >
-            <Plus size={20} />
             Créer une league
-            {isAtLeagueLimit && <span aria-label="Premium requis">🔒</span>}
-          </button>
+            {isAtLeagueLimit && (
+              <Lock size={14} className="ml-1 opacity-80" aria-label="Premium requis" />
+            )}
+          </PButton>
         </div>
       </ScreenLayout>
     );
@@ -161,11 +170,16 @@ export const Leagues: React.FC = () => {
       header={header}
       overlay={
         <>
-          <FAB
-            icon={Plus}
-            onClick={handleCreate}
-            ariaLabel="Créer une league"
-          />
+          <div className="fixed bottom-24 right-5 z-30 lg:hidden">
+            <PButton
+              variant="primary"
+              size="lg"
+              onClick={handleCreate}
+              aria-label="Créer une league"
+              icon={<Plus size={22} />}
+              className="!rounded-full !h-14 !w-14 !p-0 shadow-modal"
+            />
+          </div>
           {paymentModal}
         </>
       }

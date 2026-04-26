@@ -19,7 +19,7 @@ interface TournamentPlayerWithRelations {
   anonymous_user_id?: string | null;
   pseudo_in_tournament?: string | null;
   joined_at?: string;
-  user?: { id?: string; pseudo?: string } | null;
+  user?: { id?: string; pseudo?: string; avatar_url?: string | null } | null;
   anonymous_user?: { id?: string; pseudo?: string } | null;
 }
 
@@ -237,6 +237,7 @@ class PlayersRepository extends BaseRepository {
       wins: number;
       losses: number;
       joinedAt: string;
+      avatarUrl?: string | null;
     }[]
   > {
     if (!this.isSupabaseAvailable()) {
@@ -274,7 +275,8 @@ class PlayersRepository extends BaseRepository {
           pseudo_in_tournament,
           user:users (
             id,
-            pseudo
+            pseudo,
+            avatar_url
           ),
           anonymous_user:anonymous_users (
             id,
@@ -313,6 +315,7 @@ class PlayersRepository extends BaseRepository {
           wins: 0,
           losses: 0,
           joinedAt: tp.joined_at || new Date().toISOString(),
+          avatarUrl: tp.user?.avatar_url ?? null,
         }));
       }
 
@@ -374,6 +377,7 @@ class PlayersRepository extends BaseRepository {
             wins: stats?.wins || 0,
             losses: stats?.losses || 0,
             joinedAt: tp.joined_at || new Date().toISOString(),
+            avatarUrl: tp.user?.avatar_url ?? null,
           };
         })
       );

@@ -1,5 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import { BarChart3 } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { BarChart3, Lock, ArrowUpCircle, ArrowRight } from "lucide-react";
+import { PButton } from "../ponglo/PButton";
 
 interface PersonalStats {
   totalMatches: number;
@@ -15,117 +16,130 @@ interface PersonalStatsSummaryProps {
 }
 
 const SkeletonCard = () => (
-  <div className="bg-navy-soft rounded-xl p-6 border border-card animate-pulse">
-    <div className="h-6 bg-navy-deep rounded w-1/2 mb-6"></div>
-    <div className="space-y-4">
-      <div className="h-10 bg-navy-deep rounded"></div>
-      <div className="h-10 bg-navy-deep rounded"></div>
-      <div className="h-10 bg-navy-deep rounded"></div>
+  <div className="bg-navy-soft rounded-card p-6 border border-card animate-pulse">
+    <div className="h-5 bg-navy/60 rounded w-1/2 mb-6" />
+    <div className="space-y-3">
+      <div className="h-16 bg-navy/60 rounded-card" />
+      <div className="h-16 bg-navy/60 rounded-card" />
+      <div className="h-16 bg-navy/60 rounded-card" />
     </div>
   </div>
 );
 
 const EmptyState = () => (
-  <div className="bg-navy-soft rounded-xl p-6 border border-card text-center">
-    <BarChart3 size={32} className="mx-auto mb-4 text-cool-gray" />
-    <h3 className="text-lg font-bold text-white mb-2">Aucun match joué</h3>
+  <div className="bg-navy-soft rounded-card p-6 border border-card text-center">
+    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-cool-gray/10 mb-3">
+      <BarChart3 size={22} className="text-cool-gray" />
+    </div>
+    <h3 className="font-archivo font-extrabold uppercase tracking-[-0.3px] text-white text-base mb-1">
+      Aucun match joué
+    </h3>
     <p className="text-sm text-cool-gray">
-      Commence à jouer pour voir tes stats
+      Commence à jouer pour voir tes stats.
     </p>
   </div>
 );
 
-export const PersonalStatsSummary = ({ 
-  stats, 
-  isLoading, 
+interface KpiProps {
+  label: string;
+  value: string | number;
+  accent?: "white" | "lime" | "electric-blue" | "ping-yellow";
+}
+
+const accentClass: Record<NonNullable<KpiProps["accent"]>, string> = {
+  white: "text-white",
+  lime: "text-lime",
+  "electric-blue": "text-electric-blue",
+  "ping-yellow": "text-ping-yellow",
+};
+
+const Kpi = ({ label, value, accent = "white" }: KpiProps) => (
+  <div className="flex items-baseline justify-between bg-navy/60 border border-card rounded-card px-4 py-3">
+    <span className="text-[11px] uppercase tracking-[1.5px] font-bold text-cool-gray">
+      {label}
+    </span>
+    <span
+      className={`font-archivo font-extrabold text-2xl tracking-[-0.5px] ${accentClass[accent]}`}
+    >
+      {value}
+    </span>
+  </div>
+);
+
+export const PersonalStatsSummary = ({
+  stats,
+  isLoading,
   isPremium,
-  onUpgradeClick 
+  onUpgradeClick,
 }: PersonalStatsSummaryProps) => {
   const navigate = useNavigate();
 
-  if (isLoading) {
-    return <SkeletonCard />;
-  }
+  if (isLoading) return <SkeletonCard />;
 
-  if (!stats || stats.totalMatches === 0) {
-    return <EmptyState />;
-  }
+  if (!stats || stats.totalMatches === 0) return <EmptyState />;
 
-  // Premium teaser - show full paywall for non-premium users (as per AC4)
   if (!isPremium) {
     return (
-      <div className="bg-navy-soft rounded-xl p-6 border border-card text-center">
-        <div className="mb-6">
-          <span className="text-4xl mb-4 block">🔒</span>
-          <h2 className="text-xl font-bold text-white mb-2">Fonctionnalité Premium</h2>
-          <p className="text-cool-gray text-sm">
-            Débloquez vos statistiques personnelles pour suivre votre progression
-            à travers tous vos tournois et leagues.
-          </p>
+      <div className="bg-navy-soft rounded-card border border-card p-6 text-center">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-ping-yellow/15 mb-3">
+          <Lock size={22} className="text-ping-yellow" />
         </div>
+        <h2 className="font-archivo font-extrabold uppercase tracking-[-0.4px] text-white text-xl mb-2">
+          Fonctionnalité Premium
+        </h2>
+        <p className="text-cool-gray text-sm leading-relaxed mb-5">
+          Débloque tes statistiques personnelles pour suivre ta progression à
+          travers tous tes événements et ligues.
+        </p>
 
-        <div className="bg-navy-deep/30 rounded-lg p-4 mb-6 text-left">
-          <div className="space-y-2 text-sm text-cool-gray">
-            <div className="flex items-center gap-2">
-              <span className="text-signal-red">✓</span>
-              <span>Évolution ELO globale</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-signal-red">✓</span>
-              <span>Taux de victoire détaillé</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-signal-red">✓</span>
-              <span>Statistiques par adversaire</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-signal-red">✓</span>
-              <span>Graphiques de performance</span>
-            </div>
-          </div>
-        </div>
+        <ul className="bg-navy/60 border border-card rounded-card p-4 mb-5 text-left space-y-2">
+          {[
+            "Évolution ELO globale",
+            "Taux de victoire détaillé",
+            "Statistiques par adversaire",
+            "Graphiques de performance",
+          ].map((feature) => (
+            <li
+              key={feature}
+              className="flex items-center gap-2 text-sm text-white"
+            >
+              <span className="text-lime font-bold">✓</span>
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
 
-        <button
+        <PButton
+          variant="primary"
+          size="md"
+          full
+          icon={<ArrowUpCircle size={18} />}
           onClick={onUpgradeClick}
-          className="w-full bg-gradient-to-r from-electric-blue to-electric-blue hover:from-amber-600 hover:to-red-600 text-white font-bold py-3 rounded-lg transition-all shadow-lg"
         >
-          ⬆️ PASSER AU PREMIUM
-        </button>
+          Passer au Premium
+        </PButton>
       </div>
     );
   }
 
-  // Premium users see full stats
   return (
-    <div className="bg-navy-soft rounded-xl p-6 border border-card">
-      <h2 className="text-xl font-bold text-white mb-6">Mes Stats</h2>
+    <div className="bg-navy-soft rounded-card border border-card p-6">
+      <h2 className="font-archivo font-extrabold uppercase tracking-[-0.4px] text-white text-xl mb-4">
+        Mes Stats
+      </h2>
 
-      <div className="space-y-4">
-        {/* Total Matches */}
-        <div className="bg-navy-deep/50 rounded-lg p-4">
-          <p className="text-sm text-cool-gray">Matchs joués</p>
-          <p className="text-2xl font-bold text-white">{stats.totalMatches}</p>
-        </div>
-
-        {/* Win Rate */}
-        <div className="bg-navy-deep/50 rounded-lg p-4">
-          <p className="text-sm text-cool-gray">Taux de victoire</p>
-          <p className="text-2xl font-bold text-signal-red">{stats.winRate}%</p>
-        </div>
-
-        {/* Average ELO */}
-        <div className="bg-navy-deep/50 rounded-lg p-4">
-          <p className="text-sm text-cool-gray">ELO moyen</p>
-          <p className="text-2xl font-bold text-electric-blue">{stats.averageElo}</p>
-        </div>
+      <div className="space-y-2.5">
+        <Kpi label="Matchs joués" value={stats.totalMatches} />
+        <Kpi label="Taux de victoire" value={`${stats.winRate}%`} accent="lime" />
+        <Kpi label="ELO moyen" value={stats.averageElo} accent="electric-blue" />
       </div>
 
-      {/* CTA for premium users */}
       <button
-        onClick={() => navigate('/profile?tab=stats')}
-        className="w-full mt-6 text-signal-red hover:brightness-110 font-bold text-sm transition-colors"
+        onClick={() => navigate("/profile?tab=stats")}
+        className="mt-5 inline-flex items-center gap-1.5 text-sm font-archivo font-bold uppercase tracking-[-0.2px] text-ping-yellow hover:brightness-110 transition-[filter]"
       >
-        Voir toutes mes stats →
+        Voir toutes mes stats
+        <ArrowRight size={14} />
       </button>
     </div>
   );

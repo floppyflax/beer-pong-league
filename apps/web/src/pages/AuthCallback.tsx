@@ -120,17 +120,17 @@ export const AuthCallback = () => {
   if (status === 'error') {
     return (
       <div className="min-h-screen bg-navy flex items-center justify-center p-4">
-        <div className="bg-navy-soft rounded-card p-6 border border-signal-red/40 max-w-sm w-full text-center">
-          <div className="flex justify-center mb-4">
-            <AlertCircle size={44} className="text-signal-red" />
+        <div className="bg-navy-soft rounded-card border border-signal-red/40 shadow-modal p-7 max-w-sm w-full text-center">
+          <div className="inline-flex items-center justify-center w-[68px] h-[68px] rounded-full bg-signal-red/15 mb-5">
+            <AlertCircle size={36} className="text-signal-red" />
           </div>
-          <h2 className="font-archivo font-extrabold uppercase tracking-tight text-white text-xl mb-2">
+          <h2 className="font-archivo font-extrabold uppercase tracking-[-0.5px] text-white text-2xl mb-2">
             Erreur de connexion
           </h2>
-          <p className="text-cool-gray text-sm mb-6">
+          <p className="text-cool-gray text-sm leading-relaxed mb-7">
             {error || 'Une erreur est survenue'}
           </p>
-          <PButton variant="primary" full onClick={() => navigate('/')}>
+          <PButton variant="primary" size="lg" full onClick={() => navigate('/')}>
             Retour à l'accueil
           </PButton>
         </div>
@@ -139,14 +139,14 @@ export const AuthCallback = () => {
   }
 
   return (
-    <div className="min-h-screen bg-navy flex items-center justify-center">
-      <div className="text-center">
-        <div className="flex justify-center mb-4">
-          <CheckCircle size={52} className="text-lime" />
+    <div className="min-h-screen bg-navy flex items-center justify-center p-4">
+      <div className="bg-navy-soft rounded-card border border-card shadow-modal p-7 max-w-sm w-full text-center">
+        <div className="inline-flex items-center justify-center w-[68px] h-[68px] rounded-full bg-lime/15 mb-5">
+          <CheckCircle size={36} className="text-lime" />
         </div>
-        <p className="font-archivo font-extrabold uppercase tracking-tight text-white text-xl mb-2">
+        <h2 className="font-archivo font-extrabold uppercase tracking-[-0.5px] text-white text-2xl mb-2">
           Connexion réussie !
-        </p>
+        </h2>
         <p className="text-cool-gray text-sm font-mono">Redirection en cours…</p>
       </div>
     </div>

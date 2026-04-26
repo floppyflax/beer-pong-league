@@ -20,6 +20,8 @@ import { PButton } from "../components/ponglo/PButton";
 import { UserPlus, Users } from "lucide-react";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { identityMergeService } from "../services/IdentityMergeService";
+import { databaseService } from "../services/DatabaseService";
+import type { Tournament } from "../types";
 import toast from "react-hot-toast";
 
 /**
@@ -81,7 +83,17 @@ export const EventJoin = () => {
   const ghostToken = searchParams.get("ghost");
   const [tokenProcessed, setTokenProcessed] = useState(false);
 
-  const tournament = tournaments.find((t) => t.id === id);
+  // `tournaments` from context only contains events the user belongs to.
+  // For a fresh joiner landing via shared link / QR, we fall back to a
+  // direct fetch by id (RLS allows public reads on tournaments).
+  const [fetchedTournament, setFetchedTournament] = useState<Tournament | null>(
+    null,
+  );
+  const [tournamentFetchAttempted, setTournamentFetchAttempted] =
+    useState(false);
+  const tournament =
+    tournaments.find((t) => t.id === id) ??
+    (fetchedTournament?.id === id ? fetchedTournament : null);
   const league = tournament?.leagueId
     ? leagues.find((l) => l.id === tournament.leagueId)
     : null;
@@ -127,13 +139,26 @@ export const EventJoin = () => {
 
   // ---- Effects ----
 
+  // If the event isn't in the user's local list (typical for a first-time
+  // joiner), fetch it directly by id before giving up.
+  useEffect(() => {
+    if (isLoadingInitialData || !id || tournament || tournamentFetchAttempted) {
+      return;
+    }
+    setTournamentFetchAttempted(true);
+    databaseService
+      .loadTournamentById(id)
+      .then((t) => setFetchedTournament(t))
+      .catch(() => setFetchedTournament(null));
+  }, [id, tournament, isLoadingInitialData, tournamentFetchAttempted]);
+
   // Tournament not found → redirect after a beat.
   useEffect(() => {
-    if (!isLoadingInitialData && !tournament) {
+    if (!isLoadingInitialData && tournamentFetchAttempted && !tournament) {
       const t = setTimeout(() => navigate("/"), 3000);
       return () => clearTimeout(t);
     }
-  }, [tournament, isLoadingInitialData, navigate]);
+  }, [tournament, isLoadingInitialData, tournamentFetchAttempted, navigate]);
 
   // Token short-circuit: claim and bounce to the dashboard.
   useEffect(() => {
@@ -305,7 +330,7 @@ export const EventJoin = () => {
 
   // ---- Render guards ----
 
-  if (isLoadingInitialData) {
+  if (isLoadingInitialData || (!tournament && !tournamentFetchAttempted)) {
     return (
       <div className="min-h-screen bg-navy flex items-center justify-center">
         <LoadingSpinner size={48} />

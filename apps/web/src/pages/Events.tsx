@@ -8,10 +8,11 @@ import { EventCard } from "@/components/events/EventCard";
 import {
   SearchBar,
   SegmentedTabs,
-  FAB,
   Banner,
   ScreenLayout,
 } from "@/components/design-system";
+import { PButton } from "@/components/ponglo/PButton";
+import { Lock } from "lucide-react";
 import { usePremiumLimits } from "@/hooks/usePremiumLimits";
 import { useEventsList } from "@/hooks/useEventsList";
 import { useLeague } from "@/context/LeagueContext";
@@ -119,12 +120,9 @@ export const Events: React.FC = () => {
         <div className="space-y-4">
           <Banner message={loadError} variant="error" position="inline" />
           <div className="flex justify-center">
-            <button
-              onClick={() => reloadData()}
-              className="bg-signal-red text-white border-[1.5px] border-signal-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 px-6 rounded-full transition-[transform,box-shadow,filter] duration-75"
-            >
+            <PButton variant="primary" size="md" onClick={() => reloadData()}>
               Réessayer
-            </button>
+            </PButton>
           </div>
         </div>
       </ScreenLayout>
@@ -150,11 +148,16 @@ export const Events: React.FC = () => {
         header={header}
         overlay={
           <>
-            <FAB
-              icon={Plus}
-              onClick={handleCreate}
-              ariaLabel="Créer un événement"
-            />
+            <div className="fixed bottom-24 right-5 z-30 lg:hidden">
+              <PButton
+                variant="primary"
+                size="lg"
+                onClick={handleCreate}
+                aria-label="Créer un événement"
+                icon={<Plus size={22} />}
+                className="!rounded-full !h-14 !w-14 !p-0 shadow-modal"
+              />
+            </div>
             {paymentModal}
           </>
         }
@@ -175,23 +178,25 @@ export const Events: React.FC = () => {
             <p className="text-cool-gray max-w-md">
               Rejoignez votre premier événement ou créez-en un
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <PButton
+                variant="primary"
+                size="md"
+                icon={<Plus size={18} />}
                 onClick={handleCreate}
-                className="bg-signal-red text-white border-[1.5px] border-signal-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 px-6 rounded-full transition-[transform,box-shadow,filter] duration-75 inline-flex items-center gap-2"
               >
-                <Plus size={20} />
                 Créer un événement
                 {isAtTournamentLimit && (
-                  <span aria-label="Premium requis">🔒</span>
+                  <Lock size={14} className="ml-1 opacity-80" aria-label="Premium requis" />
                 )}
-              </button>
-              <button
+              </PButton>
+              <PButton
+                variant="ghost"
+                size="md"
                 onClick={() => navigate("/join")}
-                className="bg-navy-soft text-white border-[1.5px] border-card hover:border-card-muted font-archivo font-bold uppercase tracking-tight py-3 px-6 rounded-full transition-colors"
               >
                 Rejoindre un événement
-              </button>
+              </PButton>
             </div>
           </div>
         </div>
@@ -204,11 +209,16 @@ export const Events: React.FC = () => {
       header={header}
       overlay={
         <>
-          <FAB
-            icon={Plus}
-            onClick={handleCreate}
-            ariaLabel="Créer un événement"
-          />
+          <div className="fixed bottom-24 right-5 z-30 lg:hidden">
+            <PButton
+              variant="primary"
+              size="lg"
+              onClick={handleCreate}
+              aria-label="Créer un événement"
+              icon={<Plus size={22} />}
+              className="!rounded-full !h-14 !w-14 !p-0 shadow-modal"
+            />
+          </div>
           {paymentModal}
         </>
       }

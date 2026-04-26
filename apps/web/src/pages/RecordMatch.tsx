@@ -19,7 +19,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Sheet } from "@/components/design-system/Sheet";
 import { PButton } from "@/components/ponglo/PButton";
 import { SearchBar, ScreenLayout, StickyCTA } from "@/components/design-system";
-import { X, UserPlus, Check, RotateCcw, ChevronDown, ChevronLeft, Trophy, Calendar } from "lucide-react";
+import { X, UserPlus, Check, ChevronDown, ChevronLeft, Trophy, Calendar, Minus, Plus, Lock } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Player } from "@/types";
 
@@ -38,7 +38,16 @@ const TOTAL_CUPS = 10;
 // Standard beer pong rack viewed from above: back row first (4 cups), then 3, 2, 1
 const CUP_ROWS = [4, 3, 2, 1];
 
-const makeCups = () => Array.from({ length: TOTAL_CUPS }, () => true);
+type EnrichedPlayer = Player & { avatarUrl?: string | null };
+
+/** Initials fallback when no avatar URL is available. */
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((s) => s[0]?.toUpperCase())
+    .slice(0, 2)
+    .join("");
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 /* Stepper                                                                     */
@@ -276,128 +285,279 @@ function PlayerPool({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────── */
-/* Cups pyramid                                                                */
+/* Player chip — small avatar + pseudo (used in score view)                    */
 /* ─────────────────────────────────────────────────────────────────────────── */
-function CupsPyramid({
-  team,
-  cups,
-  onToggle,
-  onReset,
+function PlayerChip({
+  player,
+  side,
+  dim,
 }: {
-  team: Team;
-  cups: boolean[];
-  onToggle: (index: number) => void;
-  onReset: () => void;
+  player: EnrichedPlayer;
+  side: Team;
+  dim?: boolean;
 }) {
-  const isA = team === "A";
-  const remaining = cups.filter(Boolean).length;
-  const standingCls = isA
-    ? "bg-electric-blue border-electric-blue"
-    : "bg-signal-red border-signal-red";
-  const numberCls = isA ? "text-electric-blue" : "text-signal-red";
-
-  let cupIndex = 0;
+  const isA = side === "A";
+  const ringCls = isA ? "ring-electric-blue/50" : "ring-signal-red/50";
+  const fallbackBg = isA
+    ? "bg-electric-blue/15 text-electric-blue"
+    : "bg-signal-red/15 text-signal-red";
 
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex flex-col items-center gap-1">
-        {CUP_ROWS.map((rowCount, rowIdx) => (
+    <div
+      className={`inline-flex items-center gap-1.5 pl-1 pr-2.5 py-0.5 rounded-full bg-navy/50 border border-card transition-opacity ${
+        dim ? "opacity-50" : ""
+      }`}
+    >
+      {player.avatarUrl ? (
+        <img
+          src={player.avatarUrl}
+          alt=""
+          className={`w-5 h-5 rounded-full object-cover ring-1 ${ringCls}`}
+        />
+      ) : (
+        <div
+          className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-archivo font-extrabold ring-1 ${ringCls} ${fallbackBg}`}
+          aria-hidden
+        >
+          {initialsOf(player.name) || "?"}
+        </div>
+      )}
+      <span className="text-xs font-archivo font-bold text-white truncate max-w-[80px]">
+        {player.name}
+      </span>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* TableSide — one half of the beer-pong table viewed from above               */
+/*   Vertical layout: A on top (back row at top, tip pointing down towards     */
+/*   center), B at bottom (tip at top pointing up, back row at bottom).        */
+/*   - tap the side to declare it winner                                       */
+/*   - winner: cups solid, score editable (+/- or tap a cup)                   */
+/*   - loser: empty positions, score = 0                                       */
+/* ─────────────────────────────────────────────────────────────────────────── */
+function TableSide({
+  team,
+  players,
+  cupsRemaining,
+  state, // 'pending' | 'winner' | 'loser'
+  onSelectWinner,
+  onAdjustCups,
+}: {
+  team: Team;
+  players: EnrichedPlayer[];
+  cupsRemaining: number;
+  state: "pending" | "winner" | "loser";
+  onSelectWinner: () => void;
+  onAdjustCups: (next: number) => void;
+}) {
+  const isA = team === "A";
+  const accentText = isA ? "text-electric-blue" : "text-signal-red";
+  const cupSolid = isA
+    ? "bg-electric-blue border-electric-blue"
+    : "bg-signal-red border-signal-red";
+  const dotBg = isA ? "bg-electric-blue" : "bg-signal-red";
+
+  // Render rows top-to-bottom. A: wide row at top, tip at bottom (points down
+  // towards center). B: tip at top (points up towards center), wide row at
+  // the bottom edge.
+  const rows = isA ? CUP_ROWS : [...CUP_ROWS].reverse();
+
+  // Fill back-to-front: the back row (outer edge of the table) keeps its
+  // cups longest. For A, back is render-row 0 (top). For B, back is
+  // render-row 3 (bottom).
+  const fillOrder = isA ? [0, 1, 2, 3] : [3, 2, 1, 0];
+  const remainingByRow: number[] = (() => {
+    let left = cupsRemaining;
+    const filled = [0, 0, 0, 0];
+    for (const idx of fillOrder) {
+      const cap = rows[idx];
+      const take = Math.min(cap, left);
+      filled[idx] = take;
+      left -= take;
+      if (left <= 0) break;
+    }
+    return filled;
+  })();
+
+  // Pending and loser are both clickable: pending → pick winner, loser → swap.
+  // Winner is non-clickable at the wrapper level (cups handle their own clicks).
+  const sideClickable = state !== "winner";
+  const interactiveSide = sideClickable ? "cursor-pointer" : "";
+
+  const handleSideClick = () => {
+    if (state !== "winner") onSelectWinner();
+  };
+
+  const sideAccentBg = isA ? "bg-electric-blue/10" : "bg-signal-red/10";
+  const sideAccentBorder = isA ? "border-electric-blue" : "border-signal-red";
+  const sideAccentShadow = isA ? "shadow-[0_3px_0_#0052D4]" : "shadow-[0_3px_0_#C42418]";
+
+  const sideStateClass =
+    state === "winner"
+      ? `${sideAccentBg} border-[1.5px] ${sideAccentBorder} ${sideAccentShadow}`
+      : state === "loser"
+        ? "bg-navy/40 border-[1.5px] border-card hover:border-cool-gray hover:bg-navy/60"
+        : "border-[1.5px] border-dashed border-cool-gray/40 hover:border-cool-gray hover:bg-white/[0.02]";
+
+  const handleCupClick = () => {
+    if (state !== "winner") return;
+    // Tap any cup → drop one (or restore if all dropped).
+    if (cupsRemaining > 1) {
+      onAdjustCups(cupsRemaining - 1);
+    } else {
+      onAdjustCups(TOTAL_CUPS);
+    }
+  };
+
+  /* Sub-blocks */
+
+  const headerRow = (
+    <div className="flex items-center justify-between gap-3 w-full">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className={`w-2 h-2 rounded-full shrink-0 ${dotBg}`} />
+        <h3
+          className={`font-archivo font-extrabold uppercase tracking-tight text-sm ${accentText}`}
+        >
+          Équipe {team}
+        </h3>
+        {state === "winner" && (
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-lime">
+            🏆
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {state === "winner" && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdjustCups(Math.max(1, cupsRemaining - 1));
+            }}
+            className="w-7 h-7 rounded-full border border-card flex items-center justify-center text-cool-gray hover:text-white hover:border-cool-gray transition-colors"
+            aria-label="Diminuer les cups restants"
+          >
+            <Minus size={12} />
+          </button>
+        )}
+        <div
+          className={`text-[56px] font-archivo font-black tabular-nums leading-none ${
+            state === "loser" ? "text-cool-gray/40" : accentText
+          }`}
+        >
+          {state === "loser" ? 0 : cupsRemaining}
+        </div>
+        {state === "winner" && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdjustCups(Math.min(TOTAL_CUPS, cupsRemaining + 1));
+            }}
+            className="w-7 h-7 rounded-full border border-card flex items-center justify-center text-cool-gray hover:text-white hover:border-cool-gray transition-colors"
+            aria-label="Augmenter les cups restants"
+          >
+            <Plus size={12} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const chipsRow = (
+    <div className="flex flex-wrap gap-2 w-full">
+      {players.map((p) => (
+        <PlayerChip key={p.id} player={p} side={team} dim={state === "loser"} />
+      ))}
+    </div>
+  );
+
+  const pyramid = (
+    <div className="flex flex-col items-center gap-1.5 w-full py-1">
+      {rows.map((rowCount, rowIdx) => {
+        const standingInRow = remainingByRow[rowIdx];
+        // Center the standing cups within the row visually (looks more like
+        // a real rack — the front of the rack is the row of 1).
+        const startOffset = Math.floor((rowCount - standingInRow) / 2);
+        return (
           <div key={rowIdx} className="flex gap-1.5">
-            {Array.from({ length: rowCount }).map(() => {
-              const i = cupIndex++;
-              const standing = cups[i];
+            {Array.from({ length: rowCount }).map((_, posInRow) => {
+              const isStanding =
+                posInRow >= startOffset &&
+                posInRow < startOffset + standingInRow;
+              const visible = state === "loser" ? false : isStanding;
+              const interactive = state === "winner";
               return (
                 <button
-                  key={i}
+                  key={posInRow}
                   type="button"
-                  onClick={() => onToggle(i)}
-                  aria-label={standing ? `Cup ${i + 1} debout` : `Cup ${i + 1} tombé`}
-                  aria-pressed={!standing}
-                  className={`w-6 h-6 md:w-7 md:h-7 rounded-full border-2 transition-all active:scale-90 ${
-                    standing
-                      ? standingCls
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (interactive) handleCupClick();
+                  }}
+                  disabled={!interactive}
+                  aria-label={
+                    visible
+                      ? `Cup debout (${cupsRemaining} restants)`
+                      : "Cup tombé"
+                  }
+                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${
+                    interactive ? "active:scale-90 cursor-pointer" : ""
+                  } ${
+                    visible
+                      ? cupSolid
                       : "bg-transparent border-cool-gray/30 opacity-40"
                   }`}
                 />
               );
             })}
           </div>
-        ))}
-      </div>
-
-      <div className="flex flex-col items-center gap-1.5">
-        <div className={`text-5xl font-archivo font-black tabular-nums leading-none ${numberCls}`}>
-          {remaining}
-        </div>
-        <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-cool-gray">
-          cups restants
-        </div>
-        <button
-          type="button"
-          onClick={onReset}
-          className="mt-1 flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest text-cool-gray hover:text-white transition-colors"
-        >
-          <RotateCcw size={11} />
-          Reset
-        </button>
-      </div>
+        );
+      })}
     </div>
   );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* Team summary (step 2)                                                       */
-/* ─────────────────────────────────────────────────────────────────────────── */
-function TeamScoreCard({
-  team,
-  players,
-  cups,
-  isWinner,
-  onToggleCup,
-  onResetCups,
-}: {
-  team: Team;
-  players: Player[];
-  cups: boolean[];
-  isWinner: boolean;
-  onToggleCup: (i: number) => void;
-  onResetCups: () => void;
-}) {
-  const isA = team === "A";
-  const accentText = isA ? "text-electric-blue" : "text-signal-red";
-  const dotBg = isA ? "bg-electric-blue" : "bg-signal-red";
-  const borderCls = isWinner
-    ? isA
-      ? "border-electric-blue shadow-glow-electric"
-      : "border-signal-red shadow-glow-red"
-    : "border-card";
 
   return (
-    <div className={`bg-navy-soft border-[1.5px] rounded-card p-4 space-y-3 transition-all ${borderCls}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={`w-2 h-2 rounded-full shrink-0 ${dotBg}`} />
-          <h3 className={`font-archivo font-extrabold uppercase tracking-tight text-sm ${accentText}`}>
-            {isA ? "Équipe A" : "Équipe B"}
-          </h3>
-        </div>
-        {isWinner && (
-          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-lime">
-            🏆 vainqueur
-          </span>
-        )}
-      </div>
+    <div
+      onClick={handleSideClick}
+      onKeyDown={(e) => {
+        if (sideClickable && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          handleSideClick();
+        }
+      }}
+      role={sideClickable ? "button" : undefined}
+      tabIndex={sideClickable ? 0 : undefined}
+      className={`group relative w-full flex flex-col gap-3 px-4 py-3 text-left rounded-card transition-all duration-150 ${interactiveSide} ${sideStateClass}`}
+      aria-label={
+        state === "winner"
+          ? undefined
+          : `Choisir l'équipe ${team} comme vainqueur`
+      }
+    >
+      {/* A: header → chips → pyramid (tip down, towards center).
+          B: pyramid (tip up, towards center) → chips → header. */}
+      {isA ? (
+        <>
+          {headerRow}
+          {chipsRow}
+          {pyramid}
+        </>
+      ) : (
+        <>
+          {pyramid}
+          {chipsRow}
+          {headerRow}
+        </>
+      )}
 
-      <div className="text-xs text-white/90 truncate">
-        {players.map((p) => p.name).join(" · ")}
-      </div>
-
-      <CupsPyramid
-        team={team}
-        cups={cups}
-        onToggle={onToggleCup}
-        onReset={onResetCups}
-      />
+      {state === "pending" && (
+        <span className="text-center text-[10px] font-mono uppercase tracking-widest text-cool-gray/70 group-hover:text-white transition-colors w-full">
+          Tape pour déclarer vainqueur
+        </span>
+      )}
     </div>
   );
 }
@@ -431,12 +591,14 @@ export const RecordMatch = () => {
   const [step, setStep] = useState<Step>("compose");
   const [activeTeam, setActiveTeam] = useState<Team>("A");
   const [playerTeams, setPlayerTeams] = useState<Record<string, Team>>({});
-  const [participants, setParticipants] = useState<Player[]>([]);
+  const [participants, setParticipants] = useState<EnrichedPlayer[]>([]);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
-  const [cupsA, setCupsA] = useState<boolean[]>(makeCups);
-  const [cupsB, setCupsB] = useState<boolean[]>(makeCups);
+  // Score-step model: pick a winner first, then adjust the winner's
+  // remaining cups (1..10). The loser's cups are implicitly 0.
+  const [winnerTeam, setWinnerTeam] = useState<Team | null>(null);
+  const [winnerCupsRemaining, setWinnerCupsRemaining] = useState<number>(TOTAL_CUPS);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* Context resolution */
@@ -473,8 +635,8 @@ export const RecordMatch = () => {
     setParticipants([]);
     setSearchQuery("");
     setActiveTeam("A");
-    setCupsA(makeCups());
-    setCupsB(makeCups());
+    setWinnerTeam(null);
+    setWinnerCupsRemaining(TOTAL_CUPS);
     setStep("compose");
     setShowContextPicker(false);
   };
@@ -497,13 +659,14 @@ export const RecordMatch = () => {
               losses: p.losses,
               matchesPlayed: p.matchesPlayed,
               streak: 0,
+              avatarUrl: p.avatarUrl ?? null,
             })),
           );
         })
         .catch(() => setParticipants([]))
         .finally(() => setIsLoadingParticipants(false));
     } else if (contextType === "league" && league) {
-      setParticipants(league.players);
+      setParticipants(league.players.map((p) => ({ ...p, avatarUrl: null })));
     }
      
   }, [id, contextType]);
@@ -511,7 +674,7 @@ export const RecordMatch = () => {
   /* Keep league participants in sync with context */
   useEffect(() => {
     if (contextType === "league" && league) {
-      setParticipants(league.players);
+      setParticipants(league.players.map((p) => ({ ...p, avatarUrl: null })));
     }
   }, [contextType, league]);
 
@@ -540,18 +703,15 @@ export const RecordMatch = () => {
       ? teamAPlayers.length === teamSize && teamBPlayers.length === teamSize
       : teamAPlayers.length >= 1 && teamBPlayers.length >= 1;
 
-  const cupsRemainingA = cupsA.filter(Boolean).length;
-  const cupsRemainingB = cupsB.filter(Boolean).length;
-  const scoreA = TOTAL_CUPS - cupsRemainingB;
-  const scoreB = TOTAL_CUPS - cupsRemainingA;
-
-  const winner: Team | null =
-    cupsRemainingB === 0 && cupsRemainingA > 0
-      ? "A"
-      : cupsRemainingA === 0 && cupsRemainingB > 0
-        ? "B"
-        : null;
-
+  // Derived scores: winner's points = 10 (always — they reached the goal),
+  // loser's points = 10 - (winner's cups remaining).
+  const cupsRemainingA = winnerTeam === "A" ? winnerCupsRemaining : 0;
+  const cupsRemainingB = winnerTeam === "B" ? winnerCupsRemaining : 0;
+  const scoreA =
+    winnerTeam === "A" ? TOTAL_CUPS : TOTAL_CUPS - cupsRemainingB;
+  const scoreB =
+    winnerTeam === "B" ? TOTAL_CUPS : TOTAL_CUPS - cupsRemainingA;
+  const winner: Team | null = winnerTeam;
   const isScoreValid = winner !== null;
 
   /* Actions — compose */
@@ -635,17 +795,13 @@ export const RecordMatch = () => {
   };
 
   /* Actions — score */
-  const toggleCup = (team: Team, index: number) => {
-    if (team === "A") {
-      setCupsA((prev) => prev.map((v, i) => (i === index ? !v : v)));
-    } else {
-      setCupsB((prev) => prev.map((v, i) => (i === index ? !v : v)));
-    }
+  const handleSelectWinner = (team: Team) => {
+    setWinnerTeam(team);
+    setWinnerCupsRemaining(TOTAL_CUPS);
   };
 
-  const resetCups = (team: Team) => {
-    if (team === "A") setCupsA(makeCups());
-    else setCupsB(makeCups());
+  const handleAdjustWinnerCups = (next: number) => {
+    setWinnerCupsRemaining(Math.max(1, Math.min(TOTAL_CUPS, next)));
   };
 
   /* Submit */
@@ -716,7 +872,34 @@ export const RecordMatch = () => {
     </div>
   );
 
-  const contextChip = (
+  const contextLocked = step === "score";
+  const contextChip = contextLocked ? (
+    <div
+      className="w-full flex items-center gap-3 bg-navy-soft/60 border border-card rounded-card px-4 py-3 opacity-80"
+      aria-label="Contexte verrouillé pour cette étape"
+    >
+      <div
+        className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center ${
+          contextType === "league"
+            ? "bg-electric-blue/15 text-electric-blue"
+            : "bg-ping-yellow/15 text-ping-yellow"
+        }`}
+      >
+        {contextType === "league" ? <Trophy size={16} /> : <Calendar size={16} />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-cool-gray">
+          {contextType === "tournament"
+            ? `Événement · ${formatLabel}`
+            : "Ligue · Libre"}
+        </div>
+        <div className="text-sm font-archivo font-extrabold uppercase tracking-tight text-white truncate">
+          {contextName}
+        </div>
+      </div>
+      <Lock size={14} className="text-cool-gray shrink-0" aria-hidden />
+    </div>
+  ) : (
     <button
       type="button"
       onClick={() => setShowContextPicker(true)}
@@ -831,37 +1014,41 @@ export const RecordMatch = () => {
           </>
         ) : (
           <>
-            <TeamScoreCard
-              team="A"
-              players={teamAPlayers}
-              cups={cupsA}
-              isWinner={winner === "A"}
-              onToggleCup={(i) => toggleCup("A", i)}
-              onResetCups={() => resetCups("A")}
-            />
-            <TeamScoreCard
-              team="B"
-              players={teamBPlayers}
-              cups={cupsB}
-              isWinner={winner === "B"}
-              onToggleCup={(i) => toggleCup("B", i)}
-              onResetCups={() => resetCups("B")}
-            />
-
-            <div className="bg-navy-soft rounded-card p-3 border border-card text-center">
-              <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-cool-gray mb-1">
-                Score
+            {/* Beer-pong table viewed from above. Sides face each other across
+                the center divider. Tap a side to crown the winner. */}
+            <div className="bg-navy-soft border-[1.5px] border-card rounded-card overflow-hidden">
+              <div className="flex flex-col">
+                <TableSide
+                  team="A"
+                  players={teamAPlayers as EnrichedPlayer[]}
+                  cupsRemaining={cupsRemainingA}
+                  state={
+                    winnerTeam === null
+                      ? "pending"
+                      : winnerTeam === "A"
+                        ? "winner"
+                        : "loser"
+                  }
+                  onSelectWinner={() => handleSelectWinner("A")}
+                  onAdjustCups={handleAdjustWinnerCups}
+                />
+                {/* Center divider — the "table line" */}
+                <div className="h-px bg-card mx-4" aria-hidden />
+                <TableSide
+                  team="B"
+                  players={teamBPlayers as EnrichedPlayer[]}
+                  cupsRemaining={cupsRemainingB}
+                  state={
+                    winnerTeam === null
+                      ? "pending"
+                      : winnerTeam === "B"
+                        ? "winner"
+                        : "loser"
+                  }
+                  onSelectWinner={() => handleSelectWinner("B")}
+                  onAdjustCups={handleAdjustWinnerCups}
+                />
               </div>
-              <div className="font-archivo font-extrabold text-2xl tabular-nums text-white">
-                <span className={winner === "A" ? "text-electric-blue" : ""}>{scoreA}</span>
-                <span className="mx-3 text-cool-gray">–</span>
-                <span className={winner === "B" ? "text-signal-red" : ""}>{scoreB}</span>
-              </div>
-              {!isScoreValid && (
-                <p className="text-[11px] text-cool-gray mt-2">
-                  Tape sur les cups pour éliminer l'adversaire — il faut finir la partie.
-                </p>
-              )}
             </div>
           </>
         )}

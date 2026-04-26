@@ -8,6 +8,7 @@ import { StatCard } from "@/components/design-system/StatCard";
 import { PAvatar } from "@/components/ponglo/PAvatar";
 import { PButton } from "@/components/ponglo/PButton";
 import { PaymentModal } from "@/components/PaymentModal";
+import { WebcamCaptureSheet } from "@/components/WebcamCaptureSheet";
 import { premiumService } from "@/services/PremiumService";
 import { authService } from "@/services/AuthService";
 import { localUserService } from "@/services/LocalUserService";
@@ -24,7 +25,7 @@ export const UserProfile = () => {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const { leagues, tournaments } = useLeague();
+  const { leagues, tournaments, reloadData } = useLeague();
 
   // Profile state (loaded from DB for auth users, localStorage for anon)
   const [pseudo, setPseudo] = useState<string>("");
@@ -34,6 +35,7 @@ export const UserProfile = () => {
   const [isSavingName, setIsSavingName] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [showAvatarSourceSheet, setShowAvatarSourceSheet] = useState(false);
+  const [showWebcamSheet, setShowWebcamSheet] = useState(false);
 
   // Load profile on mount
   useEffect(() => {
@@ -82,6 +84,10 @@ export const UserProfile = () => {
       if (isAuthenticated && user) {
         const ok = await authService.updateUserProfile(user.id, { pseudo: trimmed });
         if (!ok) throw new Error("update failed");
+        // Refresh leagues/tournaments so the new pseudo appears in podium,
+        // leaderboard, history, etc. (snapshots have been propagated
+        // server-side by updateUserProfile).
+        await reloadData();
       } else {
         localUserService.updateLocalUser({ pseudo: trimmed });
       }
@@ -96,31 +102,53 @@ export const UserProfile = () => {
   };
 
   // ── Avatar upload ──────────────────────────────────────────────────────────
-  const handlePickAvatar = async (source: "camera" | "gallery") => {
+  const isMobileDevice = () =>
+    typeof navigator !== "undefined" &&
+    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  const uploadAvatarFromBlob = async (blob: Blob) => {
     if (!user?.id) return;
-    setShowAvatarSourceSheet(false);
     setIsUploadingAvatar(true);
     try {
-      const result =
-        source === "camera"
-          ? await PhotoService.takePhoto()
-          : await PhotoService.pickFromGallery();
-      const mime = result.blob.type || "image/jpeg";
+      const mime = blob.type || "image/jpeg";
       const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
-      const file = new File([result.blob], `avatar.${ext}`, { type: mime });
+      const file = new File([blob], `avatar.${ext}`, { type: mime });
       const url = await authService.uploadAvatar(user.id, file);
       if (!url) throw new Error("upload failed");
       const ok = await authService.updateUserProfile(user.id, { avatar_url: url });
       if (!ok) throw new Error("db update failed");
       setAvatarUrl(url);
       toast.success("Photo de profil mise à jour");
-    } catch (err) {
-      // Utilisateur a annulé la sélection — pas une erreur
-      if (err instanceof Error && err.message === "No file selected") return;
+    } catch {
       toast.error("Impossible d'uploader la photo");
     } finally {
       setIsUploadingAvatar(false);
     }
+  };
+
+  const handlePickAvatar = async (source: "camera" | "gallery") => {
+    if (!user?.id) return;
+    setShowAvatarSourceSheet(false);
+    // Desktop + caméra → vraie capture webcam (input.capture est ignoré sur desktop)
+    if (source === "camera" && !isMobileDevice()) {
+      setShowWebcamSheet(true);
+      return;
+    }
+    try {
+      const result =
+        source === "camera"
+          ? await PhotoService.takePhoto()
+          : await PhotoService.pickFromGallery();
+      await uploadAvatarFromBlob(result.blob);
+    } catch (err) {
+      if (err instanceof Error && err.message === "No file selected") return;
+      toast.error("Impossible d'uploader la photo");
+    }
+  };
+
+  const handleWebcamCapture = async (blob: Blob) => {
+    setShowWebcamSheet(false);
+    await uploadAvatarFromBlob(blob);
   };
 
   // ── Stats ──────────────────────────────────────────────────────────────────
@@ -448,6 +476,12 @@ export const UserProfile = () => {
           </PButton>
         </div>
       </Sheet>
+
+      <WebcamCaptureSheet
+        isOpen={showWebcamSheet}
+        onClose={() => setShowWebcamSheet(false)}
+        onCapture={(blob) => void handleWebcamCapture(blob)}
+      />
     </div>
   );
 };

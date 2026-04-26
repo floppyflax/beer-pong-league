@@ -245,6 +245,14 @@ class AuthService {
 
   /**
    * Update user profile fields (pseudo and/or avatar_url).
+   *
+   * When `pseudo` changes, also propagates the new value to every
+   * `tournament_players.pseudo_in_tournament` and
+   * `league_players.pseudo_in_league` snapshot owned by this user, so the
+   * rename is visible everywhere (podium, leaderboard, match history,
+   * display view) instead of staying frozen at the join-time snapshot.
+   * Propagation runs server-side via the `propagate_user_pseudo` RPC
+   * (SECURITY DEFINER — tournament_players has no UPDATE policy).
    */
   async updateUserProfile(
     userId: string,
@@ -257,6 +265,19 @@ class AuthService {
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", userId);
       if (error) throw error;
+
+      if (updates.pseudo !== undefined) {
+        const { error: rpcError } = await supabase.rpc(
+          "propagate_user_pseudo",
+        );
+        if (rpcError) {
+          // Non-fatal: the user-level update succeeded. We log so we notice
+          // if the RPC is missing (migration not applied) or RLS denies it,
+          // but we don't roll back — the next reload will still pick up the
+          // canonical user.pseudo for joined queries.
+          console.error("Pseudo propagation failed:", rpcError);
+        }
+      }
       return true;
     } catch (error) {
       console.error("Error updating user profile:", error);

@@ -59,6 +59,10 @@ class DatabaseService {
     return tournamentsRepository.loadTournaments(userId, anonymousUserId);
   }
 
+  loadTournamentById(tournamentId: string): Promise<Tournament | null> {
+    return tournamentsRepository.loadTournamentById(tournamentId);
+  }
+
   saveTournament(tournament: Tournament): Promise<void> {
     return tournamentsRepository.saveTournament(tournament);
   }
@@ -149,6 +153,7 @@ class DatabaseService {
       wins: number;
       losses: number;
       joinedAt: string;
+      avatarUrl?: string | null;
     }[]
   > {
     return playersRepository.loadTournamentParticipants(tournamentId);

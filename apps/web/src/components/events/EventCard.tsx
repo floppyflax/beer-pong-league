@@ -24,28 +24,17 @@ export const EventCard: React.FC<EventCardProps> = ({
 
   const today = new Date().toISOString().slice(0, 10);
   const eventDay = tournament.date ? new Date(tournament.date).toISOString().slice(0, 10) : null;
-  const isToday = eventDay === today;
   const isFuture = eventDay ? eventDay > today : false;
+  const isLive = !tournament.isFinished && !isFuture;
 
   const badgeLabel = tournament.isFinished
     ? "Terminé"
-    : isToday
-    ? "En ce moment"
     : isFuture && eventDay
     ? new Date(tournament.date!).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" })
-    : "Actif";
+    : "En ce moment";
 
-  const badgeColor = tournament.isFinished
-    ? "text-cool-gray"
-    : isToday
-    ? "text-lime"
-    : "text-cool-gray";
-
-  const dotColor = tournament.isFinished
-    ? "bg-cool-gray"
-    : isToday
-    ? "bg-lime"
-    : "bg-cool-gray";
+  const badgeColor = isLive ? "text-lime" : "text-cool-gray";
+  const dotColor = isLive ? "bg-lime" : "bg-cool-gray";
 
   const content = (
     <>
@@ -53,7 +42,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         <div className="flex items-center gap-2 mb-1.5">
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`}
-            style={isToday && !tournament.isFinished ? { boxShadow: "0 0 0 4px rgba(183,255,59,0.18)" } : undefined}
+            style={isLive ? { boxShadow: "0 0 0 4px rgba(183,255,59,0.18)" } : undefined}
           />
           <span className={`font-mono text-[10px] tracking-[1.5px] uppercase font-bold ${badgeColor}`}>
             {badgeLabel}

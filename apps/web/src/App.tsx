@@ -8,7 +8,7 @@ import {
   useLocation,
   useParams,
 } from "react-router-dom";
-import { useState, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { Toaster } from "react-hot-toast";
 import { LeagueProvider } from "./context/LeagueContext";
 import { IdentityProvider } from "./context/IdentityContext";
@@ -16,7 +16,6 @@ import { AuthProvider } from "./context/AuthContext";
 import { NavigationProvider } from "./context/NavigationContext";
 import { SportProvider } from "./context/SportContext";
 import { ResponsiveLayout } from "./components/layout/ResponsiveLayout";
-import { MenuDrawer } from "./components/layout/MenuDrawer";
 import { BottomTabMenu } from "./components/navigation/BottomTabMenu";
 import { BackButton } from "./components/navigation/BackButton";
 import { DevPanel } from "./components/DevPanel";
@@ -31,7 +30,7 @@ import {
   PAGES_WITH_SPECIFIC_MENU,
 } from "./utils/navigationHelpers";
 import { useNativeInit } from "./hooks/useNativeInit";
-import { Menu, User, LogOut } from "lucide-react";
+import { User, LogOut } from "lucide-react";
 
 // Lazy-loaded page components for code splitting
 // Note: Using named imports with .then() to convert to default exports for React.lazy()
@@ -220,7 +219,6 @@ function HeaderUserInfo() {
 
 function AppContent() {
   useNativeInit();
-  const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const { isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
@@ -262,22 +260,9 @@ function AppContent() {
     <div className="min-h-screen bg-navy text-white flex flex-col">
       {showHeader && (
         <>
-          <MenuDrawer isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
           <header className="p-4 bg-navy-soft border-b border-card flex justify-between items-center sticky top-0 z-10">
-            {/* Left navigation: Back button OR Hamburger menu - hidden on desktop (lg and above) */}
-            <div className="lg:hidden">
-              {showBackBtn ? (
-                <BackButton />
-              ) : (
-                <button
-                  onClick={() => setMenuOpen(true)}
-                  className="p-2 hover:bg-navy-deep rounded-lg transition-colors"
-                  aria-label="Open menu"
-                >
-                  <Menu size={24} />
-                </button>
-              )}
-            </div>
+            {/* Left navigation: Back button only on mobile when applicable */}
+            <div className="lg:hidden">{showBackBtn && <BackButton />}</div>
             {/* Desktop navigation placeholder - shown on lg and above */}
             <nav className="hidden lg:flex items-center gap-6">
               <Link

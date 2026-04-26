@@ -1,5 +1,6 @@
 import { Component, ReactNode } from 'react';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
+import { PButton } from './ponglo/PButton';
 
 /**
  * Error Boundary component props
@@ -121,54 +122,53 @@ function DefaultErrorFallback({ error, errorInfo, reset }: DefaultErrorFallbackP
   };
 
   return (
-    <div className="min-h-screen bg-navy flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-navy-soft rounded-lg p-8 text-center">
-        {/* Error Icon */}
-        <AlertTriangle size={64} className="text-red-500 mx-auto mb-4" />
+    <div className="min-h-screen bg-navy flex items-center justify-center p-4">
+      <div className="max-w-sm w-full bg-navy-soft rounded-card border border-card shadow-modal p-7 text-center">
+        <div className="inline-flex items-center justify-center w-[68px] h-[68px] rounded-full bg-signal-red/15 mb-5">
+          <AlertTriangle size={36} className="text-signal-red" />
+        </div>
 
-        {/* Error Title */}
-        <h1 className="text-2xl font-bold text-white mb-2">
+        <h1 className="font-archivo font-extrabold uppercase tracking-[-0.5px] text-white text-2xl mb-2">
           Oups ! Quelque chose s'est mal passé
         </h1>
-
-        {/* Error Message */}
-        <p className="text-cool-gray mb-6 text-lg">
-          Une erreur inattendue s'est produite. Veuillez réessayer ou retourner à l'accueil.
+        <p className="text-cool-gray text-sm leading-relaxed mb-6">
+          Une erreur inattendue s'est produite. Réessaie ou retourne à l'accueil.
         </p>
 
-        {/* Error Details (dev mode only) */}
         {import.meta.env.DEV && (
-          <div className="mb-6 p-4 bg-navy rounded text-left max-h-48 overflow-auto">
-            <p className="text-xs font-semibold text-red-400 mb-2">Détails de l'erreur (mode dev):</p>
-            <p className="text-sm font-mono text-red-400 break-all mb-2">
+          <div className="mb-6 p-4 bg-navy/60 border border-card rounded-card text-left max-h-48 overflow-auto">
+            <p className="text-xs font-semibold text-signal-red mb-2">Détails de l'erreur (mode dev) :</p>
+            <p className="text-sm font-mono text-signal-red break-all mb-2">
               {error.message}
             </p>
             {errorInfo?.componentStack && (
               <details className="text-xs font-mono text-cool-gray">
-                <summary className="cursor-pointer hover:text-cool-gray">Component Stack</summary>
+                <summary className="cursor-pointer hover:text-white">Component Stack</summary>
                 <pre className="mt-2 whitespace-pre-wrap">{errorInfo.componentStack}</pre>
               </details>
             )}
           </div>
         )}
 
-        {/* Action Buttons - Alcohol-friendly design: large, high contrast */}
-        <div className="flex gap-4">
-          <button
+        <div className="flex flex-col gap-2.5">
+          <PButton
+            variant="primary"
+            size="lg"
+            full
+            icon={<RefreshCw size={18} />}
             onClick={reset}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-ping-yellow text-white rounded-lg font-semibold hover:brightness-110 transition-colors text-lg min-h-[44px]"
           >
-            <RefreshCw size={24} />
             Réessayer
-          </button>
-
-          <button
+          </PButton>
+          <PButton
+            variant="ghost"
+            size="md"
+            full
+            icon={<Home size={16} />}
             onClick={handleGoHome}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-navy-deep text-white rounded-lg font-semibold hover:bg-navy-soft transition-colors text-lg min-h-[44px]"
           >
-            <Home size={24} />
             Accueil
-          </button>
+          </PButton>
         </div>
       </div>
     </div>
@@ -187,26 +187,33 @@ interface CompactErrorFallbackProps {
 
 export function CompactErrorFallback({ error, reset, title = "Erreur" }: CompactErrorFallbackProps) {
   return (
-    <div className="bg-navy-soft rounded-lg p-6 text-center border-2 border-red-500/20">
-      <AlertTriangle size={32} className="text-red-500 mx-auto mb-3" />
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-cool-gray mb-4 text-sm">
+    <div className="bg-navy-soft rounded-card border border-signal-red/30 p-6 text-center">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-signal-red/15 mb-3">
+        <AlertTriangle size={24} className="text-signal-red" />
+      </div>
+      <h3 className="font-archivo font-extrabold uppercase tracking-[-0.3px] text-white text-base mb-1.5">
+        {title}
+      </h3>
+      <p className="text-cool-gray text-sm mb-4">
         Une erreur est survenue lors du chargement de cette section.
       </p>
 
       {import.meta.env.DEV && (
-        <p className="text-xs font-mono text-red-400 mb-4 break-all">
+        <p className="text-xs font-mono text-signal-red mb-4 break-all">
           {error.message}
         </p>
       )}
 
-      <button
-        onClick={reset}
-        className="flex items-center justify-center gap-2 px-4 py-2 bg-ping-yellow text-white rounded-lg font-semibold hover:brightness-110 transition-colors text-sm min-h-[44px] mx-auto"
-      >
-        <RefreshCw size={18} />
-        Réessayer
-      </button>
+      <div className="inline-flex">
+        <PButton
+          variant="primary"
+          size="sm"
+          icon={<RefreshCw size={14} />}
+          onClick={reset}
+        >
+          Réessayer
+        </PButton>
+      </div>
     </div>
   );
 }
