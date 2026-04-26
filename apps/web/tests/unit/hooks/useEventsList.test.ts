@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useEventsList } from '../../../src/hooks/useEventsList';
 import * as LeagueContext from '../../../src/context/LeagueContext';
 import * as IdentityHook from '../../../src/hooks/useIdentity';
-import type { Tournament } from '../../../src/types';
+import type { Event } from '../../../src/types';
 
 // Mock dependencies
 vi.mock('../../../src/context/LeagueContext');
@@ -23,21 +23,21 @@ describe('useEventsList', () => {
     });
 
     vi.spyOn(LeagueContext, 'useLeague').mockReturnValue({
-      tournaments: [],
+      events: [],
       isLoadingInitialData: false,
     } as any);
 
     const { result } = renderHook(() => useEventsList());
 
-    expect(result.current.tournaments).toEqual([]);
+    expect(result.current.events).toEqual([]);
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('should return sorted tournaments (active first, then finished)', () => {
-    const mockTournaments: Tournament[] = [
+  it('should return sorted events (active first, then finished)', () => {
+    const mockEvents: Event[] = [
       {
         id: '1',
-        name: 'Finished Tournament',
+        name: 'Finished Event',
         date: '2024-01-01',
         format: '1v1',
         leagueId: null,
@@ -48,7 +48,7 @@ describe('useEventsList', () => {
       },
       {
         id: '2',
-        name: 'Active Tournament 1',
+        name: 'Active Event 1',
         date: '2024-01-15',
         format: '2v2',
         leagueId: null,
@@ -59,7 +59,7 @@ describe('useEventsList', () => {
       },
       {
         id: '3',
-        name: 'Active Tournament 2',
+        name: 'Active Event 2',
         date: '2024-01-20',
         format: '1v1',
         leagueId: null,
@@ -78,17 +78,17 @@ describe('useEventsList', () => {
     });
 
     vi.spyOn(LeagueContext, 'useLeague').mockReturnValue({
-      tournaments: mockTournaments,
+      events: mockEvents,
       isLoadingInitialData: false,
     } as any);
 
     const { result } = renderHook(() => useEventsList());
 
-    // Active tournaments should come first, sorted by createdAt desc
-    expect(result.current.tournaments).toHaveLength(3);
-    expect(result.current.tournaments[0].id).toBe('3'); // Most recent active
-    expect(result.current.tournaments[1].id).toBe('2'); // Older active
-    expect(result.current.tournaments[2].id).toBe('1'); // Finished
+    // Active events should come first, sorted by createdAt desc
+    expect(result.current.events).toHaveLength(3);
+    expect(result.current.events[0].id).toBe('3'); // Most recent active
+    expect(result.current.events[1].id).toBe('2'); // Older active
+    expect(result.current.events[2].id).toBe('1'); // Finished
     expect(result.current.isLoading).toBe(false);
   });
 
@@ -101,7 +101,7 @@ describe('useEventsList', () => {
     });
 
     vi.spyOn(LeagueContext, 'useLeague').mockReturnValue({
-      tournaments: [],
+      events: [],
       isLoadingInitialData: true,
     } as any);
 
@@ -110,7 +110,7 @@ describe('useEventsList', () => {
     expect(result.current.isLoading).toBe(true);
   });
 
-  it('should handle empty tournaments array', () => {
+  it('should handle empty events array', () => {
     vi.spyOn(IdentityHook, 'useIdentity').mockReturnValue({
       identity: { type: 'authenticated', userId: 'user1' } as any,
       isLoading: false,
@@ -119,17 +119,17 @@ describe('useEventsList', () => {
     });
 
     vi.spyOn(LeagueContext, 'useLeague').mockReturnValue({
-      tournaments: [],
+      events: [],
       isLoadingInitialData: false,
     } as any);
 
     const { result } = renderHook(() => useEventsList());
 
-    expect(result.current.tournaments).toEqual([]);
+    expect(result.current.events).toEqual([]);
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('should handle null tournaments', () => {
+  it('should handle null events', () => {
     vi.spyOn(IdentityHook, 'useIdentity').mockReturnValue({
       identity: { type: 'authenticated', userId: 'user1' } as any,
       isLoading: false,
@@ -138,12 +138,12 @@ describe('useEventsList', () => {
     });
 
     vi.spyOn(LeagueContext, 'useLeague').mockReturnValue({
-      tournaments: null,
+      events: null,
       isLoadingInitialData: false,
     } as any);
 
     const { result } = renderHook(() => useEventsList());
 
-    expect(result.current.tournaments).toEqual([]);
+    expect(result.current.events).toEqual([]);
   });
 });

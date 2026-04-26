@@ -59,9 +59,9 @@ export function FAB({
         rounded-full
         transition-[transform,box-shadow,filter] duration-100
         hover:brightness-110 active:translate-y-[2px]
-        focus:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-cream
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-ping-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-cream
         ${isPrimary
-          ? 'bg-lime text-navy border-[1.5px] border-[#8BCC1F] shadow-fab'
+          ? 'bg-ping-yellow text-navy border-[1.5px] border-ping-yellow-deep shadow-fab'
           : 'bg-navy-soft text-white border-[1.5px] border-card'}
       `}
       data-testid="fab"

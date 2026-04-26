@@ -72,7 +72,7 @@ export function PongloWordmark({
       }}
     >
       <PongloGlyph size={size * 1.2} />
-      {!glyphOnly && <span id={id}>PONGLO</span>}
+      {!glyphOnly && <span id={id}>BEER PONG ELO</span>}
     </div>
   );
 }

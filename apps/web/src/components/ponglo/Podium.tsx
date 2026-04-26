@@ -12,6 +12,8 @@ export interface PodiumPlayer {
   id: string;
   name: string;
   elo: number;
+  /** ELO change after the most recent match (positive, negative, or 0/undefined). */
+  delta?: number | null;
   avatar?: string;
 }
 
@@ -69,13 +71,24 @@ export function Podium({
               className="flex flex-col items-center gap-1"
               data-testid={`podium-rank-${rank}`}
             >
-              {/* Avatar */}
-              <PAvatar
-                name={player.name}
-                size={rank === 1 ? 48 : 40}
-                ring={ring}
-                imageUrl={player.avatar}
-              />
+              {/* Avatar (couronne sur le 1er) */}
+              <div className="relative">
+                <PAvatar
+                  name={player.name}
+                  size={rank === 1 ? 48 : 40}
+                  ring={ring}
+                  imageUrl={player.avatar}
+                />
+                {rank === 1 && (
+                  <span
+                    className="absolute -top-3 -left-2 text-[20px] leading-none select-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)]"
+                    style={{ transform: "rotate(-45deg)" }}
+                    aria-hidden
+                  >
+                    👑
+                  </span>
+                )}
+              </div>
 
               {/* Medal */}
               <span className="text-lg leading-none">{RANK_LABEL[playerIdx]}</span>
@@ -85,10 +98,22 @@ export function Podium({
                 {player.name}
               </span>
 
-              {/* ELO */}
-              <span className="text-[10px] font-mono text-lime tabular-nums">
-                {player.elo}
-              </span>
+              {/* ELO + delta */}
+              <div className="flex items-baseline gap-1">
+                <span className="text-[11px] font-mono font-bold text-lime tabular-nums">
+                  {player.elo}
+                </span>
+                {typeof player.delta === "number" && player.delta !== 0 && (
+                  <span
+                    className={`text-[9px] font-mono font-bold tabular-nums ${
+                      player.delta > 0 ? "text-lime" : "text-signal-red"
+                    }`}
+                  >
+                    {player.delta > 0 ? "+" : ""}
+                    {player.delta}
+                  </span>
+                )}
+              </div>
 
               {/* Pedestal bar */}
               <div

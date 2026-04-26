@@ -34,13 +34,13 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
 
 // Mock child components
 vi.mock("../../../src/components/home/LastEventCard", () => ({
-  LastEventCard: ({ tournament, isLoading }: any) => (
-    <div data-testid="last-tournament-card">
+  LastEventCard: ({ event, isLoading }: any) => (
+    <div data-testid="last-event-card">
       {isLoading
-        ? "Loading tournament..."
-        : tournament
-          ? `Tournament: ${tournament.name}`
-          : "No tournament"}
+        ? "Loading event..."
+        : event
+          ? `Event: ${event.name}`
+          : "No event"}
     </div>
   ),
 }));
@@ -99,8 +99,8 @@ describe.skip("Home (Refactored)", () => {
     mockUsePremiumLimits.mockReturnValue({
       canCreateLeague: true,
       isAtLeagueLimit: false,
-      canCreateTournament: true,
-      isAtTournamentLimit: false,
+      canCreateEvent: true,
+      isAtEventLimit: false,
       refetchPremium: vi.fn(),
     } as any);
 
@@ -128,7 +128,7 @@ describe.skip("Home (Refactored)", () => {
   describe("Loading State", () => {
     it("should show loading state when data is loading", () => {
       mockUseHomeData.mockReturnValue({
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: undefined,
         isLoading: true,
@@ -141,7 +141,7 @@ describe.skip("Home (Refactored)", () => {
         </BrowserRouter>,
       );
 
-      expect(screen.getByText("Loading tournament...")).toBeInTheDocument();
+      expect(screen.getByText("Loading event...")).toBeInTheDocument();
       expect(screen.getByText("Loading league...")).toBeInTheDocument();
       expect(screen.getByText("Loading stats...")).toBeInTheDocument();
     });
@@ -150,7 +150,7 @@ describe.skip("Home (Refactored)", () => {
   describe("New User State", () => {
     it("should show dashboard with empty cards for new users with no data", () => {
       mockUseHomeData.mockReturnValue({
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: { totalMatches: 0, winRate: 0, bestStreak: 0 },
         isLoading: false,
@@ -163,18 +163,18 @@ describe.skip("Home (Refactored)", () => {
         </BrowserRouter>,
       );
 
-      expect(screen.getByTestId("last-tournament-card")).toBeInTheDocument();
+      expect(screen.getByTestId("last-event-card")).toBeInTheDocument();
       expect(screen.getByTestId("last-league-card")).toBeInTheDocument();
       expect(screen.getByTestId("personal-stats-summary")).toBeInTheDocument();
     });
   });
 
   describe("Returning User State", () => {
-    it("should display last tournament card", () => {
+    it("should display last event card", () => {
       mockUseHomeData.mockReturnValue({
-        lastTournament: {
-          id: "tournament-1",
-          name: "Test Tournament",
+        lastEvent: {
+          id: "event-1",
+          name: "Test Event",
           isFinished: false,
           playerCount: 8,
           updatedAt: new Date().toISOString(),
@@ -192,13 +192,13 @@ describe.skip("Home (Refactored)", () => {
       );
 
       expect(
-        screen.getByText("Tournament: Test Tournament"),
+        screen.getByText("Event: Test Event"),
       ).toBeInTheDocument();
     });
 
     it("should display last league card", () => {
       mockUseHomeData.mockReturnValue({
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: {
           id: "league-1",
           name: "Test League",
@@ -222,7 +222,7 @@ describe.skip("Home (Refactored)", () => {
 
     it("should display personal stats summary", () => {
       mockUseHomeData.mockReturnValue({
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
@@ -249,7 +249,7 @@ describe.skip("Home (Refactored)", () => {
       });
 
       mockUseHomeData.mockReturnValue({
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
@@ -274,7 +274,7 @@ describe.skip("Home (Refactored)", () => {
       });
 
       mockUseHomeData.mockReturnValue({
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
@@ -294,7 +294,7 @@ describe.skip("Home (Refactored)", () => {
   describe("Responsive Layout", () => {
     it("should apply mobile-first layout classes", () => {
       mockUseHomeData.mockReturnValue({
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
@@ -316,7 +316,7 @@ describe.skip("Home (Refactored)", () => {
   describe("Page Structure", () => {
     it("should display welcome header with greeting", () => {
       mockUseHomeData.mockReturnValue({
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,

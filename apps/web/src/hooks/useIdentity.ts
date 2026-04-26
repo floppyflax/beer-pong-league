@@ -79,7 +79,7 @@ export function useIdentity() {
 
   /**
    * Initialize anonymous user with default pseudo when joining without identity.
-   * Used by useJoinTournament when anonymous user joins a tournament.
+   * Used by useJoinEvent when anonymous user joins a event.
    */
   const initializeAnonymousUser = async (): Promise<LocalUser> => {
     const current = localUserService.getLocalUser();

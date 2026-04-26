@@ -10,18 +10,18 @@ import { HelpCard } from "../components/design-system/HelpCard";
 import { PButton } from "../components/ponglo/PButton";
 
 /**
- * TournamentInvite — partage QR + lien + code du tournoi.
+ * EventInvite — partage QR + lien + code du tournoi.
  * B.1 redesign: bannière code Everything ELO, PButton pour actions, tokens canoniques.
  */
 export const EventInvite = () => {
   const { id } = useParams<{ id: string }>();
-  const { tournaments } = useLeague();
+  const { events } = useLeague();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
-  const tournament = tournaments.find((t) => t.id === id);
-  const inviteUrl = tournament
-    ? `${window.location.origin}/event/${tournament.id}/join`
+  const event = events.find((t) => t.id === id);
+  const inviteUrl = event
+    ? `${window.location.origin}/event/${event.id}/join`
     : "";
 
   const handleCopyLink = async () => {
@@ -47,8 +47,8 @@ export const EventInvite = () => {
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
-          title: `Rejoins l'événement ${tournament?.name || ""}`,
-          text: `Rejoins l'événement ${tournament?.name || ""} sur Beer Pong ELO !`,
+          title: `Rejoins l'événement ${event?.name || ""}`,
+          text: `Rejoins l'événement ${event?.name || ""} sur Beer Pong ELO !`,
           url: inviteUrl,
         });
         toast.success("Partagé !");
@@ -63,7 +63,7 @@ export const EventInvite = () => {
     }
   };
 
-  if (!tournament) {
+  if (!event) {
     return (
       <div className="min-h-screen bg-navy flex items-center justify-center p-4">
         <div className="text-center space-y-4">
@@ -81,15 +81,15 @@ export const EventInvite = () => {
       <ContextualHeader
         title="Inviter des joueurs"
         showBackButton={true}
-        onBack={() => navigate(`/event/${tournament.id}`)}
+        onBack={() => navigate(`/event/${event.id}`)}
       />
 
       <div className="p-4 md:p-6 space-y-4 max-w-lg mx-auto">
-        {/* Tournament recap */}
-        <EventCard tournament={tournament} />
+        {/* Event recap */}
+        <EventCard event={event} />
 
         {/* ── Code bannière (Everything ELO pattern) ──────────────────── */}
-        {tournament.joinCode && (
+        {event.joinCode && (
           <div className="bg-electric-blue rounded-card p-4 md:p-5 text-center">
             <p className="text-xs font-mono font-bold uppercase tracking-widest text-white/70 mb-1.5">
               Code de l'événement
@@ -98,7 +98,7 @@ export const EventInvite = () => {
               className="font-archivo font-black text-white"
               style={{ fontSize: 32, letterSpacing: "6px" }}
             >
-              {tournament.joinCode}
+              {event.joinCode}
             </p>
             <p className="text-xs text-white/70 mt-1.5">
               Tape-le pour rejoindre sans scanner

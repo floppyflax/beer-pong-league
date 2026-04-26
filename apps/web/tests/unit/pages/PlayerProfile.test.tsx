@@ -119,7 +119,7 @@ vi.mock("react-router-dom", async () => {
 vi.mock("@/context/LeagueContext", () => ({
   useLeague: () => ({
     leagues: mockLeagues,
-    tournaments: [],
+    events: [],
     updatePlayer: vi.fn(),
   }),
 }));
@@ -127,7 +127,7 @@ vi.mock("@/context/LeagueContext", () => ({
 vi.mock("@/services/DatabaseService", () => ({
   databaseService: {
     loadPlayerById: vi.fn().mockResolvedValue(null),
-    loadTournamentParticipants: vi.fn().mockResolvedValue([]),
+    loadEventParticipants: vi.fn().mockResolvedValue([]),
     loadPlayerEnrichment: vi.fn().mockResolvedValue({
       avatarUrl: null,
       joinedAt: null,

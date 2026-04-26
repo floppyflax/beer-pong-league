@@ -12,11 +12,11 @@ function TestApp({ initialRoute = '/' }: { initialRoute?: string }) {
         <Routes>
           <Route path="/" element={<div>Home Page</div>} />
           <Route path="/join" element={<div>Join Page</div>} />
-          <Route path="/events" element={<div>Tournaments Page</div>} />
+          <Route path="/events" element={<div>Events Page</div>} />
           <Route path="/leagues" element={<div>Leagues Page</div>} />
           <Route path="/user/profile" element={<div>Profile Page</div>} />
-          <Route path="/event/:id" element={<div>Tournament Detail</div>} />
-          <Route path="/event/:id/display" element={<div>Tournament Display View</div>} />
+          <Route path="/event/:id" element={<div>Event Detail</div>} />
+          <Route path="/event/:id/display" element={<div>Event Display View</div>} />
           <Route path="/league/:id" element={<div>League Detail</div>} />
           <Route path="/league/:id/display" element={<div>League Display View</div>} />
           <Route path="/auth/callback" element={<div>Auth Callback</div>} />
@@ -64,12 +64,12 @@ describe('BottomTabMenu Integration', () => {
   });
 
   describe('Visible on Core Routes (read pages)', () => {
-    it('should show on tournaments route', async () => {
+    it('should show on events route', async () => {
       render(<TestApp initialRoute="/events" />);
 
       await waitFor(() => {
         expect(screen.getByLabelText('Home')).toBeInTheDocument();
-        expect(screen.getByText('Tournaments Page')).toBeInTheDocument();
+        expect(screen.getByText('Events Page')).toBeInTheDocument();
       });
     });
 
@@ -82,12 +82,12 @@ describe('BottomTabMenu Integration', () => {
       });
     });
 
-    it('should show on tournament detail page', async () => {
+    it('should show on event detail page', async () => {
       render(<TestApp initialRoute="/event/123" />);
 
       await waitFor(() => {
         expect(screen.getByLabelText('Home')).toBeInTheDocument();
-        expect(screen.getByText('Tournament Detail')).toBeInTheDocument();
+        expect(screen.getByText('Event Detail')).toBeInTheDocument();
       });
     });
 
@@ -117,11 +117,11 @@ describe('BottomTabMenu Integration', () => {
       expect(screen.getByText('Auth Callback')).toBeInTheDocument();
     });
 
-    it('should not show on tournament display view', () => {
+    it('should not show on event display view', () => {
       render(<TestApp initialRoute="/event/123/display" />);
 
       expect(screen.queryByLabelText('Home')).not.toBeInTheDocument();
-      expect(screen.getByText('Tournament Display View')).toBeInTheDocument();
+      expect(screen.getByText('Event Display View')).toBeInTheDocument();
     });
 
     it('should not show on league display view', () => {

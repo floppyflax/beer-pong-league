@@ -1,14 +1,16 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { SPORTS, DEFAULT_SPORT_ID, type SportConfig } from '@/config/sports';
 
-interface SportContextValue {
+export interface SportContextValue {
   sport: SportConfig;
   sportId: string;
   setSportId: (id: string) => void;
   availableSports: SportConfig[];
 }
 
-const SportContext = createContext<SportContextValue | null>(null);
+// Exported so the design-system showcase can wrap pages with a
+// fixture-only Sport context (see MockProviders.tsx).
+export const SportContext = createContext<SportContextValue | null>(null);
 
 export function SportProvider({ children }: { children: ReactNode }) {
   const [sportId, setSportId] = useState(

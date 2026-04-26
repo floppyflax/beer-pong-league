@@ -3,8 +3,6 @@ import {
   Routes,
   Route,
   Navigate,
-  Link,
-  useNavigate,
   useLocation,
   useParams,
 } from "react-router-dom";
@@ -17,7 +15,6 @@ import { NavigationProvider } from "./context/NavigationContext";
 import { SportProvider } from "./context/SportContext";
 import { ResponsiveLayout } from "./components/layout/ResponsiveLayout";
 import { BottomTabMenu } from "./components/navigation/BottomTabMenu";
-import { BackButton } from "./components/navigation/BackButton";
 import { DevPanel } from "./components/DevPanel";
 import { useAuthContext } from "./context/AuthContext";
 import { useIdentity } from "./hooks/useIdentity";
@@ -25,12 +22,10 @@ import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import {
   shouldShowBottomMenu,
-  shouldShowBackButton,
   getContentPaddingBottom,
   PAGES_WITH_SPECIFIC_MENU,
 } from "./utils/navigationHelpers";
 import { useNativeInit } from "./hooks/useNativeInit";
-import { User, LogOut } from "lucide-react";
 
 // Lazy-loaded page components for code splitting
 // Note: Using named imports with .then() to convert to default exports for React.lazy()
@@ -120,7 +115,7 @@ const Competitions = lazy(() =>
   })),
 );
 
-// Backward-compat redirect: /tournament/:id[suffix] → /event/:id[suffix]
+// Backward-compat redirect: /event/:id[suffix] → /event/:id[suffix]
 function EventRedirect({ suffix = "" }: { suffix?: string }) {
   const { id } = useParams<{ id: string }>();
   return <Navigate to={`/event/${id}${suffix}`} replace />;
@@ -183,40 +178,6 @@ function App() {
   );
 }
 
-function HeaderUserInfo() {
-  const navigate = useNavigate();
-  const { isAuthenticated, user, signOut } = useAuthContext();
-  const { localUser } = useIdentity();
-
-  const hasProfile = isAuthenticated || localUser;
-
-  if (!hasProfile) return null;
-
-  const displayName =
-    isAuthenticated && user ? user.email?.split("@")[0] : localUser?.pseudo;
-
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => navigate("/user/profile")}
-        className="flex items-center gap-2 px-2 py-1 bg-signal-red/20 rounded-lg hover:bg-signal-red/30 transition-colors cursor-pointer"
-      >
-        <User size={16} className="text-signal-red" />
-        <span className="text-xs text-signal-red font-medium">{displayName}</span>
-      </button>
-      {isAuthenticated && (
-        <button
-          onClick={signOut}
-          className="p-2 hover:bg-navy-deep rounded-lg transition-colors"
-          title="Déconnexion"
-        >
-          <LogOut size={18} />
-        </button>
-      )}
-    </div>
-  );
-}
-
 function AppContent() {
   useNativeInit();
   const location = useLocation();
@@ -230,70 +191,11 @@ function AppContent() {
   const hasIdentity = isAuthenticated || localUser;
   const isLandingPage = location.pathname === "/" && !hasIdentity;
 
-  // Hide header on pages with ContextualHeader (Story 13.2)
-  // Pages with ContextualHeader: main pages + detail pages + create/invite/join sub-pages
-  const pagesWithContextualHeader = [
-    "/",
-    "/events",
-    "/leagues",
-    "/competitions",
-    "/leaderboard",
-    "/join",
-    "/user/profile",
-    "/create-event",
-    "/create-league",
-  ];
-  const hasContextualHeader =
-    pagesWithContextualHeader.includes(location.pathname) ||
-    location.pathname.startsWith("/event/") ||
-    location.pathname.startsWith("/league/") ||
-    location.pathname.startsWith("/player/") ||
-    location.pathname === "/record-match" ||
-    location.pathname.startsWith("/record-match/");
-
-  const showHeader = !isDisplayView && !isLandingPage && !hasContextualHeader;
-
-  // Determine if back button should be shown instead of hamburger menu
-  const showBackBtn = shouldShowBackButton(location.pathname);
-
   return (
     <div className="min-h-screen bg-navy text-white flex flex-col">
-      {showHeader && (
-        <>
-          <header className="p-4 bg-navy-soft border-b border-card flex justify-between items-center sticky top-0 z-10">
-            {/* Left navigation: Back button only on mobile when applicable */}
-            <div className="lg:hidden">{showBackBtn && <BackButton />}</div>
-            {/* Desktop navigation placeholder - shown on lg and above */}
-            <nav className="hidden lg:flex items-center gap-6">
-              <Link
-                to="/"
-                className="text-cool-gray hover:text-signal-red transition-colors"
-              >
-                Accueil
-              </Link>
-              <Link
-                to="/create-league"
-                className="text-cool-gray hover:text-signal-red transition-colors"
-              >
-                Nouvelle League
-              </Link>
-              <Link
-                to="/create-event"
-                className="text-cool-gray hover:text-signal-red transition-colors"
-              >
-                Nouvel Événement
-              </Link>
-            </nav>
-            <Link
-              to="/"
-              className="text-xl font-bold text-signal-red flex items-center gap-2"
-            >
-              <span>🍺</span> BPL
-            </Link>
-            <HeaderUserInfo />
-          </header>
-        </>
-      )}
+      {/* Legacy global header removed — every page owns its own header
+          (ContextualHeader / DetailHero / PageHero). Display view stays
+          full-screen. */}
 
       <main className="flex-grow flex flex-col">
         <ErrorBoundary>
@@ -313,9 +215,9 @@ function AppContent() {
                     path="/event/:id/display"
                     element={<EventDisplayView />}
                   />
-                  {/* Backward compat — /tournament/:id/display → /event/:id/display */}
+                  {/* Backward compat — /event/:id/display → /event/:id/display */}
                   <Route
-                    path="/tournament/:id/display"
+                    path="/event/:id/display"
                     element={<EventRedirect suffix="/display" />}
                   />
                 </Routes>
@@ -397,22 +299,22 @@ function AppContent() {
                       path="/leaderboard"
                       element={<GlobalLeaderboard />}
                     />
-                    {/* Backward compat — /tournament/* → /event/* */}
-                    <Route path="/tournaments" element={<Navigate to="/events" replace />} />
+                    {/* Backward compat — /event/* → /event/* */}
+                    <Route path="/events" element={<Navigate to="/events" replace />} />
                     <Route
-                      path="/create-tournament"
+                      path="/create-event"
                       element={<Navigate to="/create-event" replace />}
                     />
                     <Route
-                      path="/tournament/:id"
+                      path="/event/:id"
                       element={<EventRedirect />}
                     />
                     <Route
-                      path="/tournament/:id/invite"
+                      path="/event/:id/invite"
                       element={<EventRedirect suffix="/invite" />}
                     />
                     <Route
-                      path="/tournament/:id/join"
+                      path="/event/:id/join"
                       element={<EventRedirect suffix="/join" />}
                     />
                   </Routes>

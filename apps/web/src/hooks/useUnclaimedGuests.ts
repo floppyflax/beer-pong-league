@@ -1,57 +1,43 @@
 /**
  * useUnclaimedGuests
  *
- * Returns the list of "ghost" players (anonymous_user_id NOT NULL, user_id NULL,
- * source anonymous_users not yet merged) for a given tournament or league.
+ * Returns the list of "ghost" players (players whose user_id IS NULL,
+ * not yet claimed by anyone) for a given event or league.
  *
- * Use case (PR3 of the join-flow refactor): both authenticated AND anonymous
- * users land on `/event/:id/join` or `/league/:id/join` and may want to
- * adopt a ghost row pre-created by an admin (e.g. "L'admin a créé un joueur
- * 'Toto' — c'est moi"). We expose the same list for both, and the consuming
- * page picks the right RPC:
- *   - authenticated → `claim_anonymous_player`
- *   - anonymous     → `claim_anonymous_player_anon` (mig 014, capability-based)
- *
- * Pass `mode: "auth-only"` to restore the legacy behaviour (post-account
- * banner on the dashboard, where claim only makes sense for auth users).
+ * Post mig 022: a single join `event_memberships` (or `league_memberships`)
+ * → `players` filtered by `players.user_id IS NULL` and `archived_at IS NULL`.
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase";
+import { sb } from "../services/repositories/_base";
 import { useAuth } from "./useAuth";
 
 export interface UnclaimedGuest {
-  /** tournament_players.id OR league_players.id (depending on kind). */
+  /** membership.id (event_memberships.id OR league_memberships.id). */
   playerId: string;
-  /** anonymous_users.id — the source identity to merge from. */
-  anonymousUserId: string;
-  /** Display name (pseudo_in_* takes precedence over anonymous_users.pseudo). */
+  /** players.id — the underlying entity. */
+  anonymousUserId: string; // legacy field name kept for consumer compatibility
+  /** Display name (pseudo_override > players.pseudo). */
   pseudo: string;
   joinedAt: string;
 }
 
-interface RawTournamentRow {
+interface RawEventRow {
   id: string;
-  anonymous_user_id: string | null;
-  pseudo_in_tournament: string | null;
   joined_at: string | null;
-  anonymous_user:
-    | { id: string; pseudo: string | null; merged_to_user_id: string | null }
-    | null;
+  pseudo_override: string | null;
+  player: { id: string; pseudo: string; user_id: string | null; archived_at: string | null } | null;
 }
 
 interface RawLeagueRow {
   id: string;
-  anonymous_user_id: string | null;
-  pseudo_in_league: string | null;
   joined_at: string | null;
-  anonymous_user:
-    | { id: string; pseudo: string | null; merged_to_user_id: string | null }
-    | null;
+  pseudo_override: string | null;
+  player: { id: string; pseudo: string; user_id: string | null; archived_at: string | null } | null;
 }
 
 export function useUnclaimedGuests(
-  kind: "tournament" | "league",
+  kind: "event" | "league",
   contextId: string | null | undefined,
   options: { mode?: "auth-only" | "any" } = {},
 ) {
@@ -63,11 +49,7 @@ export function useUnclaimedGuests(
 
   const load = useCallback(async () => {
     if (authLoading) return;
-    // In "auth-only" mode (legacy dashboard banner) we bail for anon users.
-    // In "any" mode (PR3 join flow), we serve the list to everyone — the RLS
-    // SELECT policy on tournament_players/league_players is permissive for
-    // reads, and the claim RPC enforces caller identity at write time.
-    if (!contextId || !supabase) {
+    if (!contextId || !sb) {
       setGuests([]);
       return;
     }
@@ -80,92 +62,54 @@ export function useUnclaimedGuests(
     setError(null);
 
     try {
-      if (kind === "tournament") {
-        const { data, error: queryError } = await supabase
-          .from("tournament_players")
-          .select(
-            `
-            id,
-            anonymous_user_id,
-            pseudo_in_tournament,
-            joined_at,
-            anonymous_user:anonymous_users (
-              id,
-              pseudo,
-              merged_to_user_id
-            )
-          `,
-          )
-          .eq("tournament_id", contextId)
-          .is("user_id", null)
-          .not("anonymous_user_id", "is", null)
-          .order("joined_at", { ascending: true });
+      const select = `
+        id,
+        joined_at,
+        pseudo_override,
+        player:players ( id, pseudo, user_id, archived_at )
+      `;
 
+      if (kind === "event") {
+        const { data, error: queryError } = await sb
+          .from("event_memberships")
+          .select(select)
+          .eq("event_id", contextId)
+          .order("joined_at", { ascending: true });
         if (queryError) throw queryError;
 
-        const rows = (data ?? []) as unknown as RawTournamentRow[];
+        const rows = (data ?? []) as unknown as RawEventRow[];
         const filtered: UnclaimedGuest[] = rows
-          .filter(
-            (r) =>
-              r.anonymous_user_id &&
-              r.anonymous_user &&
-              r.anonymous_user.merged_to_user_id === null,
-          )
+          .filter((r) => r.player && r.player.user_id === null && r.player.archived_at === null)
           .map((r) => ({
             playerId: r.id,
-            anonymousUserId: r.anonymous_user_id as string,
-            pseudo:
-              r.pseudo_in_tournament ||
-              r.anonymous_user?.pseudo ||
-              "Joueur",
+            anonymousUserId: r.player!.id,
+            pseudo: r.pseudo_override || r.player!.pseudo || "Joueur",
             joinedAt: r.joined_at ?? "",
           }));
-
         setGuests(filtered);
       } else {
-        const { data, error: queryError } = await supabase
-          .from("league_players")
-          .select(
-            `
-            id,
-            anonymous_user_id,
-            pseudo_in_league,
-            joined_at,
-            anonymous_user:anonymous_users (
-              id,
-              pseudo,
-              merged_to_user_id
-            )
-          `,
-          )
+        const { data, error: queryError } = await sb
+          .from("league_memberships")
+          .select(select)
           .eq("league_id", contextId)
-          .is("user_id", null)
-          .not("anonymous_user_id", "is", null)
           .order("joined_at", { ascending: true });
-
         if (queryError) throw queryError;
 
         const rows = (data ?? []) as unknown as RawLeagueRow[];
         const filtered: UnclaimedGuest[] = rows
-          .filter(
-            (r) =>
-              r.anonymous_user_id &&
-              r.anonymous_user &&
-              r.anonymous_user.merged_to_user_id === null,
-          )
+          .filter((r) => r.player && r.player.user_id === null && r.player.archived_at === null)
           .map((r) => ({
             playerId: r.id,
-            anonymousUserId: r.anonymous_user_id as string,
-            pseudo:
-              r.pseudo_in_league || r.anonymous_user?.pseudo || "Joueur",
+            anonymousUserId: r.player!.id,
+            pseudo: r.pseudo_override || r.player!.pseudo || "Joueur",
             joinedAt: r.joined_at ?? "",
           }));
-
         setGuests(filtered);
       }
     } catch (err) {
-      console.error("[useUnclaimedGuests] load failed:", err);
-      setError(err instanceof Error ? err.message : "Unknown error");
+      const detail = err instanceof Error ? err.message : JSON.stringify(err);
+      console.error("[useUnclaimedGuests] load failed:", detail);
+      setError(detail);
       setGuests([]);
     } finally {
       setIsLoading(false);

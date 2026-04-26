@@ -6,13 +6,13 @@ vi.mock('../../../src/lib/supabase', () => ({
   supabase: null,
 }));
 
-describe('DatabaseService - Tournament Participants (Story 3.3)', () => {
+describe('DatabaseService - Event Participants (Story 3.3)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
   });
 
-  describe('loadTournamentParticipants', () => {
+  describe('loadEventParticipants', () => {
     it('should load participants from localStorage when Supabase unavailable', async () => {
       // Setup localStorage data
       const mockLeague = {
@@ -27,9 +27,9 @@ describe('DatabaseService - Tournament Participants (Story 3.3)', () => {
         createdAt: new Date().toISOString(),
       };
 
-      const mockTournament = {
-        id: 'tournament-1',
-        name: 'Summer Tournament',
+      const mockEvent = {
+        id: 'event-1',
+        name: 'Summer Event',
         date: new Date().toISOString(),
         format: '2v2',
         leagueId: 'league-1',
@@ -40,10 +40,10 @@ describe('DatabaseService - Tournament Participants (Story 3.3)', () => {
       };
 
       localStorage.setItem('bpl_leagues', JSON.stringify([mockLeague]));
-      localStorage.setItem('bpl_tournaments', JSON.stringify([mockTournament]));
+      localStorage.setItem('bpl_events', JSON.stringify([mockEvent]));
 
       // Load participants
-      const participants = await databaseService.loadTournamentParticipants('tournament-1');
+      const participants = await databaseService.loadEventParticipants('event-1');
 
       // AC: List of participants is displayed
       expect(participants).toHaveLength(2);
@@ -59,16 +59,16 @@ describe('DatabaseService - Tournament Participants (Story 3.3)', () => {
       }));
     });
 
-    it('should return empty array when tournament not found', async () => {
-      const participants = await databaseService.loadTournamentParticipants('non-existent');
+    it('should return empty array when event not found', async () => {
+      const participants = await databaseService.loadEventParticipants('non-existent');
       
       expect(participants).toEqual([]);
     });
 
-    it('should handle tournament with no league', async () => {
-      const mockTournament = {
-        id: 'tournament-1',
-        name: 'Autonomous Tournament',
+    it('should handle event with no league', async () => {
+      const mockEvent = {
+        id: 'event-1',
+        name: 'Autonomous Event',
         date: new Date().toISOString(),
         format: '2v2',
         leagueId: null,
@@ -78,11 +78,11 @@ describe('DatabaseService - Tournament Participants (Story 3.3)', () => {
         createdAt: new Date().toISOString(),
       };
 
-      localStorage.setItem('bpl_tournaments', JSON.stringify([mockTournament]));
+      localStorage.setItem('bpl_events', JSON.stringify([mockEvent]));
 
-      const participants = await databaseService.loadTournamentParticipants('tournament-1');
+      const participants = await databaseService.loadEventParticipants('event-1');
       
-      // AC: Handle autonomous tournaments
+      // AC: Handle autonomous events
       expect(participants).toEqual([]);
     });
   });
@@ -100,9 +100,9 @@ describe('DatabaseService - Tournament Participants (Story 3.3)', () => {
         createdAt: new Date().toISOString(),
       };
 
-      const mockTournament = {
-        id: 'tournament-1',
-        name: 'Summer Tournament',
+      const mockEvent = {
+        id: 'event-1',
+        name: 'Summer Event',
         date: new Date().toISOString(),
         format: '2v2',
         leagueId: 'league-1',
@@ -113,9 +113,9 @@ describe('DatabaseService - Tournament Participants (Story 3.3)', () => {
       };
 
       localStorage.setItem('bpl_leagues', JSON.stringify([mockLeague]));
-      localStorage.setItem('bpl_tournaments', JSON.stringify([mockTournament]));
+      localStorage.setItem('bpl_events', JSON.stringify([mockEvent]));
 
-      const participants = await databaseService.loadTournamentParticipants('tournament-1');
+      const participants = await databaseService.loadEventParticipants('event-1');
 
       // AC: Shows name and basic stats (ELO, matches played)
       expect(participants[0]).toHaveProperty('name');

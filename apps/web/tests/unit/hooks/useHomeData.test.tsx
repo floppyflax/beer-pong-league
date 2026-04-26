@@ -94,7 +94,7 @@ describe('useHomeData', () => {
     });
 
     it('should handle zero matches correctly in stats', async () => {
-      // Mock chain with maybeSingle for tournament/league queries
+      // Mock chain with maybeSingle for event/league queries
       const mockMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
       const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle });
       const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
@@ -132,7 +132,7 @@ describe('useHomeData', () => {
       });
 
       expect(result.current.isLoading).toBe(false);
-      expect(result.current.lastTournament).toBeUndefined();
+      expect(result.current.lastEvent).toBeUndefined();
     });
 
     it('should fetch when userId is provided', () => {

@@ -8,13 +8,15 @@
  *  2. Score — pyramide de 10 cups par équipe, tap un cup pour l'éliminer.
  *     Score = 10 - cups restants de l'adversaire.
  *
- * Route : /record-match/:contextType/:id  (contextType = "tournament" | "league")
+ * Route : /record-match/:contextType/:id  (contextType = "event" | "league")
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import { databaseService } from "@/services/DatabaseService";
+import { matchAdminService } from "@/services/MatchAdminService";
+import { eloRecalcService } from "@/services/EloRecalcService";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Sheet } from "@/components/design-system/Sheet";
 import { PButton } from "@/components/ponglo/PButton";
@@ -23,7 +25,7 @@ import { X, UserPlus, Check, ChevronDown, ChevronLeft, Trophy, Calendar, Minus, 
 import toast from "react-hot-toast";
 import type { Player } from "@/types";
 
-type ContextType = "tournament" | "league";
+type ContextType = "event" | "league";
 type Step = "compose" | "score";
 type Team = "A" | "B";
 
@@ -37,6 +39,22 @@ const TEAM_SIZE_BY_FORMAT: Record<string, number | null> = {
 const TOTAL_CUPS = 10;
 // Standard beer pong rack viewed from above: back row first (4 cups), then 3, 2, 1
 const CUP_ROWS = [4, 3, 2, 1];
+
+// Canonical cup id for a (rack row, column) position. Rack row 0 = back (4 cups),
+// rack row 3 = tip (1 cup). Used to identify individual cups across both teams.
+const cupId = (rackRow: number, col: number) => `r${rackRow}c${col}`;
+
+// Order in which cups fall when the score is adjusted via +/- (front-most first,
+// back row last — matches the back-to-front "rack drains" visual).
+const ELIMINATION_ORDER: string[] = (() => {
+  const ids: string[] = [];
+  for (let r = CUP_ROWS.length - 1; r >= 0; r--) {
+    for (let c = 0; c < CUP_ROWS[r]; c++) ids.push(cupId(r, c));
+  }
+  return ids;
+})();
+
+const EMPTY_DROPPED: Set<string> = new Set();
 
 type EnrichedPlayer = Player & { avatarUrl?: string | null };
 
@@ -340,18 +358,21 @@ function PlayerChip({
 function TableSide({
   team,
   players,
-  cupsRemaining,
+  droppedCups,
   state, // 'pending' | 'winner' | 'loser'
   onSelectWinner,
   onAdjustCups,
+  onToggleCup,
 }: {
   team: Team;
   players: EnrichedPlayer[];
-  cupsRemaining: number;
+  droppedCups: Set<string>;
   state: "pending" | "winner" | "loser";
   onSelectWinner: () => void;
   onAdjustCups: (next: number) => void;
+  onToggleCup: (id: string) => void;
 }) {
+  const cupsRemaining = TOTAL_CUPS - droppedCups.size;
   const isA = team === "A";
   const accentText = isA ? "text-electric-blue" : "text-signal-red";
   const cupSolid = isA
@@ -363,23 +384,8 @@ function TableSide({
   // towards center). B: tip at top (points up towards center), wide row at
   // the bottom edge.
   const rows = isA ? CUP_ROWS : [...CUP_ROWS].reverse();
-
-  // Fill back-to-front: the back row (outer edge of the table) keeps its
-  // cups longest. For A, back is render-row 0 (top). For B, back is
-  // render-row 3 (bottom).
-  const fillOrder = isA ? [0, 1, 2, 3] : [3, 2, 1, 0];
-  const remainingByRow: number[] = (() => {
-    let left = cupsRemaining;
-    const filled = [0, 0, 0, 0];
-    for (const idx of fillOrder) {
-      const cap = rows[idx];
-      const take = Math.min(cap, left);
-      filled[idx] = take;
-      left -= take;
-      if (left <= 0) break;
-    }
-    return filled;
-  })();
+  // Map render-row index → canonical rack-row index (0 = back row, 3 = tip).
+  const rackRowFor = (renderRow: number) => (isA ? renderRow : 3 - renderRow);
 
   // Pending and loser are both clickable: pending → pick winner, loser → swap.
   // Winner is non-clickable at the wrapper level (cups handle their own clicks).
@@ -401,14 +407,9 @@ function TableSide({
         ? "bg-navy/40 border-[1.5px] border-card hover:border-cool-gray hover:bg-navy/60"
         : "border-[1.5px] border-dashed border-cool-gray/40 hover:border-cool-gray hover:bg-white/[0.02]";
 
-  const handleCupClick = () => {
+  const handleCupTap = (id: string) => {
     if (state !== "winner") return;
-    // Tap any cup → drop one (or restore if all dropped).
-    if (cupsRemaining > 1) {
-      onAdjustCups(cupsRemaining - 1);
-    } else {
-      onAdjustCups(TOTAL_CUPS);
-    }
+    onToggleCup(id);
   };
 
   /* Sub-blocks */
@@ -477,17 +478,13 @@ function TableSide({
   const pyramid = (
     <div className="flex flex-col items-center gap-1.5 w-full py-1">
       {rows.map((rowCount, rowIdx) => {
-        const standingInRow = remainingByRow[rowIdx];
-        // Center the standing cups within the row visually (looks more like
-        // a real rack — the front of the rack is the row of 1).
-        const startOffset = Math.floor((rowCount - standingInRow) / 2);
+        const rackRow = rackRowFor(rowIdx);
         return (
           <div key={rowIdx} className="flex gap-1.5">
             {Array.from({ length: rowCount }).map((_, posInRow) => {
-              const isStanding =
-                posInRow >= startOffset &&
-                posInRow < startOffset + standingInRow;
-              const visible = state === "loser" ? false : isStanding;
+              const id = cupId(rackRow, posInRow);
+              const isDropped = droppedCups.has(id);
+              const visible = state === "loser" ? false : !isDropped;
               const interactive = state === "winner";
               return (
                 <button
@@ -495,14 +492,10 @@ function TableSide({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (interactive) handleCupClick();
+                    if (interactive) handleCupTap(id);
                   }}
                   disabled={!interactive}
-                  aria-label={
-                    visible
-                      ? `Cup debout (${cupsRemaining} restants)`
-                      : "Cup tombé"
-                  }
+                  aria-label={visible ? "Cup debout — tape pour le faire tomber" : "Cup tombé — tape pour le remettre"}
                   className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${
                     interactive ? "active:scale-90 cursor-pointer" : ""
                   } ${
@@ -571,14 +564,18 @@ export const RecordMatch = () => {
     id: string;
   }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editMatchId = searchParams.get("editMatchId");
+  const isEditMode = Boolean(editMatchId);
   const {
-    tournaments,
+    events,
     leagues,
-    recordTournamentMatch,
+    recordEventMatch,
     recordMatch,
-    addGuestPlayerToTournament,
+    addGuestPlayerToEvent,
     addPlayer,
     isLoadingInitialData,
+    reloadData,
   } = useLeague();
 
   /* Context is URL-seeded but locally switchable */
@@ -598,25 +595,25 @@ export const RecordMatch = () => {
   // Score-step model: pick a winner first, then adjust the winner's
   // remaining cups (1..10). The loser's cups are implicitly 0.
   const [winnerTeam, setWinnerTeam] = useState<Team | null>(null);
-  const [winnerCupsRemaining, setWinnerCupsRemaining] = useState<number>(TOTAL_CUPS);
+  const [winnerDroppedCups, setWinnerDroppedCups] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* Context resolution */
-  const tournament =
-    contextType === "tournament" && contextId
-      ? tournaments.find((t) => t.id === contextId)
+  const event =
+    contextType === "event" && contextId
+      ? events.find((t) => t.id === contextId)
       : null;
   const league =
     contextType === "league" && contextId
       ? leagues.find((l) => l.id === contextId)
       : null;
 
-  const hasContext = Boolean(tournament || league);
-  const contextName = tournament?.name ?? league?.name ?? "";
-  const format = tournament?.format ?? "libre";
+  const hasContext = Boolean(event || league);
+  const contextName = event?.name ?? league?.name ?? "";
+  const format = event?.format ?? "libre";
   const teamSize = TEAM_SIZE_BY_FORMAT[format] ?? null;
   const backPath =
-    contextType === "tournament" && contextId
+    contextType === "event" && contextId
       ? `/event/${contextId}`
       : contextType === "league" && contextId
         ? `/league/${contextId}`
@@ -636,31 +633,54 @@ export const RecordMatch = () => {
     setSearchQuery("");
     setActiveTeam("A");
     setWinnerTeam(null);
-    setWinnerCupsRemaining(TOTAL_CUPS);
+    setWinnerDroppedCups(new Set());
     setStep("compose");
     setShowContextPicker(false);
   };
 
-  /* Load participants */
+  /* Load participants. In edit mode we keep archived players that are part of
+   * the edited match so their chips don't vanish (admin can still remove them
+   * from the team, but cannot re-add). */
+  const editedMatch = useMemo(() => {
+    if (!editMatchId) return null;
+    if (contextType === "event" && event) {
+      return event.matches.find((m) => m.id === editMatchId) ?? null;
+    }
+    if (contextType === "league" && league) {
+      return league.matches.find((m) => m.id === editMatchId) ?? null;
+    }
+    return null;
+  }, [editMatchId, contextType, event, league]);
+
   useEffect(() => {
     if (!id) return;
 
-    if (contextType === "tournament" && tournament) {
+    if (contextType === "event" && event) {
       setIsLoadingParticipants(true);
       databaseService
-        .loadTournamentParticipants(id)
+        .loadEventParticipants(id)
         .then((ps) => {
+          const keepArchivedIds = new Set<string>();
+          if (editedMatch) {
+            editedMatch.teamA.forEach((pid) => keepArchivedIds.add(pid));
+            editedMatch.teamB.forEach((pid) => keepArchivedIds.add(pid));
+          }
           setParticipants(
-            ps.map((p) => ({
-              id: p.id,
-              name: p.name,
-              elo: p.elo,
-              wins: p.wins,
-              losses: p.losses,
-              matchesPlayed: p.matchesPlayed,
-              streak: 0,
-              avatarUrl: p.avatarUrl ?? null,
-            })),
+            ps
+              // Hide archived ghosts from the picker (they remain in past
+              // matches via stored team_a/b_player_ids), unless the match
+              // currently being edited references them.
+              .filter((p) => !p.isArchived || keepArchivedIds.has(p.id))
+              .map((p) => ({
+                id: p.id,
+                name: p.name,
+                elo: p.elo,
+                wins: p.wins,
+                losses: p.losses,
+                matchesPlayed: p.matchesPlayed,
+                streak: 0,
+                avatarUrl: p.avatarUrl ?? null,
+              })),
           );
         })
         .catch(() => setParticipants([]))
@@ -668,8 +688,40 @@ export const RecordMatch = () => {
     } else if (contextType === "league" && league) {
       setParticipants(league.players.map((p) => ({ ...p, avatarUrl: null })));
     }
-     
-  }, [id, contextType]);
+
+  }, [id, contextType, editedMatch]);
+
+  /* Edit-mode prefill: hydrate teams + score from the edited match once
+   * participants have loaded. */
+  const [editPrefilled, setEditPrefilled] = useState(false);
+  useEffect(() => {
+    if (!isEditMode || editPrefilled || !editedMatch || participants.length === 0) {
+      return;
+    }
+    const teams: Record<string, Team> = {};
+    editedMatch.teamA.forEach((pid) => {
+      teams[pid] = "A";
+    });
+    editedMatch.teamB.forEach((pid) => {
+      teams[pid] = "B";
+    });
+    setPlayerTeams(teams);
+    const winner: Team = editedMatch.scoreA > editedMatch.scoreB ? "A" : "B";
+    setWinnerTeam(winner);
+    const winnerScore = winner === "A" ? editedMatch.scoreA : editedMatch.scoreB;
+    const loserScore = winner === "A" ? editedMatch.scoreB : editedMatch.scoreA;
+    // Winner has TOTAL_CUPS - (10 - loserScore) cups remaining = loserScore
+    // dropped on its rack? Actually our model: dropped cups on winner's rack
+    // = TOTAL_CUPS - winner_cups_remaining. The recorded scoreA/scoreB only
+    // tells us the loser's points (winner always = TOTAL_CUPS = 10). So
+    // dropped on winner = TOTAL_CUPS - winnerCupsRemaining where
+    // winnerCupsRemaining = TOTAL_CUPS - loserScore.
+    const droppedCount = Math.max(0, TOTAL_CUPS - (TOTAL_CUPS - loserScore));
+    void winnerScore;
+    setWinnerDroppedCups(new Set(ELIMINATION_ORDER.slice(0, droppedCount)));
+    setStep("compose");
+    setEditPrefilled(true);
+  }, [isEditMode, editPrefilled, editedMatch, participants.length]);
 
   /* Keep league participants in sync with context */
   useEffect(() => {
@@ -705,12 +757,21 @@ export const RecordMatch = () => {
 
   // Derived scores: winner's points = 10 (always — they reached the goal),
   // loser's points = 10 - (winner's cups remaining).
-  const cupsRemainingA = winnerTeam === "A" ? winnerCupsRemaining : 0;
-  const cupsRemainingB = winnerTeam === "B" ? winnerCupsRemaining : 0;
+  const winnerCupsRemaining = TOTAL_CUPS - winnerDroppedCups.size;
+  const droppedA = winnerTeam === "A" ? winnerDroppedCups : EMPTY_DROPPED;
+  const droppedB = winnerTeam === "B" ? winnerDroppedCups : EMPTY_DROPPED;
   const scoreA =
-    winnerTeam === "A" ? TOTAL_CUPS : TOTAL_CUPS - cupsRemainingB;
+    winnerTeam === "A"
+      ? TOTAL_CUPS
+      : winnerTeam === "B"
+        ? TOTAL_CUPS - winnerCupsRemaining
+        : 0;
   const scoreB =
-    winnerTeam === "B" ? TOTAL_CUPS : TOTAL_CUPS - cupsRemainingA;
+    winnerTeam === "B"
+      ? TOTAL_CUPS
+      : winnerTeam === "A"
+        ? TOTAL_CUPS - winnerCupsRemaining
+        : 0;
   const winner: Team | null = winnerTeam;
   const isScoreValid = winner !== null;
 
@@ -759,8 +820,8 @@ export const RecordMatch = () => {
     try {
       let newPlayerId: string | null = null;
 
-      if (contextType === "tournament") {
-        newPlayerId = await addGuestPlayerToTournament(id, name);
+      if (contextType === "event") {
+        newPlayerId = await addGuestPlayerToEvent(id, name);
         setParticipants((prev) => [
           ...prev,
           {
@@ -781,7 +842,7 @@ export const RecordMatch = () => {
         newPlayerId = tempId;
       }
 
-      if (newPlayerId && contextType === "tournament") {
+      if (newPlayerId && contextType === "event") {
         /* Auto-assign to the currently active team (respecting caps) */
         handleSelectPlayer(newPlayerId);
       }
@@ -797,11 +858,26 @@ export const RecordMatch = () => {
   /* Actions — score */
   const handleSelectWinner = (team: Team) => {
     setWinnerTeam(team);
-    setWinnerCupsRemaining(TOTAL_CUPS);
+    setWinnerDroppedCups(new Set());
   };
 
+  // +/- buttons: rebuild the dropped set in canonical elimination order so the
+  // rack visually drains back-to-front (overrides individual cup taps).
   const handleAdjustWinnerCups = (next: number) => {
-    setWinnerCupsRemaining(Math.max(1, Math.min(TOTAL_CUPS, next)));
+    const clamped = Math.max(1, Math.min(TOTAL_CUPS, next));
+    setWinnerDroppedCups(new Set(ELIMINATION_ORDER.slice(0, TOTAL_CUPS - clamped)));
+  };
+
+  // Tap a specific cup → toggle just that cup. Score = number of dropped cups.
+  const handleToggleCup = (id: string) => {
+    setWinnerDroppedCups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      // Never let the winner reach 0 cups (winner always has ≥ 1 cup remaining).
+      if (next.size >= TOTAL_CUPS) return prev;
+      return next;
+    });
   };
 
   /* Submit */
@@ -812,8 +888,33 @@ export const RecordMatch = () => {
 
     setIsSubmitting(true);
     try {
-      if (contextType === "tournament" && tournament) {
-        const eloChanges = await recordTournamentMatch(
+      if (isEditMode && editMatchId) {
+        const result = await matchAdminService.updateMatch(
+          editMatchId,
+          teamAIds,
+          teamBIds,
+          scoreA,
+          scoreB,
+        );
+        if (!result.success) {
+          toast.error(result.error || "Modification impossible");
+          return;
+        }
+        if (result.leagueId) {
+          const recalc = await eloRecalcService.recalculateLeagueElo(
+            result.leagueId,
+          );
+          if (!recalc.success) {
+            toast.error(`Match modifié mais recalcul ELO échoué : ${recalc.error}`);
+          } else {
+            toast.success("Match modifié, ELO recalculé");
+          }
+        } else {
+          toast.success("Match modifié");
+        }
+        await reloadData();
+      } else if (contextType === "event" && event) {
+        const eloChanges = await recordEventMatch(
           id,
           teamAIds,
           teamBIds,
@@ -824,17 +925,22 @@ export const RecordMatch = () => {
         if (eloChanges) {
           sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(eloChanges));
         }
+        toast.success("Match enregistré !");
       } else if (contextType === "league") {
         const eloChanges = await recordMatch(id, teamAIds, teamBIds, winner);
         if (eloChanges) {
           sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(eloChanges));
         }
+        toast.success("Match enregistré !");
       }
-      toast.success("Match enregistré !");
       navigate(backPath);
     } catch (error) {
       console.error("Error recording match:", error);
-      toast.error("Erreur lors de l'enregistrement du match");
+      toast.error(
+        isEditMode
+          ? "Erreur lors de la modification du match"
+          : "Erreur lors de l'enregistrement du match",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -889,7 +995,7 @@ export const RecordMatch = () => {
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-cool-gray">
-          {contextType === "tournament"
+          {contextType === "event"
             ? `Événement · ${formatLabel}`
             : "Ligue · Libre"}
         </div>
@@ -918,7 +1024,7 @@ export const RecordMatch = () => {
       <div className="flex-1 min-w-0">
         <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-cool-gray">
           {hasContext
-            ? contextType === "tournament"
+            ? contextType === "event"
               ? `Événement · ${formatLabel}`
               : "Ligue · Libre"
             : "Contexte"}
@@ -951,7 +1057,13 @@ export const RecordMatch = () => {
           disabled={!isScoreValid || isSubmitting}
           onClick={() => void handleSubmit()}
         >
-          {isSubmitting ? "Enregistrement…" : "Enregistrer le match"}
+          {isSubmitting
+            ? isEditMode
+              ? "Mise à jour…"
+              : "Enregistrement…"
+            : isEditMode
+              ? "Mettre à jour le match"
+              : "Enregistrer le match"}
         </PButton>
       )}
     </StickyCTA>
@@ -1009,7 +1121,7 @@ export const RecordMatch = () => {
               onSelect={handleSelectPlayer}
               onCreateNew={handleCreatePlayer}
               isCreating={isCreatingPlayer}
-              canCreate={contextType === "tournament"}
+              canCreate={contextType === "event"}
             />
           </>
         ) : (
@@ -1021,7 +1133,7 @@ export const RecordMatch = () => {
                 <TableSide
                   team="A"
                   players={teamAPlayers as EnrichedPlayer[]}
-                  cupsRemaining={cupsRemainingA}
+                  droppedCups={droppedA}
                   state={
                     winnerTeam === null
                       ? "pending"
@@ -1031,13 +1143,14 @@ export const RecordMatch = () => {
                   }
                   onSelectWinner={() => handleSelectWinner("A")}
                   onAdjustCups={handleAdjustWinnerCups}
+                  onToggleCup={handleToggleCup}
                 />
                 {/* Center divider — the "table line" */}
                 <div className="h-px bg-card mx-4" aria-hidden />
                 <TableSide
                   team="B"
                   players={teamBPlayers as EnrichedPlayer[]}
-                  cupsRemaining={cupsRemainingB}
+                  droppedCups={droppedB}
                   state={
                     winnerTeam === null
                       ? "pending"
@@ -1047,6 +1160,7 @@ export const RecordMatch = () => {
                   }
                   onSelectWinner={() => handleSelectWinner("B")}
                   onAdjustCups={handleAdjustWinnerCups}
+                  onToggleCup={handleToggleCup}
                 />
               </div>
             </div>
@@ -1056,7 +1170,7 @@ export const RecordMatch = () => {
       <ContextPickerModal
         isOpen={showContextPicker}
         onClose={() => setShowContextPicker(false)}
-        tournaments={tournaments}
+        events={events}
         leagues={leagues}
         currentType={contextType}
         currentId={contextId}
@@ -1072,7 +1186,7 @@ export const RecordMatch = () => {
 function ContextPickerModal({
   isOpen,
   onClose,
-  tournaments,
+  events,
   leagues,
   currentType,
   currentId,
@@ -1080,13 +1194,13 @@ function ContextPickerModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  tournaments: Array<{ id: string; name: string; isFinished?: boolean; format?: string }>;
+  events: Array<{ id: string; name: string; isFinished?: boolean; format?: string }>;
   leagues: Array<{ id: string; name: string; status?: string }>;
   currentType: ContextType | null;
   currentId: string | null;
   onPick: (type: ContextType, id: string) => void;
 }) {
-  const activeTournaments = tournaments.filter((t) => !t.isFinished);
+  const activeEvents = events.filter((t) => !t.isFinished);
   const activeLeagues = leagues.filter((l) => l.status !== "finished");
 
   return (
@@ -1099,19 +1213,19 @@ function ContextPickerModal({
               Événements
             </h3>
           </div>
-          {activeTournaments.length === 0 ? (
+          {activeEvents.length === 0 ? (
             <p className="text-xs text-cool-gray/60 italic px-1 py-2">
               Aucun événement actif.
             </p>
           ) : (
             <div className="space-y-1.5">
-              {activeTournaments.map((t) => {
-                const active = currentType === "tournament" && currentId === t.id;
+              {activeEvents.map((t) => {
+                const active = currentType === "event" && currentId === t.id;
                 return (
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => onPick("tournament", t.id)}
+                    onClick={() => onPick("event", t.id)}
                     className={`w-full text-left px-3 py-2.5 rounded-card border transition-colors ${
                       active
                         ? "bg-electric-blue/15 border-electric-blue text-white"

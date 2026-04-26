@@ -1,6 +1,6 @@
 /**
  * Stats d'affichage d'un joueur dérivées de la liste des matchs.
- * Partagé entre `LeagueDashboard` et `TournamentDashboard` (rangées
+ * Partagé entre `LeagueDashboard` et `EventDashboard` (rangées
  * `ListRow variant="player"` avec delta ELO + forme récente).
  *
  * Les matchs doivent être triés **décroissants par date** (plus récent d'abord).

@@ -1,6 +1,6 @@
 /**
  * Unit tests for EventDashboard component
- * Story 8.3 - Tournament Dashboard Management
+ * Story 8.3 - Event Dashboard Management
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -17,9 +17,9 @@ import { databaseService } from "../../../src/services/DatabaseService";
 // Mock modules
 vi.mock("../../../src/services/DatabaseService", () => ({
   databaseService: {
-    leaveTournament: vi.fn(),
-    loadTournamentParticipants: vi.fn().mockResolvedValue([]),
-    addLeaguePlayerToTournament: vi.fn().mockResolvedValue("new-tp-id"),
+    leaveEvent: vi.fn(),
+    loadEventParticipants: vi.fn().mockResolvedValue([]),
+    addLeaguePlayerToEvent: vi.fn().mockResolvedValue("new-tp-id"),
   },
 }));
 
@@ -31,7 +31,7 @@ vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
     ...actual,
-    useParams: () => ({ id: "test-tournament-id" }),
+    useParams: () => ({ id: "test-event-id" }),
     useNavigate: () => vi.fn(),
   };
 });
@@ -67,8 +67,8 @@ describe("EventDashboard - Story 8.3", () => {
     matches: [],
   };
 
-  const mockTournament = {
-    id: "test-tournament-id",
+  const mockEvent = {
+    id: "test-event-id",
     name: "Summer Cup",
     date: "2026-02-03",
     format: "2v2" as const,
@@ -102,7 +102,7 @@ describe("EventDashboard - Story 8.3", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (databaseService.loadTournamentParticipants as ReturnType<typeof vi.fn>).mockImplementation(
+    (databaseService.loadEventParticipants as ReturnType<typeof vi.fn>).mockImplementation(
       () => Promise.resolve(mockPlayers.map((p) => ({ ...p, leaguePlayerId: p.id, joinedAt: new Date().toISOString() }))),
     );
 
@@ -114,17 +114,17 @@ describe("EventDashboard - Story 8.3", () => {
 
     // Mock LeagueContext
     vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
-      tournaments: [mockTournament],
+      events: [mockEvent],
       leagues: [mockLeague],
-      recordTournamentMatch: vi.fn(),
-      deleteTournament: vi.fn(),
-      toggleTournamentStatus: vi.fn(),
-      updateTournament: vi.fn(),
-      getTournamentLocalRanking: vi.fn().mockReturnValue(mockPlayers),
+      recordEventMatch: vi.fn(),
+      deleteEvent: vi.fn(),
+      toggleEventStatus: vi.fn(),
+      updateEvent: vi.fn(),
+      getEventLocalRanking: vi.fn().mockReturnValue(mockPlayers),
       getLeagueGlobalRanking: vi.fn().mockReturnValue([]),
       addPlayer: vi.fn(),
-      addPlayerToTournament: vi.fn(),
-      associateTournamentToLeague: vi.fn(),
+      addPlayerToEvent: vi.fn(),
+      associateEventToLeague: vi.fn(),
       isLoadingInitialData: false,
       reloadData: vi.fn(),
     } as any);
@@ -142,9 +142,9 @@ describe("EventDashboard - Story 8.3", () => {
     } as any);
   });
 
-  // Task 2 - AC2: Display Tournament Header
-  describe("Task 2 - Tournament Header (AC2)", () => {
-    it("should display tournament name", () => {
+  // Task 2 - AC2: Display Event Header
+  describe("Task 2 - Event Header (AC2)", () => {
+    it("should display event name", () => {
       render(
         <BrowserRouter>
           <EventDashboard />
@@ -201,7 +201,7 @@ describe("EventDashboard - Story 8.3", () => {
   });
 
   // Task 4 - AC4: Display Match History with timestamps and ELO
-  // Note: These tests require loadTournamentParticipants to resolve before Match tab content renders.
+  // Note: These tests require loadEventParticipants to resolve before Match tab content renders.
   // The async timing causes flakiness; consider using fake timers or mocking at a higher level.
   describe("Task 4 - Match History (AC4)", () => {
     it.skip("should display match teams", async () => {
@@ -295,9 +295,9 @@ describe("EventDashboard - Story 8.3", () => {
     });
   });
 
-  // Task 7 - AC7: Leave Tournament Functionality (moved to overflow menu)
-  describe("Task 7 - Leave Tournament (AC7)", () => {
-    it("should display leave tournament entry for non-creators in the overflow menu", async () => {
+  // Task 7 - AC7: Leave Event Functionality (moved to overflow menu)
+  describe("Task 7 - Leave Event (AC7)", () => {
+    it("should display leave event entry for non-creators in the overflow menu", async () => {
       render(
         <BrowserRouter>
           <EventDashboard />
@@ -344,9 +344,9 @@ describe("EventDashboard - Story 8.3", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("should call leaveTournament from overflow menu on confirmation", async () => {
+    it("should call leaveEvent from overflow menu on confirmation", async () => {
       global.confirm = vi.fn(() => true);
-      (databaseService.leaveTournament as any).mockResolvedValue(undefined);
+      (databaseService.leaveEvent as any).mockResolvedValue(undefined);
 
       const mockReloadData = vi.fn().mockResolvedValue(undefined);
       vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
@@ -367,8 +367,8 @@ describe("EventDashboard - Story 8.3", () => {
       await userEvent.click(leaveItem);
 
       await waitFor(() => {
-        expect(databaseService.leaveTournament).toHaveBeenCalledWith(
-          "test-tournament-id",
+        expect(databaseService.leaveEvent).toHaveBeenCalledWith(
+          "test-event-id",
           "test-user-id",
           undefined,
         );
@@ -378,7 +378,7 @@ describe("EventDashboard - Story 8.3", () => {
 
     it("should show error toast if leave fails", async () => {
       global.confirm = vi.fn(() => true);
-      (databaseService.leaveTournament as any).mockRejectedValue(
+      (databaseService.leaveEvent as any).mockRejectedValue(
         new Error("Le créateur de l'événement ne peut pas quitter"),
       );
 
@@ -395,7 +395,7 @@ describe("EventDashboard - Story 8.3", () => {
       await userEvent.click(leaveItem);
 
       await waitFor(() => {
-        expect(databaseService.leaveTournament).toHaveBeenCalled();
+        expect(databaseService.leaveEvent).toHaveBeenCalled();
       });
     });
   });

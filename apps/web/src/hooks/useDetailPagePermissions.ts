@@ -4,15 +4,15 @@ import { useLeague } from "../context/LeagueContext";
 
 export const useDetailPagePermissions = (
   entityId: string,
-  entityType: "tournament" | "league",
+  entityType: "event" | "league",
 ) => {
   const { user, isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
-  const { tournaments, leagues } = useLeague();
+  const { events, leagues } = useLeague();
 
   const entity =
-    entityType === "tournament"
-      ? tournaments.find((t) => t.id === entityId)
+    entityType === "event"
+      ? events.find((t) => t.id === entityId)
       : leagues.find((l) => l.id === entityId);
 
   if (!entity) {

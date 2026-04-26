@@ -25,7 +25,7 @@ export const UserProfile = () => {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const { leagues, tournaments, reloadData } = useLeague();
+  const { leagues, events, reloadData } = useLeague();
 
   // Profile state (loaded from DB for auth users, localStorage for anon)
   const [pseudo, setPseudo] = useState<string>("");
@@ -84,7 +84,7 @@ export const UserProfile = () => {
       if (isAuthenticated && user) {
         const ok = await authService.updateUserProfile(user.id, { pseudo: trimmed });
         if (!ok) throw new Error("update failed");
-        // Refresh leagues/tournaments so the new pseudo appears in podium,
+        // Refresh leagues/events so the new pseudo appears in podium,
         // leaderboard, history, etc. (snapshots have been propagated
         // server-side by updateUserProfile).
         await reloadData();
@@ -161,26 +161,26 @@ export const UserProfile = () => {
           league.creator_anonymous_user_id === localUser.anonymousUserId),
     );
 
-    const userTournaments = tournaments.filter(
-      (tournament) =>
-        (isAuthenticated && user && tournament.creator_user_id === user.id) ||
+    const userEvents = events.filter(
+      (event) =>
+        (isAuthenticated && user && event.creator_user_id === user.id) ||
         (!isAuthenticated &&
           localUser &&
-          tournament.creator_anonymous_user_id === localUser.anonymousUserId),
+          event.creator_anonymous_user_id === localUser.anonymousUserId),
     );
 
     const totalMatches =
       userLeagues.reduce((acc, l) => acc + l.matches.length, 0) +
-      userTournaments.reduce((acc, t) => acc + t.matches.length, 0);
+      userEvents.reduce((acc, t) => acc + t.matches.length, 0);
 
     return {
       leagues: userLeagues.length,
-      tournaments: userTournaments.length,
+      events: userEvents.length,
       totalMatches,
       userLeagues,
-      userTournaments,
+      userEvents,
     };
-  }, [leagues, tournaments, user, isAuthenticated, localUser]);
+  }, [leagues, events, user, isAuthenticated, localUser]);
 
   return (
     <div className="min-h-0 flex flex-col relative">
@@ -330,7 +330,7 @@ export const UserProfile = () => {
         {/* StatCards */}
         <div className="grid grid-cols-3 gap-2 md:gap-4">
           <StatCard value={userStats.leagues} label="Ligues" variant="primary" />
-          <StatCard value={userStats.tournaments} label="Événements" variant="accent" />
+          <StatCard value={userStats.events} label="Événements" variant="accent" />
           <StatCard value={userStats.totalMatches} label="Matchs" />
         </div>
 
@@ -370,41 +370,41 @@ export const UserProfile = () => {
           )}
         </div>
 
-        {/* My Tournaments */}
+        {/* My Events */}
         <div>
           <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
             <Calendar size={20} className="text-electric-blue" />
             Mes Événements
           </h3>
-          {userStats.userTournaments.length > 0 ? (
+          {userStats.userEvents.length > 0 ? (
             <div className="space-y-2">
-              {userStats.userTournaments.map((tournament) => (
+              {userStats.userEvents.map((event) => (
                 <div
-                  key={tournament.id}
+                  key={event.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => navigate(`/event/${tournament.id}`)}
+                  onClick={() => navigate(`/event/${event.id}`)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      navigate(`/event/${tournament.id}`);
+                      navigate(`/event/${event.id}`);
                     }
                   }}
                   className="bg-navy-soft rounded-card p-4 border border-card hover:border-card-muted cursor-pointer transition-colors"
                 >
                   <div className="font-bold text-white flex items-center gap-2">
-                    {tournament.name}
-                    {tournament.isFinished && (
+                    {event.name}
+                    {event.isFinished && (
                       <span className="text-xs bg-navy-deep text-cool-gray px-2 py-1 rounded">
                         Terminé
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-cool-gray mt-1">
-                    {tournament.date
-                      ? new Date(tournament.date).toLocaleDateString("fr-FR")
+                    {event.date
+                      ? new Date(event.date).toLocaleDateString("fr-FR")
                       : "—"}{" "}
-                    • {tournament.matches.length} matchs
+                    • {event.matches.length} matchs
                   </div>
                 </div>
               ))}

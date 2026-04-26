@@ -2,8 +2,8 @@
  * PremiumService - Service de gestion du statut premium et des limites freemium
  * 
  * Gère les vérifications de statut premium et l'application des limites pour les utilisateurs gratuits:
- * - Free users: max 2 tournaments, max 6 players per tournament, no leagues
- * - Premium users: unlimited tournaments, unlimited players, unlimited leagues
+ * - Free users: max 2 events, max 6 players per event, no leagues
+ * - Premium users: unlimited events, unlimited players, unlimited leagues
  */
 
 import { supabase } from '../lib/supabase';
@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase';
 /**
  * Résultat de la vérification de création de tournoi
  */
-export interface CanCreateTournamentResult {
+export interface CanCreateEventResult {
   allowed: boolean;
   remaining?: number;
   reason?: string;
@@ -58,10 +58,10 @@ class PremiumService {
           return data?.is_premium ?? false;
         }
 
-        // Requête pour utilisateur anonyme
+        // Requête pour utilisateur anonyme — mig 022: anon users live in `users`
         if (anonymousUserId) {
           const { data, error } = await supabase!
-            .from('anonymous_users')
+            .from('users')
             .select('is_premium')
             .eq('id', anonymousUserId)
             .single();
@@ -90,7 +90,7 @@ class PremiumService {
    * @param anonymousUserId - ID de l'utilisateur anonyme (null si authentifié)
    * @returns Nombre de tournois créés par l'utilisateur
    */
-  async getTournamentCount(userId: string | null, anonymousUserId: string | null): Promise<number> {
+  async getEventCount(userId: string | null, anonymousUserId: string | null): Promise<number> {
     // Si aucun ID fourni, retourner 0
     if (!userId && !anonymousUserId) {
       return 0;
@@ -100,32 +100,31 @@ class PremiumService {
     if (this.isSupabaseAvailable()) {
       try {
         let query = supabase!
-          .from('tournaments')
+          .from('events')
           .select('*', { count: 'exact', head: true });
 
-        // Filtrer par créateur
-        if (userId) {
-          query = query.eq('creator_user_id', userId);
-        } else if (anonymousUserId) {
-          query = query.eq('creator_anonymous_user_id', anonymousUserId);
+        // Filtrer par créateur — mig 022: anon + auth share creator_user_id
+        const creatorId = userId || anonymousUserId;
+        if (creatorId) {
+          query = query.eq('creator_user_id', creatorId);
         }
 
         const { count, error } = await query;
 
         if (error) {
-          console.error('Error counting tournaments:', error);
-          return this.getTournamentCountFromLocalStorage();
+          console.error('Error counting events:', error);
+          return this.getEventCountFromLocalStorage();
         }
 
         return count ?? 0;
       } catch (error) {
-        console.error('Error in getTournamentCount:', error);
-        return this.getTournamentCountFromLocalStorage();
+        console.error('Error in getEventCount:', error);
+        return this.getEventCountFromLocalStorage();
       }
     }
 
     // Fallback localStorage si Supabase indisponible
-    return this.getTournamentCountFromLocalStorage();
+    return this.getEventCountFromLocalStorage();
   }
 
   /**
@@ -135,10 +134,10 @@ class PremiumService {
    * @param anonymousUserId - ID de l'utilisateur anonyme (null si authentifié)
    * @returns Objet avec allowed (boolean), remaining (number optionnel), reason et message
    */
-  async canCreateTournament(
+  async canCreateEvent(
     userId: string | null,
     anonymousUserId: string | null
-  ): Promise<CanCreateTournamentResult> {
+  ): Promise<CanCreateEventResult> {
     // Vérifier si l'utilisateur est premium
     const isPremium = await this.isPremium(userId, anonymousUserId);
 
@@ -148,9 +147,9 @@ class PremiumService {
     }
 
     // Pour les utilisateurs gratuits, vérifier la limite de 2 tournois
-    const tournamentCount = await this.getTournamentCount(userId, anonymousUserId);
+    const eventCount = await this.getEventCount(userId, anonymousUserId);
 
-    if (tournamentCount >= 2) {
+    if (eventCount >= 2) {
       return {
         allowed: false,
         reason: 'limit_reached',
@@ -160,7 +159,7 @@ class PremiumService {
 
     return {
       allowed: true,
-      remaining: 2 - tournamentCount,
+      remaining: 2 - eventCount,
     };
   }
 
@@ -184,7 +183,7 @@ class PremiumService {
    * @param anonymousUserId - ID de l'utilisateur anonyme (null si authentifié)
    * @returns null (illimité) pour premium, 6 pour utilisateurs gratuits
    */
-  async getTournamentPlayerLimit(
+  async getEventPlayerLimit(
     userId: string | null,
     anonymousUserId: string | null
   ): Promise<number | null> {
@@ -221,15 +220,15 @@ class PremiumService {
    * Compte les tournois depuis localStorage
    * @private
    */
-  private getTournamentCountFromLocalStorage(): number {
+  private getEventCountFromLocalStorage(): number {
     try {
-      const tournamentsJson = localStorage.getItem('bpl_tournaments');
-      if (!tournamentsJson) return 0;
+      const eventsJson = localStorage.getItem('bpl_events');
+      if (!eventsJson) return 0;
 
-      const tournaments = JSON.parse(tournamentsJson);
-      return Array.isArray(tournaments) ? tournaments.length : 0;
+      const events = JSON.parse(eventsJson);
+      return Array.isArray(events) ? events.length : 0;
     } catch (error) {
-      console.error('Error reading tournaments from localStorage:', error);
+      console.error('Error reading events from localStorage:', error);
       return 0;
     }
   }

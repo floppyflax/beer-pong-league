@@ -2,7 +2,7 @@
  * StickyCTA — Everything ELO, conteneur sticky bottom pour CTA principal
  *
  * Pattern unifié pour les pages avec un CTA plein-largeur collé en bas d'écran
- * (CreateTournament, CreateLeague, Join, etc.).
+ * (CreateEvent, CreateLeague, Join, etc.).
  *
  * Comportement :
  * - `position: fixed` en bas de viewport (flush), avec safe-area mobile (iOS)

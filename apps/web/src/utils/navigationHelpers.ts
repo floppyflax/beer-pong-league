@@ -27,7 +27,7 @@ const CORE_ROUTES = [
 
 /**
  * Route patterns for detail pages (bottom nav visible)
- * Canonical event/league detail routes — /tournament/* are kept as backward-compat redirects.
+ * Canonical event/league detail routes — /event/* are kept as backward-compat redirects.
  */
 const CORE_ROUTE_PATTERNS = [
   /^\/event\/[^/]+$/, // /event/:id (exclude /event/:id/display)
@@ -98,7 +98,7 @@ export const PAGES_WITH_SPECIFIC_MENU = [] as const;
 /**
  * Returns the bottom padding class for scrollable content when bottom nav is visible.
  * Story 14-10 AC5: pb-20 or pb-24 for content clearance.
- * When BottomMenuSpecific is also shown (join, tournaments, leagues), extra padding needed.
+ * When BottomMenuSpecific is also shown (join, events, leagues), extra padding needed.
  *
  * @param pathname - The current route pathname
  * @returns Tailwind class for padding-bottom (e.g. "pb-20 lg:pb-4") or empty string

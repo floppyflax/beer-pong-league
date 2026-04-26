@@ -3,7 +3,7 @@
  */
 
 import { databaseService } from './DatabaseService';
-import type { League, Tournament, Match } from '../types';
+import type { League, Event, Match } from '../types';
 
 const MIGRATION_FLAG_KEY = 'bpl_data_migrated_to_supabase';
 
@@ -37,10 +37,10 @@ function normalizeLeague(league: League): League {
   };
 }
 
-/** Normalize tournament for migration (legacy dates, null location) */
-function normalizeTournament(tournament: Tournament): Tournament {
-  const t = { ...tournament };
-  t.date = toIsoDateTime(t.date ?? tournament.createdAt);
+/** Normalize event for migration (legacy dates, null location) */
+function normalizeEvent(event: Event): Event {
+  const t = { ...event };
+  t.date = toIsoDateTime(t.date ?? event.createdAt);
   t.createdAt = toIsoDateTime(t.createdAt ?? t.date);
   t.location = (t.location != null && t.location !== '') ? t.location : undefined; // null/empty -> undefined
   t.matches = (t.matches ?? []).map(normalizeMatch);
@@ -67,21 +67,21 @@ class MigrationService {
    */
   async migrateLocalStorageToSupabase(): Promise<{
     leaguesMigrated: number;
-    tournamentsMigrated: number;
+    eventsMigrated: number;
     error?: string;
   }> {
     // Vérifier si déjà migré
     if (this.isMigrationDone()) {
-      return { leaguesMigrated: 0, tournamentsMigrated: 0 };
+      return { leaguesMigrated: 0, eventsMigrated: 0 };
     }
 
     try {
       // Charger les données depuis localStorage
       const leaguesJson = localStorage.getItem('bpl_leagues');
-      const tournamentsJson = localStorage.getItem('bpl_tournaments');
+      const eventsJson = localStorage.getItem('bpl_events');
 
       const leagues: League[] = leaguesJson ? JSON.parse(leaguesJson) : [];
-      const tournaments: Tournament[] = tournamentsJson ? JSON.parse(tournamentsJson) : [];
+      const events: Event[] = eventsJson ? JSON.parse(eventsJson) : [];
 
       // Migrer les leagues (normaliser les dates legacy avant sauvegarde)
       let leaguesMigrated = 0;
@@ -95,32 +95,32 @@ class MigrationService {
         }
       }
 
-      // Migrer les tournaments (normaliser dates et nulls legacy)
-      let tournamentsMigrated = 0;
-      for (const tournament of tournaments) {
+      // Migrer les events (normaliser dates et nulls legacy)
+      let eventsMigrated = 0;
+      for (const event of events) {
         try {
-          const normalized = normalizeTournament(tournament);
-          await databaseService.saveTournament(normalized);
-          tournamentsMigrated++;
+          const normalized = normalizeEvent(event);
+          await databaseService.saveEvent(normalized);
+          eventsMigrated++;
         } catch (error) {
-          console.error(`Error migrating tournament ${tournament.id}:`, error);
+          console.error(`Error migrating event ${event.id}:`, error);
         }
       }
 
       // Marquer comme migré seulement si au moins une donnée a été migrée
-      if (leaguesMigrated > 0 || tournamentsMigrated > 0) {
+      if (leaguesMigrated > 0 || eventsMigrated > 0) {
         this.markMigrationDone();
       }
 
       return {
         leaguesMigrated,
-        tournamentsMigrated,
+        eventsMigrated,
       };
     } catch (error) {
       console.error('Error during migration:', error);
       return {
         leaguesMigrated: 0,
-        tournamentsMigrated: 0,
+        eventsMigrated: 0,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }

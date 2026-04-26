@@ -2,14 +2,16 @@ import { createContext, useContext, ReactNode } from 'react';
 import { useIdentity, type IdentityState } from '../hooks/useIdentity';
 import type { LocalUser } from '../services/LocalUserService';
 
-interface IdentityContextType extends IdentityState {
+export interface IdentityContextType extends IdentityState {
   createIdentity: (pseudo: string) => Promise<LocalUser>;
   updateIdentity: (updates: Partial<LocalUser>) => void;
   clearIdentity: () => void;
   initializeAnonymousUser: () => Promise<LocalUser>;
 }
 
-const IdentityContext = createContext<IdentityContextType | undefined>(undefined);
+// Exported so the design-system showcase can wrap pages with a
+// fixture-only Identity context (see MockProviders.tsx).
+export const IdentityContext = createContext<IdentityContextType | undefined>(undefined);
 
 export const useIdentityContext = () => {
   const context = useContext(IdentityContext);

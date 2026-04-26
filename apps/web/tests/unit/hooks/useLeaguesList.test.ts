@@ -18,14 +18,14 @@ describe('useLeaguesList', () => {
   it('should return empty array when no leagues', () => {
     vi.mocked(useLeague).mockReturnValue({
       leagues: [],
-      tournaments: [],
+      events: [],
       isLoadingInitialData: false,
       syncWithSupabase: vi.fn(),
       createLeague: vi.fn(),
-      createTournament: vi.fn(),
+      createEvent: vi.fn(),
       recordMatch: vi.fn(),
       updateLeague: vi.fn(),
-      updateTournament: vi.fn(),
+      updateEvent: vi.fn(),
       deleteMatch: vi.fn(),
       confirmMatch: vi.fn(),
       rejectMatch: vi.fn(),
@@ -51,20 +51,20 @@ describe('useLeaguesList', () => {
           { id: 'p2', name: 'Player 2', elo: 1000, wins: 0, losses: 0, matchesPlayed: 0, streak: 0 },
         ],
         matches: [],
-        tournaments: ['t1', 't2', 't3'],
+        events: ['t1', 't2', 't3'],
       },
     ];
 
     vi.mocked(useLeague).mockReturnValue({
       leagues: mockLeagues,
-      tournaments: [],
+      events: [],
       isLoadingInitialData: false,
       syncWithSupabase: vi.fn(),
       createLeague: vi.fn(),
-      createTournament: vi.fn(),
+      createEvent: vi.fn(),
       recordMatch: vi.fn(),
       updateLeague: vi.fn(),
-      updateTournament: vi.fn(),
+      updateEvent: vi.fn(),
       deleteMatch: vi.fn(),
       confirmMatch: vi.fn(),
       rejectMatch: vi.fn(),
@@ -78,7 +78,7 @@ describe('useLeaguesList', () => {
       name: 'Test League',
       status: 'active',
       member_count: 2,
-      tournament_count: 3,
+      event_count: 3,
     });
   });
 
@@ -93,7 +93,7 @@ describe('useLeaguesList', () => {
         creator_anonymous_user_id: null,
         players: [],
         matches: [],
-        tournaments: [],
+        events: [],
       },
       {
         id: 'league-active',
@@ -104,20 +104,20 @@ describe('useLeaguesList', () => {
         creator_anonymous_user_id: null,
         players: [],
         matches: [],
-        tournaments: [],
+        events: [],
       },
     ];
 
     vi.mocked(useLeague).mockReturnValue({
       leagues: mockLeagues,
-      tournaments: [],
+      events: [],
       isLoadingInitialData: false,
       syncWithSupabase: vi.fn(),
       createLeague: vi.fn(),
-      createTournament: vi.fn(),
+      createEvent: vi.fn(),
       recordMatch: vi.fn(),
       updateLeague: vi.fn(),
-      updateTournament: vi.fn(),
+      updateEvent: vi.fn(),
       deleteMatch: vi.fn(),
       confirmMatch: vi.fn(),
       rejectMatch: vi.fn(),
@@ -134,14 +134,14 @@ describe('useLeaguesList', () => {
   it('should return loading state from context', () => {
     vi.mocked(useLeague).mockReturnValue({
       leagues: [],
-      tournaments: [],
+      events: [],
       isLoadingInitialData: true,
       syncWithSupabase: vi.fn(),
       createLeague: vi.fn(),
-      createTournament: vi.fn(),
+      createEvent: vi.fn(),
       recordMatch: vi.fn(),
       updateLeague: vi.fn(),
-      updateTournament: vi.fn(),
+      updateEvent: vi.fn(),
       deleteMatch: vi.fn(),
       confirmMatch: vi.fn(),
       rejectMatch: vi.fn(),
@@ -152,7 +152,7 @@ describe('useLeaguesList', () => {
     expect(result.current.isLoading).toBe(true);
   });
 
-  it('should handle leagues without players or tournaments', () => {
+  it('should handle leagues without players or events', () => {
     const mockLeagues: League[] = [
       {
         id: 'league-empty',
@@ -163,20 +163,20 @@ describe('useLeaguesList', () => {
         creator_anonymous_user_id: null,
         players: [],
         matches: [],
-        tournaments: [],
+        events: [],
       },
     ];
 
     vi.mocked(useLeague).mockReturnValue({
       leagues: mockLeagues,
-      tournaments: [],
+      events: [],
       isLoadingInitialData: false,
       syncWithSupabase: vi.fn(),
       createLeague: vi.fn(),
-      createTournament: vi.fn(),
+      createEvent: vi.fn(),
       recordMatch: vi.fn(),
       updateLeague: vi.fn(),
-      updateTournament: vi.fn(),
+      updateEvent: vi.fn(),
       deleteMatch: vi.fn(),
       confirmMatch: vi.fn(),
       rejectMatch: vi.fn(),
@@ -185,6 +185,6 @@ describe('useLeaguesList', () => {
     const { result } = renderHook(() => useLeaguesList());
 
     expect(result.current.leagues[0].member_count).toBe(0);
-    expect(result.current.leagues[0].tournament_count).toBe(0);
+    expect(result.current.leagues[0].event_count).toBe(0);
   });
 });

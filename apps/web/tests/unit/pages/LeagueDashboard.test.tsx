@@ -62,7 +62,7 @@ describe("LeagueDashboard - Story 14-17", () => {
     });
     vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
       leagues: [mockLeague],
-      tournaments: [],
+      events: [],
       addPlayer: vi.fn(),
       recordMatch: vi.fn(),
       deleteLeague: vi.fn(),
@@ -176,7 +176,7 @@ describe("LeagueDashboard - Story 14-17", () => {
     it("should show empty state when league does not exist", () => {
       vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
         leagues: [],
-        tournaments: [],
+        events: [],
         addPlayer: vi.fn(),
         recordMatch: vi.fn(),
         deleteLeague: vi.fn(),

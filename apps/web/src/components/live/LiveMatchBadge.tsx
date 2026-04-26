@@ -1,34 +1,88 @@
 /**
- * LiveMatchBadge — animated LIVE indicator.
+ * LiveMatchBadge — small status pill for a match or event.
  *
- * Phase D.4 — Beer Pong ELO redesign.
+ * Variants:
+ *   - `live`: pulsing lime dot + LIVE
+ *   - `upcoming`: electric-blue dot + À VENIR
+ *   - `finished`: cool-gray dot + TERMINÉ
+ *   - `archived`: muted dot + ARCHIVÉ
  *
- * Renders a pulsing lime dot + "LIVE" label when a match is active.
- * Uses only Tailwind tokens — no hardcoded colors (invariant #4).
+ * Backwards-compatible: passing `isLive` (boolean) keeps the legacy behavior
+ * — true → live, false → nothing.
  */
 
+export type LiveMatchStatus = "live" | "upcoming" | "finished" | "archived";
+
 interface LiveMatchBadgeProps {
-  /** Whether the match is currently live. If false, renders nothing. */
-  isLive: boolean;
+  /** Explicit status. Takes precedence over `isLive` when provided. */
+  status?: LiveMatchStatus;
+  /** Legacy boolean — true ≡ status="live", false ≡ render nothing. */
+  isLive?: boolean;
   className?: string;
 }
 
-export function LiveMatchBadge({ isLive, className = "" }: LiveMatchBadgeProps) {
-  if (!isLive) return null;
+const CONFIG: Record<
+  LiveMatchStatus,
+  { label: string; dot: string; text: string; pulse: boolean }
+> = {
+  live: {
+    label: "LIVE",
+    dot: "bg-lime",
+    text: "text-lime",
+    pulse: true,
+  },
+  upcoming: {
+    label: "À VENIR",
+    dot: "bg-electric-blue",
+    text: "text-electric-blue",
+    pulse: false,
+  },
+  finished: {
+    label: "TERMINÉ",
+    dot: "bg-cool-gray",
+    text: "text-cool-gray",
+    pulse: false,
+  },
+  archived: {
+    label: "ARCHIVÉ",
+    dot: "bg-cool-gray/50",
+    text: "text-cool-gray/70",
+    pulse: false,
+  },
+};
 
+export function LiveMatchBadge({
+  status,
+  isLive,
+  className = "",
+}: LiveMatchBadgeProps) {
+  const resolved: LiveMatchStatus | null =
+    status ?? (isLive === true ? "live" : isLive === false ? null : null);
+
+  if (!resolved) return null;
+
+  const cfg = CONFIG[resolved];
   return (
     <span
       data-testid="live-match-badge"
+      data-status={resolved}
       className={`inline-flex items-center gap-1.5 ${className}`}
-      aria-label="Match en direct"
+      aria-label={`Statut : ${cfg.label.toLowerCase()}`}
     >
-      {/* Pulsing dot */}
       <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-lime" />
+        {cfg.pulse && (
+          <span
+            className={`animate-ping absolute inline-flex h-full w-full rounded-full ${cfg.dot} opacity-75`}
+          />
+        )}
+        <span
+          className={`relative inline-flex rounded-full h-2 w-2 ${cfg.dot}`}
+        />
       </span>
-      <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-lime">
-        LIVE
+      <span
+        className={`text-[10px] font-mono font-bold uppercase tracking-widest ${cfg.text}`}
+      >
+        {cfg.label}
       </span>
     </span>
   );

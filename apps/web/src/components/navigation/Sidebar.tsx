@@ -27,7 +27,7 @@ export const Sidebar = () => {
 
   /**
    * Determines which navigation item should be highlighted based on current route.
-   * "Jouer" = hub compétitions (inclut legacy /tournaments, /leagues, détails, flow /join).
+   * "Jouer" = hub compétitions (inclut legacy /events, /leagues, détails, flow /join).
    */
   const getActiveItem = (pathname: string): string => {
     if (pathname === '/') return 'home';

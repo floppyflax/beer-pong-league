@@ -6,7 +6,7 @@
  *
  *  1. **Partager** — QR code + Code événement + bouton Partager natif
  *     (Web Share API), fallback copie dans le presse-papier. Actif uniquement
- *     si `shareData` est fourni (ex: Tournament avec `joinCode`).
+ *     si `shareData` est fourni (ex: Event avec `joinCode`).
  *
  *  2. **Ajouter** — Deux modes combinés dans un seul tab :
  *     - Sélection d'un joueur depuis la ligue rattachée (si `leaguePlayers`

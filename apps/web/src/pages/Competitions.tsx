@@ -59,18 +59,18 @@ export const Competitions: React.FC = () => {
   }, [scope]);
 
   const {
-    canCreateTournament,
+    canCreateEvent,
     canCreateLeague,
-    isAtTournamentLimit,
+    isAtEventLimit,
     isAtLeagueLimit,
     refetchPremium,
   } = usePremiumLimits();
-  const { tournaments, isLoading: isLoadingTournaments, loadError } =
+  const { events, isLoading: isLoadingEvents, loadError } =
     useEventsList();
   const { leagues, isLoading: isLoadingLeagues } = useLeaguesList();
   const { reloadData } = useLeague();
 
-  const isLoading = isLoadingTournaments || isLoadingLeagues;
+  const isLoading = isLoadingEvents || isLoadingLeagues;
 
   const handlePaymentSuccess = () => {
     setShowPaymentModal(false);
@@ -79,7 +79,7 @@ export const Competitions: React.FC = () => {
   };
 
   const handleCreateEvent = () => {
-    if (canCreateTournament) {
+    if (canCreateEvent) {
       navigate("/create-event");
     } else {
       setShowPaymentModal(true);
@@ -95,9 +95,9 @@ export const Competitions: React.FC = () => {
   };
 
   const handleQuickScore = () => {
-    const active = tournaments.find((t) => !t.isFinished);
+    const active = events.find((t) => !t.isFinished);
     if (active) {
-      navigate(`/record-match/tournament/${active.id}`);
+      navigate(`/record-match/event/${active.id}`);
     } else {
       toast("Rejoins un événement actif pour enregistrer un score.", { icon: "🏓" });
     }
@@ -106,7 +106,7 @@ export const Competitions: React.FC = () => {
   // ── Filtered lists ─────────────────────────────────────────────────────
 
   const filteredEvents = useMemo(() => {
-    let result = tournaments || [];
+    let result = events || [];
     if (filter === "active") {
       result = result.filter((t) => !t.isFinished);
     } else if (filter === "finished") {
@@ -117,7 +117,7 @@ export const Competitions: React.FC = () => {
       result = result.filter((t) => t.name.toLowerCase().includes(q));
     }
     return result;
-  }, [tournaments, filter, searchQuery]);
+  }, [events, filter, searchQuery]);
 
   const filteredLeagues = useMemo(() => {
     let result = leagues || [];
@@ -187,7 +187,7 @@ export const Competitions: React.FC = () => {
           onClick={scope === "events" ? handleCreateEvent : handleCreateLeague}
         >
           {scope === "events" ? "Créer un événement" : "Créer une ligue"}
-          {((scope === "events" && isAtTournamentLimit) ||
+          {((scope === "events" && isAtEventLimit) ||
             (scope === "leagues" && isAtLeagueLimit)) && (
             <Crown
               size={14}
@@ -212,12 +212,12 @@ export const Competitions: React.FC = () => {
           onClose={() => setShowPaymentModal(false)}
           onSuccess={handlePaymentSuccess}
           title={
-            isAtTournamentLimit && isAtLeagueLimit
+            isAtEventLimit && isAtLeagueLimit
               ? "Limite gratuite atteinte"
               : undefined
           }
           subtitle={
-            isAtTournamentLimit && isAtLeagueLimit
+            isAtEventLimit && isAtLeagueLimit
               ? "La version gratuite est limitée à 2 événements et 1 ligue actifs. Passez Premium pour des créations illimitées."
               : undefined
           }
@@ -227,7 +227,7 @@ export const Competitions: React.FC = () => {
   );
 
   const totalCount =
-    scope === "events" ? tournaments.length : leagues.length;
+    scope === "events" ? events.length : leagues.length;
   const filteredList = scope === "events" ? filteredEvents : filteredLeagues;
   const searchPlaceholder =
     scope === "events" ? "Rechercher un événement..." : "Rechercher une league...";
@@ -277,8 +277,8 @@ export const Competitions: React.FC = () => {
               </div>
             ) : scope === "events" ? (
               <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
-                {filteredEvents.map((tournament) => (
-                  <EventCard key={tournament.id} tournament={tournament} />
+                {filteredEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
                 ))}
               </div>
             ) : (

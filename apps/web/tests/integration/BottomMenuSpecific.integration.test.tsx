@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Join } from '../../src/pages/Join';
-import { Tournaments } from '../../src/pages/Events';
+import { Events } from '../../src/pages/Events';
 import { Leagues } from '../../src/pages/Leagues';
 import { AuthProvider } from '../../src/context/AuthContext';
 import { IdentityProvider } from '../../src/context/IdentityContext';
@@ -29,9 +29,9 @@ function TestApp({ initialRoute = '/' }: { initialRoute?: string }) {
           <MemoryRouter initialEntries={[initialRoute]}>
             <Routes>
               <Route path="/join" element={<Join />} />
-              <Route path="/events" element={<Tournaments />} />
+              <Route path="/events" element={<Events />} />
               <Route path="/leagues" element={<Leagues />} />
-              <Route path="/create-event" element={<div>Create Tournament Page</div>} />
+              <Route path="/create-event" element={<div>Create Event Page</div>} />
               <Route path="/create-league" element={<div>Create League Page</div>} />
             </Routes>
           </MemoryRouter>
@@ -42,7 +42,7 @@ function TestApp({ initialRoute = '/' }: { initialRoute?: string }) {
 }
 
 // TODO: re-enable after Epic 15 — React concurrent rendering throws "Should not already be working"
-// across these integration tests. The child pages (Join/Tournaments/Leagues) were refactored
+// across these integration tests. The child pages (Join/Events/Leagues) were refactored
 // in Epic 15 and trigger a hook-order issue inside React act() when nested under the provider
 // stack in jsdom. Behavior is covered by the unit tests in tests/unit/components/BottomMenuSpecific.test.tsx.
 describe.skip('BottomMenuSpecific Integration', () => {
@@ -98,7 +98,7 @@ describe.skip('BottomMenuSpecific Integration', () => {
     });
   });
 
-  describe('Tournaments Page (AC3)', () => {
+  describe('Events Page (AC3)', () => {
     it('should display single Créer button', () => {
       render(<TestApp initialRoute="/events" />);
       
@@ -106,7 +106,7 @@ describe.skip('BottomMenuSpecific Integration', () => {
       expect(screen.getAllByText('CRÉER').length).toBeGreaterThanOrEqual(1);
     });
 
-    it('should show tournaments page title', () => {
+    it('should show events page title', () => {
       render(<TestApp initialRoute="/events" />);
       
       // May have multiple titles (mobile/desktop headers)
@@ -114,19 +114,19 @@ describe.skip('BottomMenuSpecific Integration', () => {
       expect(titles.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('should show empty state when no tournaments', () => {
+    it('should show empty state when no events', () => {
       render(<TestApp initialRoute="/events" />);
       
       expect(screen.getByText('Aucun tournoi')).toBeInTheDocument();
     });
 
-    it('should navigate to create-tournament when Créer button is clicked (free user)', async () => {
+    it('should navigate to create-event when Créer button is clicked (free user)', async () => {
       render(<TestApp initialRoute="/events" />);
       
       const createButton = screen.getAllByText('CRÉER')[0];
       fireEvent.click(createButton);
       
-      // Should navigate to create-tournament page (no premium limit for 0 tournaments)
+      // Should navigate to create-event page (no premium limit for 0 events)
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/create-event');
       });
@@ -177,7 +177,7 @@ describe.skip('BottomMenuSpecific Integration', () => {
       expect(bottomMenus.length).toBeGreaterThan(0);
     });
 
-    it('should render desktop actions on tournaments page', () => {
+    it('should render desktop actions on events page', () => {
       render(<TestApp initialRoute="/events" />);
       
       // Desktop actions have 'hidden lg:flex' class
@@ -195,7 +195,7 @@ describe.skip('BottomMenuSpecific Integration', () => {
       }).not.toThrow();
     });
 
-    it('should render Tournaments page without errors', () => {
+    it('should render Events page without errors', () => {
       expect(() => {
         render(<TestApp initialRoute="/events" />);
       }).not.toThrow();

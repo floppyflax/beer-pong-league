@@ -2,7 +2,7 @@
  * MatchesRepository — enregistre les matches (mig 022).
  *
  * Depuis mig 022 : `matches.team_a/b_player_ids` référencent `players.id`
- * directement (plus de mapping tournament/league_player). Les stats vivent
+ * directement (plus de mapping event/league_player). Les stats vivent
  * dans `league_memberships` (pas de membership = pas de stats).
  *
  * Les eloChanges passés ici sont indexés par players.id.
@@ -11,7 +11,7 @@
 import type { Match } from '../../types';
 import { BaseRepository, sb } from './_base';
 import { leaguesRepository } from './LeaguesRepository';
-import { tournamentsRepository } from './TournamentsRepository';
+import { eventsRepository } from './EventsRepository';
 
 interface LeagueMembershipStats {
   wins: number | null;
@@ -49,7 +49,7 @@ class MatchesRepository extends BaseRepository {
       const { error: matchError } = await sb!.from('matches').insert({
         id: match.id,
         league_id: leagueId,
-        tournament_id: null,
+        event_id: null,
         format,
         team_a_player_ids: match.teamA,
         team_b_player_ids: match.teamB,
@@ -66,7 +66,7 @@ class MatchesRepository extends BaseRepository {
       const eloHistoryEntries = Object.entries(eloChanges).map(([playerId, change]) => ({
         match_id: match.id,
         league_id: leagueId,
-        tournament_id: null,
+        event_id: null,
         player_id: playerId,
         elo_before: change.before,
         elo_after: change.after,
@@ -126,25 +126,25 @@ class MatchesRepository extends BaseRepository {
   }
 
   /**
-   * Tournament match. Records the match + per-context ELO history + per-context
+   * Event match. Records the match + per-context ELO history + per-context
    * stats updates. Mig 023.
    *
    * Two ELO contexts are tracked independently:
-   *   - **Event ELO** (always) — `tournament_memberships.elo` updated from
-   *     `eventEloChanges`. Written as `elo_history` rows with `tournament_id`
+   *   - **Event ELO** (always) — `event_memberships.elo` updated from
+   *     `eventEloChanges`. Written as `elo_history` rows with `event_id`
    *     set, `league_id` NULL.
    *   - **League ELO** (optional) — `league_memberships.elo` updated from
    *     `leagueEloChanges` when provided. Written as `elo_history` rows with
-   *     `league_id` set, `tournament_id` NULL. The caller decides whether to
-   *     propagate based on `tournaments.propagates_to_league_elo`.
+   *     `league_id` set, `event_id` NULL. The caller decides whether to
+   *     propagate based on `events.propagates_to_league_elo`.
    *
-   * One match row is inserted (with both `tournament_id` and `league_id` so
+   * One match row is inserted (with both `event_id` and `league_id` so
    * it shows up in both contexts' match feeds), but the ELO history is
    * cleanly split per context — querying `elo_history` by either
-   * `tournament_id` or `league_id` returns a single delta per player.
+   * `event_id` or `league_id` returns a single delta per player.
    */
-  async recordTournamentMatch(
-    tournamentId: string,
+  async recordEventMatch(
+    eventId: string,
     match: Match,
     eventEloChanges: Record<string, { before: number; after: number; change: number }>,
     userId?: string | null,
@@ -155,22 +155,22 @@ class MatchesRepository extends BaseRepository {
   ): Promise<void> {
     void _legacyMapping;
     if (!this.isSupabaseAvailable()) {
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        tournament.matches.push(match);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
+      const events = eventsRepository.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
+        event.matches.push(match);
+        eventsRepository.saveEventToLocalStorage(event);
       }
       return;
     }
 
     try {
       const { data: tData } = await sb!
-        .from('tournaments')
+        .from('events')
         .select('league_id')
-        .eq('id', tournamentId)
+        .eq('id', eventId)
         .single();
-      if (!tData) throw new Error('Tournament not found');
+      if (!tData) throw new Error('Event not found');
       const leagueId = (tData as { league_id: string | null }).league_id;
 
       const format =
@@ -184,7 +184,7 @@ class MatchesRepository extends BaseRepository {
       const { error: matchError } = await sb!.from('matches').insert({
         id: match.id,
         league_id: leagueId,
-        tournament_id: tournamentId,
+        event_id: eventId,
         format,
         team_a_player_ids: match.teamA,
         team_b_player_ids: match.teamB,
@@ -197,11 +197,11 @@ class MatchesRepository extends BaseRepository {
       });
       if (matchError) throw matchError;
 
-      // ── 2. Event-context elo_history (tournament_id only) ────────────
+      // ── 2. Event-context elo_history (event_id only) ────────────
       const eventHistoryRows = Object.entries(eventEloChanges).map(([playerId, change]) => ({
         match_id: match.id,
         league_id: null,
-        tournament_id: tournamentId,
+        event_id: eventId,
         player_id: playerId,
         elo_before: change.before,
         elo_after: change.after,
@@ -212,12 +212,12 @@ class MatchesRepository extends BaseRepository {
         if (ehErr) throw ehErr;
       }
 
-      // ── 3. tournament_memberships ELO + stats update ─────────────────
+      // ── 3. event_memberships ELO + stats update ─────────────────
       for (const [playerId, change] of Object.entries(eventEloChanges)) {
         const { data: tmRow } = await sb!
-          .from('tournament_memberships')
+          .from('event_memberships')
           .select('wins, losses, matches_played, streak')
-          .eq('tournament_id', tournamentId)
+          .eq('event_id', eventId)
           .eq('player_id', playerId)
           .maybeSingle();
         if (!tmRow) continue;
@@ -230,7 +230,7 @@ class MatchesRepository extends BaseRepository {
           : (stats.streak || 0) < 0 ? (stats.streak || 0) - 1 : -1;
 
         await sb!
-          .from('tournament_memberships')
+          .from('event_memberships')
           .update({
             elo: change.after,
             wins: newWins,
@@ -238,7 +238,7 @@ class MatchesRepository extends BaseRepository {
             matches_played: (stats.matches_played || 0) + 1,
             streak: newStreak,
           } as never)
-          .eq('tournament_id', tournamentId)
+          .eq('event_id', eventId)
           .eq('player_id', playerId);
       }
 
@@ -247,7 +247,7 @@ class MatchesRepository extends BaseRepository {
         const leagueHistoryRows = Object.entries(leagueEloChanges).map(([playerId, change]) => ({
           match_id: match.id,
           league_id: leagueId,
-          tournament_id: null,
+          event_id: null,
           player_id: playerId,
           elo_before: change.before,
           elo_after: change.after,
@@ -286,19 +286,19 @@ class MatchesRepository extends BaseRepository {
         }
       }
 
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        tournament.matches.push(match);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
+      const events = eventsRepository.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
+        event.matches.push(match);
+        eventsRepository.saveEventToLocalStorage(event);
       }
     } catch (error) {
-      console.error('Error recording tournament match in Supabase:', error);
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        tournament.matches.push(match);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
+      console.error('Error recording event match in Supabase:', error);
+      const events = eventsRepository.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
+        event.matches.push(match);
+        eventsRepository.saveEventToLocalStorage(event);
       }
     }
   }

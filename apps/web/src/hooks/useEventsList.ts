@@ -2,25 +2,25 @@ import { useMemo } from "react";
 import { useLeague } from "../context/LeagueContext";
 
 /**
- * Hook to get tournaments list for current user
+ * Hook to get events list for current user
  *
- * Fetches all tournaments the user has joined (as creator or participant).
+ * Fetches all events the user has joined (as creator or participant).
  * Sorts by: Active first (by updated_at desc), then Finished (by end date desc)
  *
- * @returns Object with tournaments data and loading state
+ * @returns Object with events data and loading state
  */
 export const useEventsList = () => {
-  const { tournaments, isLoadingInitialData, loadError } = useLeague();
+  const { events, isLoadingInitialData, loadError } = useLeague();
 
-  // Filter and sort tournaments for current user
-  // Note: LeagueContext already filters tournaments by user (creator or participant)
-  const userTournaments = useMemo(() => {
-    if (!tournaments || tournaments.length === 0) {
+  // Filter and sort events for current user
+  // Note: LeagueContext already filters events by user (creator or participant)
+  const userEvents = useMemo(() => {
+    if (!events || events.length === 0) {
       return [];
     }
 
     // Story 10.2 AC2: Sort by Active first (by last activity = updatedAt desc), then Finished (by updatedAt desc)
-    return [...tournaments].sort((a, b) => {
+    return [...events].sort((a, b) => {
       // First, separate by isFinished status
       if (a.isFinished !== b.isFinished) {
         return a.isFinished ? 1 : -1; // Active (false) comes before Finished (true)
@@ -32,10 +32,10 @@ export const useEventsList = () => {
       const dateB = new Date(b.updatedAt || b.createdAt).getTime();
       return dateB - dateA;
     });
-  }, [tournaments]);
+  }, [events]);
 
   return {
-    tournaments: userTournaments,
+    events: userEvents,
     isLoading: isLoadingInitialData,
     loadError: loadError ?? null,
   };

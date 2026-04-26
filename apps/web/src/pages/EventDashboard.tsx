@@ -37,7 +37,7 @@ import {
 import type {
   DetailHeroAction,
   DetailHeroMenuItem,
-  SettingsSheetTournamentUpdates,
+  SettingsSheetEventUpdates,
 } from "@/components/design-system";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
@@ -80,17 +80,17 @@ export const EventDashboard = () => {
   const { user, isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
   const {
-    tournaments,
+    events,
     leagues,
-    deleteTournament,
-    toggleTournamentStatus,
-    updateTournament,
-    getTournamentLocalRanking,
+    deleteEvent,
+    toggleEventStatus,
+    updateEvent,
+    getEventLocalRanking,
     getLeagueGlobalRanking,
     addPlayer,
-    addPlayerToTournament,
-    addGuestPlayerToTournament,
-    associateTournamentToLeague,
+    addPlayerToEvent,
+    addGuestPlayerToEvent,
+    associateEventToLeague,
     isLoadingInitialData,
     reloadData,
   } = useLeague();
@@ -106,13 +106,13 @@ export const EventDashboard = () => {
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
   const [openMatchMenuId, setOpenMatchMenuId] = useState<string | null>(null);
 
-  // Ghosts (anonymous players manually added by the admin) for this tournament.
+  // Ghosts (anonymous players manually added by the admin) for this event.
   // We use mode: "any" so the list is loaded for the admin even though the
   // legacy default ("auth-only") would otherwise also work — explicit is safer.
   const {
-    guests: tournamentGhosts,
-    refresh: refreshTournamentGhosts,
-  } = useUnclaimedGuests("tournament", id, { mode: "any" });
+    guests: eventGhosts,
+    refresh: refreshEventGhosts,
+  } = useUnclaimedGuests("event", id, { mode: "any" });
 
   // Escape key closes Add Player modal (InviteSheet manages its own but we keep
   // for backward compat with other modals that might be open)
@@ -127,29 +127,29 @@ export const EventDashboard = () => {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [showAddPlayer]);
 
-  // Find tournament (but ALL hooks must still be called even if null)
-  const tournament = tournaments.find((t) => t.id === id);
+  // Find event (but ALL hooks must still be called even if null)
+  const event = events.find((t) => t.id === id);
 
   // Matchs triés du plus récent au plus ancien — requis par les utils `playerStats`
   const sortedMatches = useMemo(
     () =>
-      [...(tournament?.matches ?? [])].sort(
+      [...(event?.matches ?? [])].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       ),
-    [tournament?.matches],
+    [event?.matches],
   );
 
-  // Load tournament participants from tournament_players (IDs match match.teamA/teamB)
-  const [tournamentParticipants, setTournamentParticipants] = useState<
+  // Load event participants from event_players (IDs match match.teamA/teamB)
+  const [eventParticipants, setEventParticipants] = useState<
     { id: string; leaguePlayerId?: string; name: string; elo: number; wins: number; losses: number; matchesPlayed: number; streak: number }[]
   >([]);
 
   useEffect(() => {
     if (!id) return;
     databaseService
-      .loadTournamentParticipants(id)
+      .loadEventParticipants(id)
       .then((participants) =>
-        setTournamentParticipants(
+        setEventParticipants(
           participants.map((p) => ({
             id: p.id,
             leaguePlayerId: p.leaguePlayerId,
@@ -162,15 +162,15 @@ export const EventDashboard = () => {
           })),
         ),
       )
-      .catch(() => setTournamentParticipants([]));
-  }, [id, tournament?.matches.length, tournament?.playerIds?.length]);
+      .catch(() => setEventParticipants([]));
+  }, [id, event?.matches.length, event?.playerIds?.length]);
 
-  // Calculate derived data (safe to do even if tournament is null)
-  const league = tournament?.leagueId
-    ? leagues.find((l) => l.id === tournament.leagueId)
+  // Calculate derived data (safe to do even if event is null)
+  const league = event?.leagueId
+    ? leagues.find((l) => l.id === event.leagueId)
     : null;
-  // Use tournament participants (from tournament_players) - IDs match match.teamA/teamB
-  const tournamentPlayers = tournamentParticipants;
+  // Use event participants (from event_players) - IDs match match.teamA/teamB
+  const eventPlayers = eventParticipants;
   // For PlayerProfile navigation: use leaguePlayerId when available so /player/:id finds the player
   const getPlayerProfileId = (p: { id: string; leaguePlayerId?: string }) =>
     p.leaguePlayerId || p.id;
@@ -178,41 +178,41 @@ export const EventDashboard = () => {
   // Story 9-5 - Get permissions for contextual actions
   const { isAdmin, canInvite } = useDetailPagePermissions(
     id || "",
-    "tournament",
+    "event",
   );
 
   // Get ranking based on mode - MUST be called unconditionally
-  // Pass tournamentParticipants so ranking uses tournament_players.id (matches match.teamA/teamB)
+  // Pass eventParticipants so ranking uses event_players.id (matches match.teamA/teamB)
   const ranking = useMemo(() => {
-    if (!tournament) return [];
+    if (!event) return [];
     if (rankingMode === "local") {
-      return getTournamentLocalRanking(tournament.id, tournamentParticipants);
+      return getEventLocalRanking(event.id, eventParticipants);
     } else {
-      if (tournament.leagueId) {
-        return getLeagueGlobalRanking(tournament.leagueId);
+      if (event.leagueId) {
+        return getLeagueGlobalRanking(event.leagueId);
       }
       return [];
     }
   }, [
     rankingMode,
-    tournament,
-    tournamentParticipants,
-    getTournamentLocalRanking,
+    event,
+    eventParticipants,
+    getEventLocalRanking,
     getLeagueGlobalRanking,
   ]);
 
-  // Auto-add new players from League to Tournament - MUST be called unconditionally
+  // Auto-add new players from League to Event - MUST be called unconditionally
   useEffect(() => {
-    if (!tournament?.leagueId || !league) return;
+    if (!event?.leagueId || !league) return;
 
     const leaguePlayerIds = league.players.map((p) => p.id);
     const missingPlayers = leaguePlayerIds.filter(
-      (id) => !tournament.playerIds.includes(id),
+      (id) => !event.playerIds.includes(id),
     );
 
     if (missingPlayers.length > 0) {
       missingPlayers.forEach((playerId) => {
-        addPlayerToTournament(tournament.id, playerId);
+        addPlayerToEvent(event.id, playerId);
       });
     }
     // Only trigger when league player count changes to avoid unnecessary re-syncs
@@ -227,7 +227,7 @@ export const EventDashboard = () => {
     );
   }
 
-  if (!tournament) {
+  if (!event) {
     return (
       <div className="p-4 text-center">
         <EmptyState
@@ -247,12 +247,12 @@ export const EventDashboard = () => {
     );
   }
 
-  // Task 7 - Leave tournament functionality (Story 8.3, AC7)
-  const handleLeaveTournament = async () => {
+  // Task 7 - Leave event functionality (Story 8.3, AC7)
+  const handleLeaveEvent = async () => {
     if (confirm("Es-tu sûr de vouloir quitter cet événement ?")) {
       try {
-        await databaseService.leaveTournament(
-          tournament.id,
+        await databaseService.leaveEvent(
+          event.id,
           isAuthenticated ? user?.id : undefined,
           !isAuthenticated ? localUser?.anonymousUserId : undefined,
         );
@@ -266,7 +266,7 @@ export const EventDashboard = () => {
         // Show success toast (AC7)
         toast.success("Tu as quitté l'événement");
       } catch (error: unknown) {
-        console.error("Error leaving tournament:", error);
+        console.error("Error leaving event:", error);
         toast.error(
           error instanceof Error ? error.message : "Erreur lors de la sortie de l'événement",
         );
@@ -278,14 +278,14 @@ export const EventDashboard = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
     try {
-      if (tournament.leagueId) {
+      if (event.leagueId) {
         // Tournoi rattaché : on ajoute dans la ligue, la sync auto propage au tournoi.
-        addPlayer(tournament.leagueId, trimmed);
+        addPlayer(event.leagueId, trimmed);
       } else {
         // Tournoi standalone : ajout d'un guest distinct (nouvel anonymous_user
         // créé à chaque appel — sinon collision sur la contrainte unique
-        // (tournament_id, anonymous_user_id) au 2e ajout).
-        await addGuestPlayerToTournament(tournament.id, trimmed);
+        // (event_id, anonymous_user_id) au 2e ajout).
+        await addGuestPlayerToEvent(event.id, trimmed);
         await reloadData();
       }
       toast.success(`${trimmed} ajouté·e`);
@@ -301,18 +301,18 @@ export const EventDashboard = () => {
   };
 
   const handleInviteAddFromLeague = async (leaguePlayerId: string) => {
-    if (!leaguePlayerId || !tournament.leagueId) return;
+    if (!leaguePlayerId || !event.leagueId) return;
     try {
-      const tournamentPlayerId = await databaseService.addLeaguePlayerToTournament(
-        tournament.id,
+      const eventPlayerId = await databaseService.addLeaguePlayerToEvent(
+        event.id,
         leaguePlayerId,
       );
-      addPlayerToTournament(tournament.id, tournamentPlayerId);
+      addPlayerToEvent(event.id, eventPlayerId);
       await reloadData();
       databaseService
-        .loadTournamentParticipants(tournament.id)
+        .loadEventParticipants(event.id)
         .then((participants) =>
-          setTournamentParticipants(
+          setEventParticipants(
             participants.map((p) => ({
               id: p.id,
               leaguePlayerId: p.leaguePlayerId,
@@ -336,34 +336,34 @@ export const EventDashboard = () => {
   };
 
   // ── DetailHero derived state ─────────────────────────────────────────────
-  const tournamentStatusVariant: "finished" | "cancelled" | "live" | "active" =
-    tournament.status === "finished" || tournament.isFinished
+  const eventStatusVariant: "finished" | "cancelled" | "live" | "active" =
+    event.status === "finished" || event.isFinished
       ? "finished"
-      : tournament.status === "cancelled"
+      : event.status === "cancelled"
         ? "cancelled"
-        : tournament.matches.some((m) => m.is_live)
+        : event.matches.some((m) => m.is_live)
           ? "live"
           : "active";
 
-  const tournamentStatusLabel =
-    tournamentStatusVariant === "finished"
+  const eventStatusLabel =
+    eventStatusVariant === "finished"
       ? "Terminé"
-      : tournamentStatusVariant === "cancelled"
+      : eventStatusVariant === "cancelled"
         ? "Annulé"
-        : tournamentStatusVariant === "live"
+        : eventStatusVariant === "live"
           ? "En direct"
           : "En cours";
 
   const formatLabel =
-    tournament.format === "libre" ? "Format libre" : `Format ${tournament.format}`;
+    event.format === "libre" ? "Format libre" : `Format ${event.format}`;
 
   // Mode de compétition : ELO (classement ponctuel) ou Bracket (élimination
   // directe). Défini à la création et immuable. Default 'elo' pour les anciens
   // tournois (cohérent avec la migration 011).
-  const tournamentMode: "elo" | "bracket" = tournament.mode ?? "elo";
-  const modeLabel = tournamentMode === "bracket" ? "Mode Bracket" : "Mode ELO";
+  const eventMode: "elo" | "bracket" = event.mode ?? "elo";
+  const modeLabel = eventMode === "bracket" ? "Mode Bracket" : "Mode ELO";
 
-  const dateLabel = new Date(tournament.date).toLocaleDateString("fr-FR", {
+  const dateLabel = new Date(event.date).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
@@ -392,7 +392,7 @@ export const EventDashboard = () => {
     detailHeroActions.push({
       label: "Mode Diffusion",
       icon: <Monitor size={18} />,
-      onClick: () => navigate(`/event/${tournament.id}/display`),
+      onClick: () => navigate(`/event/${event.id}/display`),
       variant: "iconOnly",
     });
   }
@@ -402,27 +402,27 @@ export const EventDashboard = () => {
         {
           label: "Quitter l'événement",
           icon: <LogOut size={20} />,
-          onClick: handleLeaveTournament,
+          onClick: handleLeaveEvent,
           destructive: true,
         },
       ]
     : [];
 
   // SettingsSheet handlers
-  const handleSaveSettings = async (updates: SettingsSheetTournamentUpdates) => {
+  const handleSaveSettings = async (updates: SettingsSheetEventUpdates) => {
     try {
-      await updateTournament(tournament.id, updates);
+      await updateEvent(event.id, updates);
       toast.success("Paramètres enregistrés");
     } catch (err) {
-      console.error("Error saving tournament settings:", err);
+      console.error("Error saving event settings:", err);
       toast.error("Erreur lors de la sauvegarde");
     }
   };
 
   const handleFinishFromSettings = () => {
-    toggleTournamentStatus(tournament.id);
+    toggleEventStatus(event.id);
     toast.success(
-      tournament.isFinished
+      event.isFinished
         ? "Événement rouvert"
         : "Événement clôturé",
     );
@@ -430,7 +430,7 @@ export const EventDashboard = () => {
   };
 
   const handleDeleteFromSettings = () => {
-    deleteTournament(tournament.id);
+    deleteEvent(event.id);
     setShowSettings(false);
     navigate("/");
   };
@@ -438,7 +438,7 @@ export const EventDashboard = () => {
   // GhostManagementSheet handlers — admin-only.
   const handleRenameGhost = async (playerId: string, newPseudo: string) => {
     const result = await identityMergeService.renameAnonymousPlayer(
-      "tournament",
+      "event",
       playerId,
       newPseudo,
     );
@@ -447,13 +447,13 @@ export const EventDashboard = () => {
       throw new Error(result.error);
     }
     toast.success("Joueur renommé");
-    await refreshTournamentGhosts();
+    await refreshEventGhosts();
     reloadData();
   };
 
   const handleDeleteGhost = async (playerId: string) => {
     const result = await identityMergeService.deleteAnonymousPlayer(
-      "tournament",
+      "event",
       playerId,
     );
     if (!result.success) {
@@ -465,13 +465,13 @@ export const EventDashboard = () => {
       throw new Error(result.error);
     }
     toast.success("Joueur supprimé");
-    await refreshTournamentGhosts();
+    await refreshEventGhosts();
     reloadData();
   };
 
   const handleArchiveGhost = async (playerId: string) => {
     const result = await identityMergeService.archiveAnonymousPlayer(
-      "tournament",
+      "event",
       playerId,
     );
     if (!result.success) {
@@ -479,7 +479,7 @@ export const EventDashboard = () => {
       throw new Error(result.error);
     }
     toast.success("Joueur archivé");
-    await refreshTournamentGhosts();
+    await refreshEventGhosts();
     reloadData();
   };
 
@@ -488,7 +488,7 @@ export const EventDashboard = () => {
   const handleEditMatch = (matchId: string) => {
     setOpenMatchMenuId(null);
     navigate(
-      `/record-match/tournament/${tournament.id}?editMatchId=${encodeURIComponent(matchId)}`,
+      `/record-match/event/${event.id}?editMatchId=${encodeURIComponent(matchId)}`,
     );
   };
 
@@ -496,7 +496,7 @@ export const EventDashboard = () => {
     setOpenMatchMenuId(null);
     if (
       !confirm(
-        tournament.leagueId
+        event.leagueId
           ? "Supprimer ce match ? L'ELO de la ligue sera recalculé."
           : "Supprimer ce match ?",
       )
@@ -522,7 +522,7 @@ export const EventDashboard = () => {
 
   const handleGenerateGhostInvite = async (playerId: string) => {
     const result = await identityMergeService.generateGhostInviteToken(
-      "tournament",
+      "event",
       playerId,
     );
     if (!result.success || !result.token) {
@@ -539,22 +539,22 @@ export const EventDashboard = () => {
         className="-mx-4 -mt-4 md:mx-0 md:mt-0"
         onBack={() => navigate("/competitions")}
         adminBadge={isAdmin}
-        title={tournament.name}
+        title={event.name}
         status={{
-          label: tournamentStatusLabel,
-          variant: tournamentStatusVariant,
+          label: eventStatusLabel,
+          variant: eventStatusVariant,
         }}
         meta={[formatLabel, modeLabel, dateLabel]}
         stats={[
           {
             label: "Joueurs",
-            value: `${tournamentPlayers.length}${
-              tournament.maxPlayers && tournament.maxPlayers < 999
-                ? `/${tournament.maxPlayers}`
+            value: `${eventPlayers.length}${
+              event.maxPlayers && event.maxPlayers < 999
+                ? `/${event.maxPlayers}`
                 : ""
             }`,
           },
-          { label: "Matchs", value: String(tournament.matches.length) },
+          { label: "Matchs", value: String(event.matches.length) },
           {
             label: "Top ELO",
             value: ranking.length > 0 ? String(ranking[0].elo) : "—",
@@ -578,7 +578,7 @@ export const EventDashboard = () => {
       </div>
 
       {/* Ranking Mode Switch */}
-      {tournament.leagueId && activeTab === "classement" && (
+      {event.leagueId && activeTab === "classement" && (
         <div className="px-4 py-2 bg-navy-soft/50 flex gap-2">
           <button
             onClick={() => setRankingMode("local")}
@@ -634,7 +634,7 @@ export const EventDashboard = () => {
                   {(ranking.length >= 3 ? ranking.slice(3) : ranking).map(
                     (player, index) => {
                       const rank = (ranking.length >= 3 ? 3 : 0) + index + 1;
-                      const participant = tournamentParticipants.find(
+                      const participant = eventParticipants.find(
                         (tp) => tp.id === player.id,
                       );
                       const profileId = getPlayerProfileId(
@@ -666,18 +666,18 @@ export const EventDashboard = () => {
         )}
         {activeTab === "matchs" && (
           <>
-            {tournament.matches.length === 0 ? (
+            {event.matches.length === 0 ? (
               <EmptyState
                 icon={History}
                 title="Aucun match"
                 description="Enregistre ton premier match pour voir l'évolution du classement."
               />
             ) : (
-              tournament.matches.map((match) => {
-                const teamAPlayers = tournamentPlayers.filter((p) =>
+              event.matches.map((match) => {
+                const teamAPlayers = eventPlayers.filter((p) =>
                   match.teamA.includes(p.id),
                 );
-                const teamBPlayers = tournamentPlayers.filter((p) =>
+                const teamBPlayers = eventPlayers.filter((p) =>
                   match.teamB.includes(p.id),
                 );
                 const teamANames = teamAPlayers.map((p) => p.name).join(", ");
@@ -805,11 +805,11 @@ export const EventDashboard = () => {
       </div>
 
       {/* FAB (AC6): Nouveau match — navigate to RecordMatch page */}
-      {!tournament.isFinished && (
+      {!event.isFinished && (
         <FAB
           icon={BeerPongMatchIcon}
           onClick={() =>
-            navigate(`/record-match/tournament/${tournament.id}`)
+            navigate(`/record-match/event/${event.id}`)
           }
           ariaLabel="Nouveau match"
         />
@@ -820,17 +820,17 @@ export const EventDashboard = () => {
         isOpen={showAddPlayer}
         onClose={() => setShowAddPlayer(false)}
         shareData={{
-          joinCode: tournament.joinCode,
-          joinUrl: `${window.location.origin}/event/${tournament.id}/join`,
-          shareTitle: tournament.name,
-          shareText: `Rejoins l'événement ${tournament.name} !`,
+          joinCode: event.joinCode,
+          joinUrl: `${window.location.origin}/event/${event.id}/join`,
+          shareTitle: event.name,
+          shareText: `Rejoins l'événement ${event.name} !`,
         }}
         leaguePlayers={
-          tournament.leagueId && league
+          event.leagueId && league
             ? league.players
                 .filter(
                   (lp) =>
-                    !tournamentParticipants.some(
+                    !eventParticipants.some(
                       (tp) => tp.leaguePlayerId === lp.id,
                     ),
                 )
@@ -839,39 +839,39 @@ export const EventDashboard = () => {
         }
         onAddManual={handleInviteAddManual}
         onAddFromLeague={
-          tournament.leagueId ? handleInviteAddFromLeague : undefined
+          event.leagueId ? handleInviteAddFromLeague : undefined
         }
       />
 
       {/* Settings bottom sheet — admin only */}
       {isAdmin && (
         <SettingsSheet
-          kind="tournament"
+          kind="event"
           isOpen={showSettings}
           onClose={() => setShowSettings(false)}
           title="Paramètres"
           initial={{
-            name: tournament.name,
-            format: tournament.format,
-            maxPlayers: tournament.maxPlayers ?? 999,
-            isPrivate: tournament.isPrivate ?? true,
-            propagatesToLeagueElo: tournament.propagatesToLeagueElo !== false,
+            name: event.name,
+            format: event.format,
+            maxPlayers: event.maxPlayers ?? 999,
+            isPrivate: event.isPrivate ?? true,
+            propagatesToLeagueElo: event.propagatesToLeagueElo !== false,
           }}
-          mode={tournamentMode}
-          currentPlayersCount={tournamentParticipants.length}
+          mode={eventMode}
+          currentPlayersCount={eventParticipants.length}
           onSave={handleSaveSettings}
           onFinish={handleFinishFromSettings}
           onDelete={handleDeleteFromSettings}
-          isFinished={tournament.isFinished}
-          hasLeagueLink={Boolean(tournament.leagueId)}
+          isFinished={event.isFinished}
+          hasLeagueLink={Boolean(event.leagueId)}
           extraContent={
             <div className="space-y-4">
-              {tournamentGhosts.length > 0 && (
+              {eventGhosts.length > 0 && (
                 <div className="space-y-2">
                   <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
                     <span className="inline-flex items-center gap-1.5">
                       <Ghost size={12} />
-                      Joueurs fantômes ({tournamentGhosts.length})
+                      Joueurs fantômes ({eventGhosts.length})
                     </span>
                   </span>
                   <button
@@ -900,7 +900,7 @@ export const EventDashboard = () => {
                   Rattachement à une ligue
                 </span>
               </span>
-              {tournament.leagueId ? (
+              {event.leagueId ? (
                 <div className="p-3 rounded-card border border-card bg-navy-deep flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="text-white font-archivo font-semibold text-sm truncate">
@@ -916,7 +916,7 @@ export const EventDashboard = () => {
                           "Voulez-vous dissocier cet événement de la ligue ?",
                         )
                       ) {
-                        associateTournamentToLeague(tournament.id, "");
+                        associateEventToLeague(event.id, "");
                       }
                     }}
                     className="px-3 h-8 rounded-full border border-card text-cool-gray hover:text-white hover:border-white/60 font-archivo font-extrabold uppercase text-[10px] tracking-[1px] transition-colors"
@@ -929,8 +929,8 @@ export const EventDashboard = () => {
                   value=""
                   onChange={(e) => {
                     if (e.target.value) {
-                      associateTournamentToLeague(
-                        tournament.id,
+                      associateEventToLeague(
+                        event.id,
                         e.target.value,
                       );
                     }
@@ -960,8 +960,8 @@ export const EventDashboard = () => {
         <GhostManagementSheet
           isOpen={showGhostMgmt}
           onClose={() => setShowGhostMgmt(false)}
-          guests={tournamentGhosts}
-          joinPath={`/event/${tournament.id}/join`}
+          guests={eventGhosts}
+          joinPath={`/event/${event.id}/join`}
           onRename={handleRenameGhost}
           onDelete={handleDeleteGhost}
           onArchive={handleArchiveGhost}
@@ -972,7 +972,7 @@ export const EventDashboard = () => {
       {/* ELO Changes Display */}
       {showEloChanges && (
         <EloChangeDisplay
-          players={tournamentPlayers}
+          players={eventPlayers}
           eloChanges={lastEloChanges}
           onClose={() => setShowEloChanges(false)}
         />

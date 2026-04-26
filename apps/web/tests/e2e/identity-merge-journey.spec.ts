@@ -38,15 +38,15 @@ test.describe('Identity Merge Journey', () => {
     });
     expect(anonymousUserId).toBeTruthy();
 
-    // Create tournament as anonymous user
+    // Create event as anonymous user
     await page.click('text=Créer un tournoi');
-    await page.fill('[name="name"]', 'Pre-Auth Tournament');
+    await page.fill('[name="name"]', 'Pre-Auth Event');
     await page.fill('[name="location"]', 'Test Location');
     await page.click('button[type="submit"]');
 
-    // Verify tournament created
-    await expect(page.locator('h1')).toContainText('Pre-Auth Tournament');
-    const tournamentUrl = page.url();
+    // Verify event created
+    await expect(page.locator('h1')).toContainText('Pre-Auth Event');
+    const eventUrl = page.url();
 
     // Step 2: Authenticate
     await page.click('button:has-text("Se connecter")');
@@ -68,11 +68,11 @@ test.describe('Identity Merge Journey', () => {
     // await page.waitForTimeout(3000);
 
     // Step 4: Verify data persisted
-    // Navigate back to tournament
-    // await page.goto(tournamentUrl);
+    // Navigate back to event
+    // await page.goto(eventUrl);
     
-    // Tournament should still be visible and owned by authenticated user
-    // await expect(page.locator('h1')).toContainText('Pre-Auth Tournament');
+    // Event should still be visible and owned by authenticated user
+    // await expect(page.locator('h1')).toContainText('Pre-Auth Event');
     
     // User should see their name, not anonymous
     // await expect(page.locator('[data-testid="user-name"]')).not.toContainText('Anonyme');
@@ -111,7 +111,7 @@ test.describe('Identity Merge Journey', () => {
   });
 
   test.skip('should show merge progress indicator', async ({ page }) => {
-    // Create substantial anonymous data (multiple tournaments, matches)
+    // Create substantial anonymous data (multiple events, matches)
     // Authenticate
     // Should show "Merging your data..." or similar
     // Progress indicator should be visible
@@ -155,9 +155,9 @@ test.describe('Identity Merge Journey', () => {
       return localUser ? JSON.parse(localUser).id : null;
     });
 
-    // Create tournament as User A
+    // Create event as User A
     await pageA.click('text=Créer un tournoi');
-    await pageA.fill('[name="name"]', 'User A Tournament');
+    await pageA.fill('[name="name"]', 'User A Event');
     await pageA.click('button[type="submit"]');
 
     // User B (new incognito) should NOT see User A's data
@@ -173,9 +173,9 @@ test.describe('Identity Merge Journey', () => {
     // Different users
     expect(userBId).not.toBe(userAId);
 
-    // User B should not see User A's tournament in their list
-    const hasTournamentA = await pageB.locator('text=User A Tournament').count();
-    expect(hasTournamentA).toBe(0);
+    // User B should not see User A's event in their list
+    const hasEventA = await pageB.locator('text=User A Event').count();
+    expect(hasEventA).toBe(0);
   });
 
   test('should handle offline merge gracefully', async ({ page, context }) => {

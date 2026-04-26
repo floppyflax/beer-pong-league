@@ -2,7 +2,7 @@
  * PlayerCard — Carte joueur
  *
  * Variantes:
- * - compact: infos minimales (avatar + nom) — pour sélection dans TournamentJoin
+ * - compact: infos minimales (avatar + nom) — pour sélection dans EventJoin
  * - full: infos complètes (avatar, nom, ELO, W/L, etc.) — pour classements, profils
  */
 

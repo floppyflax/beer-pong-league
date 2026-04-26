@@ -42,7 +42,7 @@ export const LeagueDashboard = () => {
   const { id } = useParams<{ id: string }>();
   const {
     leagues,
-    tournaments,
+    events,
     addPlayer,
     deleteLeague,
     updateLeague,
@@ -225,10 +225,26 @@ export const LeagueDashboard = () => {
       playerId,
     );
     if (!result.success) {
-      toast.error(result.error || "Suppression impossible");
+      if (!result.error || !/match/i.test(result.error)) {
+        toast.error(result.error || "Suppression impossible");
+      }
       throw new Error(result.error);
     }
     toast.success("Joueur supprimé");
+    await refreshLeagueGhosts();
+    reloadData();
+  };
+
+  const handleArchiveGhost = async (playerId: string) => {
+    const result = await identityMergeService.archiveAnonymousPlayer(
+      "league",
+      playerId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Archivage impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur archivé");
     await refreshLeagueGhosts();
     reloadData();
   };
@@ -328,20 +344,28 @@ export const LeagueDashboard = () => {
               />
             ) : (
               <div className="space-y-3 w-full">
-                {/* Podium top-3 */}
+                {/* Podium top-3 — shows ELO + last-match delta */}
                 {sortedPlayers.length >= 3 && (
                   <Podium
                     top3={sortedPlayers.slice(0, 3).map((p) => ({
                       id: p.id,
                       name: p.name,
                       elo: p.elo,
+                      delta:
+                        getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
                     }))}
                     className="mb-1"
                   />
                 )}
-                {/* Full leaderboard with LeaderRow */}
+                {/* Leaderboard from rank 4 (top 3 are already on the podium).
+                    Fallback: show full list if there are fewer than 3 players. */}
                 <div className="space-y-1.5">
-                  {sortedPlayers.map((player, index) => {
+                  {(sortedPlayers.length >= 3
+                    ? sortedPlayers.slice(3)
+                    : sortedPlayers
+                  ).map((player, index) => {
+                    const rank =
+                      (sortedPlayers.length >= 3 ? 3 : 0) + index + 1;
                     const delta = getDeltaFromLastMatch(
                       player.id,
                       sortedMatches,
@@ -349,7 +373,7 @@ export const LeagueDashboard = () => {
                     return (
                       <LeaderRow
                         key={player.id}
-                        rank={index + 1}
+                        rank={rank}
                         player={{
                           id: player.id,
                           name: player.name,
@@ -435,31 +459,31 @@ export const LeagueDashboard = () => {
         )}
         {activeTab === "events" && (
           <div className="space-y-2">
-            {league.tournaments && league.tournaments.length > 0 ? (
-              tournaments
-                .filter((t) => league.tournaments?.includes(t.id))
-                .map((tournament) => (
+            {league.events && league.events.length > 0 ? (
+              events
+                .filter((t) => league.events?.includes(t.id))
+                .map((event) => (
                   <div
-                    key={tournament.id}
-                    onClick={() => navigate(`/event/${tournament.id}`)}
+                    key={event.id}
+                    onClick={() => navigate(`/event/${event.id}`)}
                     className="bg-navy-soft p-3 rounded-xl flex justify-between items-center hover:border-card cursor-pointer transition-colors border border-card/50"
                   >
                     <div className="flex-1">
                       <div className="font-bold text-white flex items-center gap-2">
-                        {tournament.name}
-                        {tournament.isFinished && (
+                        {event.name}
+                        {event.isFinished && (
                           <span className="text-xs bg-lime/20 text-lime px-2 py-0.5 rounded">
                             Terminé
                           </span>
                         )}
                       </div>
                       <div className="text-xs text-cool-gray font-mono">
-                        {new Date(tournament.date).toLocaleDateString(
+                        {new Date(event.date).toLocaleDateString(
                           "fr-FR",
                           shortDateFormatter,
                         )}
                         {" · "}
-                        {tournament.matches.length} matchs
+                        {event.matches.length} matchs
                       </div>
                     </div>
                     <div className="text-cool-gray">→</div>
@@ -483,7 +507,7 @@ export const LeagueDashboard = () => {
                 }
               />
             )}
-            {league.tournaments && league.tournaments.length > 0 && (
+            {league.events && league.events.length > 0 && (
               <button
                 onClick={() =>
                   navigate(`/create-event?leagueId=${league.id}`)
@@ -547,33 +571,33 @@ export const LeagueDashboard = () => {
               </div>
             </div>
 
-            {/* Tournaments */}
+            {/* Events */}
             <div className="bg-navy-soft p-4 rounded-xl border border-card/50">
               <h3 className="font-bold text-white mb-4">Événements</h3>
-              {league.tournaments && league.tournaments.length > 0 ? (
+              {league.events && league.events.length > 0 ? (
                 <div className="space-y-2">
-                  {tournaments
-                    .filter((t) => league.tournaments?.includes(t.id))
-                    .map((tournament) => (
+                  {events
+                    .filter((t) => league.events?.includes(t.id))
+                    .map((event) => (
                       <div
-                        key={tournament.id}
-                        onClick={() => navigate(`/event/${tournament.id}`)}
+                        key={event.id}
+                        onClick={() => navigate(`/event/${event.id}`)}
                         className="bg-navy-deep/50 p-3 rounded-xl flex justify-between items-center hover:border-card-muted cursor-pointer transition-colors border border-transparent"
                       >
                         <div className="flex-1">
                           <div className="font-bold text-white flex items-center gap-2">
-                            {tournament.name}
-                            {tournament.isFinished && (
+                            {event.name}
+                            {event.isFinished && (
                               <span className="text-xs bg-lime/20 text-lime px-2 py-0.5 rounded">
                                 Terminé
                               </span>
                             )}
                           </div>
                           <div className="text-xs text-cool-gray">
-                            {new Date(tournament.date).toLocaleDateString(
+                            {new Date(event.date).toLocaleDateString(
                               "fr-FR",
                             )}{" "}
-                            • {tournament.matches.length} matchs
+                            • {event.matches.length} matchs
                           </div>
                         </div>
                         <div className="text-cool-gray">→</div>
@@ -755,6 +779,7 @@ export const LeagueDashboard = () => {
           joinPath={`/league/${league.id}/join`}
           onRename={handleRenameGhost}
           onDelete={handleDeleteGhost}
+          onArchive={handleArchiveGhost}
           onGenerateInvite={handleGenerateGhostInvite}
         />
       )}

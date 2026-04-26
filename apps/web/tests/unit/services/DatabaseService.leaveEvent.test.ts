@@ -1,5 +1,5 @@
 /**
- * Unit tests for DatabaseService.leaveTournament method
+ * Unit tests for DatabaseService.leaveEvent method
  * Story 8.3 - Task 8: Database methods for dashboard data
  */
 
@@ -14,12 +14,12 @@ vi.mock('../../../src/lib/supabase', () => ({
   },
 }));
 
-describe('DatabaseService.leaveTournament - Story 8.3 Task 8', () => {
+describe('DatabaseService.leaveEvent - Story 8.3 Task 8', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should remove authenticated user from tournament_players', async () => {
+  it('should remove authenticated user from event_players', async () => {
     const mockDelete = vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({ error: null }),
@@ -36,20 +36,20 @@ describe('DatabaseService.leaveTournament - Story 8.3 Task 8', () => {
     });
 
     (supabase.from as any).mockImplementation((table: string) => {
-      if (table === 'tournaments') {
+      if (table === 'events') {
         return { select: mockSelect };
       }
-      if (table === 'tournament_players') {
+      if (table === 'event_players') {
         return { delete: mockDelete };
       }
     });
 
-    await databaseService.leaveTournament('tournament-id', 'user-id', undefined);
+    await databaseService.leaveEvent('event-id', 'user-id', undefined);
 
     expect(mockDelete).toHaveBeenCalled();
   });
 
-  it('should remove anonymous user from tournament_players', async () => {
+  it('should remove anonymous user from event_players', async () => {
     const mockDelete = vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({ error: null }),
@@ -66,20 +66,20 @@ describe('DatabaseService.leaveTournament - Story 8.3 Task 8', () => {
     });
 
     (supabase.from as any).mockImplementation((table: string) => {
-      if (table === 'tournaments') {
+      if (table === 'events') {
         return { select: mockSelect };
       }
-      if (table === 'tournament_players') {
+      if (table === 'event_players') {
         return { delete: mockDelete };
       }
     });
 
-    await databaseService.leaveTournament('tournament-id', undefined, 'anon-user-id');
+    await databaseService.leaveEvent('event-id', undefined, 'anon-user-id');
 
     expect(mockDelete).toHaveBeenCalled();
   });
 
-  it('should throw error if user is tournament creator', async () => {
+  it('should throw error if user is event creator', async () => {
     const mockSelect = vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
         single: vi.fn().mockResolvedValue({
@@ -90,17 +90,17 @@ describe('DatabaseService.leaveTournament - Story 8.3 Task 8', () => {
     });
 
     (supabase.from as any).mockImplementation((table: string) => {
-      if (table === 'tournaments') {
+      if (table === 'events') {
         return { select: mockSelect };
       }
     });
 
     await expect(
-      databaseService.leaveTournament('tournament-id', 'user-id', undefined)
+      databaseService.leaveEvent('event-id', 'user-id', undefined)
     ).rejects.toThrow('Le créateur de l\'événement ne peut pas quitter');
   });
 
-  it('should throw error if anonymous user is tournament creator', async () => {
+  it('should throw error if anonymous user is event creator', async () => {
     const mockSelect = vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
         single: vi.fn().mockResolvedValue({
@@ -111,20 +111,20 @@ describe('DatabaseService.leaveTournament - Story 8.3 Task 8', () => {
     });
 
     (supabase.from as any).mockImplementation((table: string) => {
-      if (table === 'tournaments') {
+      if (table === 'events') {
         return { select: mockSelect };
       }
     });
 
     await expect(
-      databaseService.leaveTournament('tournament-id', undefined, 'anon-user-id')
+      databaseService.leaveEvent('event-id', undefined, 'anon-user-id')
     ).rejects.toThrow('Le créateur de l\'événement ne peut pas quitter');
   });
 
   it('should throw error if no user identity provided', async () => {
     // No need for mocks since the check happens before any database call
     await expect(
-      databaseService.leaveTournament('tournament-id', undefined, undefined)
+      databaseService.leaveEvent('event-id', undefined, undefined)
     ).rejects.toThrow('User ID or Anonymous User ID required');
   });
 

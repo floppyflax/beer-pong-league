@@ -40,7 +40,7 @@ export interface IdentityGateSheetProps {
    * When undefined, only the auth + anonymous paths are shown.
    */
   currentPseudo?: string | null;
-  /** Title override (default tailored to the tournament/league context). */
+  /** Title override (default tailored to the event/league context). */
   title?: string;
   /** Subtitle override. */
   subtitle?: string;

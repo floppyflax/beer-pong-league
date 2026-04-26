@@ -1,19 +1,19 @@
 /**
- * TournamentsRepository — gère les tournaments + leurs membres
- * (`tournament_memberships`) + matches (mig 022).
+ * EventsRepository — gère les events + leurs membres
+ * (`event_memberships`) + matches (mig 022).
  */
 
-import type { Tournament, Match } from '../../types';
-import { safeValidateTournament } from '../../utils/validation';
+import type { Event, Match } from '../../types';
+import { safeValidateEvent } from '../../utils/validation';
 import {
   BaseRepository,
   sb,
-  type TournamentRow,
-  type TournamentMembershipRow,
+  type EventRow,
+  type EventMembershipRow,
   type MatchRow,
 } from './_base';
 
-export interface TournamentUpdates {
+export interface EventUpdates {
   name?: string;
   date?: string;
   antiCheatEnabled?: boolean;
@@ -28,29 +28,29 @@ export interface TournamentUpdates {
   propagatesToLeagueElo?: boolean;
 }
 
-class TournamentsRepository extends BaseRepository {
+class EventsRepository extends BaseRepository {
   /**
-   * Charge les tournaments où l'user est creator OU member (via player owned).
+   * Charge les events où l'user est creator OU member (via player owned).
    */
-  async loadTournaments(userId?: string, anonymousUserId?: string): Promise<Tournament[]> {
+  async loadEvents(userId?: string, anonymousUserId?: string): Promise<Event[]> {
     if (!this.isSupabaseAvailable()) {
-      return this.loadTournamentsFromLocalStorage();
+      return this.loadEventsFromLocalStorage();
     }
     const myUserId = userId || anonymousUserId;
     if (!myUserId) {
-      console.log('🔒 No user identity - returning empty tournaments list');
+      console.log('🔒 No user identity - returning empty events list');
       return [];
     }
 
     try {
-      const tournamentIds = new Set<string>();
+      const eventIds = new Set<string>();
 
       const { data: created, error: createdErr } = await sb!
-        .from('tournaments')
+        .from('events')
         .select('id')
         .eq('creator_user_id', myUserId);
       if (createdErr) throw createdErr;
-      (created || []).forEach((t: { id: string }) => tournamentIds.add(t.id));
+      (created || []).forEach((t: { id: string }) => eventIds.add(t.id));
 
       // Member-of via my player
       const { data: myPlayer } = await sb!
@@ -61,37 +61,37 @@ class TournamentsRepository extends BaseRepository {
       if (myPlayer) {
         const playerId = (myPlayer as { id: string }).id;
         const { data: memberships } = await sb!
-          .from('tournament_memberships')
-          .select('tournament_id')
+          .from('event_memberships')
+          .select('event_id')
           .eq('player_id', playerId);
-        (memberships || []).forEach((m: { tournament_id: string }) => tournamentIds.add(m.tournament_id));
+        (memberships || []).forEach((m: { event_id: string }) => eventIds.add(m.event_id));
       }
 
-      if (tournamentIds.size === 0) return [];
-      const ids = Array.from(tournamentIds);
+      if (eventIds.size === 0) return [];
+      const ids = Array.from(eventIds);
 
-      const [{ data: tournamentsData }, { data: allMembers }, { data: allMatches }] = await Promise.all([
-        sb!.from('tournaments').select('*').in('id', ids),
+      const [{ data: eventsData }, { data: allMembers }, { data: allMatches }] = await Promise.all([
+        sb!.from('events').select('*').in('id', ids),
         sb!
-          .from('tournament_memberships')
-          .select('id, tournament_id, player_id, archived_at')
-          .in('tournament_id', ids),
-        sb!.from('matches').select('*').in('tournament_id', ids).order('created_at', { ascending: false }),
+          .from('event_memberships')
+          .select('id, event_id, player_id, archived_at')
+          .in('event_id', ids),
+        sb!.from('matches').select('*').in('event_id', ids).order('created_at', { ascending: false }),
       ]);
 
-      const tournRows = (tournamentsData ?? []) as TournamentRow[];
+      const tournRows = (eventsData ?? []) as EventRow[];
 
-      const playerIdsByTournament = new Map<string, string[]>();
-      ((allMembers ?? []) as TournamentMembershipRow[]).forEach((m) => {
-        const list = playerIdsByTournament.get(m.tournament_id) ?? [];
+      const playerIdsByEvent = new Map<string, string[]>();
+      ((allMembers ?? []) as EventMembershipRow[]).forEach((m) => {
+        const list = playerIdsByEvent.get(m.event_id) ?? [];
         list.push(m.id); // legacy: playerIds carries membership id
-        playerIdsByTournament.set(m.tournament_id, list);
+        playerIdsByEvent.set(m.event_id, list);
       });
 
-      const matchesByTournament = new Map<string, Match[]>();
+      const matchesByEvent = new Map<string, Match[]>();
       ((allMatches ?? []) as MatchRow[]).forEach((m) => {
-        if (!m.tournament_id) return;
-        const list = matchesByTournament.get(m.tournament_id) ?? [];
+        if (!m.event_id) return;
+        const list = matchesByEvent.get(m.event_id) ?? [];
         list.push({
           id: m.id,
           date: m.created_at || new Date().toISOString(),
@@ -108,20 +108,20 @@ class TournamentsRepository extends BaseRepository {
           cups_remaining: m.cups_remaining ?? undefined,
           photo_url: m.photo_url ?? undefined,
         });
-        matchesByTournament.set(m.tournament_id, list);
+        matchesByEvent.set(m.event_id, list);
       });
 
       return tournRows.map((row) => ({
         id: row.id,
         name: row.name,
         date: row.date,
-        format: (row.format as Tournament['format']) || '2v2',
+        format: (row.format as Event['format']) || '2v2',
         location: row.location ?? undefined,
         leagueId: row.league_id,
         createdAt: row.created_at || new Date().toISOString(),
         updatedAt: row.updated_at || row.created_at,
-        playerIds: playerIdsByTournament.get(row.id) || [],
-        matches: matchesByTournament.get(row.id) || [],
+        playerIds: playerIdsByEvent.get(row.id) || [],
+        matches: matchesByEvent.get(row.id) || [],
         isFinished: row.is_finished || false,
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
@@ -135,39 +135,39 @@ class TournamentsRepository extends BaseRepository {
         status: row.status as 'active' | 'finished' | 'cancelled' | undefined,
         mode: row.mode ?? 'elo',
         propagatesToLeagueElo:
-          (row as TournamentRow & { propagates_to_league_elo?: boolean }).propagates_to_league_elo ?? true,
+          (row as EventRow & { propagates_to_league_elo?: boolean }).propagates_to_league_elo ?? true,
       }));
     } catch (error) {
-      console.error('Error loading tournaments from Supabase:', error);
-      return this.loadTournamentsFromLocalStorage();
+      console.error('Error loading events from Supabase:', error);
+      return this.loadEventsFromLocalStorage();
     }
   }
 
-  async loadTournamentById(tournamentId: string): Promise<Tournament | null> {
+  async loadEventById(eventId: string): Promise<Event | null> {
     if (!this.isSupabaseAvailable()) {
-      const local = this.loadTournamentsFromLocalStorage();
-      return local.find((t) => t.id === tournamentId) ?? null;
+      const local = this.loadEventsFromLocalStorage();
+      return local.find((t) => t.id === eventId) ?? null;
     }
     try {
       const { data: tRow, error } = await sb!
-        .from('tournaments')
+        .from('events')
         .select('*')
-        .eq('id', tournamentId)
+        .eq('id', eventId)
         .maybeSingle();
       if (error) throw error;
       if (!tRow) return null;
 
       const { data: members } = await sb!
-        .from('tournament_memberships')
+        .from('event_memberships')
         .select('id')
-        .eq('tournament_id', tournamentId);
+        .eq('event_id', eventId);
 
-      const row = tRow as TournamentRow;
+      const row = tRow as EventRow;
       return {
         id: row.id,
         name: row.name,
         date: row.date,
-        format: (row.format as Tournament['format']) || '2v2',
+        format: (row.format as Event['format']) || '2v2',
         location: row.location ?? undefined,
         leagueId: row.league_id,
         createdAt: row.created_at || new Date().toISOString(),
@@ -187,82 +187,82 @@ class TournamentsRepository extends BaseRepository {
         status: row.status as 'active' | 'finished' | 'cancelled' | undefined,
         mode: row.mode ?? 'elo',
         propagatesToLeagueElo:
-          (row as TournamentRow & { propagates_to_league_elo?: boolean }).propagates_to_league_elo ?? true,
+          (row as EventRow & { propagates_to_league_elo?: boolean }).propagates_to_league_elo ?? true,
       };
     } catch (error) {
-      console.error('Error loading tournament by id:', error);
+      console.error('Error loading event by id:', error);
       return null;
     }
   }
 
-  async saveTournament(tournament: Tournament): Promise<void> {
-    const validationResult = safeValidateTournament(tournament);
+  async saveEvent(event: Event): Promise<void> {
+    const validationResult = safeValidateEvent(event);
     if (!validationResult.success) {
-      console.error('Tournament validation failed:', validationResult.error.issues);
+      console.error('Event validation failed:', validationResult.error.issues);
       throw new Error(
-        `Invalid tournament data: ${validationResult.error.issues.map((i) => i.message).join(', ')}`
+        `Invalid event data: ${validationResult.error.issues.map((i) => i.message).join(', ')}`
       );
     }
     if (!this.isSupabaseAvailable()) {
-      this.saveTournamentToLocalStorage(tournament);
+      this.saveEventToLocalStorage(event);
       return;
     }
     try {
-      const { error } = await sb!.from('tournaments').upsert(
+      const { error } = await sb!.from('events').upsert(
         {
-          id: tournament.id,
-          name: tournament.name,
-          date: tournament.date,
-          format: tournament.format,
-          location: tournament.location || null,
-          league_id: tournament.leagueId,
-          is_finished: tournament.isFinished,
-          created_at: tournament.createdAt,
-          creator_user_id: tournament.creator_user_id,
-          anti_cheat_enabled: tournament.anti_cheat_enabled || false,
+          id: event.id,
+          name: event.name,
+          date: event.date,
+          format: event.format,
+          location: event.location || null,
+          league_id: event.leagueId,
+          is_finished: event.isFinished,
+          created_at: event.createdAt,
+          creator_user_id: event.creator_user_id,
+          anti_cheat_enabled: event.anti_cheat_enabled || false,
         },
         { onConflict: 'id' }
       );
       if (error) throw error;
-      this.saveTournamentToLocalStorage(tournament);
+      this.saveEventToLocalStorage(event);
     } catch (error) {
-      console.error('Error saving tournament:', error);
-      this.saveTournamentToLocalStorage(tournament);
+      console.error('Error saving event:', error);
+      this.saveEventToLocalStorage(event);
     }
   }
 
-  async deleteTournament(tournamentId: string): Promise<void> {
+  async deleteEvent(eventId: string): Promise<void> {
     if (!this.isSupabaseAvailable()) {
-      this.deleteTournamentFromLocalStorage(tournamentId);
+      this.deleteEventFromLocalStorage(eventId);
       return;
     }
     try {
       // memberships + matches cascade via FK ON DELETE CASCADE
-      const { error } = await sb!.from('tournaments').delete().eq('id', tournamentId);
+      const { error } = await sb!.from('events').delete().eq('id', eventId);
       if (error) throw error;
-      this.deleteTournamentFromLocalStorage(tournamentId);
+      this.deleteEventFromLocalStorage(eventId);
     } catch (error) {
-      console.error('Error deleting tournament:', error);
-      this.deleteTournamentFromLocalStorage(tournamentId);
+      console.error('Error deleting event:', error);
+      this.deleteEventFromLocalStorage(eventId);
     }
   }
 
-  async updateTournament(tournamentId: string, updates: TournamentUpdates): Promise<void> {
-    const applyToLocal = (tournament: Tournament) => {
-      if (updates.name !== undefined) tournament.name = updates.name;
-      if (updates.date !== undefined) tournament.date = updates.date;
-      if (updates.antiCheatEnabled !== undefined) tournament.anti_cheat_enabled = updates.antiCheatEnabled;
-      if (updates.format !== undefined) tournament.format = updates.format;
-      if (updates.maxPlayers !== undefined) tournament.maxPlayers = updates.maxPlayers;
-      if (updates.isPrivate !== undefined) tournament.isPrivate = updates.isPrivate;
-      if (updates.propagatesToLeagueElo !== undefined) tournament.propagatesToLeagueElo = updates.propagatesToLeagueElo;
+  async updateEvent(eventId: string, updates: EventUpdates): Promise<void> {
+    const applyToLocal = (event: Event) => {
+      if (updates.name !== undefined) event.name = updates.name;
+      if (updates.date !== undefined) event.date = updates.date;
+      if (updates.antiCheatEnabled !== undefined) event.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.format !== undefined) event.format = updates.format;
+      if (updates.maxPlayers !== undefined) event.maxPlayers = updates.maxPlayers;
+      if (updates.isPrivate !== undefined) event.isPrivate = updates.isPrivate;
+      if (updates.propagatesToLeagueElo !== undefined) event.propagatesToLeagueElo = updates.propagatesToLeagueElo;
     };
     if (!this.isSupabaseAvailable()) {
-      const tournaments = this.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        applyToLocal(tournament);
-        this.saveTournamentToLocalStorage(tournament);
+      const events = this.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
+        applyToLocal(event);
+        this.saveEventToLocalStorage(event);
       }
       return;
     }
@@ -276,16 +276,16 @@ class TournamentsRepository extends BaseRepository {
       if (updates.isPrivate !== undefined) dbUpdates.is_private = updates.isPrivate;
       if (updates.propagatesToLeagueElo !== undefined) dbUpdates.propagates_to_league_elo = updates.propagatesToLeagueElo;
       if (Object.keys(dbUpdates).length === 0) return;
-      const { error } = await sb!.from('tournaments').update(dbUpdates).eq('id', tournamentId);
+      const { error } = await sb!.from('events').update(dbUpdates).eq('id', eventId);
       if (error) throw error;
-      const tournaments = this.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        applyToLocal(tournament);
-        this.saveTournamentToLocalStorage(tournament);
+      const events = this.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
+        applyToLocal(event);
+        this.saveEventToLocalStorage(event);
       }
     } catch (error) {
-      console.error('Error updating tournament:', error);
+      console.error('Error updating event:', error);
     }
   }
 
@@ -294,26 +294,26 @@ class TournamentsRepository extends BaseRepository {
    *
    * Effets de bord (mig 023) :
    *   - Quand on rattache à une ligue (`leagueId !== null`), TOUS les
-   *     `tournament_memberships` de l'event sont synchronisés vers
+   *     `event_memberships` de l'event sont synchronisés vers
    *     `league_memberships` de la ligue cible : les players manquants y
    *     sont ajoutés (avec ELO par défaut 1000), les présents sont laissés
-   *     intacts. Côté event, les `tournament_memberships.elo` des players
+   *     intacts. Côté event, les `event_memberships.elo` des players
    *     qui avaient déjà un `league_memberships.elo` sont alignés sur ce
    *     dernier (héritage) — sinon laissés à leur valeur courante.
    *   - Quand on dissocie (`leagueId === null`), aucune row n'est supprimée
    *     côté ligue (les players y restent — c'est leur historique). Seul le
-   *     lien `tournaments.league_id` est nullifié.
+   *     lien `events.league_id` est nullifié.
    */
-  async associateTournamentToLeague(
-    tournamentId: string,
+  async associateEventToLeague(
+    eventId: string,
     leagueId: string | null,
   ): Promise<void> {
     if (!this.isSupabaseAvailable()) {
-      const tournaments = this.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        tournament.leagueId = leagueId;
-        this.saveTournamentToLocalStorage(tournament);
+      const events = this.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
+        event.leagueId = leagueId;
+        this.saveEventToLocalStorage(event);
       }
       return;
     }
@@ -321,17 +321,17 @@ class TournamentsRepository extends BaseRepository {
     try {
       // Persist the link first.
       const { error: linkErr } = await sb!
-        .from('tournaments')
+        .from('events')
         .update({ league_id: leagueId })
-        .eq('id', tournamentId);
+        .eq('id', eventId);
       if (linkErr) throw linkErr;
 
       // Sync players when rattaching to a league.
       if (leagueId) {
         const { data: memberships } = await sb!
-          .from('tournament_memberships')
+          .from('event_memberships')
           .select('player_id, elo')
-          .eq('tournament_id', tournamentId);
+          .eq('event_id', eventId);
 
         const tmRows = (memberships ?? []) as Array<{ player_id: string; elo: number }>;
         if (tmRows.length > 0) {
@@ -358,11 +358,11 @@ class TournamentsRepository extends BaseRepository {
               .from('league_memberships')
               .insert(toInsert);
             if (insErr) {
-              console.error('associateTournamentToLeague — insert lm failed', insErr);
+              console.error('associateEventToLeague — insert lm failed', insErr);
             }
           }
 
-          // Inheritance pass: align tournament_memberships.elo with the league
+          // Inheritance pass: align event_memberships.elo with the league
           // ELO when the player already had one (preserves their league
           // baseline). Players newly added to the league inherit the event's
           // current ELO (no realignment needed — both sides at default).
@@ -370,9 +370,9 @@ class TournamentsRepository extends BaseRepository {
             const leagueElo = existingMap.get(tm.player_id);
             if (leagueElo !== undefined && leagueElo !== tm.elo) {
               await sb!
-                .from('tournament_memberships')
+                .from('event_memberships')
                 .update({ elo: leagueElo })
-                .eq('tournament_id', tournamentId)
+                .eq('event_id', eventId)
                 .eq('player_id', tm.player_id);
             }
           }
@@ -380,43 +380,43 @@ class TournamentsRepository extends BaseRepository {
       }
 
       // Cache local update.
-      const tournaments = this.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        tournament.leagueId = leagueId;
-        this.saveTournamentToLocalStorage(tournament);
+      const events = this.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
+        event.leagueId = leagueId;
+        this.saveEventToLocalStorage(event);
       }
     } catch (error) {
-      console.error('Error associating tournament to league:', error);
+      console.error('Error associating event to league:', error);
       throw error;
     }
   }
 
-  async toggleTournamentStatus(tournamentId: string, isFinished: boolean): Promise<void> {
+  async toggleEventStatus(eventId: string, isFinished: boolean): Promise<void> {
     if (!this.isSupabaseAvailable()) {
-      const tournaments = this.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        tournament.isFinished = isFinished;
-        this.saveTournamentToLocalStorage(tournament);
+      const events = this.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
+        event.isFinished = isFinished;
+        this.saveEventToLocalStorage(event);
       }
       return;
     }
     try {
-      const { error } = await sb!.from('tournaments').update({ is_finished: isFinished }).eq('id', tournamentId);
+      const { error } = await sb!.from('events').update({ is_finished: isFinished }).eq('id', eventId);
       if (error) throw error;
-      const tournaments = this.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
-        tournament.isFinished = isFinished;
-        this.saveTournamentToLocalStorage(tournament);
+      const events = this.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
+        event.isFinished = isFinished;
+        this.saveEventToLocalStorage(event);
       }
     } catch (error) {
-      console.error('Error toggling tournament status:', error);
+      console.error('Error toggling event status:', error);
     }
   }
 
-  async createTournament(data: {
+  async createEvent(data: {
     name: string;
     joinCode: string;
     formatType: 'fixed' | 'free';
@@ -429,9 +429,9 @@ class TournamentsRepository extends BaseRepository {
     creatorAnonymousUserId: string | null;
   }): Promise<string> {
     if (!this.isSupabaseAvailable()) {
-      const tournamentId = crypto.randomUUID();
-      const tournament: Tournament = {
-        id: tournamentId,
+      const eventId = crypto.randomUUID();
+      const event: Event = {
+        id: eventId,
         name: data.name,
         date: new Date().toISOString(),
         format: data.formatType === 'fixed' ? '2v2' : 'libre',
@@ -441,12 +441,12 @@ class TournamentsRepository extends BaseRepository {
         isFinished: false,
         createdAt: new Date().toISOString(),
       };
-      this.saveTournamentToLocalStorage(tournament);
-      return tournamentId;
+      this.saveEventToLocalStorage(event);
+      return eventId;
     }
     try {
-      const { data: tournament, error } = await sb!
-        .from('tournaments')
+      const { data: event, error } = await sb!
+        .from('events')
         .insert({
           name: data.name,
           date: new Date().toISOString().split('T')[0],
@@ -465,49 +465,49 @@ class TournamentsRepository extends BaseRepository {
         .select('id')
         .single();
       if (error) {
-        console.error('Error creating tournament:', error);
-        throw new Error(`Failed to create tournament: ${error.message}`);
+        console.error('Error creating event:', error);
+        throw new Error(`Failed to create event: ${error.message}`);
       }
-      return (tournament as { id: string }).id;
+      return (event as { id: string }).id;
     } catch (error) {
-      console.error('Error in createTournament:', error);
+      console.error('Error in createEvent:', error);
       throw error;
     }
   }
 
-  async tournamentCodeExists(joinCode: string): Promise<boolean> {
+  async eventCodeExists(joinCode: string): Promise<boolean> {
     if (!this.isSupabaseAvailable()) return false;
     try {
       const { data } = await sb!
-        .from('tournaments')
+        .from('events')
         .select('id')
         .eq('join_code', joinCode)
         .maybeSingle();
       return data !== null;
     } catch (error) {
-      console.error('Error in tournamentCodeExists:', error);
+      console.error('Error in eventCodeExists:', error);
       return false;
     }
   }
 
   /**
-   * Quitte un tournoi : supprime le tournament_memberships du caller.
+   * Quitte un tournoi : supprime le event_memberships du caller.
    * Le creator ne peut pas quitter.
    */
-  async leaveTournament(
-    tournamentId: string,
+  async leaveEvent(
+    eventId: string,
     userId?: string,
     anonymousUserId?: string
   ): Promise<void> {
     const myUserId = userId || anonymousUserId;
     if (!myUserId) throw new Error('User identity required');
-    if (!this.isSupabaseAvailable()) throw new Error('Cannot leave tournament in offline mode');
+    if (!this.isSupabaseAvailable()) throw new Error('Cannot leave event in offline mode');
 
     try {
       const { data: tRow } = await sb!
-        .from('tournaments')
+        .from('events')
         .select('creator_user_id')
-        .eq('id', tournamentId)
+        .eq('id', eventId)
         .single();
       const t = tRow as { creator_user_id: string | null } | null;
       if (t && t.creator_user_id === myUserId) {
@@ -524,37 +524,37 @@ class TournamentsRepository extends BaseRepository {
       const playerId = (myPlayer as { id: string }).id;
 
       const { error } = await sb!
-        .from('tournament_memberships')
+        .from('event_memberships')
         .delete()
-        .eq('tournament_id', tournamentId)
+        .eq('event_id', eventId)
         .eq('player_id', playerId);
       if (error) throw error;
     } catch (error) {
-      console.error('Error in leaveTournament:', error);
+      console.error('Error in leaveEvent:', error);
       throw error;
     }
   }
 
   // ===== localStorage fallback =====
 
-  loadTournamentsFromLocalStorage(): Tournament[] {
-    const saved = localStorage.getItem('bpl_tournaments');
+  loadEventsFromLocalStorage(): Event[] {
+    const saved = localStorage.getItem('bpl_events');
     return saved ? JSON.parse(saved) : [];
   }
 
-  saveTournamentToLocalStorage(tournament: Tournament): void {
-    const tournaments = this.loadTournamentsFromLocalStorage();
-    const index = tournaments.findIndex((t) => t.id === tournament.id);
-    if (index >= 0) tournaments[index] = tournament;
-    else tournaments.push(tournament);
-    localStorage.setItem('bpl_tournaments', JSON.stringify(tournaments));
+  saveEventToLocalStorage(event: Event): void {
+    const events = this.loadEventsFromLocalStorage();
+    const index = events.findIndex((t) => t.id === event.id);
+    if (index >= 0) events[index] = event;
+    else events.push(event);
+    localStorage.setItem('bpl_events', JSON.stringify(events));
   }
 
-  private deleteTournamentFromLocalStorage(tournamentId: string): void {
-    const tournaments = this.loadTournamentsFromLocalStorage();
-    const filtered = tournaments.filter((t) => t.id !== tournamentId);
-    localStorage.setItem('bpl_tournaments', JSON.stringify(filtered));
+  private deleteEventFromLocalStorage(eventId: string): void {
+    const events = this.loadEventsFromLocalStorage();
+    const filtered = events.filter((t) => t.id !== eventId);
+    localStorage.setItem('bpl_events', JSON.stringify(filtered));
   }
 }
 
-export const tournamentsRepository = new TournamentsRepository();
+export const eventsRepository = new EventsRepository();

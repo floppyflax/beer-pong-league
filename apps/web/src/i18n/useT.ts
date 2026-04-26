@@ -32,7 +32,7 @@ function interpolate(template: string, vars?: Vars): string {
  *   const t = useT();
  *   t("common.save")                            // "Enregistrer"
  *   t("league.createSuccess", { name: "BPL" })  // "Ligue « BPL » créée"
- *   t("tournament.status.pending")              // "En attente"
+ *   t("event.status.pending")              // "En attente"
  *
  * If the key is missing it returns the key itself to make the gap obvious in dev.
  */

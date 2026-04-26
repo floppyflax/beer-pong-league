@@ -77,7 +77,7 @@ export const leagueSchema = z.object({
   createdAt: z.string().datetime('Created at must be a valid ISO 8601 datetime'),
   players: z.array(playerSchema).default([]),
   matches: z.array(matchSchema).default([]),
-  tournaments: z.array(z.string().uuid('Tournament ID must be a valid UUID')).optional(),
+  events: z.array(z.string().uuid('Event ID must be a valid UUID')).optional(),
   creator_user_id: z.string().uuid('User ID must be a valid UUID').nullable().optional(),
   creator_anonymous_user_id: z.string().uuid('Anonymous user ID must be a valid UUID').nullable().optional(),
   anti_cheat_enabled: z.boolean().default(false),
@@ -86,12 +86,12 @@ export const leagueSchema = z.object({
 export type League = z.infer<typeof leagueSchema>;
 
 // ============================================================================
-// TOURNAMENT SCHEMA
+// EVENT SCHEMA
 // ============================================================================
 
-export const tournamentSchema = z.object({
-  id: z.string().uuid('Tournament ID must be a valid UUID'),
-  name: z.string().min(1, 'Tournament name is required').max(200, 'Tournament name must be 200 characters or less'),
+export const eventSchema = z.object({
+  id: z.string().uuid('Event ID must be a valid UUID'),
+  name: z.string().min(1, 'Event name is required').max(200, 'Event name must be 200 characters or less'),
   // Accept both date (YYYY-MM-DD) and datetime formats, convert to datetime
   date: z.string().refine((val) => {
     // Accept ISO date (YYYY-MM-DD) or ISO datetime
@@ -130,7 +130,7 @@ export const tournamentSchema = z.object({
   anti_cheat_enabled: z.boolean().default(false),
 });
 
-export type Tournament = z.infer<typeof tournamentSchema>;
+export type Event = z.infer<typeof eventSchema>;
 
 // ============================================================================
 // VALIDATION FUNCTIONS
@@ -169,11 +169,11 @@ export function validateLeague(data: unknown): League {
 }
 
 /**
- * Validate tournament data and throw error if invalid
+ * Validate event data and throw error if invalid
  * @throws {z.ZodError} if validation fails
  */
-export function validateTournament(data: unknown): Tournament {
-  return tournamentSchema.parse(data);
+export function validateEvent(data: unknown): Event {
+  return eventSchema.parse(data);
 }
 
 // ============================================================================
@@ -213,11 +213,11 @@ export function safeValidateLeague(data: unknown) {
 }
 
 /**
- * Safely validate tournament data without throwing
- * @returns {success: true, data: Tournament} | {success: false, error: ZodError}
+ * Safely validate event data without throwing
+ * @returns {success: true, data: Event} | {success: false, error: ZodError}
  */
-export function safeValidateTournament(data: unknown) {
-  return tournamentSchema.safeParse(data);
+export function safeValidateEvent(data: unknown) {
+  return eventSchema.safeParse(data);
 }
 
 // ============================================================================
@@ -227,7 +227,7 @@ export function safeValidateTournament(data: unknown) {
 export const partialPlayerSchema = playerSchema.partial();
 export const partialMatchSchema = matchBaseSchema.partial();
 export const partialLeagueSchema = leagueSchema.partial();
-export const partialTournamentSchema = tournamentSchema.partial();
+export const partialEventSchema = eventSchema.partial();
 
 // ============================================================================
 // INPUT VALIDATION SCHEMAS (for forms)
@@ -246,13 +246,13 @@ export const createLeagueInputSchema = leagueSchema.omit({
   createdAt: true,
   players: true,
   matches: true,
-  tournaments: true,
+  events: true,
 });
 
 /**
- * Schema for creating a new tournament (no ID, timestamp, or matches)
+ * Schema for creating a new event (no ID, timestamp, or matches)
  */
-export const createTournamentInputSchema = tournamentSchema.omit({
+export const createEventInputSchema = eventSchema.omit({
   id: true,
   createdAt: true,
   matches: true,

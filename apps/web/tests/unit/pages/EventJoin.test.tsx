@@ -14,7 +14,7 @@ vi.mock("react-router-dom", async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useParams: () => ({ id: "test-tournament-id" }),
+    useParams: () => ({ id: "test-event-id" }),
   };
 });
 
@@ -44,14 +44,14 @@ vi.mock("../../../src/hooks/useRequireIdentity", () => ({
 }));
 
 // Mock LeagueContext
-const mockAddPlayerToTournament = vi.fn();
-const mockAddAnonymousPlayerToTournament = vi
+const mockAddPlayerToEvent = vi.fn();
+const mockAddAnonymousPlayerToEvent = vi
   .fn()
   .mockResolvedValue("new-player-id");
 
-const mockTournament = {
-  id: "test-tournament-id",
-  name: "Test Tournament",
+const mockEvent = {
+  id: "test-event-id",
+  name: "Test Event",
   date: new Date().toISOString(),
   leagueId: null,
   playerIds: [] as string[],
@@ -63,10 +63,10 @@ const mockTournament = {
 };
 
 const defaultLeagueContext = {
-  tournaments: [mockTournament],
+  events: [mockEvent],
   leagues: [],
-  addPlayerToTournament: mockAddPlayerToTournament,
-  addAnonymousPlayerToTournament: mockAddAnonymousPlayerToTournament,
+  addPlayerToEvent: mockAddPlayerToEvent,
+  addAnonymousPlayerToEvent: mockAddAnonymousPlayerToEvent,
   isLoadingInitialData: false,
 };
 
@@ -101,19 +101,19 @@ describe("EventJoin - Join flow (Story 4.1 + 14-15)", () => {
   });
 
   describe("Task 1: Review EventJoin page (AC: Page opens)", () => {
-    it("should render the page when tournament exists", async () => {
+    it("should render the page when event exists", async () => {
       render(<EventJoin />, { wrapper: Wrapper });
 
       // AC: Page opens and renders correctly (Story 14-15: design system alignment)
-      expect(screen.getAllByText("Test Tournament").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Test Event").length).toBeGreaterThan(0);
       expect(screen.getByText(/comment ça marche \?/i)).toBeInTheDocument();
     });
 
-    it("should load tournament data from URL parameter", () => {
+    it("should load event data from URL parameter", () => {
       render(<EventJoin />, { wrapper: Wrapper });
 
-      // AC: Tournament data is fetched (mock provides tournament for id from useParams)
-      expect(screen.getAllByText("Test Tournament").length).toBeGreaterThan(0);
+      // AC: Event data is fetched (mock provides event for id from useParams)
+      expect(screen.getAllByText("Test Event").length).toBeGreaterThan(0);
     });
   });
 
@@ -299,8 +299,8 @@ describe("EventJoin - Join flow (Story 4.1 + 14-15)", () => {
     });
   });
 
-  describe("Task 4: Add player to tournament (AC: Added to tournament_players)", () => {
-    it("should add player to tournament via addAnonymousPlayerToTournament", async () => {
+  describe("Task 4: Add player to event (AC: Added to event_players)", () => {
+    it("should add player to event via addAnonymousPlayerToEvent", async () => {
       render(<EventJoin />, { wrapper: Wrapper });
 
       // Click "Create new player" button
@@ -320,11 +320,11 @@ describe("EventJoin - Join flow (Story 4.1 + 14-15)", () => {
       const submitButton = screen.getByRole("button", { name: /rejoindre/i });
       fireEvent.click(submitButton);
 
-      // AC: Add player to tournament_players
+      // AC: Add player to event_players
       await waitFor(
         () => {
-          expect(mockAddAnonymousPlayerToTournament).toHaveBeenCalledWith(
-            "test-tournament-id",
+          expect(mockAddAnonymousPlayerToEvent).toHaveBeenCalledWith(
+            "test-event-id",
             "Test Player",
           );
         },
@@ -385,7 +385,7 @@ describe("EventJoin - Join flow (Story 4.1 + 14-15)", () => {
   });
 
   describe("Task 6: Implement redirect and confirmation (AC: Redirect, success message)", () => {
-    it("should redirect to tournament dashboard after join", async () => {
+    it("should redirect to event dashboard after join", async () => {
       const _toast = await import("react-hot-toast");
 
       render(<EventJoin />, { wrapper: Wrapper });
@@ -407,15 +407,15 @@ describe("EventJoin - Join flow (Story 4.1 + 14-15)", () => {
       const submitButton = screen.getByRole("button", { name: /rejoindre/i });
       fireEvent.click(submitButton);
 
-      // AC: Redirect to tournament dashboard
+      // AC: Redirect to event dashboard
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(
-          "/event/test-tournament-id",
+          "/event/test-event-id",
         );
       });
     });
 
-    it("should display success message with tournament name", async () => {
+    it("should display success message with event name", async () => {
       const toast = await import("react-hot-toast");
 
       render(<EventJoin />, { wrapper: Wrapper });
@@ -440,7 +440,7 @@ describe("EventJoin - Join flow (Story 4.1 + 14-15)", () => {
       // AC: Display success toast notification
       await waitFor(() => {
         expect(toast.default.success).toHaveBeenCalledWith(
-          expect.stringContaining("Test Tournament"),
+          expect.stringContaining("Test Event"),
         );
       });
     });
@@ -457,9 +457,9 @@ describe("EventJoin - Story 14-15 (Design system alignment)", () => {
     });
   });
 
-  it("should allow joining as existing player when tournament has players", async () => {
-    const tournamentWithPlayers = {
-      ...mockTournament,
+  it("should allow joining as existing player when event has players", async () => {
+    const eventWithPlayers = {
+      ...mockEvent,
       playerIds: ["player-1"],
       leagueId: "league-1",
     };
@@ -473,10 +473,10 @@ describe("EventJoin - Story 14-15 (Design system alignment)", () => {
 
     // Use mockImplementation so all renders get this data (React re-renders on click)
     mockUseLeague.mockImplementation(() => ({
-      tournaments: [tournamentWithPlayers],
+      events: [eventWithPlayers],
       leagues: [leagueWithPlayers],
-      addPlayerToTournament: mockAddPlayerToTournament,
-      addAnonymousPlayerToTournament: mockAddAnonymousPlayerToTournament,
+      addPlayerToEvent: mockAddPlayerToEvent,
+      addAnonymousPlayerToEvent: mockAddAnonymousPlayerToEvent,
       isLoadingInitialData: false,
     }));
 
@@ -503,20 +503,20 @@ describe("EventJoin - Story 14-15 (Design system alignment)", () => {
     });
     fireEvent.click(joinButton);
 
-    // AC: addPlayerToTournament called with correct args
+    // AC: addPlayerToEvent called with correct args
     await waitFor(() => {
-      expect(mockAddPlayerToTournament).toHaveBeenCalledWith(
-        "test-tournament-id",
+      expect(mockAddPlayerToEvent).toHaveBeenCalledWith(
+        "test-event-id",
         "player-1",
       );
     });
-    expect(mockNavigate).toHaveBeenCalledWith("/event/test-tournament-id");
+    expect(mockNavigate).toHaveBeenCalledWith("/event/test-event-id");
   });
 
-  it("should use EventCard for tournament info", () => {
+  it("should use EventCard for event info", () => {
     render(<EventJoin />, { wrapper: Wrapper });
 
-    expect(screen.getAllByText("Test Tournament").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Test Event").length).toBeGreaterThan(0);
     expect(screen.getByText(/actif/i)).toBeInTheDocument();
   });
 

@@ -22,9 +22,9 @@ import { identityMergeService } from "../services/IdentityMergeService";
 import toast from "react-hot-toast";
 
 /**
- * LeagueJoin — mirror of TournamentJoin for leagues (mig 016 + PR3 wiring).
+ * LeagueJoin — mirror of EventJoin for leagues (mig 016 + PR3 wiring).
  *
- * Same 4-step sequence as the tournament page (token short-circuit →
+ * Same 4-step sequence as the event page (token short-circuit →
  * IdentityGateSheet → ClaimGuestSheet → default UI). Kept as a separate file
  * for now so each context keeps its own copy strings ("ligue" vs "tournoi")
  * and dataset (leagues + league_players); a refactor into a shared

@@ -25,7 +25,7 @@ import type { Match } from "@/types";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const { leagues, tournaments } = useLeague();
+  const { leagues, events } = useLeague();
   const navigate = useNavigate();
   const [fetchedPlayer, setFetchedPlayer] = useState<{
     player: Player;
@@ -59,7 +59,7 @@ export const PlayerProfile = () => {
     }
   }
 
-  // If not in leagues, fetch from DB (tournament players, or league players from leagues we're not in)
+  // If not in leagues, fetch from DB (event players, or league players from leagues we're not in)
   useEffect(() => {
     if (!playerId || player) {
       setFetchedPlayer(null);
@@ -80,7 +80,7 @@ export const PlayerProfile = () => {
           setFetchedPlayer(null);
           return;
         }
-        const { player: p, leagueId, leagueName, tournamentId } = result;
+        const { player: p, leagueId, leagueName, eventId } = result;
         const playersMap: Record<string, string> = {};
         leagues.forEach((l) => {
           l.players.forEach((pl) => {
@@ -97,8 +97,8 @@ export const PlayerProfile = () => {
           joinedAt: null,  // TODO(Phase B): restore via loadPlayerEnrichment
         };
 
-        if (tournamentId) {
-          databaseService.loadTournamentParticipants(tournamentId).then((participants) => {
+        if (eventId) {
+          databaseService.loadEventParticipants(eventId).then((participants) => {
             if (cancelled) return;
             const map = { ...playersMap };
             participants.forEach((tp) => {
@@ -181,33 +181,33 @@ export const PlayerProfile = () => {
   // Hooks MUST be called unconditionally before any early returns (Rules of Hooks)
   const currentPlayer = player;
 
-  // Story 14-35: Build player matches with league/tournament context for display
+  // Story 14-35: Build player matches with league/event context for display
   const playerMatchesWithContext = useMemo(() => {
     if (!currentPlayer) return [];
-    const items: { match: Match; leagueName: string | null; tournamentName: string | null }[] = [];
+    const items: { match: Match; leagueName: string | null; eventName: string | null }[] = [];
     leagues.forEach((league) => {
       league.matches.forEach((match) => {
         if (
           match.teamA.includes(currentPlayer.id) ||
           match.teamB.includes(currentPlayer.id)
         ) {
-          items.push({ match, leagueName: league.name, tournamentName: null });
+          items.push({ match, leagueName: league.name, eventName: null });
         }
       });
     });
-    tournaments.forEach((tournament) => {
-      tournament.matches.forEach((match) => {
+    events.forEach((event) => {
+      event.matches.forEach((match) => {
         if (
           match.teamA.includes(currentPlayer.id) ||
           match.teamB.includes(currentPlayer.id)
         ) {
-          const leagueName = tournament.leagueId
-            ? leagues.find((l) => l.id === tournament.leagueId)?.name ?? null
+          const leagueName = event.leagueId
+            ? leagues.find((l) => l.id === event.leagueId)?.name ?? null
             : null;
           items.push({
             match,
             leagueName,
-            tournamentName: tournament.name,
+            eventName: event.name,
           });
         }
       });
@@ -216,7 +216,7 @@ export const PlayerProfile = () => {
       (a, b) =>
         new Date(a.match.date).getTime() - new Date(b.match.date).getTime(),
     );
-  }, [leagues, tournaments, currentPlayer]);
+  }, [leagues, events, currentPlayer]);
 
   const playerMatches = playerMatchesWithContext.map((x) => x.match);
   const sortedMatches = playerMatches;
@@ -569,13 +569,13 @@ export const PlayerProfile = () => {
           </section>
         )}
 
-        {/* Recent Matches — Story 14-35: relative time, league/tournament, badge Victoire/Défaite, delta ELO */}
+        {/* Recent Matches — Story 14-35: relative time, league/event, badge Victoire/Défaite, delta ELO */}
         <section>
           <h3 className="text-lg font-bold mb-3 text-white">
             Matchs récents
           </h3>
           <div className="space-y-2">
-            {playerMatchesWithContext.slice(0, 10).map(({ match, leagueName, tournamentName }) => {
+            {playerMatchesWithContext.slice(0, 10).map(({ match, leagueName, eventName }) => {
               const isTeamA = match.teamA.includes(currentPlayerId);
               const isWinner =
                 (isTeamA && match.scoreA > match.scoreB) ||
@@ -583,7 +583,7 @@ export const PlayerProfile = () => {
               const deltaElo =
                 match.eloChanges?.[currentPlayerId] ?? undefined;
               const contextName =
-                tournamentName ?? leagueName ?? null;
+                eventName ?? leagueName ?? null;
 
               const teamA = match.teamA
                 .map((id) => playersMap[id] || `Joueur ${id.slice(0, 8)}`)

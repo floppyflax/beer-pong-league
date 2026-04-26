@@ -100,10 +100,10 @@ describe('NavigationContext', () => {
       expect(result.current.activeTab).toBe('home');
 
       act(() => {
-        result.current.setActiveTab('tournaments');
+        result.current.setActiveTab('events');
       });
 
-      expect(result.current.activeTab).toBe('tournaments');
+      expect(result.current.activeTab).toBe('events');
     });
 
     it('should support all valid tab values', () => {
@@ -113,7 +113,7 @@ describe('NavigationContext', () => {
         ),
       });
 
-      const validTabs = ['home', 'join', 'tournaments', 'leagues', 'profile'];
+      const validTabs = ['home', 'join', 'events', 'leagues', 'profile'];
 
       validTabs.forEach(tab => {
         act(() => {

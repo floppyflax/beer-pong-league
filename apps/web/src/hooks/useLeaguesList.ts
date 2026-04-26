@@ -10,7 +10,7 @@ export interface LeagueListItem {
   createdAt: string;
   updatedAt: string;
   member_count: number;
-  tournament_count: number;
+  event_count: number;
 }
 
 /**
@@ -52,8 +52,8 @@ export const useLeaguesList = () => {
       updatedAt: league.createdAt,
       // Count members: length of players array (Player[] objects)
       member_count: league.players?.length || 0,
-      // Count tournaments: length of tournaments array (string[] of tournament IDs)
-      tournament_count: league.tournaments?.length || 0,
+      // Count events: length of events array (string[] of event IDs)
+      event_count: league.events?.length || 0,
     }));
 
     // Story 10.3 AC2 (PARTIAL): Sort by status, then by date

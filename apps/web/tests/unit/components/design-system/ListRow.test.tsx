@@ -136,11 +136,11 @@ describe('ListRow (Story 14-4)', () => {
     });
   });
 
-  describe('variant tournament (AC: 2)', () => {
+  describe('variant event (AC: 2)', () => {
     it('should display name, date, status badge', () => {
       render(
         <ListRow
-          variant="tournament"
+          variant="event"
           name="Tournoi d'été"
           date="15 juin 2025"
           status="En cours"
@@ -155,7 +155,7 @@ describe('ListRow (Story 14-4)', () => {
     it('should display metrics (Matchs, Joueurs, Format)', () => {
       render(
         <ListRow
-          variant="tournament"
+          variant="event"
           name="Beer Pong Cup"
           date="1 mars 2025"
           status="Terminé"
@@ -170,7 +170,7 @@ describe('ListRow (Story 14-4)', () => {
     it('should display chevron', () => {
       render(
         <ListRow
-          variant="tournament"
+          variant="event"
           name="Test"
           date="1 jan"
           status="En cours"

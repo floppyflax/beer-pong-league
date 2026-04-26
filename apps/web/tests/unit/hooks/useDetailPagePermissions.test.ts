@@ -24,7 +24,7 @@ describe('useDetailPagePermissions', () => {
     vi.clearAllMocks();
   });
 
-  describe('Tournament Permissions', () => {
+  describe('Event Permissions', () => {
     it('should return isAdmin true when authenticated user is creator', () => {
       vi.mocked(useAuthContext).mockReturnValue({
         user: { id: 'user-123' },
@@ -36,9 +36,9 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [
+        events: [
           {
-            id: 'tournament-1',
+            id: 'event-1',
             creator_user_id: 'user-123',
             creator_anonymous_user_id: null,
             allowPlayersToInvite: false,
@@ -48,7 +48,7 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       const { result } = renderHook(() =>
-        useDetailPagePermissions('tournament-1', 'tournament')
+        useDetailPagePermissions('event-1', 'event')
       );
 
       expect(result.current.isAdmin).toBe(true);
@@ -66,9 +66,9 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [
+        events: [
           {
-            id: 'tournament-1',
+            id: 'event-1',
             creator_user_id: null,
             creator_anonymous_user_id: 'anon-123',
             allowPlayersToInvite: false,
@@ -78,7 +78,7 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       const { result } = renderHook(() =>
-        useDetailPagePermissions('tournament-1', 'tournament')
+        useDetailPagePermissions('event-1', 'event')
       );
 
       expect(result.current.isAdmin).toBe(true);
@@ -96,9 +96,9 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [
+        events: [
           {
-            id: 'tournament-1',
+            id: 'event-1',
             creator_user_id: 'user-123',
             creator_anonymous_user_id: null,
             allowPlayersToInvite: false,
@@ -108,7 +108,7 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       const { result } = renderHook(() =>
-        useDetailPagePermissions('tournament-1', 'tournament')
+        useDetailPagePermissions('event-1', 'event')
       );
 
       expect(result.current.isAdmin).toBe(false);
@@ -126,9 +126,9 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [
+        events: [
           {
-            id: 'tournament-1',
+            id: 'event-1',
             creator_user_id: 'user-123',
             creator_anonymous_user_id: null,
             allowPlayersToInvite: true,
@@ -138,14 +138,14 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       const { result } = renderHook(() =>
-        useDetailPagePermissions('tournament-1', 'tournament')
+        useDetailPagePermissions('event-1', 'event')
       );
 
       expect(result.current.isAdmin).toBe(false);
       expect(result.current.canInvite).toBe(true);
     });
 
-    it('should handle missing tournament', () => {
+    it('should handle missing event', () => {
       vi.mocked(useAuthContext).mockReturnValue({
         user: { id: 'user-123' },
         isAuthenticated: true,
@@ -156,12 +156,12 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [],
       } as any);
 
       const { result } = renderHook(() =>
-        useDetailPagePermissions('tournament-999', 'tournament')
+        useDetailPagePermissions('event-999', 'event')
       );
 
       expect(result.current.isAdmin).toBe(false);
@@ -181,7 +181,7 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [
           {
             id: 'league-1',
@@ -211,7 +211,7 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [
           {
             id: 'league-1',
@@ -241,7 +241,7 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [
           {
             id: 'league-1',
@@ -271,7 +271,7 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [],
       } as any);
 
@@ -296,9 +296,9 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [
+        events: [
           {
-            id: 'tournament-1',
+            id: 'event-1',
             creator_user_id: 'user-123',
             creator_anonymous_user_id: null,
             allowPlayersToInvite: false,
@@ -308,7 +308,7 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       const { result } = renderHook(() =>
-        useDetailPagePermissions('tournament-1', 'tournament')
+        useDetailPagePermissions('event-1', 'event')
       );
 
       expect(result.current.isAdmin).toBe(false);
@@ -326,9 +326,9 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       vi.mocked(useLeague).mockReturnValue({
-        tournaments: [
+        events: [
           {
-            id: 'tournament-1',
+            id: 'event-1',
             creator_user_id: 'user-123',
             creator_anonymous_user_id: null,
             // allowPlayersToInvite field missing
@@ -338,7 +338,7 @@ describe('useDetailPagePermissions', () => {
       } as any);
 
       const { result } = renderHook(() =>
-        useDetailPagePermissions('tournament-1', 'tournament')
+        useDetailPagePermissions('event-1', 'event')
       );
 
       expect(result.current.isAdmin).toBe(true);

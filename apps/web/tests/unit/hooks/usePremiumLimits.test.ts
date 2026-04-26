@@ -37,7 +37,7 @@ describe("usePremiumLimits", () => {
 
     it("should return false for isPremium when user is not premium", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [],
       } as any);
 
@@ -46,36 +46,36 @@ describe("usePremiumLimits", () => {
       expect(result.current.isPremium).toBe(false);
     });
 
-    it("should allow creating tournaments when under limit (0/2)", () => {
+    it("should allow creating events when under limit (0/2)", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [],
       } as any);
 
       const { result } = renderHook(() => usePremiumLimits());
 
-      expect(result.current.canCreateTournament).toBe(true);
-      expect(result.current.isAtTournamentLimit).toBe(false);
-      expect(result.current.tournamentCount).toBe(0);
-      expect(result.current.limits.tournaments).toBe(2);
+      expect(result.current.canCreateEvent).toBe(true);
+      expect(result.current.isAtEventLimit).toBe(false);
+      expect(result.current.eventCount).toBe(0);
+      expect(result.current.limits.events).toBe(2);
     });
 
-    it("should allow creating tournaments when at 1/2 limit", () => {
+    it("should allow creating events when at 1/2 limit", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [{ id: "1", isFinished: false }],
+        events: [{ id: "1", isFinished: false }],
         leagues: [],
       } as any);
 
       const { result } = renderHook(() => usePremiumLimits());
 
-      expect(result.current.canCreateTournament).toBe(true);
-      expect(result.current.isAtTournamentLimit).toBe(false);
-      expect(result.current.tournamentCount).toBe(1);
+      expect(result.current.canCreateEvent).toBe(true);
+      expect(result.current.isAtEventLimit).toBe(false);
+      expect(result.current.eventCount).toBe(1);
     });
 
-    it("should prevent creating tournaments when at limit (2/2)", () => {
+    it("should prevent creating events when at limit (2/2)", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [
+        events: [
           { id: "1", isFinished: false },
           { id: "2", isFinished: false },
         ],
@@ -84,14 +84,14 @@ describe("usePremiumLimits", () => {
 
       const { result } = renderHook(() => usePremiumLimits());
 
-      expect(result.current.canCreateTournament).toBe(false);
-      expect(result.current.isAtTournamentLimit).toBe(true);
-      expect(result.current.tournamentCount).toBe(2);
+      expect(result.current.canCreateEvent).toBe(false);
+      expect(result.current.isAtEventLimit).toBe(true);
+      expect(result.current.eventCount).toBe(2);
     });
 
-    it("should not count finished tournaments against limit", () => {
+    it("should not count finished events against limit", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [
+        events: [
           { id: "1", isFinished: false },
           { id: "2", isFinished: true },
           { id: "3", isFinished: true },
@@ -101,13 +101,13 @@ describe("usePremiumLimits", () => {
 
       const { result } = renderHook(() => usePremiumLimits());
 
-      expect(result.current.canCreateTournament).toBe(true);
-      expect(result.current.tournamentCount).toBe(1);
+      expect(result.current.canCreateEvent).toBe(true);
+      expect(result.current.eventCount).toBe(1);
     });
 
     it("should allow creating leagues when under limit (0/1)", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [],
       } as any);
 
@@ -121,7 +121,7 @@ describe("usePremiumLimits", () => {
 
     it("should prevent creating leagues when at limit (1/1)", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [{ id: "1", status: "active" }],
       } as any);
 
@@ -134,7 +134,7 @@ describe("usePremiumLimits", () => {
 
     it("should not count inactive leagues against limit", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [
           { id: "1", status: "active" },
           { id: "2", status: "archived" },
@@ -166,7 +166,7 @@ describe("usePremiumLimits", () => {
 
     it("should return true for isPremium when user is premium", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [],
       } as any);
 
@@ -175,9 +175,9 @@ describe("usePremiumLimits", () => {
       expect(result.current.isPremium).toBe(true);
     });
 
-    it("should allow unlimited tournaments for premium users", () => {
+    it("should allow unlimited events for premium users", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [
+        events: [
           { id: "1", isFinished: false },
           { id: "2", isFinished: false },
           { id: "3", isFinished: false },
@@ -187,14 +187,14 @@ describe("usePremiumLimits", () => {
 
       const { result } = renderHook(() => usePremiumLimits());
 
-      expect(result.current.canCreateTournament).toBe(true);
-      expect(result.current.isAtTournamentLimit).toBe(false);
-      expect(result.current.limits.tournaments).toBe(Infinity);
+      expect(result.current.canCreateEvent).toBe(true);
+      expect(result.current.isAtEventLimit).toBe(false);
+      expect(result.current.limits.events).toBe(Infinity);
     });
 
     it("should allow unlimited leagues for premium users", () => {
       mockUseLeague.mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [
           { id: "1", status: "active" },
           { id: "2", status: "active" },
@@ -225,18 +225,18 @@ describe("usePremiumLimits", () => {
       });
 
       mockUseLeague.mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [],
       } as any);
 
       const { result } = renderHook(() => usePremiumLimits());
 
       expect(result.current.isPremium).toBe(false);
-      expect(result.current.limits.tournaments).toBe(2);
+      expect(result.current.limits.events).toBe(2);
       expect(result.current.limits.leagues).toBe(1);
     });
 
-    it("should handle missing tournaments array", () => {
+    it("should handle missing events array", () => {
       mockUseAuthContext.mockReturnValue({
         user: { id: "user-1", user_metadata: { isPremium: false } },
         isAuthenticated: true,
@@ -256,8 +256,8 @@ describe("usePremiumLimits", () => {
 
       const { result } = renderHook(() => usePremiumLimits());
 
-      expect(result.current.tournamentCount).toBe(0);
-      expect(result.current.canCreateTournament).toBe(true);
+      expect(result.current.eventCount).toBe(0);
+      expect(result.current.canCreateEvent).toBe(true);
     });
 
     it("should handle missing leagues array", () => {
@@ -275,7 +275,7 @@ describe("usePremiumLimits", () => {
       });
 
       mockUseLeague.mockReturnValue({
-        tournaments: [],
+        events: [],
       } as any);
 
       const { result } = renderHook(() => usePremiumLimits());

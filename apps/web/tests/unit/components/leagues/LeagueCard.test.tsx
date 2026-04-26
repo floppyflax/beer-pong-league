@@ -37,7 +37,7 @@ describe("LeagueCard", () => {
     createdAt: "2024-01-01T00:00:00Z",
     updatedAt: "2024-01-15T00:00:00Z",
     member_count: 5,
-    tournament_count: 3,
+    event_count: 3,
   };
 
   beforeEach(() => {
@@ -185,15 +185,15 @@ describe("LeagueCard", () => {
     expect(screen.getByText("Membre")).toBeInTheDocument();
   });
 
-  it("should handle singular tournament count", () => {
-    const singleTournamentLeague: LeagueListItem = {
+  it("should handle singular event count", () => {
+    const singleEventLeague: LeagueListItem = {
       ...mockLeague,
-      tournament_count: 1,
+      event_count: 1,
     };
 
     render(
       <BrowserRouter>
-        <LeagueCard league={singleTournamentLeague} />
+        <LeagueCard league={singleEventLeague} />
       </BrowserRouter>,
     );
 
@@ -201,11 +201,11 @@ describe("LeagueCard", () => {
     expect(screen.getByText("Tournoi")).toBeInTheDocument();
   });
 
-  it("should handle zero members and tournaments", () => {
+  it("should handle zero members and events", () => {
     const emptyLeague: LeagueListItem = {
       ...mockLeague,
       member_count: 0,
-      tournament_count: 0,
+      event_count: 0,
     };
 
     render(

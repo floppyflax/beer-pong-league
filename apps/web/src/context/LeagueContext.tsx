@@ -3,8 +3,8 @@
  * 
  * ⚠️ NAMING NOTE: Despite the name "LeagueContext", this context manages ALL application data:
  * - Leagues (ligues): Season-long or event-based player groups
- * - Tournaments (tournois): Individual competitions with matches
- * - Players: Participants in leagues and tournaments
+ * - Events (tournois): Individual competitions with matches
+ * - Players: Participants in leagues and events
  * - Matches: Game results and ELO calculations
  * 
  * The name is historical (from when only leagues existed) but kept for backward compatibility.
@@ -20,35 +20,35 @@ import {
   ReactNode,
 } from "react";
 import toast from "react-hot-toast";
-import { League, Player, Match, Tournament } from "../types";
+import { League, Player, Match, Event } from "../types";
 import { calculateEloChange } from "../utils/elo";
 import { useAuth } from "../hooks/useAuth";
 import { useIdentity } from "../hooks/useIdentity";
 import {
   databaseService,
-  type TournamentUpdates,
+  type EventUpdates,
 } from "../services/DatabaseService";
 import { migrationService } from "../services/MigrationService";
 import { localUserService } from "../services/LocalUserService";
 import { getDeviceFingerprint } from "../utils/deviceFingerprint";
-import { generateTournamentCode } from "../utils/tournamentCode";
+import { generateEventCode } from "../utils/eventCode";
 
 /**
- * Global context interface for managing leagues, tournaments, players, and matches.
+ * Global context interface for managing leagues, events, players, and matches.
  * 
- * Note: Despite being called "LeagueContext", this manages both leagues AND tournaments.
+ * Note: Despite being called "LeagueContext", this manages both leagues AND events.
  */
 interface LeagueContextType {
   leagues: League[];
-  tournaments: Tournament[];
+  events: Event[];
   currentLeague: League | null;
-  currentTournament: Tournament | null;
+  currentEvent: Event | null;
   isLoadingInitialData: boolean;
   /** Error message when initial data load fails (e.g. network). Null when load succeeded. */
   loadError: string | null;
   reloadData: () => Promise<void>;
   createLeague: (name: string, type: "one-shot" | "season") => Promise<string>;
-  createTournament: (
+  createEvent: (
     name: string,
     date: string,
     format: '1v1' | '2v2' | '3v3' | 'libre',
@@ -58,12 +58,12 @@ interface LeagueContextType {
     antiCheatEnabled?: boolean
   ) => Promise<string>;
   selectLeague: (id: string) => void;
-  selectTournament: (id: string) => void;
-  associateTournamentToLeague: (tournamentId: string, leagueId: string) => Promise<void>;
+  selectEvent: (id: string) => void;
+  associateEventToLeague: (eventId: string, leagueId: string) => Promise<void>;
   addPlayer: (leagueId: string, name: string) => Promise<void>;
-  addPlayerToTournament: (tournamentId: string, playerId: string) => void;
-  addAnonymousPlayerToTournament: (tournamentId: string, playerName: string) => Promise<string>;
-  addGuestPlayerToTournament: (tournamentId: string, playerName: string) => Promise<string>;
+  addPlayerToEvent: (eventId: string, playerId: string) => void;
+  addAnonymousPlayerToEvent: (eventId: string, playerName: string) => Promise<string>;
+  addGuestPlayerToEvent: (eventId: string, playerName: string) => Promise<string>;
   recordMatch: (
     leagueId: string,
     teamAIds: string[],
@@ -71,8 +71,8 @@ interface LeagueContextType {
     winner: "A" | "B",
     enrichment?: { cupsRemaining?: number }
   ) => Promise<Record<string, number> | null>;
-  recordTournamentMatch: (
-    tournamentId: string,
+  recordEventMatch: (
+    eventId: string,
     teamAIds: string[],
     teamBIds: string[],
     winner: "A" | "B",
@@ -80,20 +80,20 @@ interface LeagueContextType {
     participantsOverride?: Player[]
   ) => Promise<Record<string, number> | null>;
   deleteLeague: (id: string) => Promise<void>;
-  deleteTournament: (id: string) => Promise<void>;
-  toggleTournamentStatus: (tournamentId: string) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
+  toggleEventStatus: (eventId: string) => Promise<void>;
   updateLeague: (
     leagueId: string,
     name: string,
     type: "one-shot" | "season"
   ) => Promise<void>;
-  updateTournament: (
-    tournamentId: string,
-    updates: TournamentUpdates
+  updateEvent: (
+    eventId: string,
+    updates: EventUpdates
   ) => Promise<void>;
   updatePlayer: (leagueId: string, playerId: string, name: string) => Promise<void>;
   deletePlayer: (leagueId: string, playerId: string) => Promise<void>;
-  getTournamentLocalRanking: (tournamentId: string, participantsOverride?: Player[]) => Player[];
+  getEventLocalRanking: (eventId: string, participantsOverride?: Player[]) => Player[];
   getLeagueGlobalRanking: (leagueId: string) => Player[];
 }
 
@@ -104,13 +104,13 @@ export { LeagueContext };
 export type { LeagueContextType };
 
 /**
- * Hook to access global application data (leagues, tournaments, players, matches).
+ * Hook to access global application data (leagues, events, players, matches).
  * 
  * Despite the name "useLeague", this hook provides access to ALL app data,
- * including both leagues and tournaments.
+ * including both leagues and events.
  * 
  * @example
- * const { leagues, tournaments, reloadData } = useLeague();
+ * const { leagues, events, reloadData } = useLeague();
  */
 export const useLeague = () => {
   const context = useContext(LeagueContext);
@@ -125,7 +125,7 @@ export const useLeague = () => {
  * 
  * Manages state and operations for:
  * - Leagues: Long-term player groups with rankings
- * - Tournaments: Individual competitions 
+ * - Events: Individual competitions 
  * - Players: Participants with ELO ratings
  * - Matches: Game results and history
  * 
@@ -139,15 +139,15 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   // Initialize from localStorage for immediate display (optimistic)
   // Note: These will be filtered by user when data loads from Supabase
   const [leagues, setLeagues] = useState<League[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
 
   const [currentLeagueId, setCurrentLeagueId] = useState<string | null>(() => {
     return localStorage.getItem("bpl_current_league_id");
   });
 
-  const [currentTournamentId, setCurrentTournamentId] = useState<string | null>(
+  const [currentEventId, setCurrentEventId] = useState<string | null>(
     () => {
-      return localStorage.getItem("bpl_current_tournament_id");
+      return localStorage.getItem("bpl_current_event_id");
     }
   );
 
@@ -174,9 +174,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       if (!userId && !anonymousUserId) {
         console.log('🔒 No user identity - clearing all data for security');
         setLeagues([]);
-        setTournaments([]);
+        setEvents([]);
         localStorage.removeItem("bpl_leagues");
-        localStorage.removeItem("bpl_tournaments");
+        localStorage.removeItem("bpl_events");
         setIsLoadingInitialData(false);
         return;
       }
@@ -189,9 +189,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         if (migrationResult.error) {
           toast.error('Erreur lors de la migration', { id: migrationToast });
           console.error('Migration error:', migrationResult.error);
-        } else if (migrationResult.leaguesMigrated > 0 || migrationResult.tournamentsMigrated > 0) {
+        } else if (migrationResult.leaguesMigrated > 0 || migrationResult.eventsMigrated > 0) {
           toast.success(
-            `${migrationResult.leaguesMigrated} ligues et ${migrationResult.tournamentsMigrated} événements migrés`,
+            `${migrationResult.leaguesMigrated} ligues et ${migrationResult.eventsMigrated} événements migrés`,
             { id: migrationToast }
           );
         } else {
@@ -200,15 +200,15 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Step 2: Load data from Supabase
-      const [loadedLeagues, loadedTournaments] = await Promise.all([
+      const [loadedLeagues, loadedEvents] = await Promise.all([
         databaseService.loadLeagues(userId, anonymousUserId),
-        databaseService.loadTournaments(userId, anonymousUserId),
+        databaseService.loadEvents(userId, anonymousUserId),
       ]);
 
       // Step 3: Filter localStorage data by current user before merging
       // This ensures we don't mix data from different users
       const localStorageLeagues = JSON.parse(localStorage.getItem("bpl_leagues") || "[]") as League[];
-      const localStorageTournaments = JSON.parse(localStorage.getItem("bpl_tournaments") || "[]") as Tournament[];
+      const localStorageEvents = JSON.parse(localStorage.getItem("bpl_events") || "[]") as Event[];
 
       // Filter localStorage data by current user
       const filteredLocalStorageLeagues = localStorageLeagues.filter((league) => {
@@ -220,11 +220,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         return false; // If no user ID, don't include localStorage data
       });
 
-      const filteredLocalStorageTournaments = localStorageTournaments.filter((tournament) => {
+      const filteredLocalStorageEvents = localStorageEvents.filter((event) => {
         if (userId) {
-          return tournament.creator_user_id === userId;
+          return event.creator_user_id === userId;
         } else if (anonymousUserId) {
-          return tournament.creator_anonymous_user_id === anonymousUserId;
+          return event.creator_anonymous_user_id === anonymousUserId;
         }
         return false; // If no user ID, don't include localStorage data
       });
@@ -234,20 +234,20 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         ? loadedLeagues 
         : filteredLocalStorageLeagues;
       
-      const mergedTournaments = loadedTournaments.length > 0 
-        ? loadedTournaments 
-        : filteredLocalStorageTournaments;
+      const mergedEvents = loadedEvents.length > 0 
+        ? loadedEvents 
+        : filteredLocalStorageEvents;
 
       // Update state
       setLeagues(mergedLeagues);
-      setTournaments(mergedTournaments);
+      setEvents(mergedEvents);
 
       // Update localStorage cache
       localStorage.setItem("bpl_leagues", JSON.stringify(mergedLeagues));
-      localStorage.setItem("bpl_tournaments", JSON.stringify(mergedTournaments));
+      localStorage.setItem("bpl_events", JSON.stringify(mergedEvents));
 
-      if (mergedLeagues.length > 0 || mergedTournaments.length > 0) {
-        console.log(`✅ Loaded ${mergedLeagues.length} leagues and ${mergedTournaments.length} tournaments from Supabase`);
+      if (mergedLeagues.length > 0 || mergedEvents.length > 0) {
+        console.log(`✅ Loaded ${mergedLeagues.length} leagues and ${mergedEvents.length} events from Supabase`);
       }
     } catch (error) {
       console.error('Error loading data from Supabase:', error);
@@ -276,9 +276,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!isLoadingInitialData) {
-      localStorage.setItem("bpl_tournaments", JSON.stringify(tournaments));
+      localStorage.setItem("bpl_events", JSON.stringify(events));
     }
-  }, [tournaments, isLoadingInitialData]);
+  }, [events, isLoadingInitialData]);
 
   useEffect(() => {
     if (currentLeagueId) {
@@ -289,25 +289,25 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   }, [currentLeagueId]);
 
   useEffect(() => {
-    if (currentTournamentId) {
-      localStorage.setItem("bpl_current_tournament_id", currentTournamentId);
+    if (currentEventId) {
+      localStorage.setItem("bpl_current_event_id", currentEventId);
     } else {
-      localStorage.removeItem("bpl_current_tournament_id");
+      localStorage.removeItem("bpl_current_event_id");
     }
-  }, [currentTournamentId]);
+  }, [currentEventId]);
 
   const currentLeague = leagues.find((l) => l.id === currentLeagueId) || null;
-  const currentTournament =
-    tournaments.find((t) => t.id === currentTournamentId) || null;
+  const currentEvent =
+    events.find((t) => t.id === currentEventId) || null;
 
   const createLeague = async (name: string, type: "one-shot" | "season") => {
     // Migration 016 — generate a 6-char join_code with collision retry
-    // (mirrors CreateTournament.generateUniqueCode logic).
+    // (mirrors CreateEvent.generateUniqueCode logic).
     let joinCode: string | undefined;
     try {
       const maxAttempts = 10;
       for (let i = 0; i < maxAttempts; i++) {
-        const code = generateTournamentCode();
+        const code = generateEventCode();
         const exists = await databaseService.leagueCodeExists(code);
         if (!exists) {
           joinCode = code;
@@ -327,7 +327,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       createdAt: new Date().toISOString(),
       players: [],
       matches: [],
-      tournaments: [],
+      events: [],
       joinCode,
       // Associate creator based on auth state
       creator_user_id: isAuthenticated && user ? user.id : null,
@@ -348,7 +348,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     return newLeague.id;
   };
 
-  const createTournament = async (
+  const createEvent = async (
     name: string,
     date: string,
     format: '1v1' | '2v2' | '3v3' | 'libre',
@@ -357,7 +357,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     playerIds: string[],
     antiCheatEnabled: boolean = false
   ) => {
-    const newTournament: Tournament = {
+    const newEvent: Event = {
       id: crypto.randomUUID(),
       name,
       date,
@@ -373,61 +373,61 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       creator_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
       anti_cheat_enabled: antiCheatEnabled,
     };
-    setTournaments((prev) => [...prev, newTournament]);
+    setEvents((prev) => [...prev, newEvent]);
 
-    // If linked to a League, add tournament to League's tournaments list
+    // If linked to a League, add event to League's events list
     if (leagueId) {
       setLeagues((prev) =>
         prev.map((league) => {
           if (league.id !== leagueId) return league;
           return {
             ...league,
-            tournaments: [...(league.tournaments || []), newTournament.id],
+            events: [...(league.events || []), newEvent.id],
           };
         })
       );
     }
 
-    setCurrentTournamentId(newTournament.id);
+    setCurrentEventId(newEvent.id);
     
     // Save to Supabase
     try {
-      await databaseService.saveTournament(newTournament);
+      await databaseService.saveEvent(newEvent);
       toast.success(`Événement "${name}" créé avec succès`);
     } catch (error) {
-      console.error('Error saving tournament to Supabase:', error);
+      console.error('Error saving event to Supabase:', error);
       toast.error("Erreur lors de la sauvegarde de l'événement");
     }
     
-    return newTournament.id;
+    return newEvent.id;
   };
 
-  const selectTournament = (id: string) => {
-    setCurrentTournamentId(id);
+  const selectEvent = (id: string) => {
+    setCurrentEventId(id);
   };
 
-  const associateTournamentToLeague = async (
-    tournamentId: string,
+  const associateEventToLeague = async (
+    eventId: string,
     leagueId: string
   ) => {
-    const tournament = tournaments.find((t) => t.id === tournamentId);
-    const oldLeagueId = tournament?.leagueId;
+    const event = events.find((t) => t.id === eventId);
+    const oldLeagueId = event?.leagueId;
     const newLeagueId = leagueId || null;
 
     // Persist + sync players (mig 023 — auto-add event players to league).
     try {
-      await databaseService.associateTournamentToLeague(tournamentId, newLeagueId);
+      await databaseService.associateEventToLeague(eventId, newLeagueId);
     } catch (err) {
-      console.error('associateTournamentToLeague failed:', err);
+      console.error('associateEventToLeague failed:', err);
       toast.error("Erreur lors du rattachement à la ligue");
       return;
     }
 
-    // Update tournament local state
-    setTournaments((prev) =>
-      prev.map((tournament) => {
-        if (tournament.id !== tournamentId) return tournament;
-        return { ...tournament, leagueId: leagueId || null };
+    // Update event local state
+    setEvents((prev) =>
+      prev.map((event) => {
+        if (event.id !== eventId) return event;
+        return { ...event, leagueId: leagueId || null };
       })
     );
 
@@ -438,7 +438,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
           if (league.id !== oldLeagueId) return league;
           return {
             ...league,
-            tournaments: (league.tournaments || []).filter((id) => id !== tournamentId),
+            events: (league.events || []).filter((id) => id !== eventId),
           };
         })
       );
@@ -449,10 +449,10 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       setLeagues((prev) =>
         prev.map((league) => {
           if (league.id !== leagueId) return league;
-          if (!league.tournaments?.includes(tournamentId)) {
+          if (!league.events?.includes(eventId)) {
             return {
               ...league,
-              tournaments: [...(league.tournaments || []), tournamentId],
+              events: [...(league.events || []), eventId],
             };
           }
           return league;
@@ -466,26 +466,26 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const deleteTournament = async (id: string) => {
+  const deleteEvent = async (id: string) => {
     // Delete from Supabase
     try {
-      await databaseService.deleteTournament(id);
+      await databaseService.deleteEvent(id);
     } catch (error) {
-      console.error('Error deleting tournament from Supabase:', error);
+      console.error('Error deleting event from Supabase:', error);
       toast.error("Erreur lors de la suppression de l'événement");
       return;
     }
 
-    setTournaments((prev) => {
-      const tournament = prev.find((t) => t.id === id);
-      if (tournament?.leagueId) {
+    setEvents((prev) => {
+      const event = prev.find((t) => t.id === id);
+      if (event?.leagueId) {
         setLeagues((prevLeagues) =>
           prevLeagues.map((league) => {
-            if (league.id === tournament.leagueId) {
+            if (league.id === event.leagueId) {
               return {
                 ...league,
-                tournaments:
-                  league.tournaments?.filter((tId) => tId !== id) || [],
+                events:
+                  league.events?.filter((tId) => tId !== id) || [],
               };
             }
             return league;
@@ -494,31 +494,31 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       }
       return prev.filter((t) => t.id !== id);
     });
-    if (currentTournamentId === id) {
-      setCurrentTournamentId(null);
+    if (currentEventId === id) {
+      setCurrentEventId(null);
     }
     toast.success("Événement supprimé avec succès");
   };
 
-  const toggleTournamentStatus = async (tournamentId: string) => {
-    const tournament = tournaments.find((t) => t.id === tournamentId);
-    if (!tournament) return;
+  const toggleEventStatus = async (eventId: string) => {
+    const event = events.find((t) => t.id === eventId);
+    if (!event) return;
 
-    const newStatus = !tournament.isFinished;
+    const newStatus = !event.isFinished;
     
-    setTournaments((prev) =>
-      prev.map((tournament) => {
-        if (tournament.id !== tournamentId) return tournament;
-        return { ...tournament, isFinished: newStatus };
+    setEvents((prev) =>
+      prev.map((event) => {
+        if (event.id !== eventId) return event;
+        return { ...event, isFinished: newStatus };
       })
     );
 
     // Update in Supabase
     try {
-      await databaseService.toggleTournamentStatus(tournamentId, newStatus);
+      await databaseService.toggleEventStatus(eventId, newStatus);
       toast.success(newStatus ? "Événement clôturé" : "Événement rouvert");
     } catch (error) {
-      console.error('Error toggling tournament status:', error);
+      console.error('Error toggling event status:', error);
       toast.error('Erreur lors du changement de statut');
     }
   };
@@ -579,22 +579,22 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addPlayerToTournament = (tournamentId: string, playerId: string) => {
-    setTournaments((prev) =>
-      prev.map((tournament) => {
-        if (tournament.id !== tournamentId) return tournament;
-        if (tournament.playerIds.includes(playerId)) return tournament;
+  const addPlayerToEvent = (eventId: string, playerId: string) => {
+    setEvents((prev) =>
+      prev.map((event) => {
+        if (event.id !== eventId) return event;
+        if (event.playerIds.includes(playerId)) return event;
         return {
-          ...tournament,
-          playerIds: [...tournament.playerIds, playerId],
+          ...event,
+          playerIds: [...event.playerIds, playerId],
         };
       })
     );
 
-    // If tournament is linked to a League, ensure player exists in League
-    const tournament = tournaments.find((t) => t.id === tournamentId);
-    if (tournament?.leagueId) {
-      const league = leagues.find((l) => l.id === tournament.leagueId);
+    // If event is linked to a League, ensure player exists in League
+    const event = events.find((t) => t.id === eventId);
+    if (event?.leagueId) {
+      const league = leagues.find((l) => l.id === event.leagueId);
       if (league && !league.players.find((p) => p.id === playerId)) {
         // Player doesn't exist in League, we need to add them
         // But we don't have the player object here, so we'll need to handle this differently
@@ -603,8 +603,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addAnonymousPlayerToTournament = async (
-    tournamentId: string,
+  const addAnonymousPlayerToEvent = async (
+    eventId: string,
     playerName: string
   ): Promise<string> => {
     // Get or create local user identity
@@ -614,31 +614,31 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       localUser = localUserService.createLocalUser(playerName, deviceFingerprint);
     }
 
-    // Add anonymous player to tournament via database service
-    const playerId = await databaseService.addAnonymousPlayerToTournament(
-      tournamentId,
+    // Add anonymous player to event via database service
+    const playerId = await databaseService.addAnonymousPlayerToEvent(
+      eventId,
       playerName,
       localUser.anonymousUserId
     );
 
-    // Update tournament in context
-    addPlayerToTournament(tournamentId, playerId);
+    // Update event in context
+    addPlayerToEvent(eventId, playerId);
 
     return playerId;
   };
 
-  const addGuestPlayerToTournament = async (
-    tournamentId: string,
+  const addGuestPlayerToEvent = async (
+    eventId: string,
     playerName: string
   ): Promise<string> => {
     // Crée un guest distinct (nouvel anonymous_user à chaque appel) — pour
     // l'ajout manuel de joueurs invités par l'admin du tournoi.
-    const playerId = await databaseService.addGuestPlayerToTournament(
-      tournamentId,
+    const playerId = await databaseService.addGuestPlayerToEvent(
+      eventId,
       playerName
     );
 
-    addPlayerToTournament(tournamentId, playerId);
+    addPlayerToEvent(eventId, playerId);
 
     return playerId;
   };
@@ -750,35 +750,35 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     return eloChanges;
   };
 
-  const recordTournamentMatch = async (
-    tournamentId: string,
+  const recordEventMatch = async (
+    eventId: string,
     teamAIds: string[],
     teamBIds: string[],
     winner: "A" | "B",
     scores?: { scoreA: number; scoreB: number; cupsRemaining?: number },
     participantsOverride?: Player[]
   ): Promise<Record<string, number> | null> => {
-    const tournament = tournaments.find((t) => t.id === tournamentId);
-    if (!tournament) return null;
+    const event = events.find((t) => t.id === eventId);
+    if (!event) return null;
 
-    // Use participantsOverride (tournament_players) when provided, else fallback to league.players
-    let tournamentPlayers: Player[] = [];
+    // Use participantsOverride (event_players) when provided, else fallback to league.players
+    let eventPlayers: Player[] = [];
     if (participantsOverride && participantsOverride.length > 0) {
-      tournamentPlayers = participantsOverride;
-    } else if (tournament.leagueId) {
-      const league = leagues.find((l) => l.id === tournament.leagueId);
+      eventPlayers = participantsOverride;
+    } else if (event.leagueId) {
+      const league = leagues.find((l) => l.id === event.leagueId);
       if (league) {
-        tournamentPlayers = league.players.filter((p) =>
-          tournament.playerIds.includes(p.id)
+        eventPlayers = league.players.filter((p) =>
+          event.playerIds.includes(p.id)
         );
       }
     }
 
-    const teamA = tournamentPlayers.filter((p) => teamAIds.includes(p.id));
-    const teamB = tournamentPlayers.filter((p) => teamBIds.includes(p.id));
+    const teamA = eventPlayers.filter((p) => teamAIds.includes(p.id));
+    const teamB = eventPlayers.filter((p) => teamBIds.includes(p.id));
 
-    // ── Event ELO delta — uses tournament_memberships.elo (provided via
-    //    participantsOverride from loadTournamentParticipants since mig 023).
+    // ── Event ELO delta — uses event_memberships.elo (provided via
+    //    participantsOverride from loadEventParticipants since mig 023).
     const newEventRatings = calculateEloChange(teamA, teamB, winner);
     const eloChanges: Record<string, number> = {};
     const eventEloChangesDB: Record<string, { before: number; after: number; change: number }> = {};
@@ -797,7 +797,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     // ── League ELO delta — only when event is league-linked AND propagation
     //    is enabled (default true). Computed independently from the league's
     //    own baseline (league_memberships.elo).
-    const propagates = tournament.propagatesToLeagueElo !== false;
+    const propagates = event.propagatesToLeagueElo !== false;
     let leagueEloChangesDB: Record<string, { before: number; after: number; change: number }> | undefined;
 
     const participantsWithLeague = participantsOverride as (Player & { leaguePlayerId?: string })[] | undefined;
@@ -810,8 +810,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    if (tournament.leagueId && propagates) {
-      const league = leagues.find((l) => l.id === tournament.leagueId);
+    if (event.leagueId && propagates) {
+      const league = leagues.find((l) => l.id === event.leagueId);
       if (league) {
         const buildLeagueTeam = (tpIds: string[]): Player[] =>
           tpIds.flatMap((tpId) => {
@@ -844,7 +844,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     const scoreA = scores?.scoreA ?? (winner === "A" ? 10 : 0);
     const scoreB = scores?.scoreB ?? (winner === "B" ? 10 : 0);
 
-    // Add match to Tournament
+    // Add match to Event
     const newMatch: Match = {
       id: crypto.randomUUID(),
       date: new Date().toISOString(),
@@ -858,9 +858,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
     };
 
-    setTournaments((prev) =>
+    setEvents((prev) =>
       prev.map((t) => {
-        if (t.id !== tournamentId) return t;
+        if (t.id !== eventId) return t;
         return {
           ...t,
           matches: [newMatch, ...t.matches],
@@ -870,10 +870,10 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
     // Update league cache with the LEAGUE delta (independent from event delta)
     // when propagation is active.
-    if (tournament.leagueId && propagates && leagueEloChangesDB) {
+    if (event.leagueId && propagates && leagueEloChangesDB) {
       setLeagues((prev) =>
         prev.map((league) => {
-          if (league.id !== tournament.leagueId) return league;
+          if (league.id !== event.leagueId) return league;
 
           const updatedPlayers = league.players.map((player) => {
             const change = leagueEloChangesDB?.[player.id];
@@ -907,8 +907,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      await databaseService.recordTournamentMatch(
-        tournamentId,
+      await databaseService.recordEventMatch(
+        eventId,
         newMatch,
         eventEloChangesDB,
         isAuthenticated && user ? user.id : null,
@@ -917,34 +917,34 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       );
       toast.success('Match enregistré !');
     } catch (error) {
-      console.error('Error recording tournament match:', error);
+      console.error('Error recording event match:', error);
       toast.error('Erreur lors de l\'enregistrement du match');
     }
 
     return eloChanges;
   };
 
-  // Calculate local ranking for a Tournament (based only on Tournament matches, starting from base ELO)
-  // participantsOverride: when provided (from loadTournamentParticipants), use these - their ids match match.teamA/teamB (tournament_players.id)
-  const getTournamentLocalRanking = (tournamentId: string, participantsOverride?: Player[]): Player[] => {
-    const tournament = tournaments.find((t) => t.id === tournamentId);
-    if (!tournament) return [];
+  // Calculate local ranking for a Event (based only on Event matches, starting from base ELO)
+  // participantsOverride: when provided (from loadEventParticipants), use these - their ids match match.teamA/teamB (event_players.id)
+  const getEventLocalRanking = (eventId: string, participantsOverride?: Player[]): Player[] => {
+    const event = events.find((t) => t.id === eventId);
+    if (!event) return [];
 
-    // Get base players: use override (tournament_players) when provided, else fallback to league.players filtered by tournament.playerIds
+    // Get base players: use override (event_players) when provided, else fallback to league.players filtered by event.playerIds
     let basePlayers: Player[] = [];
     if (participantsOverride && participantsOverride.length > 0) {
       basePlayers = participantsOverride;
-    } else if (tournament.leagueId) {
-      const league = leagues.find((l) => l.id === tournament.leagueId);
+    } else if (event.leagueId) {
+      const league = leagues.find((l) => l.id === event.leagueId);
       if (league) {
         basePlayers = league.players.filter((p) =>
-          tournament.playerIds.includes(p.id)
+          event.playerIds.includes(p.id)
         );
       }
     }
 
-    // Start from base ELO (1000 for local ranking, reset at each Tournament)
-    // We use the League ELO as starting point, but calculate changes only from Tournament matches
+    // Start from base ELO (1000 for local ranking, reset at each Event)
+    // We use the League ELO as starting point, but calculate changes only from Event matches
     let localPlayers: Player[] = basePlayers.map((p) => ({
       ...p,
       elo: 1000, // Reset to 1000 for local ranking
@@ -954,8 +954,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       streak: 0,
     }));
 
-    // Replay all Tournament matches in chronological order to calculate local ranking
-    const sortedMatches = [...tournament.matches].sort(
+    // Replay all Event matches in chronological order to calculate local ranking
+    const sortedMatches = [...event.matches].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
 
@@ -996,7 +996,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     return localPlayers.sort((a, b) => b.elo - a.elo);
   };
 
-  // Calculate global ranking for a League (includes all matches, including Tournament matches)
+  // Calculate global ranking for a League (includes all matches, including Event matches)
   const getLeagueGlobalRanking = (leagueId: string): Player[] => {
     const league = leagues.find((l) => l.id === leagueId);
     if (!league) return [];
@@ -1027,18 +1027,18 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateTournament = async (
-    tournamentId: string,
-    updates: TournamentUpdates
+  const updateEvent = async (
+    eventId: string,
+    updates: EventUpdates
   ) => {
     // Optimistic local update — apply the same diff we'll send to Supabase so
     // the UI doesn't wait on a round-trip. The field-name mapping is 1:1 with
-    // the Tournament type; we keep the branching explicit to avoid the
+    // the Event type; we keep the branching explicit to avoid the
     // snake_case/camelCase quirk on `anti_cheat_enabled`.
-    setTournaments((prev) =>
-      prev.map((tournament) => {
-        if (tournament.id !== tournamentId) return tournament;
-        const next: Partial<Tournament> = {};
+    setEvents((prev) =>
+      prev.map((event) => {
+        if (event.id !== eventId) return event;
+        const next: Partial<Event> = {};
         if (updates.name !== undefined) next.name = updates.name;
         if (updates.date !== undefined) next.date = updates.date;
         if (updates.antiCheatEnabled !== undefined)
@@ -1050,16 +1050,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
           next.isPrivate = updates.isPrivate;
         if (updates.propagatesToLeagueElo !== undefined)
           next.propagatesToLeagueElo = updates.propagatesToLeagueElo;
-        return { ...tournament, ...next };
+        return { ...event, ...next };
       })
     );
 
     // Update in Supabase
     try {
-      await databaseService.updateTournament(tournamentId, updates);
+      await databaseService.updateEvent(eventId, updates);
       toast.success("Événement mis à jour");
     } catch (error) {
-      console.error('Error updating tournament:', error);
+      console.error('Error updating event:', error);
       toast.error("Erreur lors de la mise à jour de l'événement");
     }
   };
@@ -1101,11 +1101,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       })
     );
 
-    // Also remove from tournaments
-    setTournaments((prev) =>
-      prev.map((tournament) => ({
-        ...tournament,
-        playerIds: tournament.playerIds.filter((id) => id !== playerId),
+    // Also remove from events
+    setEvents((prev) =>
+      prev.map((event) => ({
+        ...event,
+        playerIds: event.playerIds.filter((id) => id !== playerId),
       }))
     );
 
@@ -1123,31 +1123,31 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     <LeagueContext.Provider
       value={{
         leagues,
-        tournaments,
+        events,
         currentLeague,
-        currentTournament,
+        currentEvent,
         isLoadingInitialData,
         loadError,
         reloadData: loadDataFromSupabase,
         createLeague,
-        createTournament,
+        createEvent,
         selectLeague,
-        selectTournament,
-        associateTournamentToLeague,
+        selectEvent,
+        associateEventToLeague,
         addPlayer,
-        addPlayerToTournament,
-        addAnonymousPlayerToTournament,
-        addGuestPlayerToTournament,
+        addPlayerToEvent,
+        addAnonymousPlayerToEvent,
+        addGuestPlayerToEvent,
         recordMatch,
-        recordTournamentMatch,
+        recordEventMatch,
         deleteLeague,
-        deleteTournament,
-        toggleTournamentStatus,
+        deleteEvent,
+        toggleEventStatus,
         updateLeague,
-        updateTournament,
+        updateEvent,
         updatePlayer,
         deletePlayer,
-        getTournamentLocalRanking,
+        getEventLocalRanking,
         getLeagueGlobalRanking,
       }}
     >

@@ -7,7 +7,7 @@ import { shouldShowBottomMenu } from "@/utils/navigationHelpers";
 /**
  * BottomMenuSpecific Component
  *
- * Context-specific bottom menu for list pages (Join, Tournaments, Leagues)
+ * Context-specific bottom menu for list pages (Join, Events, Leagues)
  * Coexists with BottomTabMenu (Story 14-10): stacks above when both visible
  *
  * Features (AC1-AC6):

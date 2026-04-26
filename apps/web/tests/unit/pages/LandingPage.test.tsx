@@ -227,7 +227,7 @@ describe.skip("LandingPage", () => {
       sessionStorage.clear();
     });
 
-    it("should store returnTo for tournament creation", () => {
+    it("should store returnTo for event creation", () => {
       render(<LandingPage />);
 
       const button = screen.getByText(/Créer un tournoi/i);
@@ -254,7 +254,7 @@ describe.skip("LandingPage", () => {
       expect(sessionStorage.getItem("authReturnTo")).toBeNull();
     });
 
-    it("should NOT store returnTo for join tournament (public)", () => {
+    it("should NOT store returnTo for join event (public)", () => {
       render(<LandingPage />);
 
       const button = screen.getByText(/Rejoindre un tournoi/i);

@@ -29,8 +29,8 @@ export interface ListRowPlayerProps {
   onClick?: () => void;
 }
 
-export interface ListRowTournamentProps {
-  variant: 'tournament';
+export interface ListRowEventProps {
+  variant: 'event';
   /** Nom du tournoi */
   name: string;
   /** Date affichée */
@@ -57,7 +57,7 @@ export interface ListRowLeagueProps {
 
 export type ListRowProps =
   | ListRowPlayerProps
-  | ListRowTournamentProps
+  | ListRowEventProps
   | ListRowLeagueProps;
 
 function getRankBadgeClass(rank: number): string {
@@ -179,7 +179,7 @@ export function ListRow(props: ListRowProps) {
     );
   }
 
-  // variant tournament ou league
+  // variant event ou league
   const { name, date, status, metrics } = props;
   return (
     <Wrapper

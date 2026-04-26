@@ -21,11 +21,11 @@ import { UserPlus, Users } from "lucide-react";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { identityMergeService } from "../services/IdentityMergeService";
 import { databaseService } from "../services/DatabaseService";
-import type { Tournament } from "../types";
+import type { Event } from "../types";
 import toast from "react-hot-toast";
 
 /**
- * TournamentJoin — full join flow.
+ * EventJoin — full join flow.
  *
  * Sequence on mount:
  *   1. **`?ghost=TOKEN` short-circuit** — if the URL carries a ghost invite
@@ -34,9 +34,9 @@ import toast from "react-hot-toast";
  *   2. **IdentityGateSheet** — first visit, no identity choice yet → ask the
  *      user to pick: continue-as-X / connect-by-email / play-anonymous.
  *   3. **ClaimGuestSheet** — once identity is settled, show unclaimed ghost
- *      players for this tournament so the user can adopt one ("c'est moi")
+ *      players for this event so the user can adopt one ("c'est moi")
  *      instead of duplicating themselves.
- *   4. **Default UI** — pick an existing tournament_player OR create a new
+ *   4. **Default UI** — pick an existing event_player OR create a new
  *      participant; same as before PR3.
  *
  * The page is intentionally not a state-machine — each modal/sheet is
@@ -48,10 +48,10 @@ export const EventJoin = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const {
-    tournaments,
+    events,
     leagues,
-    addPlayerToTournament,
-    addAnonymousPlayerToTournament,
+    addPlayerToEvent,
+    addAnonymousPlayerToEvent,
     isLoadingInitialData,
   } = useLeague();
   const { user, isAuthenticated } = useAuthContext();
@@ -83,19 +83,19 @@ export const EventJoin = () => {
   const ghostToken = searchParams.get("ghost");
   const [tokenProcessed, setTokenProcessed] = useState(false);
 
-  // `tournaments` from context only contains events the user belongs to.
+  // `events` from context only contains events the user belongs to.
   // For a fresh joiner landing via shared link / QR, we fall back to a
-  // direct fetch by id (RLS allows public reads on tournaments).
-  const [fetchedTournament, setFetchedTournament] = useState<Tournament | null>(
+  // direct fetch by id (RLS allows public reads on events).
+  const [fetchedEvent, setFetchedEvent] = useState<Event | null>(
     null,
   );
-  const [tournamentFetchAttempted, setTournamentFetchAttempted] =
+  const [eventFetchAttempted, setEventFetchAttempted] =
     useState(false);
-  const tournament =
-    tournaments.find((t) => t.id === id) ??
-    (fetchedTournament?.id === id ? fetchedTournament : null);
-  const league = tournament?.leagueId
-    ? leagues.find((l) => l.id === tournament.leagueId)
+  const event =
+    events.find((t) => t.id === id) ??
+    (fetchedEvent?.id === id ? fetchedEvent : null);
+  const league = event?.leagueId
+    ? leagues.find((l) => l.id === event.leagueId)
     : null;
 
   // Pseudo to display in the "Continuer en tant que X" CTA.
@@ -108,9 +108,9 @@ export const EventJoin = () => {
     return null;
   }, [isAuthenticated, user, localUser]);
 
-  // Get tournament players with their info (existing logic, unchanged).
-  const tournamentPlayers = tournament
-    ? tournament.playerIds.map((playerId) => {
+  // Get event players with their info (existing logic, unchanged).
+  const eventPlayers = event
+    ? event.playerIds.map((playerId) => {
         if (league) {
           const leaguePlayer = league.players.find((p) => p.id === playerId);
           if (leaguePlayer) {
@@ -129,11 +129,11 @@ export const EventJoin = () => {
       })
     : [];
 
-  // Unclaimed ghosts in this tournament — shown to BOTH auth + anon users
+  // Unclaimed ghosts in this event — shown to BOTH auth + anon users
   // (mode "any"); the claim RPC chooses the right backend on submit.
   const { guests: unclaimedGuests, refresh: refreshGuests } = useUnclaimedGuests(
-    "tournament",
-    tournament?.id ?? null,
+    "event",
+    event?.id ?? null,
     { mode: "any" },
   );
 
@@ -142,27 +142,27 @@ export const EventJoin = () => {
   // If the event isn't in the user's local list (typical for a first-time
   // joiner), fetch it directly by id before giving up.
   useEffect(() => {
-    if (isLoadingInitialData || !id || tournament || tournamentFetchAttempted) {
+    if (isLoadingInitialData || !id || event || eventFetchAttempted) {
       return;
     }
-    setTournamentFetchAttempted(true);
+    setEventFetchAttempted(true);
     databaseService
-      .loadTournamentById(id)
-      .then((t) => setFetchedTournament(t))
-      .catch(() => setFetchedTournament(null));
-  }, [id, tournament, isLoadingInitialData, tournamentFetchAttempted]);
+      .loadEventById(id)
+      .then((t) => setFetchedEvent(t))
+      .catch(() => setFetchedEvent(null));
+  }, [id, event, isLoadingInitialData, eventFetchAttempted]);
 
-  // Tournament not found → redirect after a beat.
+  // Event not found → redirect after a beat.
   useEffect(() => {
-    if (!isLoadingInitialData && tournamentFetchAttempted && !tournament) {
+    if (!isLoadingInitialData && eventFetchAttempted && !event) {
       const t = setTimeout(() => navigate("/"), 3000);
       return () => clearTimeout(t);
     }
-  }, [tournament, isLoadingInitialData, tournamentFetchAttempted, navigate]);
+  }, [event, isLoadingInitialData, eventFetchAttempted, navigate]);
 
   // Token short-circuit: claim and bounce to the dashboard.
   useEffect(() => {
-    if (!ghostToken || tokenProcessed || !tournament) return;
+    if (!ghostToken || tokenProcessed || !event) return;
     setTokenProcessed(true);
 
     (async () => {
@@ -192,13 +192,13 @@ export const EventJoin = () => {
         return;
       }
 
-      toast.success(`Bienvenue dans ${tournament.name} !`);
-      navigate(`/event/${tournament.id}`);
+      toast.success(`Bienvenue dans ${event.name} !`);
+      navigate(`/event/${event.id}`);
     })();
   }, [
     ghostToken,
     tokenProcessed,
-    tournament,
+    event,
     ensureIdentity,
     navigate,
     searchParams,
@@ -238,7 +238,7 @@ export const EventJoin = () => {
   };
 
   const handleClaimGuest = async (playerId: string) => {
-    if (!tournament) return;
+    if (!event) return;
     const guest = unclaimedGuests.find((g) => g.playerId === playerId);
     if (!guest) return;
 
@@ -248,13 +248,13 @@ export const EventJoin = () => {
     let result;
     if (identity.type === "authenticated") {
       result = await identityMergeService.claimAnonymousPlayer(
-        "tournament",
+        "event",
         playerId,
         (identity.user as { id: string }).id,
       );
     } else {
       result = await identityMergeService.claimAnonymousPlayerAsAnonymous(
-        "tournament",
+        "event",
         playerId,
         (identity.user as { anonymousUserId: string }).anonymousUserId,
       );
@@ -265,9 +265,9 @@ export const EventJoin = () => {
       return;
     }
 
-    toast.success(`Tu es maintenant ${guest.pseudo} dans ${tournament.name} !`);
+    toast.success(`Tu es maintenant ${guest.pseudo} dans ${event.name} !`);
     setShowClaimSheet(false);
-    navigate(`/event/${tournament.id}`);
+    navigate(`/event/${event.id}`);
   };
 
   const handleDismissClaim = () => {
@@ -278,17 +278,17 @@ export const EventJoin = () => {
   };
 
   const handleJoinAsExistingPlayer = async () => {
-    if (!selectedPlayerId || !tournament) return;
+    if (!selectedPlayerId || !event) return;
     const identity = await ensureIdentity();
     if (!identity) return;
 
     setIsJoining(true);
     try {
-      addPlayerToTournament(tournament.id, selectedPlayerId);
+      addPlayerToEvent(event.id, selectedPlayerId);
       toast.success("Tu as rejoint l'événement !");
-      navigate(`/event/${tournament.id}`);
+      navigate(`/event/${event.id}`);
     } catch (error) {
-      console.error("Error joining tournament:", error);
+      console.error("Error joining event:", error);
       toast.error("Erreur lors de la jonction à l'événement");
     } finally {
       setIsJoining(false);
@@ -304,7 +304,7 @@ export const EventJoin = () => {
 
   const handleCreateNewPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tournament) return;
+    if (!event) return;
 
     const validationError = validatePlayerName(newPlayerName);
     if (validationError) {
@@ -317,9 +317,9 @@ export const EventJoin = () => {
 
     setIsJoining(true);
     try {
-      await addAnonymousPlayerToTournament(tournament.id, newPlayerName.trim());
-      toast.success(`Tu as rejoint l'événement "${tournament.name}" !`);
-      navigate(`/event/${tournament.id}`);
+      await addAnonymousPlayerToEvent(event.id, newPlayerName.trim());
+      toast.success(`Tu as rejoint l'événement "${event.name}" !`);
+      navigate(`/event/${event.id}`);
     } catch (error) {
       console.error("Error creating player:", error);
       toast.error("Erreur lors de la création du joueur");
@@ -330,7 +330,7 @@ export const EventJoin = () => {
 
   // ---- Render guards ----
 
-  if (isLoadingInitialData || (!tournament && !tournamentFetchAttempted)) {
+  if (isLoadingInitialData || (!event && !eventFetchAttempted)) {
     return (
       <div className="min-h-screen bg-navy flex items-center justify-center">
         <LoadingSpinner size={48} />
@@ -338,7 +338,7 @@ export const EventJoin = () => {
     );
   }
 
-  if (!tournament) {
+  if (!event) {
     return (
       <div className="min-h-screen bg-navy flex items-center justify-center p-4">
         <div className="text-center">
@@ -358,7 +358,7 @@ export const EventJoin = () => {
   return (
     <div className="min-h-screen bg-navy">
       <ContextualHeader
-        title={tournament.name}
+        title={event.name}
         showBackButton={true}
         onBack={() => navigate("/")}
       />
@@ -366,11 +366,11 @@ export const EventJoin = () => {
       {/* Scrollable content — padded above sticky CTA */}
       <div className="px-4 md:px-6 pb-[120px]">
         <div className="max-w-md mx-auto space-y-4">
-          <EventCard tournament={tournament} interactive={false} />
+          <EventCard event={event} interactive={false} />
 
           {!showCreatePlayer ? (
             <>
-              {tournamentPlayers.length > 0 && (
+              {eventPlayers.length > 0 && (
                 <div className="bg-navy-soft rounded-card p-4 md:p-6 border border-card">
                   <div className="flex items-center gap-3 mb-3">
                     <Users size={18} className="text-electric-blue flex-shrink-0" />
@@ -382,7 +382,7 @@ export const EventJoin = () => {
                     Clique sur ton nom pour rejoindre l'événement.
                   </p>
                   <div className="space-y-2">
-                    {tournamentPlayers.map((player) => (
+                    {eventPlayers.map((player) => (
                       <PlayerCard
                         key={player.id}
                         variant="compact"

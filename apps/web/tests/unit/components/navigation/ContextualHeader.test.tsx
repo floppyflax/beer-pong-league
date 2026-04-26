@@ -334,7 +334,7 @@ describe('ContextualHeader', () => {
 
   describe('AC10: Title Truncation', () => {
     it('adds title attribute for full name on hover', () => {
-      const longTitle = 'This is a very long tournament name that should be truncated with ellipsis';
+      const longTitle = 'This is a very long event name that should be truncated with ellipsis';
       render(<ContextualHeader title={longTitle} />);
       
       const heading = screen.getByRole('heading');

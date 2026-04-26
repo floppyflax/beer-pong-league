@@ -18,16 +18,16 @@ import { useEventsList } from "@/hooks/useEventsList";
 import { useLeague } from "@/context/LeagueContext";
 
 /**
- * Tournaments Page
+ * Events Page
  *
- * List of tournaments with ability to create new ones
+ * List of events with ability to create new ones
  *
  * Features:
- * - List of user's tournaments (active first, then archived)
+ * - List of user's events (active first, then archived)
  * - Status filtering (All, Active, Finished)
- * - Search by tournament name
+ * - Search by event name
  * - FAB: Créer tournoi (design system 5.1)
- * - Premium limit enforcement (2 tournaments max for free users)
+ * - Premium limit enforcement (2 events max for free users)
  * - Desktop: Create button in header
  * - Empty state for new users
  * - Responsive design (mobile: vertical stack, desktop: 2-column grid)
@@ -41,9 +41,9 @@ export const Events: React.FC = () => {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { canCreateTournament, isAtTournamentLimit, refetchPremium } =
+  const { canCreateEvent, isAtEventLimit, refetchPremium } =
     usePremiumLimits();
-  const { tournaments, isLoading, loadError } = useEventsList();
+  const { events, isLoading, loadError } = useEventsList();
   const { reloadData } = useLeague();
 
   const handlePaymentSuccess = () => {
@@ -54,18 +54,18 @@ export const Events: React.FC = () => {
 
   // SearchBar handles 300ms debounce internally (design system 4.7)
 
-  // Handle create tournament action
+  // Handle create event action
   const handleCreate = () => {
-    if (canCreateTournament) {
+    if (canCreateEvent) {
       navigate("/create-event");
     } else {
       setShowPaymentModal(true);
     }
   };
 
-  // Filter and search tournaments (using debounced search query)
-  const filteredTournaments = useMemo(() => {
-    let result = tournaments || [];
+  // Filter and search events (using debounced search query)
+  const filteredEvents = useMemo(() => {
+    let result = events || [];
 
     // Filter by status
     if (filter === "active") {
@@ -81,7 +81,7 @@ export const Events: React.FC = () => {
     }
 
     return result;
-  }, [tournaments, filter, searchQuery]);
+  }, [events, filter, searchQuery]);
 
   if (isLoading) {
     return (
@@ -100,7 +100,7 @@ export const Events: React.FC = () => {
           icon: <Plus size={20} />,
           onClick: handleCreate,
           variant: "primary",
-          premium: isAtTournamentLimit,
+          premium: isAtEventLimit,
         },
       ]}
     />
@@ -142,7 +142,7 @@ export const Events: React.FC = () => {
     />
   );
 
-  if (!tournaments || tournaments.length === 0) {
+  if (!events || events.length === 0) {
     return (
       <ScreenLayout
         header={header}
@@ -186,7 +186,7 @@ export const Events: React.FC = () => {
                 onClick={handleCreate}
               >
                 Créer un événement
-                {isAtTournamentLimit && (
+                {isAtEventLimit && (
                   <Lock size={14} className="ml-1 opacity-80" aria-label="Premium requis" />
                 )}
               </PButton>
@@ -231,14 +231,14 @@ export const Events: React.FC = () => {
         />
         {filters}
 
-        {filteredTournaments.length === 0 ? (
+        {filteredEvents.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-cool-gray text-lg">Aucun résultat</p>
           </div>
         ) : (
           <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
-            {filteredTournaments.map((tournament) => (
-              <EventCard key={tournament.id} tournament={tournament} />
+            {filteredEvents.map((event) => (
+              <EventCard key={event.id} event={event} />
             ))}
           </div>
         )}

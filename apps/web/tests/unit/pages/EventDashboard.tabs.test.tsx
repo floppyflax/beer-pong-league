@@ -8,7 +8,7 @@ vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
     ...actual,
-    useParams: () => ({ id: "test-tournament-id" }),
+    useParams: () => ({ id: "test-event-id" }),
     useNavigate: () => vi.fn(),
   };
 });
@@ -22,9 +22,9 @@ vi.mock("react-hot-toast", () => ({
 }));
 
 // Mock hooks
-const mockTournament = {
-  id: "test-tournament-id",
-  name: "Test Tournament",
+const mockEvent = {
+  id: "test-event-id",
+  name: "Test Event",
   joinCode: "ABC123",
   date: "2026-02-03",
   format: "libre" as const,
@@ -43,17 +43,17 @@ const mockTournament = {
 };
 
 const mockLeagueContextValue = {
-  tournaments: [mockTournament],
+  events: [mockEvent],
   leagues: [],
-  recordTournamentMatch: vi.fn(),
-  deleteTournament: vi.fn(),
-  toggleTournamentStatus: vi.fn(),
-  updateTournament: vi.fn(),
-  getTournamentLocalRanking: vi.fn(() => []),
+  recordEventMatch: vi.fn(),
+  deleteEvent: vi.fn(),
+  toggleEventStatus: vi.fn(),
+  updateEvent: vi.fn(),
+  getEventLocalRanking: vi.fn(() => []),
   getLeagueGlobalRanking: vi.fn(() => []),
   addPlayer: vi.fn(),
-  addPlayerToTournament: vi.fn(),
-  associateTournamentToLeague: vi.fn(),
+  addPlayerToEvent: vi.fn(),
+  associateEventToLeague: vi.fn(),
   isLoadingInitialData: false,
   reloadData: vi.fn(),
 };
@@ -81,8 +81,8 @@ vi.mock("../../../src/hooks/useDetailPagePermissions", () => ({
 
 vi.mock("../../../src/services/DatabaseService", () => ({
   databaseService: {
-    loadTournamentParticipants: vi.fn().mockResolvedValue([]),
-    addLeaguePlayerToTournament: vi.fn().mockResolvedValue("new-tp-id"),
+    loadEventParticipants: vi.fn().mockResolvedValue([]),
+    addLeaguePlayerToEvent: vi.fn().mockResolvedValue("new-tp-id"),
   },
 }));
 

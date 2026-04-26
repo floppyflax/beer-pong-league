@@ -38,10 +38,10 @@ const mockLeagues = [
   },
 ];
 
-const mockTournaments = [
+const mockEvents = [
   {
-    id: "tournament-1",
-    name: "Test Tournament",
+    id: "event-1",
+    name: "Test Event",
     creator_user_id: "user-1",
     creator_anonymous_user_id: null,
     date: "2026-02-01",
@@ -52,7 +52,7 @@ const mockTournaments = [
 
 const mockUseLeague = vi.fn(() => ({
   leagues: mockLeagues,
-  tournaments: mockTournaments,
+  events: mockEvents,
 }));
 
 vi.mock("../../../src/context/LeagueContext", () => ({
@@ -138,10 +138,10 @@ describe("UserProfile - Story 14.21", () => {
       expect(screen.getByText("Test League")).toBeInTheDocument();
     });
 
-    it("should render My Tournaments section when user has tournaments", () => {
+    it("should render My Events section when user has events", () => {
       render(<UserProfile />, { wrapper: Wrapper });
       expect(screen.getByText("Mes Événements")).toBeInTheDocument();
-      expect(screen.getByText("Test Tournament")).toBeInTheDocument();
+      expect(screen.getByText("Test Event")).toBeInTheDocument();
     });
   });
 
@@ -246,22 +246,22 @@ describe("UserProfile - Story 14.21", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/league/league-1");
     });
 
-    it("should navigate to tournament when tournament card clicked", async () => {
+    it("should navigate to event when event card clicked", async () => {
       const user = userEvent.setup();
       render(<UserProfile />, { wrapper: Wrapper });
 
-      const tournamentCard = screen.getByText("Test Tournament");
-      await user.click(tournamentCard);
+      const eventCard = screen.getByText("Test Event");
+      await user.click(eventCard);
 
-      expect(mockNavigate).toHaveBeenCalledWith("/event/tournament-1");
+      expect(mockNavigate).toHaveBeenCalledWith("/event/event-1");
     });
   });
 
   describe("Empty state", () => {
-    it("should render without leagues/tournaments sections when user has none", () => {
+    it("should render without leagues/events sections when user has none", () => {
       mockUseLeague.mockReturnValueOnce({
         leagues: [],
-        tournaments: [],
+        events: [],
       });
 
       render(<UserProfile />, { wrapper: Wrapper });

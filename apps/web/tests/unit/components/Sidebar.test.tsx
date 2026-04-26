@@ -255,7 +255,7 @@ describe('Sidebar', () => {
       expect(playButton).not.toHaveClass('font-bold');
     });
 
-    it('should highlight Jouer on tournament detail pages (nested)', () => {
+    it('should highlight Jouer on event detail pages (nested)', () => {
       vi.mocked(useLocation).mockReturnValue({ pathname: '/event/123' } as any);
 
       render(

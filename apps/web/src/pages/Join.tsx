@@ -159,7 +159,7 @@ export const Join = () => {
         {/* Code input (6 slots, driven by hidden input) */}
         <div className="mt-3">
           <label
-            htmlFor="tournament-code"
+            htmlFor="event-code"
             className="block font-mono text-[10px] tracking-[1.5px] uppercase text-cool-gray mb-2"
           >
             Code d'accès
@@ -170,7 +170,7 @@ export const Join = () => {
           >
             <input
               ref={inputRef}
-              id="tournament-code"
+              id="event-code"
               type="text"
               inputMode="text"
               autoComplete="off"

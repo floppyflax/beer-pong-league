@@ -47,10 +47,10 @@ export interface UseRequireIdentityResult {
  * ```typescript
  * const { ensureIdentity } = useRequireIdentity();
  * 
- * const handleJoinTournament = async () => {
+ * const handleJoinEvent = async () => {
  *   const identity = await ensureIdentity();
  *   if (!identity) return; // User cancelled
- *   // Proceed with tournament join
+ *   // Proceed with event join
  * };
  * ```
  */

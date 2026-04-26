@@ -10,25 +10,25 @@ export const EventDisplayView = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const variant = searchParams.get("variant") === "drama" ? "drama" : "split";
-  const { tournaments, leagues, getTournamentLocalRanking } = useLeague();
+  const { events, leagues, getEventLocalRanking } = useLeague();
   const navigate = useNavigate();
 
-  const tournament = tournaments.find((t) => t.id === id);
-  const league = tournament?.leagueId
-    ? leagues.find((l) => l.id === tournament.leagueId)
+  const event = events.find((t) => t.id === id);
+  const league = event?.leagueId
+    ? leagues.find((l) => l.id === event.leagueId)
     : null;
 
   const [scrollPosition, setScrollPosition] = useState<"top" | "scrolling">("top");
   const [highlightedPlayers, setHighlightedPlayers] = useState<Set<string>>(new Set());
-  const [tournamentParticipants, setTournamentParticipants] = useState<Player[]>([]);
+  const [eventParticipants, setEventParticipants] = useState<Player[]>([]);
   const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!id) return;
     databaseService
-      .loadTournamentParticipants(id)
+      .loadEventParticipants(id)
       .then((participants) =>
-        setTournamentParticipants(
+        setEventParticipants(
           participants.map((p) => ({
             id: p.id,
             name: p.name,
@@ -40,32 +40,32 @@ export const EventDisplayView = () => {
           })),
         ),
       )
-      .catch(() => setTournamentParticipants([]));
-  }, [id, tournament?.matches?.length]);
+      .catch(() => setEventParticipants([]));
+  }, [id, event?.matches?.length]);
 
-  // Get sorted players (local ranking for tournament) - use participants for correct IDs
+  // Get sorted players (local ranking for event) - use participants for correct IDs
   const sortedPlayers = useMemo(() => {
-    if (!tournament) return [];
-    return getTournamentLocalRanking(tournament.id, tournamentParticipants);
-  }, [tournament, tournamentParticipants, getTournamentLocalRanking]);
+    if (!event) return [];
+    return getEventLocalRanking(event.id, eventParticipants);
+  }, [event, eventParticipants, getEventLocalRanking]);
 
   // Get recent matches
   const recentMatches = useMemo(() => {
-    if (!tournament) return [];
-    return [...tournament.matches]
+    if (!event) return [];
+    return [...event.matches]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
-  }, [tournament]);
+  }, [event]);
 
   // Generate join URL (points to join page)
   const joinUrl = useMemo(() => {
-    if (!tournament) return "";
-    return `${window.location.origin}/event/${tournament.id}/join`;
-  }, [tournament]);
+    if (!event) return "";
+    return `${window.location.origin}/event/${event.id}/join`;
+  }, [event]);
 
   // Auto-scroll logic
   useEffect(() => {
-    if (!tournament || sortedPlayers.length <= 10) return;
+    if (!event || sortedPlayers.length <= 10) return;
 
     const startAutoScroll = () => {
       // Scroll to bottom after 15 seconds on top
@@ -88,14 +88,14 @@ export const EventDisplayView = () => {
         clearTimeout(autoScrollRef.current);
       }
     };
-  }, [scrollPosition, tournament, sortedPlayers.length]);
+  }, [scrollPosition, event, sortedPlayers.length]);
 
   // Track last match ID to detect new matches
   const lastMatchIdRef = useRef<string | null>(null);
 
   // Highlight players after match
   useEffect(() => {
-    if (!tournament || recentMatches.length === 0) return;
+    if (!event || recentMatches.length === 0) return;
 
     const lastMatch = recentMatches[0];
     const isNewMatch = lastMatch.id !== lastMatchIdRef.current;
@@ -115,7 +115,7 @@ export const EventDisplayView = () => {
       lastMatchIdRef.current = lastMatch.id;
       return () => clearTimeout(timeout);
     }
-  }, [tournament, recentMatches]);
+  }, [event, recentMatches]);
 
   // Handle escape key to exit fullscreen
   useEffect(() => {
@@ -129,7 +129,7 @@ export const EventDisplayView = () => {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [id, navigate]);
 
-  if (!tournament) {
+  if (!event) {
     return (
       <div className="h-screen flex items-center justify-center bg-navy text-white">
         <p>Événement introuvable.</p>
@@ -142,7 +142,7 @@ export const EventDisplayView = () => {
 
   // Get player names from league if available, or from sorted players
   const getPlayerName = (playerId: string): string => {
-    // First try from sorted players (works for both league-linked and autonomous tournaments)
+    // First try from sorted players (works for both league-linked and autonomous events)
     const player = sortedPlayers.find((p) => p.id === playerId);
     if (player) return player.name;
     
@@ -182,7 +182,7 @@ export const EventDisplayView = () => {
               Beer Pong ELO
             </div>
             <div className="text-center font-mono text-[11px] tracking-[0.2em] uppercase opacity-80">
-              <span className="text-lime font-bold">● LIVE</span> · {tournament.name}
+              <span className="text-lime font-bold">● LIVE</span> · {event.name}
             </div>
             <span className="font-mono text-xs">
               {new Date().toLocaleTimeString("fr-FR", {
@@ -235,10 +235,10 @@ export const EventDisplayView = () => {
             <span>
               Code ·{" "}
               <span className="text-lime font-bold">
-                {tournament.joinCode || "—"}
+                {event.joinCode || "—"}
               </span>
             </span>
-            <span className="opacity-70">{tournament.matches.length} matchs joués</span>
+            <span className="opacity-70">{event.matches.length} matchs joués</span>
             <span className="opacity-70">Appuyez sur ESC pour quitter</span>
           </div>
         </div>
@@ -271,13 +271,13 @@ export const EventDisplayView = () => {
         <div className="flex items-center justify-between gap-6">
           <div className="flex-1 min-w-0">
             <h1 className="font-archivo font-black uppercase tracking-[-1px] text-2xl md:text-5xl truncate leading-none">
-              {tournament.name}
+              {event.name}
             </h1>
             <div className="flex items-center gap-3 md:gap-5 mt-2 flex-wrap">
               <div className="flex items-center gap-1.5 text-cool-gray">
                 <Calendar size={12} />
                 <span className="font-mono text-[10px] md:text-xs uppercase tracking-[2px] font-bold">
-                  {new Date(tournament.date).toLocaleDateString("fr-FR", {
+                  {new Date(event.date).toLocaleDateString("fr-FR", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -291,9 +291,9 @@ export const EventDisplayView = () => {
                 </span>
               </div>
               <span className="font-mono text-[10px] md:text-xs uppercase tracking-[2px] font-bold text-cool-gray">
-                {tournament.matches.length} matchs
+                {event.matches.length} matchs
               </span>
-              {tournament.isFinished && (
+              {event.isFinished && (
                 <span className="font-mono text-[10px] md:text-xs uppercase tracking-[2px] font-bold bg-lime/15 text-lime px-2.5 py-1 rounded-full border border-lime/40">
                   Terminé
                 </span>

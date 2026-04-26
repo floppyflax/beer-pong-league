@@ -112,7 +112,7 @@ describe("Leagues Page", () => {
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-01-20T00:00:00Z",
       member_count: 5,
-      tournament_count: 2,
+      event_count: 2,
     },
     {
       id: "league-2",
@@ -123,7 +123,7 @@ describe("Leagues Page", () => {
       createdAt: "2024-01-05T00:00:00Z",
       updatedAt: "2024-01-18T00:00:00Z",
       member_count: 8,
-      tournament_count: 3,
+      event_count: 3,
     },
     {
       id: "league-3",
@@ -134,7 +134,7 @@ describe("Leagues Page", () => {
       createdAt: "2023-12-01T00:00:00Z",
       updatedAt: "2023-12-31T00:00:00Z",
       member_count: 10,
-      tournament_count: 5,
+      event_count: 5,
     },
   ];
 
@@ -142,13 +142,13 @@ describe("Leagues Page", () => {
     vi.clearAllMocks();
     vi.mocked(usePremiumLimits).mockReturnValue({
       canCreateLeague: true,
-      canCreateTournament: true,
+      canCreateEvent: true,
       leagueCount: 0,
-      tournamentCount: 0,
-      limits: { leagues: 1, tournaments: 2 },
+      eventCount: 0,
+      limits: { leagues: 1, events: 2 },
       isPremium: false,
       isAtLeagueLimit: false,
-      isAtTournamentLimit: false,
+      isAtEventLimit: false,
       refetchPremium: vi.fn(),
     });
   });
@@ -231,13 +231,13 @@ describe("Leagues Page", () => {
 
       vi.mocked(usePremiumLimits).mockReturnValue({
         canCreateLeague: false,
-        canCreateTournament: true,
+        canCreateEvent: true,
         leagueCount: 1,
-        tournamentCount: 0,
-        limits: { leagues: 1, tournaments: 2 },
+        eventCount: 0,
+        limits: { leagues: 1, events: 2 },
         isPremium: false,
         isAtLeagueLimit: true,
-        isAtTournamentLimit: false,
+        isAtEventLimit: false,
         refetchPremium: vi.fn(),
       });
 
@@ -509,13 +509,13 @@ describe("Leagues Page", () => {
     it("should show payment modal when at league limit", () => {
       vi.mocked(usePremiumLimits).mockReturnValue({
         canCreateLeague: false,
-        canCreateTournament: true,
+        canCreateEvent: true,
         leagueCount: 1,
-        tournamentCount: 0,
-        limits: { leagues: 1, tournaments: 2 },
+        eventCount: 0,
+        limits: { leagues: 1, events: 2 },
         isPremium: false,
         isAtLeagueLimit: true,
-        isAtTournamentLimit: false,
+        isAtEventLimit: false,
         refetchPremium: vi.fn(),
       });
 
@@ -534,13 +534,13 @@ describe("Leagues Page", () => {
     it("should show lock icon when at league limit", () => {
       vi.mocked(usePremiumLimits).mockReturnValue({
         canCreateLeague: false,
-        canCreateTournament: true,
+        canCreateEvent: true,
         leagueCount: 1,
-        tournamentCount: 0,
-        limits: { leagues: 1, tournaments: 2 },
+        eventCount: 0,
+        limits: { leagues: 1, events: 2 },
         isPremium: false,
         isAtLeagueLimit: true,
-        isAtTournamentLimit: false,
+        isAtEventLimit: false,
         refetchPremium: vi.fn(),
       });
 
@@ -564,13 +564,13 @@ describe("Leagues Page", () => {
 
       vi.mocked(usePremiumLimits).mockReturnValue({
         canCreateLeague: true,
-        canCreateTournament: true,
+        canCreateEvent: true,
         leagueCount: 5,
-        tournamentCount: 10,
-        limits: { leagues: Infinity, tournaments: Infinity },
+        eventCount: 10,
+        limits: { leagues: Infinity, events: Infinity },
         isPremium: true,
         isAtLeagueLimit: false,
-        isAtTournamentLimit: false,
+        isAtEventLimit: false,
         refetchPremium: vi.fn(),
       });
     });

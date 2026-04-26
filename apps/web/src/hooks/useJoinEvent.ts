@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 const NETWORK_ERR = "Connexion internet requise pour rejoindre";
 
 /**
- * useJoinEvent — code-driven join, supports BOTH events (tournaments table) and leagues.
+ * useJoinEvent — code-driven join, supports BOTH events (events table) and leagues.
  *
  * The 6-char alphanumeric code namespace is shared (mig 006 + mig 016 both
  * enforce UNIQUE on the same code shape, but across different tables). We
@@ -44,33 +44,33 @@ export const useJoinEvent = () => {
         setTimeout(() => reject(new Error(NETWORK_ERR)), 10000),
       );
 
-      // 1) Tournament lookup
-      const tournamentQuery = supabase
-        .from("tournaments")
+      // 1) Event lookup
+      const eventQuery = supabase
+        .from("events")
         .select("id, name, is_finished, join_code")
         .eq("join_code", trimmedCode)
         .maybeSingle();
 
-      const { data: tournament, error: tournamentErr } = (await Promise.race([
-        tournamentQuery,
+      const { data: event, error: eventErr } = (await Promise.race([
+        eventQuery,
         timeoutPromise,
-      ])) as Awaited<typeof tournamentQuery>;
+      ])) as Awaited<typeof eventQuery>;
 
-      if (tournamentErr && "message" in tournamentErr) {
-        const msg = tournamentErr.message;
+      if (eventErr && "message" in eventErr) {
+        const msg = eventErr.message;
         if (msg.includes("fetch") || msg.includes("network")) {
           throw new Error(NETWORK_ERR);
         }
       }
 
-      if (tournament) {
-        if (tournament.is_finished) throw new Error("Cet événement est terminé");
+      if (event) {
+        if (event.is_finished) throw new Error("Cet événement est terminé");
 
         if (!isAuthenticated && !localUser) {
           await initializeAnonymousUser();
         }
-        toast.success(`Bienvenue dans ${tournament.name} !`);
-        navigate(`/event/${tournament.id}/join`);
+        toast.success(`Bienvenue dans ${event.name} !`);
+        navigate(`/event/${event.id}/join`);
         return;
       }
 

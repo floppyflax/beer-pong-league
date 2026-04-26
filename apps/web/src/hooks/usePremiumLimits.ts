@@ -6,10 +6,10 @@ import { usePremium } from "./usePremium";
 /**
  * Premium Limits Hook
  *
- * Manages premium feature limits for tournaments and leagues
+ * Manages premium feature limits for events and leagues
  *
  * Free user limits:
- * - Tournaments: 2 active tournaments max
+ * - Events: 2 active events max
  * - Leagues: 1 active league max
  *
  * Premium users: Unlimited
@@ -18,16 +18,16 @@ import { usePremium } from "./usePremium";
  */
 
 export interface PremiumLimitsResult {
-  canCreateTournament: boolean;
+  canCreateEvent: boolean;
   canCreateLeague: boolean;
-  tournamentCount: number;
+  eventCount: number;
   leagueCount: number;
   limits: {
-    tournaments: number;
+    events: number;
     leagues: number;
   };
   isPremium: boolean;
-  isAtTournamentLimit: boolean;
+  isAtEventLimit: boolean;
   isAtLeagueLimit: boolean;
   /** Call after payment success to refresh premium status */
   refetchPremium: () => void;
@@ -36,36 +36,36 @@ export interface PremiumLimitsResult {
 export const usePremiumLimits = (): PremiumLimitsResult => {
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
-  const { tournaments = [], leagues = [] } = useLeague();
+  const { events = [], leagues = [] } = useLeague();
   const { isPremium, refetch: refetchPremium } = usePremium(
     user?.id ?? null,
     localUser?.anonymousUserId ?? null,
   );
 
-  // Count active tournaments and leagues
-  const activeTournaments = tournaments.filter((t) => !t.isFinished).length;
+  // Count active events and leagues
+  const activeEvents = events.filter((t) => !t.isFinished).length;
   const activeLeagues = leagues.filter(
     (l) => !("status" in l) || (l as { status?: string }).status === "active",
   ).length;
 
   // Define limits
   const limits = {
-    tournaments: isPremium ? Infinity : 2,
+    events: isPremium ? Infinity : 2,
     leagues: isPremium ? Infinity : 1,
   };
 
   // Check if at limit
-  const isAtTournamentLimit = activeTournaments >= limits.tournaments;
+  const isAtEventLimit = activeEvents >= limits.events;
   const isAtLeagueLimit = activeLeagues >= limits.leagues;
 
   return {
-    canCreateTournament: !isAtTournamentLimit,
+    canCreateEvent: !isAtEventLimit,
     canCreateLeague: !isAtLeagueLimit,
-    tournamentCount: activeTournaments,
+    eventCount: activeEvents,
     leagueCount: activeLeagues,
     limits,
     isPremium,
-    isAtTournamentLimit,
+    isAtEventLimit,
     isAtLeagueLimit,
     refetchPremium,
   };

@@ -44,6 +44,20 @@ import { Calendar, Users, LayoutGrid, Plus, Trophy } from "lucide-react";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { AchievementCard } from "@/components/achievements/AchievementCard";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
+import {
+  PlayerChip,
+  RankBadge,
+  EmptyState,
+  Stepper,
+  QuickAction,
+  TableSide,
+  TeamCompositionCard,
+  PlayerPool,
+  EMPTY_DROPPED,
+  DualPreview,
+} from "@/components/design-system";
+import { LivePagePreview } from "@/components/design-system/showcase/LivePagePreview";
+import { useLeague } from "@/context/LeagueContext";
 
 // -----------------------------------------------------------------------------
 // Small helpers
@@ -70,6 +84,101 @@ function Section({
       </header>
       {children}
     </section>
+  );
+}
+
+function PageGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-10 first:mt-0">
+      <h3 className="text-sm font-mono uppercase tracking-[2px] text-electric-blue mb-4">
+        {label}
+      </h3>
+      <div className="space-y-10">{children}</div>
+    </div>
+  );
+}
+
+function PageMount({
+  title,
+  file,
+  shot,
+  url,
+  emptyUrl,
+}: {
+  title: string;
+  file: string;
+  /** Slug used to build `/design-system/mobile-screens/<shot>.png`. */
+  shot: string;
+  /** Same-origin URL of the real route to embed (e.g. `/events`). */
+  url: string;
+  /**
+   * Optional URL that triggers the empty / not-found state of the same
+   * page (typically a route with a non-existent id, e.g.
+   * `/event/empty-state-demo`). When provided, a [Plein ↔ Vide] toggle
+   * appears next to the title.
+   */
+  emptyUrl?: string;
+}) {
+  const [mode, setMode] = useState<"full" | "empty">("full");
+  const activeUrl = mode === "empty" && emptyUrl ? emptyUrl : url;
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between gap-3 flex-wrap">
+        <div>
+          <h4 className="text-base font-archivo font-extrabold uppercase tracking-tight text-white">
+            {title}
+          </h4>
+          <p className="text-[10px] font-mono text-cool-gray/70">{file}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {emptyUrl && (
+            <div
+              className="inline-flex rounded-full border border-card overflow-hidden"
+              role="tablist"
+              aria-label="État de la page"
+            >
+              {(["full", "empty"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === m}
+                  onClick={() => setMode(m)}
+                  className={`px-2.5 py-1 text-[10px] font-mono uppercase tracking-widest transition-colors ${
+                    mode === m
+                      ? "bg-electric-blue text-white"
+                      : "text-cool-gray hover:text-white"
+                  }`}
+                >
+                  {m === "full" ? "Plein" : "Vide"}
+                </button>
+              ))}
+            </div>
+          )}
+          <a
+            href={activeUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[10px] font-mono uppercase tracking-widest text-electric-blue hover:text-white transition-colors"
+          >
+            Ouvrir →
+          </a>
+        </div>
+      </div>
+      <DualPreview
+        webPreview={
+          // Re-key so the iframe fully reloads when switching mode.
+          <LivePagePreview key={activeUrl} url={activeUrl} />
+        }
+        mobileScreenshotSrc={`/design-system/mobile-screens/${shot}.png`}
+      />
+    </div>
   );
 }
 
@@ -115,13 +224,29 @@ function TabsShowcase() {
     { id: "active", label: "Actifs" },
     { id: "finished", label: "Terminés" },
   ];
+  const duo = [
+    { id: "matches", label: "Matchs" },
+    { id: "ranking", label: "Classement" },
+  ];
+  const [duoActive, setDuoActive] = useState("matches");
   return (
     <div className="space-y-4 p-4 bg-navy-soft rounded-card border border-card">
+      <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray">Trio · default</p>
       <SegmentedTabs tabs={tabs} activeId={active} onChange={setActive} />
+      <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray">Trio · encapsulated</p>
       <SegmentedTabs
         tabs={tabs}
         activeId={active}
         onChange={setActive}
+        variant="encapsulated"
+      />
+      <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray">Duo · default (gauche bleu, droit rouge)</p>
+      <SegmentedTabs tabs={duo} activeId={duoActive} onChange={setDuoActive} />
+      <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray">Duo · encapsulated</p>
+      <SegmentedTabs
+        tabs={duo}
+        activeId={duoActive}
+        onChange={setDuoActive}
         variant="encapsulated"
       />
     </div>
@@ -468,6 +593,43 @@ export function DesignSystemShowcase() {
           </div>
 
           <div>
+            <SubHeading>QuickAction (Home action grid) — voisin de StatCard</SubHeading>
+            <div className="grid grid-cols-2 gap-2 max-w-md">
+              <QuickAction
+                label="Nouveau match"
+                sub="ELO ranked"
+                icon={<BeerPongMatchIcon size={22} />}
+                bg="bg-lime"
+                color="text-navy"
+              />
+              <QuickAction
+                label="Rejoindre"
+                sub="Code court"
+                icon={<Users size={22} />}
+                bg="bg-electric-blue/15"
+                color="text-electric-blue"
+                border
+              />
+              <QuickAction
+                label="Tournoi"
+                sub="Bracket / event"
+                icon={<Trophy size={22} />}
+                bg="bg-navy"
+                color="text-white"
+                border
+              />
+              <QuickAction
+                label="Ligue"
+                sub="Long terme"
+                icon={<LayoutGrid size={22} />}
+                bg="bg-navy"
+                color="text-white"
+                border
+              />
+            </div>
+          </div>
+
+          <div>
             <SubHeading>SegmentedTabs</SubHeading>
             <TabsShowcase />
           </div>
@@ -493,7 +655,7 @@ export function DesignSystemShowcase() {
                 delta={-12}
               />
               <ListRow
-                variant="tournament"
+                variant="event"
                 name="Tournoi d'été"
                 date="15 juin 2025"
                 status="En cours"
@@ -577,7 +739,7 @@ export function DesignSystemShowcase() {
             <SubHeading>LastActivityCard</SubHeading>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <LastActivityCard
-                kind="tournament"
+                kind="event"
                 activity={{
                   id: "t1",
                   name: "Tournoi d'été",
@@ -591,7 +753,7 @@ export function DesignSystemShowcase() {
           </div>
 
           <div>
-            <SubHeading>MatchHistoryCard — feed des matchs (Tournament/League)</SubHeading>
+            <SubHeading>MatchHistoryCard — feed des matchs (Event/League)</SubHeading>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <MatchHistoryCard
                 teamA={[{ id: "p1", name: "Florian" }]}
@@ -863,7 +1025,8 @@ export function DesignSystemShowcase() {
             </div>
           </div>
 
-          {/* StatCard compact */}
+          {/* StatCard compact — section §6 ne montre que la variante "compact"
+              (les autres variantes sont dans §5 pour éviter le doublon). */}
           <div>
             <SubHeading>StatCard variant="compact" (§5.3) — grille 3×2</SubHeading>
             <div className="grid grid-cols-3 gap-2 max-w-xs">
@@ -873,12 +1036,6 @@ export function DesignSystemShowcase() {
               <StatCard value="🔥 4" label="Série" variant="compact" />
               <StatCard value={1850} label="Pic ELO" variant="compact" />
               <StatCard value="#3" label="Rang" variant="compact" />
-            </div>
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <StatCard value={12} label="Joueurs" variant="primary" />
-              <StatCard value={24} label="Matchs" variant="success" />
-              <StatCard value={1547} label="Top ELO" variant="accent" />
-              <StatCard value="+24" label="Delta" />
             </div>
           </div>
         </Section>
@@ -898,15 +1055,23 @@ export function DesignSystemShowcase() {
         >
           {/* LiveMatchBadge */}
           <div className="space-y-2">
-            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">LiveMatchBadge</p>
-            <div className="flex items-center gap-4 p-4 bg-navy-soft rounded-lg border border-card">
+            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">LiveMatchBadge — 4 statuts</p>
+            <div className="flex flex-wrap items-center gap-6 p-4 bg-navy-soft rounded-lg border border-card">
               <div className="flex flex-col items-center gap-1">
-                <LiveMatchBadge isLive={true} />
-                <span className="text-[10px] text-cool-gray">isLive=true</span>
+                <LiveMatchBadge status="live" />
+                <span className="text-[10px] text-cool-gray">status=&quot;live&quot;</span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <LiveMatchBadge isLive={false} />
-                <span className="text-[10px] text-cool-gray">isLive=false (rien)</span>
+                <LiveMatchBadge status="upcoming" />
+                <span className="text-[10px] text-cool-gray">status=&quot;upcoming&quot;</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <LiveMatchBadge status="finished" />
+                <span className="text-[10px] text-cool-gray">status=&quot;finished&quot;</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <LiveMatchBadge status="archived" />
+                <span className="text-[10px] text-cool-gray">status=&quot;archived&quot;</span>
               </div>
             </div>
           </div>
@@ -939,7 +1104,317 @@ export function DesignSystemShowcase() {
             </div>
           </div>
         </Section>
+
+        {/* ─── 9 · Atoms (extracted) ─────────────────────────────── */}
+        <Section
+          title="9 · Atoms"
+          subtitle="Petites feuilles réutilisables : PlayerChip · RankBadge · EmptyState"
+        >
+          <div className="space-y-2">
+            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">PlayerChip — équipe A / B / neutral, avec ou sans dim</p>
+            <div className="flex flex-wrap gap-2">
+              <PlayerChip
+                name="Florian"
+                side="A"
+                avatarUrl="https://i.pravatar.cc/150?img=12"
+              />
+              <PlayerChip name="Amar" side="A" />
+              <PlayerChip
+                name="Niko"
+                side="B"
+                avatarUrl="https://i.pravatar.cc/150?img=33"
+              />
+              <PlayerChip name="Winnie" side="B" dim />
+              <PlayerChip name="Marie" side="neutral" />
+            </div>
+          </div>
+          <div className="space-y-2 mt-4">
+            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">RankBadge — sm / md / lg, top-3 medals + fallback</p>
+            <div className="flex items-center gap-3">
+              {[1, 2, 3, 4].map((r) => (
+                <RankBadge key={r} rank={r} size="md" />
+              ))}
+            </div>
+            <div className="flex items-center gap-3 mt-2">
+              <RankBadge rank={1} size="sm" />
+              <RankBadge rank={1} size="md" />
+              <RankBadge rank={1} size="lg" />
+            </div>
+          </div>
+          <div className="space-y-2 mt-4">
+            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">EmptyState</p>
+            <div className="bg-navy-soft border border-card rounded-card">
+              <EmptyState
+                icon="🏆"
+                title="Aucun événement"
+                description="Crée un événement ou rejoins-en un via le code d'invitation."
+                minHeight="min-h-[20vh]"
+              />
+            </div>
+          </div>
+        </Section>
+
+        {/* ─── 10 · Molecules (extracted) ────────────────────────── */}
+        <Section
+          title="10 · Molecules"
+          subtitle="Stepper. (QuickAction est documenté en §5 voisin de StatCard ; EventCard / LeagueCard / AchievementCard sont déjà ailleurs.)"
+        >
+          <div className="space-y-2">
+            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">Stepper — 2 steps, 3 steps</p>
+            <div className="flex flex-col gap-3">
+              <Stepper total={2} current={1} label="Étape 1/2 — Saisir équipes" />
+              <Stepper total={2} current={2} label="Étape 2/2 — Saisir score" />
+              <Stepper total={3} current={2} label="Étape 2/3 — Détails" />
+            </div>
+          </div>
+        </Section>
+
+        {/* ─── 11 · Page-specific ────────────────────────────────── */}
+        <Section
+          title="11 · Page-specific"
+          subtitle="Composants utilisés une seule fois mais documentés : TeamCompositionCard · PlayerPool · TableSide"
+        >
+          <div className="space-y-2">
+            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">TeamCompositionCard — état actif vs inactif</p>
+            <div className="grid md:grid-cols-2 gap-3 max-w-3xl">
+              <TeamCompositionCard
+                team="A"
+                players={[
+                  { id: "p1", name: "Florian", elo: 1200, wins: 0, losses: 0, matchesPlayed: 0, streak: 0, avatarUrl: "https://i.pravatar.cc/150?img=12" },
+                  { id: "p2", name: "Amar", elo: 1180, wins: 0, losses: 0, matchesPlayed: 0, streak: 0, avatarUrl: null },
+                ]}
+                maxSize={2}
+                active
+                onActivate={() => {}}
+                onRemove={() => {}}
+              />
+              <TeamCompositionCard
+                team="B"
+                players={[]}
+                maxSize={2}
+                active={false}
+                onActivate={() => {}}
+                onRemove={() => {}}
+              />
+            </div>
+          </div>
+          <div className="space-y-2 mt-4">
+            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">PlayerPool</p>
+            <div className="max-w-md">
+              <PlayerPool
+                players={[
+                  { id: "p3", name: "Niko", elo: 1100, wins: 0, losses: 0, matchesPlayed: 0, streak: 0, avatarUrl: "https://i.pravatar.cc/150?img=33" },
+                  { id: "p4", name: "Winnie", elo: 1050, wins: 0, losses: 0, matchesPlayed: 0, streak: 0, avatarUrl: null },
+                  { id: "p5", name: "Marie", elo: 1020, wins: 0, losses: 0, matchesPlayed: 0, streak: 0, avatarUrl: "https://i.pravatar.cc/150?img=45" },
+                ]}
+                query=""
+                onQueryChange={() => {}}
+                onSelect={() => {}}
+                onCreateNew={async () => {}}
+                isCreating={false}
+                canCreate
+              />
+            </div>
+          </div>
+          <div className="space-y-2 mt-4">
+            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">TableSide — pending vs winner vs loser</p>
+            <div className="grid md:grid-cols-3 gap-3 max-w-5xl">
+              {(["pending", "winner", "loser"] as const).map((state) => (
+                <div
+                  key={state}
+                  className="bg-navy-soft border border-card rounded-card p-3"
+                >
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray mb-2">
+                    state = {state}
+                  </p>
+                  <TableSide
+                    team="A"
+                    players={[
+                      { id: "p1", name: "Florian", elo: 1200, wins: 0, losses: 0, matchesPlayed: 0, streak: 0, avatarUrl: null },
+                      { id: "p2", name: "Amar", elo: 1180, wins: 0, losses: 0, matchesPlayed: 0, streak: 0, avatarUrl: null },
+                    ]}
+                    droppedCups={EMPTY_DROPPED}
+                    state={state}
+                    onSelectWinner={() => {}}
+                    onAdjustCups={() => {}}
+                    onToggleCup={() => {}}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </Section>
+
+        {/* ─── 12 · Pages réelles (live iframe) ──────────────────── */}
+        <PagesArchetypesSection />
       </div>
     </ScreenLayout>
+  );
+}
+
+/**
+ * Live previews of every real page, embedded in iframes that share auth +
+ * data with the parent (same origin). For pages requiring an `:id`, we pull
+ * one from the user's own leagues/events — falling back to a placeholder
+ * id when the user has none yet (the page will then render its empty state).
+ */
+function PagesArchetypesSection() {
+  const { leagues, events } = useLeague();
+  const firstLeagueId = leagues[0]?.id ?? "no-league";
+  const firstEventId = events[0]?.id ?? "no-event";
+  // Try every source we know — league.players (legacy), event.playerIds
+  // (current). Fall back to a placeholder id that will trigger the
+  // "joueur introuvable" empty state, which is itself useful to preview.
+  const firstPlayerId =
+    leagues[0]?.players[0]?.id ??
+    events[0]?.playerIds?.[0] ??
+    "no-player";
+
+  return (
+    <Section
+      title="12 · Pages réelles"
+      subtitle="Chaque encadré est la vraie page de l'app embarquée dans un iframe (même origine, même auth, mêmes données). Ouvre la page complète via le lien Ouvrir →. Les screenshots RN se déposent dans public/design-system/mobile-screens/. Pages avec :id réutilisent ta première ligue / ton premier événement."
+    >
+      <PageGroup label="A. Listes + CTA">
+        <PageMount
+          title="Events · /events"
+          file="apps/web/src/pages/Events.tsx"
+          shot="events"
+          url="/events"
+        />
+        <PageMount
+          title="Leagues · /leagues"
+          file="apps/web/src/pages/Leagues.tsx"
+          shot="leagues"
+          url="/leagues"
+        />
+        <PageMount
+          title="Competitions · /competitions"
+          file="apps/web/src/pages/Competitions.tsx"
+          shot="competitions"
+          url="/competitions"
+        />
+        <PageMount
+          title="Global leaderboard · /leaderboard"
+          file="apps/web/src/pages/GlobalLeaderboard.tsx"
+          shot="leaderboard"
+          url="/leaderboard"
+        />
+      </PageGroup>
+
+      <PageGroup label="B. Dashboards">
+        <PageMount
+          title="Home · /"
+          file="apps/web/src/pages/Home.tsx"
+          shot="home"
+          url="/"
+        />
+        <PageMount
+          title="EventDashboard · /event/:id"
+          file="apps/web/src/pages/EventDashboard.tsx"
+          shot="event-dashboard"
+          url={`/event/${firstEventId}`}
+          emptyUrl="/event/00000000-0000-0000-0000-000000000000"
+        />
+        <PageMount
+          title="LeagueDashboard · /league/:id"
+          file="apps/web/src/pages/LeagueDashboard.tsx"
+          shot="league-dashboard"
+          url={`/league/${firstLeagueId}`}
+          emptyUrl="/league/00000000-0000-0000-0000-000000000000"
+        />
+      </PageGroup>
+
+      <PageGroup label="C. Form wizards">
+        <PageMount
+          title="CreateEvent · /create-event"
+          file="apps/web/src/pages/CreateEvent.tsx"
+          shot="create-event"
+          url="/create-event"
+        />
+        <PageMount
+          title="CreateLeague · /create-league"
+          file="apps/web/src/pages/CreateLeague.tsx"
+          shot="create-league"
+          url="/create-league"
+        />
+        <PageMount
+          title="RecordMatch · /record-match/:contextType/:id"
+          file="apps/web/src/pages/RecordMatch.tsx"
+          shot="record-match"
+          url={`/record-match/event/${firstEventId}`}
+        />
+      </PageGroup>
+
+      <PageGroup label="D. Profil">
+        <PageMount
+          title="UserProfile · /user/profile"
+          file="apps/web/src/pages/UserProfile.tsx"
+          shot="user-profile"
+          url="/user/profile"
+        />
+        <PageMount
+          title="PlayerProfile · /player/:playerId"
+          file="apps/web/src/pages/PlayerProfile.tsx"
+          shot="player-profile"
+          url={`/player/${firstPlayerId}`}
+          emptyUrl="/player/00000000-0000-0000-0000-000000000000"
+        />
+      </PageGroup>
+
+      <PageGroup label="E. Invite / Join">
+        <PageMount
+          title="EventInvite · /event/:id/invite"
+          file="apps/web/src/pages/EventInvite.tsx"
+          shot="event-invite"
+          url={`/event/${firstEventId}/invite`}
+        />
+        <PageMount
+          title="EventJoin · /event/:id/join"
+          file="apps/web/src/pages/EventJoin.tsx"
+          shot="event-join"
+          url={`/event/${firstEventId}/join`}
+        />
+        <PageMount
+          title="LeagueJoin · /league/:id/join"
+          file="apps/web/src/pages/LeagueJoin.tsx"
+          shot="league-join"
+          url={`/league/${firstLeagueId}/join`}
+        />
+        <PageMount
+          title="Join · /join"
+          file="apps/web/src/pages/Join.tsx"
+          shot="join"
+          url="/join"
+        />
+      </PageGroup>
+
+      <PageGroup label="F. Paiement / display">
+        <PageMount
+          title="PaymentSuccess · /payment-success"
+          file="apps/web/src/pages/PaymentSuccess.tsx"
+          shot="payment-success"
+          url="/payment-success"
+        />
+        <PageMount
+          title="PaymentCancel · /payment-cancel"
+          file="apps/web/src/pages/PaymentCancel.tsx"
+          shot="payment-cancel"
+          url="/payment-cancel"
+        />
+        <PageMount
+          title="DisplayView · /league/:id/display"
+          file="apps/web/src/pages/DisplayView.tsx"
+          shot="display-view"
+          url={`/league/${firstLeagueId}/display`}
+        />
+        <PageMount
+          title="EventDisplayView · /event/:id/display"
+          file="apps/web/src/pages/EventDisplayView.tsx"
+          shot="event-display-view"
+          url={`/event/${firstEventId}/display`}
+        />
+      </PageGroup>
+    </Section>
   );
 }

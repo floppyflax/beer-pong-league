@@ -49,7 +49,7 @@ export const IdentityInitializer = ({
       return;
     }
 
-    // If on a public route (tournament join, display, etc.), don't require identity
+    // If on a public route (event join, display, etc.), don't require identity
     if (isPublicRoute) {
       if (!hasInitialized) {
         setHasInitialized(true);

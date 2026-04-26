@@ -15,7 +15,7 @@ interface QRScannerProps {
 /**
  * QR Scanner Component
  * 
- * Full-screen camera scanner for reading tournament QR codes
+ * Full-screen camera scanner for reading event QR codes
  * Uses html5-qrcode library for QR code detection
  * 
  * Features:

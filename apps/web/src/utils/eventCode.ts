@@ -1,26 +1,26 @@
 /**
- * Tournament Code Generator
+ * Event Code Generator
  * 
- * Generates unique 6-character alphanumeric codes for tournaments
+ * Generates unique 6-character alphanumeric codes for events
  * Format: AAAAAA (uppercase letters and numbers only, excluding ambiguous characters)
  */
 
 /**
- * Characters allowed in tournament codes
+ * Characters allowed in event codes
  * Excludes: 0, O, I, 1, L to avoid confusion
  */
 const ALLOWED_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 /**
- * Generate a random 6-character alphanumeric tournament code
+ * Generate a random 6-character alphanumeric event code
  * 
- * @returns Random tournament code (e.g., "ABC123")
+ * @returns Random event code (e.g., "ABC123")
  * 
  * @example
- * const code = generateTournamentCode();
+ * const code = generateEventCode();
  * // Returns something like: "P3X7M2"
  */
-export function generateTournamentCode(): string {
+export function generateEventCode(): string {
   let code = '';
   
   for (let i = 0; i < 6; i++) {
@@ -32,7 +32,7 @@ export function generateTournamentCode(): string {
 }
 
 /**
- * Validate tournament code format
+ * Validate event code format
  * 
  * @param code - Code to validate
  * @returns true if code is valid format (6 alphanumeric chars)
@@ -53,7 +53,7 @@ export function isValidCodeFormat(code: string): boolean {
 /**
  * Format code for display (adds hyphen for readability)
  * 
- * @param code - Tournament code
+ * @param code - Event code
  * @returns Formatted code (e.g., "ABC-123")
  * 
  * @example

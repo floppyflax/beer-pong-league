@@ -25,9 +25,9 @@ export function useFullDisconnect() {
 
     // 4. Clear LeagueContext cache to avoid stale data
     localStorage.removeItem("bpl_leagues");
-    localStorage.removeItem("bpl_tournaments");
+    localStorage.removeItem("bpl_events");
     localStorage.removeItem("bpl_current_league_id");
-    localStorage.removeItem("bpl_current_tournament_id");
+    localStorage.removeItem("bpl_current_event_id");
 
     // 5. Full page reload to / — guarantees fresh state, no cached identity
     window.location.replace("/");

@@ -1,7 +1,7 @@
 /**
  * EventDashboard - FAB (Story 14-13 AC6)
  *
- * Design system: FAB "Nouveau match" with BeerPongMatchIcon when tournament not finished.
+ * Design system: FAB "Nouveau match" with BeerPongMatchIcon when event not finished.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -13,7 +13,7 @@ vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
     ...actual,
-    useParams: () => ({ id: "test-tournament-id" }),
+    useParams: () => ({ id: "test-event-id" }),
     useNavigate: () => vi.fn(),
   };
 });
@@ -22,9 +22,9 @@ vi.mock("react-hot-toast", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-const mockTournament = {
-  id: "test-tournament-id",
-  name: "Test Tournament",
+const mockEvent = {
+  id: "test-event-id",
+  name: "Test Event",
   joinCode: "ABC123",
   date: "2026-02-03",
   format: "libre" as const,
@@ -43,17 +43,17 @@ const mockTournament = {
 };
 
 const mockLeagueContextValue = {
-  tournaments: [mockTournament],
+  events: [mockEvent],
   leagues: [],
-  recordTournamentMatch: vi.fn(),
-  deleteTournament: vi.fn(),
-  toggleTournamentStatus: vi.fn(),
-  updateTournament: vi.fn(),
-  getTournamentLocalRanking: vi.fn(() => []),
+  recordEventMatch: vi.fn(),
+  deleteEvent: vi.fn(),
+  toggleEventStatus: vi.fn(),
+  updateEvent: vi.fn(),
+  getEventLocalRanking: vi.fn(() => []),
   getLeagueGlobalRanking: vi.fn(() => []),
   addPlayer: vi.fn(),
-  addPlayerToTournament: vi.fn(),
-  associateTournamentToLeague: vi.fn(),
+  addPlayerToEvent: vi.fn(),
+  associateEventToLeague: vi.fn(),
   isLoadingInitialData: false,
   reloadData: vi.fn(),
 };
@@ -81,8 +81,8 @@ vi.mock("../../../src/hooks/useDetailPagePermissions", () => ({
 
 vi.mock("../../../src/services/DatabaseService", () => ({
   databaseService: {
-    loadTournamentParticipants: vi.fn().mockResolvedValue([]),
-    addLeaguePlayerToTournament: vi.fn().mockResolvedValue("new-tp-id"),
+    loadEventParticipants: vi.fn().mockResolvedValue([]),
+    addLeaguePlayerToEvent: vi.fn().mockResolvedValue("new-tp-id"),
   },
 }));
 
@@ -97,13 +97,13 @@ describe("EventDashboard - FAB (Story 14-13 AC6)", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLeagueContextValue.tournaments = [
-      { ...mockTournament, isFinished: false },
+    mockLeagueContextValue.events = [
+      { ...mockEvent, isFinished: false },
     ];
   });
 
   describe("AC6: FAB Nouveau match", () => {
-    it("should show FAB with Nouveau match when tournament not finished", () => {
+    it("should show FAB with Nouveau match when event not finished", () => {
       renderDashboard();
 
       const fab = screen.getByRole("button", { name: "Nouveau match" });
@@ -111,9 +111,9 @@ describe("EventDashboard - FAB (Story 14-13 AC6)", () => {
       expect(fab).toHaveAttribute("data-testid", "fab");
     });
 
-    it("should NOT show FAB when tournament is finished", () => {
-      mockLeagueContextValue.tournaments = [
-        { ...mockTournament, isFinished: true },
+    it("should NOT show FAB when event is finished", () => {
+      mockLeagueContextValue.events = [
+        { ...mockEvent, isFinished: true },
       ];
 
       renderDashboard();
@@ -128,7 +128,7 @@ describe("EventDashboard - FAB (Story 14-13 AC6)", () => {
 
       const fab = screen.getByRole("button", { name: "Nouveau match" });
       expect(fab).toBeInTheDocument();
-      // Click navigates to /record-match/tournament/:id — no modal is opened
+      // Click navigates to /record-match/event/:id — no modal is opened
       fireEvent.click(fab);
       // Verify no "Nouveau Match" modal appeared (modal was removed in B.4)
       expect(screen.queryByText("Nouveau Match")).not.toBeInTheDocument();

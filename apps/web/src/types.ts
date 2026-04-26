@@ -44,26 +44,26 @@ export interface League {
   createdAt: string;
   players: Player[];
   matches: Match[];
-  tournaments?: string[]; // Tournament IDs associated with this League
-  joinCode?: string; // Unique 6-character alphanumeric code (parity with Tournament)
+  events?: string[]; // Event IDs associated with this League
+  joinCode?: string; // Unique 6-character alphanumeric code (parity with Event)
   creator_user_id?: string | null; // FK → users.id (auth or anonymous, since mig 022)
   /** @deprecated since mig 022. Always null. Kept for legacy callers; use creator_user_id. */
   creator_anonymous_user_id?: string | null;
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
 }
 
-export interface Tournament {
+export interface Event {
   id: string;
   name: string;
   date: string;
-  format: '1v1' | '2v2' | '3v3' | 'libre'; // Default format for matches in this tournament (libre = flexible team sizes)
+  format: '1v1' | '2v2' | '3v3' | 'libre'; // Default format for matches in this event (libre = flexible team sizes)
   location?: string; // Optional location context
   leagueId: string | null; // null if autonomous, otherwise linked to a League
   createdAt: string;
   updatedAt?: string; // Last activity timestamp (match recorded, player joined, etc.) - Story 10.2
   playerIds: string[]; // Subset of League players (or all if autonomous)
   matches: Match[];
-  isFinished: boolean; // true if tournament is finished
+  isFinished: boolean; // true if event is finished
   creator_user_id?: string | null; // FK → users.id (auth or anonymous, since mig 022)
   /** @deprecated since mig 022. Always null. Kept for legacy callers; use creator_user_id. */
   creator_anonymous_user_id?: string | null;
@@ -74,10 +74,10 @@ export interface Tournament {
   team1Size?: number | null; // Team 1 size (null for free format)
   team2Size?: number | null; // Team 2 size (null for free format)
   maxPlayers?: number; // Maximum number of players (999 = unlimited for free users)
-  isPrivate?: boolean; // Private tournament (not listed publicly)
-  status?: 'active' | 'finished' | 'cancelled'; // Tournament status
+  isPrivate?: boolean; // Private event (not listed publicly)
+  status?: 'active' | 'finished' | 'cancelled'; // Event status
   // Phase A.5: competition mode (ELO = classement ponctuel, Bracket = élimination directe)
-  // Set at creation time and immutable afterwards (see CreateTournament).
+  // Set at creation time and immutable afterwards (see CreateEvent).
   mode?: 'elo' | 'bracket';
   /**
    * Mig 023 — When TRUE (default) and the event is linked to a league, matches

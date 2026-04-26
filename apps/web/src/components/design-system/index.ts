@@ -37,7 +37,7 @@ export { ListRow } from './ListRow';
 export type {
   ListRowProps,
   ListRowPlayerProps,
-  ListRowTournamentProps,
+  ListRowEventProps,
   ListRowLeagueProps,
 } from './ListRow';
 export { InfoCard } from './InfoCard';
@@ -98,9 +98,9 @@ export type { StickyCTAProps } from './StickyCTA';
 
 export { SettingsSheet } from './SettingsSheet';
 export type {
-  SettingsSheetTournamentValues,
+  SettingsSheetEventValues,
   SettingsSheetLeagueValues,
-  SettingsSheetTournamentUpdates,
+  SettingsSheetEventUpdates,
   SettingsSheetLeagueUpdates,
 } from './SettingsSheet';
 
@@ -131,3 +131,74 @@ export type { GhostManagementSheetProps } from './GhostManagementSheet';
 // Generic sheet shell — bottom-sheet (mobile) / centered (desktop)
 export { Sheet } from './Sheet';
 export type { SheetProps, SheetMaxWidth } from './Sheet';
+
+// --- Atoms (small leaves) ---
+export { PlayerChip } from './atoms/PlayerChip';
+export type { PlayerChipProps, PlayerChipSide } from './atoms/PlayerChip';
+export { RankBadge, RANK_BADGE_STYLES } from './atoms/RankBadge';
+export type { RankBadgeProps, RankBadgeSize } from './atoms/RankBadge';
+export { EmptyState } from './atoms/EmptyState';
+export type { EmptyStateProps } from './atoms/EmptyState';
+
+// --- Molecules (composed) ---
+export { Stepper } from './molecules/Stepper';
+export type { StepperProps } from './molecules/Stepper';
+export { QuickAction } from './molecules/QuickAction';
+export type { QuickActionProps } from './molecules/QuickAction';
+export { EventCard } from './molecules/EventCard';
+export type { EventCardProps } from './molecules/EventCard';
+export { LeagueCard } from './molecules/LeagueCard';
+export type { LeagueCardProps } from './molecules/LeagueCard';
+export { AchievementCard } from './molecules/AchievementCard';
+export type {
+  AchievementCardProps,
+  Achievement,
+} from './molecules/AchievementCard';
+
+// --- Page-specific (1-page but documented in showcase) ---
+export { TableSide } from './page-specific/TableSide';
+export type {
+  TableSideProps,
+  TableSideState,
+} from './page-specific/TableSide';
+export { TeamCompositionCard } from './page-specific/TeamCompositionCard';
+export type { TeamCompositionCardProps } from './page-specific/TeamCompositionCard';
+export { PlayerPool } from './page-specific/PlayerPool';
+export type { PlayerPoolProps } from './page-specific/PlayerPool';
+export { ContextPickerModal } from './page-specific/ContextPickerModal';
+export type { ContextPickerModalProps } from './page-specific/ContextPickerModal';
+export {
+  CUP_ROWS,
+  TOTAL_CUPS,
+  ELIMINATION_ORDER,
+  EMPTY_DROPPED,
+  cupId,
+} from './page-specific/recordMatchInternals';
+export type {
+  Team,
+  EnrichedPlayer,
+} from './page-specific/recordMatchInternals';
+
+// --- Showcase wrappers (used by /design-system page) ---
+export { PhoneFrame } from './showcase/PhoneFrame';
+export type { PhoneFrameProps, PhoneFrameDevice } from './showcase/PhoneFrame';
+export { DualPreview } from './showcase/DualPreview';
+export type { DualPreviewProps } from './showcase/DualPreview';
+export {
+  ShowcaseSection,
+  ShowcaseSubSection,
+} from './showcase/ShowcaseSection';
+export type {
+  ShowcaseSectionProps,
+  ShowcaseSubSectionProps,
+} from './showcase/ShowcaseSection';
+
+// --- Archetype mocks ---
+export {
+  ListWithCTAMock,
+  DetailDashboardMock,
+  FormWizardMock,
+  ProfileDetailMock,
+  InviteJoinMock,
+  DisplayTVMock,
+} from './archetypes';

@@ -40,9 +40,9 @@ vi.mock('react-hot-toast', () => ({
 /**
  * Helper — wires up a fresh chain of mocks for the supabase query builder.
  *
- * The hook (post mig 016) probes BOTH `tournaments` then `leagues` using
+ * The hook (post mig 016) probes BOTH `events` then `leagues` using
  * `.maybeSingle()`. We provide one mock response per `from(table)` call so the
- * tests can simulate "tournament hit", "league hit" or "neither" without
+ * tests can simulate "event hit", "league hit" or "neither" without
  * interfering with each other.
  */
 type ProbeResult = {
@@ -84,7 +84,7 @@ describe('useJoinEvent', () => {
 
     it('should convert code to uppercase before probing', async () => {
       const { eqMocks } = mockSupabaseProbes({
-        data: { id: '123', name: 'Test Tournament', is_finished: false, join_code: 'ABC123' },
+        data: { id: '123', name: 'Test Event', is_finished: false, join_code: 'ABC123' },
         error: null,
       });
 
@@ -97,9 +97,9 @@ describe('useJoinEvent', () => {
       });
     });
 
-    it('should query the tournaments table first with the right shape', async () => {
+    it('should query the events table first with the right shape', async () => {
       mockSupabaseProbes({
-        data: { id: '123', name: 'Test Tournament', is_finished: false, join_code: 'ABC123' },
+        data: { id: '123', name: 'Test Event', is_finished: false, join_code: 'ABC123' },
         error: null,
       });
 
@@ -107,13 +107,13 @@ describe('useJoinEvent', () => {
 
       await result.current.joinByCode('ABC123');
 
-      expect(supabase.from).toHaveBeenNthCalledWith(1, 'tournaments');
+      expect(supabase.from).toHaveBeenNthCalledWith(1, 'events');
       expect(mockNavigate).toHaveBeenCalledWith('/event/123/join');
     });
 
-    it('should reject finished tournaments', async () => {
+    it('should reject finished events', async () => {
       mockSupabaseProbes({
-        data: { id: '123', name: 'Test Tournament', is_finished: true, join_code: 'ABC123' },
+        data: { id: '123', name: 'Test Event', is_finished: true, join_code: 'ABC123' },
         error: null,
       });
 
@@ -123,7 +123,7 @@ describe('useJoinEvent', () => {
       expect(toast.error).toHaveBeenCalledWith('Cet événement est terminé');
     });
 
-    it('should fall through to leagues when tournament misses, and route accordingly', async () => {
+    it('should fall through to leagues when event misses, and route accordingly', async () => {
       mockSupabaseProbes(
         { data: null, error: null },
         { data: { id: 'lg-1', name: 'Beer Pong Spring', join_code: 'LEAG12' }, error: null },
@@ -133,7 +133,7 @@ describe('useJoinEvent', () => {
 
       await result.current.joinByCode('LEAG12');
 
-      expect(supabase.from).toHaveBeenNthCalledWith(1, 'tournaments');
+      expect(supabase.from).toHaveBeenNthCalledWith(1, 'events');
       expect(supabase.from).toHaveBeenNthCalledWith(2, 'leagues');
       expect(mockNavigate).toHaveBeenCalledWith('/league/lg-1/join');
     });
@@ -151,9 +151,9 @@ describe('useJoinEvent', () => {
       );
     });
 
-    it('should reset loading state after a successful tournament join', async () => {
+    it('should reset loading state after a successful event join', async () => {
       mockSupabaseProbes({
-        data: { id: '123', name: 'Test Tournament', is_finished: false, join_code: 'ABC123' },
+        data: { id: '123', name: 'Test Event', is_finished: false, join_code: 'ABC123' },
         error: null,
       });
 
@@ -171,7 +171,7 @@ describe('useJoinEvent', () => {
 
     it('should accept codes with 6-8 characters', async () => {
       mockSupabaseProbes(
-        { data: { id: '123', name: 'Test Tournament', is_finished: false, join_code: 'ABC123' }, error: null },
+        { data: { id: '123', name: 'Test Event', is_finished: false, join_code: 'ABC123' }, error: null },
         { data: { id: '456', name: 'Test 8', is_finished: false, join_code: 'ABCD1234' }, error: null },
       );
 
@@ -180,8 +180,8 @@ describe('useJoinEvent', () => {
       await result.current.joinByCode('ABC123');
       await result.current.joinByCode('ABCD1234');
 
-      expect(supabase.from).toHaveBeenNthCalledWith(1, 'tournaments');
-      expect(supabase.from).toHaveBeenNthCalledWith(2, 'tournaments');
+      expect(supabase.from).toHaveBeenNthCalledWith(1, 'events');
+      expect(supabase.from).toHaveBeenNthCalledWith(2, 'events');
     });
   });
 });

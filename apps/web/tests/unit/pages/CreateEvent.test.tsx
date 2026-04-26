@@ -43,16 +43,16 @@ vi.mock("react-hot-toast", () => ({
 
 vi.mock("@/services/DatabaseService", () => ({
   databaseService: {
-    createTournament: vi.fn().mockResolvedValue("tournament-123"),
-    tournamentCodeExists: vi.fn().mockResolvedValue(false),
+    createEvent: vi.fn().mockResolvedValue("event-123"),
+    eventCodeExists: vi.fn().mockResolvedValue(false),
   },
 }));
 
 vi.mock("@/services/PremiumService", () => ({
   premiumService: {
     isPremium: vi.fn().mockResolvedValue(false),
-    getTournamentCount: vi.fn().mockResolvedValue(0),
-    canCreateTournament: vi.fn().mockResolvedValue({ allowed: true, remaining: 2 }),
+    getEventCount: vi.fn().mockResolvedValue(0),
+    canCreateEvent: vi.fn().mockResolvedValue({ allowed: true, remaining: 2 }),
   },
 }));
 
@@ -117,8 +117,8 @@ describe("CreateEvent - Story 14.19", () => {
     if (typeof mockReloadData === 'function' && 'mockClear' in mockReloadData) {
       (mockReloadData as ReturnType<typeof vi.fn>).mockClear();
     }
-    vi.mocked(databaseService.createTournament).mockResolvedValue("tournament-123");
-    vi.mocked(databaseService.tournamentCodeExists).mockResolvedValue(false);
+    vi.mocked(databaseService.createEvent).mockResolvedValue("event-123");
+    vi.mocked(databaseService.eventCodeExists).mockResolvedValue(false);
   });
 
   describe("AC1: Header with title + back", () => {
@@ -215,7 +215,7 @@ describe("CreateEvent - Story 14.19", () => {
       expect(form).toBeTruthy();
       fireEvent.submit(form!);
       await waitFor(() => {
-        expect(databaseService.createTournament).not.toHaveBeenCalled();
+        expect(databaseService.createEvent).not.toHaveBeenCalled();
       });
     });
 
@@ -232,7 +232,7 @@ describe("CreateEvent - Story 14.19", () => {
   });
 
   describe("Form submission", () => {
-    it("should call createTournament and navigate on valid submit", async () => {
+    it("should call createEvent and navigate on valid submit", async () => {
       render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       const nameInput = await waitForFormReady();
       await userEvent.type(nameInput, "Summer Cup 2026");
@@ -240,8 +240,8 @@ describe("CreateEvent - Story 14.19", () => {
       await userEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(databaseService.createTournament).toHaveBeenCalled();
-        expect(mockNavigate).toHaveBeenCalledWith("/event/tournament-123");
+        expect(databaseService.createEvent).toHaveBeenCalled();
+        expect(mockNavigate).toHaveBeenCalledWith("/event/event-123");
       });
     });
 
@@ -255,7 +255,7 @@ describe("CreateEvent - Story 14.19", () => {
       await userEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(databaseService.createTournament).toHaveBeenCalledWith(
+        expect(databaseService.createEvent).toHaveBeenCalledWith(
           expect.objectContaining({
             formatType: "free",
             team1Size: null,
@@ -270,7 +270,7 @@ describe("CreateEvent - Story 14.19", () => {
     it("should have form with design system structure", async () => {
       const { container } = render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       await waitForFormReady();
-      const form = container.querySelector("#create-tournament-form");
+      const form = container.querySelector("#create-event-form");
       expect(form).toBeInTheDocument();
       expect(form?.tagName.toLowerCase()).toBe("form");
     });
@@ -283,12 +283,12 @@ describe("CreateEvent - Story 14.19", () => {
       expect(screen.getByLabelText(/nom de l'événement/i)).toBeInTheDocument();
     });
 
-    it("should show limit-reached modal when canCreateTournament returns allowed: false", async () => {
-      vi.mocked(premiumService.canCreateTournament).mockResolvedValue({
+    it("should show limit-reached modal when canCreateEvent returns allowed: false", async () => {
+      vi.mocked(premiumService.canCreateEvent).mockResolvedValue({
         allowed: false,
         remaining: 0,
       });
-      vi.mocked(premiumService.getTournamentCount).mockResolvedValue(2);
+      vi.mocked(premiumService.getEventCount).mockResolvedValue(2);
       vi.mocked(premiumService.isPremium).mockResolvedValue(false);
 
       render(<CreateEvent />, { wrapper: Wrapper });
@@ -303,7 +303,7 @@ describe("CreateEvent - Story 14.19", () => {
 
   describe("Code generation error", () => {
     it("should show user-friendly error when unique code cannot be generated", async () => {
-      vi.mocked(databaseService.tournamentCodeExists).mockResolvedValue(true);
+      vi.mocked(databaseService.eventCodeExists).mockResolvedValue(true);
       render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
       const nameInput = await waitForFormReady();
       await userEvent.type(nameInput, "Summer Cup 2026");

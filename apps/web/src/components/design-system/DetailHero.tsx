@@ -1,7 +1,7 @@
 /**
  * DetailHero — Everything ELO, bloc hero bleu pour les pages détail
  *
- * Utilisé sur `LeagueDashboard` et `TournamentDashboard` : regroupe en un seul
+ * Utilisé sur `LeagueDashboard` et `EventDashboard` : regroupe en un seul
  * bloc l'identité de la page (back + titre + admin), les infos clés (statut
  * + meta) et l'action principale (INVITER + overflow menu).
  *
@@ -265,9 +265,11 @@ export const DetailHero = ({
         </div>
       )}
 
-      {/* Actions row */}
+      {/* Actions row — all variants align on the same baseline (h-11). Tight
+          horizontal padding so the trio Inviter + Paramètres + IconOnly fits
+          on a single mobile row (375px) without wrap. */}
       {(actions.length > 0 || menuItems.length > 0) && (
-        <div className="mt-4 flex items-center gap-2 flex-wrap">
+        <div className="mt-4 flex items-center gap-1.5 flex-nowrap overflow-x-auto -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {actions.map((action, i) => {
             if (action.variant === "iconOnly") {
               return (
@@ -287,7 +289,7 @@ export const DetailHero = ({
               );
             }
             const base =
-              "flex items-center justify-center gap-2 px-5 h-11 rounded-full font-archivo font-extrabold uppercase text-[11px] tracking-[1px] transition-colors flex-shrink-0";
+              "flex items-center justify-center gap-1.5 px-3 h-11 rounded-full font-archivo font-extrabold uppercase text-[11px] tracking-[1px] transition-colors flex-shrink-0";
             const variantClass =
               action.variant === "primary"
                 ? "bg-lime text-navy hover:bg-lime-deep"

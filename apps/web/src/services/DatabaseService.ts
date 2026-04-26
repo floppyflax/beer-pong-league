@@ -7,24 +7,24 @@
  *
  * La logique métier réelle se trouve dans :
  *   - src/services/repositories/LeaguesRepository.ts
- *   - src/services/repositories/TournamentsRepository.ts
+ *   - src/services/repositories/EventsRepository.ts
  *   - src/services/repositories/PlayersRepository.ts
  *   - src/services/repositories/MatchesRepository.ts
  *   - src/services/repositories/_base.ts (helpers partagés)
  */
 
-import type { League, Tournament, Player, Match } from '../types';
+import type { League, Event, Player, Match } from '../types';
 import { leaguesRepository } from './repositories/LeaguesRepository';
 import {
-  tournamentsRepository,
-  type TournamentUpdates,
-} from './repositories/TournamentsRepository';
+  eventsRepository,
+  type EventUpdates,
+} from './repositories/EventsRepository';
 import { playersRepository } from './repositories/PlayersRepository';
 import { matchesRepository } from './repositories/MatchesRepository';
 
 // Re-export so external callers (LeagueContext, tests) can import the shape
 // of the updates object without digging into the repository module.
-export type { TournamentUpdates };
+export type { EventUpdates };
 
 class DatabaseService {
   // ===== Leagues =====
@@ -53,46 +53,46 @@ class DatabaseService {
     return leaguesRepository.leagueCodeExists(joinCode);
   }
 
-  // ===== Tournaments =====
+  // ===== Events =====
 
-  loadTournaments(userId?: string, anonymousUserId?: string): Promise<Tournament[]> {
-    return tournamentsRepository.loadTournaments(userId, anonymousUserId);
+  loadEvents(userId?: string, anonymousUserId?: string): Promise<Event[]> {
+    return eventsRepository.loadEvents(userId, anonymousUserId);
   }
 
-  loadTournamentById(tournamentId: string): Promise<Tournament | null> {
-    return tournamentsRepository.loadTournamentById(tournamentId);
+  loadEventById(eventId: string): Promise<Event | null> {
+    return eventsRepository.loadEventById(eventId);
   }
 
-  saveTournament(tournament: Tournament): Promise<void> {
-    return tournamentsRepository.saveTournament(tournament);
+  saveEvent(event: Event): Promise<void> {
+    return eventsRepository.saveEvent(event);
   }
 
-  deleteTournament(tournamentId: string): Promise<void> {
-    return tournamentsRepository.deleteTournament(tournamentId);
+  deleteEvent(eventId: string): Promise<void> {
+    return eventsRepository.deleteEvent(eventId);
   }
 
-  updateTournament(
-    tournamentId: string,
-    updates: TournamentUpdates
+  updateEvent(
+    eventId: string,
+    updates: EventUpdates
   ): Promise<void> {
-    return tournamentsRepository.updateTournament(tournamentId, updates);
+    return eventsRepository.updateEvent(eventId, updates);
   }
 
-  toggleTournamentStatus(tournamentId: string, isFinished: boolean): Promise<void> {
-    return tournamentsRepository.toggleTournamentStatus(tournamentId, isFinished);
+  toggleEventStatus(eventId: string, isFinished: boolean): Promise<void> {
+    return eventsRepository.toggleEventStatus(eventId, isFinished);
   }
 
-  associateTournamentToLeague(
-    tournamentId: string,
+  associateEventToLeague(
+    eventId: string,
     leagueId: string | null,
   ): Promise<void> {
-    return tournamentsRepository.associateTournamentToLeague(tournamentId, leagueId);
+    return eventsRepository.associateEventToLeague(eventId, leagueId);
   }
 
-  createTournament(data: {
+  createEvent(data: {
     name: string;
     /** Human-facing format ('1v1' | '2v2' | '3v3' | 'libre'). Written to the
-     *  `format` column so that loadTournaments can read it back directly. */
+     *  `format` column so that loadEvents can read it back directly. */
     format?: '1v1' | '2v2' | '3v3' | 'libre';
     joinCode: string;
     formatType: 'fixed' | 'free';
@@ -101,25 +101,25 @@ class DatabaseService {
     maxPlayers: number;
     isPrivate: boolean;
     // Competition mode — defaults to 'elo' server-side (see migration 011).
-    // Only passed when caller wants to create a Bracket tournament; the DB
+    // Only passed when caller wants to create a Bracket event; the DB
     // default handles the common ELO case.
     mode?: 'elo' | 'bracket';
     creatorUserId: string | null;
     creatorAnonymousUserId: string | null;
   }): Promise<string> {
-    return tournamentsRepository.createTournament(data);
+    return eventsRepository.createEvent(data);
   }
 
-  tournamentCodeExists(joinCode: string): Promise<boolean> {
-    return tournamentsRepository.tournamentCodeExists(joinCode);
+  eventCodeExists(joinCode: string): Promise<boolean> {
+    return eventsRepository.eventCodeExists(joinCode);
   }
 
-  leaveTournament(
-    tournamentId: string,
+  leaveEvent(
+    eventId: string,
     userId?: string,
     anonymousUserId?: string
   ): Promise<void> {
-    return tournamentsRepository.leaveTournament(tournamentId, userId, anonymousUserId);
+    return eventsRepository.leaveEvent(eventId, userId, anonymousUserId);
   }
 
   // ===== Players =====
@@ -138,7 +138,7 @@ class DatabaseService {
     player: Player;
     leagueId?: string;
     leagueName?: string;
-    tournamentId?: string;
+    eventId?: string;
   } | null> {
     return playersRepository.loadPlayerById(playerId);
   }
@@ -151,7 +151,7 @@ class DatabaseService {
     return playersRepository.loadPlayerEnrichment(playerId);
   }
 
-  loadTournamentParticipants(tournamentId: string): Promise<
+  loadEventParticipants(eventId: string): Promise<
     {
       id: string;
       leaguePlayerId?: string;
@@ -165,33 +165,33 @@ class DatabaseService {
       isArchived?: boolean;
     }[]
   > {
-    return playersRepository.loadTournamentParticipants(tournamentId);
+    return playersRepository.loadEventParticipants(eventId);
   }
 
-  addAnonymousPlayerToTournament(
-    tournamentId: string,
+  addAnonymousPlayerToEvent(
+    eventId: string,
     playerName: string,
     anonymousUserId: string
   ): Promise<string> {
-    return playersRepository.addAnonymousPlayerToTournament(
-      tournamentId,
+    return playersRepository.addAnonymousPlayerToEvent(
+      eventId,
       playerName,
       anonymousUserId
     );
   }
 
-  addGuestPlayerToTournament(
-    tournamentId: string,
+  addGuestPlayerToEvent(
+    eventId: string,
     playerName: string
   ): Promise<string> {
-    return playersRepository.addGuestPlayerToTournament(tournamentId, playerName);
+    return playersRepository.addGuestPlayerToEvent(eventId, playerName);
   }
 
-  addLeaguePlayerToTournament(
-    tournamentId: string,
+  addLeaguePlayerToEvent(
+    eventId: string,
     leaguePlayerId: string
   ): Promise<string> {
-    return playersRepository.addLeaguePlayerToTournament(tournamentId, leaguePlayerId);
+    return playersRepository.addLeaguePlayerToEvent(eventId, leaguePlayerId);
   }
 
   updatePlayer(
@@ -218,24 +218,24 @@ class DatabaseService {
     return matchesRepository.recordMatch(leagueId, match, eloChanges, userId, anonymousUserId);
   }
 
-  recordTournamentMatch(
-    tournamentId: string,
+  recordEventMatch(
+    eventId: string,
     match: Match,
     eventEloChanges: Record<string, { before: number; after: number; change: number }>,
     userId?: string | null,
     anonymousUserId?: string | null,
     leagueEloChanges?: Record<string, { before: number; after: number; change: number }>,
     /** @deprecated since mig 022. */
-    tournamentPlayerIdToLeaguePlayerId?: Record<string, string>
+    eventPlayerIdToLeaguePlayerId?: Record<string, string>
   ): Promise<void> {
-    return matchesRepository.recordTournamentMatch(
-      tournamentId,
+    return matchesRepository.recordEventMatch(
+      eventId,
       match,
       eventEloChanges,
       userId,
       anonymousUserId,
       leagueEloChanges,
-      tournamentPlayerIdToLeaguePlayerId
+      eventPlayerIdToLeaguePlayerId
     );
   }
 }

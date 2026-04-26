@@ -12,7 +12,7 @@ vi.mock("react-router-dom", async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useParams: () => ({ id: "test-tournament-id" }),
+    useParams: () => ({ id: "test-event-id" }),
   };
 });
 
@@ -31,8 +31,8 @@ vi.mock("qrcode.react", () => ({
   ),
 }));
 
-const mockTournament = {
-  id: "test-tournament-id",
+const mockEvent = {
+  id: "test-event-id",
   name: "Soirée Beer Pong 2024",
   date: "2024-06-15",
   format: "2v2" as const,
@@ -49,7 +49,7 @@ describe("EventInvite - Story 14-14", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
-      tournaments: [mockTournament],
+      events: [mockEvent],
       leagues: [],
       isLoadingInitialData: false,
     } as ReturnType<typeof LeagueContext.useLeague>);
@@ -76,28 +76,28 @@ describe("EventInvite - Story 14-14", () => {
       expect(screen.getByText("Inviter des joueurs")).toBeInTheDocument();
     });
 
-    it("should navigate back to tournament dashboard when back is clicked", () => {
+    it("should navigate back to event dashboard when back is clicked", () => {
       renderWithRouter();
       const backButton = screen.getByRole("button", { name: /retour/i });
       fireEvent.click(backButton);
-      expect(mockNavigate).toHaveBeenCalledWith("/event/test-tournament-id");
+      expect(mockNavigate).toHaveBeenCalledWith("/event/test-event-id");
     });
   });
 
-  describe("AC 2: Tournament recap card (EventCard)", () => {
-    it("should display tournament name in EventCard", () => {
+  describe("AC 2: Event recap card (EventCard)", () => {
+    it("should display event name in EventCard", () => {
       renderWithRouter();
       expect(screen.getByText("Soirée Beer Pong 2024")).toBeInTheDocument();
     });
 
-    it("should display tournament status badge ACTIF when not finished", () => {
+    it("should display event status badge ACTIF when not finished", () => {
       renderWithRouter();
       expect(screen.getByText("ACTIF")).toBeInTheDocument();
     });
 
-    it("should display TERMINÉ badge when tournament is finished", () => {
+    it("should display TERMINÉ badge when event is finished", () => {
       vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
-        tournaments: [{ ...mockTournament, isFinished: true }],
+        events: [{ ...mockEvent, isFinished: true }],
         leagues: [],
         isLoadingInitialData: false,
       } as ReturnType<typeof LeagueContext.useLeague>);
@@ -124,7 +124,7 @@ describe("EventInvite - Story 14-14", () => {
   describe("AC 4: Link + Copy / Share", () => {
     it("should display invite link", () => {
       renderWithRouter();
-      const inviteUrl = `${window.location.origin}/event/test-tournament-id/join`;
+      const inviteUrl = `${window.location.origin}/event/test-event-id/join`;
       const links = screen.getAllByText(inviteUrl);
       expect(links.length).toBeGreaterThanOrEqual(1);
     });
@@ -148,7 +148,7 @@ describe("EventInvite - Story 14-14", () => {
 
       await waitFor(() => {
         expect(writeText).toHaveBeenCalledWith(
-          `${window.location.origin}/event/test-tournament-id/join`
+          `${window.location.origin}/event/test-event-id/join`
         );
       });
     });
@@ -201,10 +201,10 @@ describe("EventInvite - Story 14-14", () => {
     });
   });
 
-  describe("Tournament not found", () => {
-    it("should display error when tournament does not exist", () => {
+  describe("Event not found", () => {
+    it("should display error when event does not exist", () => {
       vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [],
         isLoadingInitialData: false,
       } as ReturnType<typeof LeagueContext.useLeague>);
@@ -212,9 +212,9 @@ describe("EventInvite - Story 14-14", () => {
       expect(screen.getByText("Événement introuvable")).toBeInTheDocument();
     });
 
-    it("should display back to home button when tournament not found", () => {
+    it("should display back to home button when event not found", () => {
       vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
-        tournaments: [],
+        events: [],
         leagues: [],
         isLoadingInitialData: false,
       } as ReturnType<typeof LeagueContext.useLeague>);

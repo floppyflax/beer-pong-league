@@ -50,7 +50,8 @@ export function ToggleRow({
         disabled={disabled}
         onClick={() => !disabled && onToggle(!on)}
         className={clsx(
-          'relative flex-shrink-0 w-10 h-6 rounded-full transition-colors duration-200',
+          // Track 44×24, knob 20×20 with 2px inset → knob always stays inside.
+          'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200',
           on ? 'bg-electric-blue' : 'bg-navy-soft border border-card',
           disabled && 'opacity-40 cursor-not-allowed',
           !disabled && 'cursor-pointer',
@@ -59,8 +60,8 @@ export function ToggleRow({
       >
         <span
           className={clsx(
-            'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200',
-            on ? 'translate-x-4' : 'translate-x-0.5',
+            'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-[left] duration-200',
+            on ? 'left-[22px]' : 'left-0.5',
           )}
         />
       </button>

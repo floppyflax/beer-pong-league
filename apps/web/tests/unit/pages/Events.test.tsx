@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { Events } from "../../../src/pages/Events";
 import * as UseEventsList from "../../../src/hooks/useEventsList";
 import * as UsePremiumLimits from "../../../src/hooks/usePremiumLimits";
-import type { Tournament } from "../../../src/types";
+import type { Event } from "../../../src/types";
 
 const mockNavigate = vi.fn();
 
@@ -25,9 +25,9 @@ vi.mock("../../../src/context/LeagueContext", () => ({
 
 // Mock child components to simplify testing
 vi.mock("../../../src/components/events/EventCard", () => ({
-  EventCard: ({ tournament }: { tournament: Tournament }) => (
-    <div data-testid={`tournament-card-${tournament.id}`}>
-      {tournament.name}
+  EventCard: ({ event }: { event: Event }) => (
+    <div data-testid={`event-card-${event.id}`}>
+      {event.name}
     </div>
   ),
 }));
@@ -44,10 +44,10 @@ vi.mock("../../../src/components/LoadingSpinner", () => ({
 }));
 
 describe("Events Page", () => {
-  const mockTournaments: Tournament[] = [
+  const mockEvents: Event[] = [
     {
       id: "t1",
-      name: "Active Tournament 1",
+      name: "Active Event 1",
       date: "2024-06-15",
       format: "2v2",
       leagueId: null,
@@ -58,7 +58,7 @@ describe("Events Page", () => {
     },
     {
       id: "t2",
-      name: "Active Tournament 2",
+      name: "Active Event 2",
       date: "2024-06-20",
       format: "1v1",
       leagueId: null,
@@ -69,7 +69,7 @@ describe("Events Page", () => {
     },
     {
       id: "t3",
-      name: "Finished Tournament",
+      name: "Finished Event",
       date: "2024-01-01",
       format: "3v3",
       leagueId: null,
@@ -83,15 +83,15 @@ describe("Events Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Default mock: User can create tournaments (not at limit)
+    // Default mock: User can create events (not at limit)
     vi.spyOn(UsePremiumLimits, "usePremiumLimits").mockReturnValue({
-      canCreateTournament: true,
+      canCreateEvent: true,
       canCreateLeague: true,
-      tournamentCount: 1,
+      eventCount: 1,
       leagueCount: 0,
-      limits: { tournaments: 2, leagues: 1 },
+      limits: { events: 2, leagues: 1 },
       isPremium: false,
-      isAtTournamentLimit: false,
+      isAtEventLimit: false,
       isAtLeagueLimit: false,
       refetchPremium: vi.fn(),
     });
@@ -104,7 +104,7 @@ describe("Events Page", () => {
   describe("Error State (H1)", () => {
     it("should show error banner and retry button when load fails", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: [],
+        events: [],
         isLoading: false,
         loadError: "Erreur réseau",
       });
@@ -123,7 +123,7 @@ describe("Events Page", () => {
   describe("Loading State", () => {
     it("should show loading spinner while data is loading", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: [],
+        events: [],
         isLoading: true,
       });
 
@@ -133,9 +133,9 @@ describe("Events Page", () => {
   });
 
   describe("Empty State", () => {
-    it("should show empty state when no tournaments", () => {
+    it("should show empty state when no events", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: [],
+        events: [],
         isLoading: false,
       });
 
@@ -149,7 +149,7 @@ describe("Events Page", () => {
 
     it("should show action buttons in empty state", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: [],
+        events: [],
         isLoading: false,
       });
 
@@ -161,7 +161,7 @@ describe("Events Page", () => {
 
     it('should navigate to /join when clicking "Rejoindre"', () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: [],
+        events: [],
         isLoading: false,
       });
 
@@ -175,7 +175,7 @@ describe("Events Page", () => {
 
     it('should navigate to /create-event when clicking "Créer" (if allowed)', () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: [],
+        events: [],
         isLoading: false,
       });
 
@@ -188,23 +188,23 @@ describe("Events Page", () => {
     });
   });
 
-  describe("Tournament List", () => {
-    it("should render list of tournaments", () => {
+  describe("Event List", () => {
+    it("should render list of events", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
       renderWithRouter(<Events />);
 
-      expect(screen.getByTestId("tournament-card-t1")).toBeInTheDocument();
-      expect(screen.getByTestId("tournament-card-t2")).toBeInTheDocument();
-      expect(screen.getByTestId("tournament-card-t3")).toBeInTheDocument();
+      expect(screen.getByTestId("event-card-t1")).toBeInTheDocument();
+      expect(screen.getByTestId("event-card-t2")).toBeInTheDocument();
+      expect(screen.getByTestId("event-card-t3")).toBeInTheDocument();
     });
 
     it("should show page header", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -217,7 +217,7 @@ describe("Events Page", () => {
   describe("Search Functionality", () => {
     it("should show search input", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -228,9 +228,9 @@ describe("Events Page", () => {
       ).toBeInTheDocument();
     });
 
-    it("should filter tournaments by name (case-insensitive)", async () => {
+    it("should filter events by name (case-insensitive)", async () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -242,19 +242,19 @@ describe("Events Page", () => {
       fireEvent.change(searchInput, { target: { value: "finished" } });
 
       await waitFor(() => {
-        expect(screen.getByTestId("tournament-card-t3")).toBeInTheDocument();
+        expect(screen.getByTestId("event-card-t3")).toBeInTheDocument();
         expect(
-          screen.queryByTestId("tournament-card-t1"),
+          screen.queryByTestId("event-card-t1"),
         ).not.toBeInTheDocument();
         expect(
-          screen.queryByTestId("tournament-card-t2"),
+          screen.queryByTestId("event-card-t2"),
         ).not.toBeInTheDocument();
       });
     });
 
     it('should show "Aucun résultat" when no match', async () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -264,7 +264,7 @@ describe("Events Page", () => {
         "Rechercher un événement...",
       );
       fireEvent.change(searchInput, {
-        target: { value: "NonExistentTournament" },
+        target: { value: "NonExistentEvent" },
       });
 
       await waitFor(() => {
@@ -275,7 +275,7 @@ describe("Events Page", () => {
     it("should debounce search by 300ms (AC2, M2)", async () => {
       vi.useFakeTimers();
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -292,17 +292,17 @@ describe("Events Page", () => {
       act(() => {
         vi.advanceTimersByTime(299);
       });
-      expect(screen.getByTestId("tournament-card-t1")).toBeInTheDocument();
-      expect(screen.getByTestId("tournament-card-t2")).toBeInTheDocument();
-      expect(screen.getByTestId("tournament-card-t3")).toBeInTheDocument();
+      expect(screen.getByTestId("event-card-t1")).toBeInTheDocument();
+      expect(screen.getByTestId("event-card-t2")).toBeInTheDocument();
+      expect(screen.getByTestId("event-card-t3")).toBeInTheDocument();
 
       // After 300ms: debounce fires, only t3 visible
       act(() => {
         vi.advanceTimersByTime(1);
       });
-      expect(screen.queryByTestId("tournament-card-t1")).not.toBeInTheDocument();
-      expect(screen.queryByTestId("tournament-card-t2")).not.toBeInTheDocument();
-      expect(screen.getByTestId("tournament-card-t3")).toBeInTheDocument();
+      expect(screen.queryByTestId("event-card-t1")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("event-card-t2")).not.toBeInTheDocument();
+      expect(screen.getByTestId("event-card-t3")).toBeInTheDocument();
 
       vi.useRealTimers();
     });
@@ -311,7 +311,7 @@ describe("Events Page", () => {
   describe("Filter Tabs", () => {
     it("should show filter tabs", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -322,9 +322,9 @@ describe("Events Page", () => {
       expect(screen.getByText("Terminés")).toBeInTheDocument();
     });
 
-    it('should filter active tournaments when "Actifs" is clicked', async () => {
+    it('should filter active events when "Actifs" is clicked', async () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -334,17 +334,17 @@ describe("Events Page", () => {
       fireEvent.click(actifTab);
 
       await waitFor(() => {
-        expect(screen.getByTestId("tournament-card-t1")).toBeInTheDocument();
-        expect(screen.getByTestId("tournament-card-t2")).toBeInTheDocument();
+        expect(screen.getByTestId("event-card-t1")).toBeInTheDocument();
+        expect(screen.getByTestId("event-card-t2")).toBeInTheDocument();
         expect(
-          screen.queryByTestId("tournament-card-t3"),
+          screen.queryByTestId("event-card-t3"),
         ).not.toBeInTheDocument();
       });
     });
 
-    it('should filter finished tournaments when "Terminés" is clicked', async () => {
+    it('should filter finished events when "Terminés" is clicked', async () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -354,19 +354,19 @@ describe("Events Page", () => {
       fireEvent.click(finishedTab);
 
       await waitFor(() => {
-        expect(screen.getByTestId("tournament-card-t3")).toBeInTheDocument();
+        expect(screen.getByTestId("event-card-t3")).toBeInTheDocument();
         expect(
-          screen.queryByTestId("tournament-card-t1"),
+          screen.queryByTestId("event-card-t1"),
         ).not.toBeInTheDocument();
         expect(
-          screen.queryByTestId("tournament-card-t2"),
+          screen.queryByTestId("event-card-t2"),
         ).not.toBeInTheDocument();
       });
     });
 
-    it('should show all tournaments when "Tous" is clicked', async () => {
+    it('should show all events when "Tous" is clicked', async () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -379,17 +379,17 @@ describe("Events Page", () => {
       fireEvent.click(screen.getByText("Tous"));
 
       await waitFor(() => {
-        expect(screen.getByTestId("tournament-card-t1")).toBeInTheDocument();
-        expect(screen.getByTestId("tournament-card-t2")).toBeInTheDocument();
-        expect(screen.getByTestId("tournament-card-t3")).toBeInTheDocument();
+        expect(screen.getByTestId("event-card-t1")).toBeInTheDocument();
+        expect(screen.getByTestId("event-card-t2")).toBeInTheDocument();
+        expect(screen.getByTestId("event-card-t3")).toBeInTheDocument();
       });
     });
   });
 
-  describe("Create Tournament Action", () => {
+  describe("Create Event Action", () => {
     it("should navigate to /create-event when FAB is clicked and user can create", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -401,20 +401,20 @@ describe("Events Page", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/create-event");
     });
 
-    it("should show payment modal when FAB clicked and user is at tournament limit", async () => {
+    it("should show payment modal when FAB clicked and user is at event limit", async () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
       vi.spyOn(UsePremiumLimits, "usePremiumLimits").mockReturnValue({
-        canCreateTournament: false,
+        canCreateEvent: false,
         canCreateLeague: true,
-        tournamentCount: 2,
+        eventCount: 2,
         leagueCount: 0,
-        limits: { tournaments: 2, leagues: 1 },
+        limits: { events: 2, leagues: 1 },
         isPremium: false,
-        isAtTournamentLimit: true,
+        isAtEventLimit: true,
         isAtLeagueLimit: false,
         refetchPremium: vi.fn(),
       });
@@ -431,18 +431,18 @@ describe("Events Page", () => {
 
     it("should show lock icon on header create button when at limit (desktop)", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
       vi.spyOn(UsePremiumLimits, "usePremiumLimits").mockReturnValue({
-        canCreateTournament: false,
+        canCreateEvent: false,
         canCreateLeague: true,
-        tournamentCount: 2,
+        eventCount: 2,
         leagueCount: 0,
-        limits: { tournaments: 2, leagues: 1 },
+        limits: { events: 2, leagues: 1 },
         isPremium: false,
-        isAtTournamentLimit: true,
+        isAtEventLimit: true,
         isAtLeagueLimit: false,
         refetchPremium: vi.fn(),
       });
@@ -457,7 +457,7 @@ describe("Events Page", () => {
   describe("Design System (Story 14-12)", () => {
     it("should render FAB and header create action for responsive design (M3)", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -471,9 +471,9 @@ describe("Events Page", () => {
       ).toBeInTheDocument();
     });
 
-    it("should render FAB for create tournament", () => {
+    it("should render FAB for create event", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -484,7 +484,7 @@ describe("Events Page", () => {
 
     it("should render SearchBar with placeholder", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 
@@ -498,7 +498,7 @@ describe("Events Page", () => {
 
     it("should render SegmentedTabs (Tous, Actifs, Terminés)", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        tournaments: mockTournaments,
+        events: mockEvents,
         isLoading: false,
       });
 

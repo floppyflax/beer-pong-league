@@ -21,7 +21,7 @@ export const Home = () => {
 
   const userId = user?.id ?? localUser?.anonymousUserId ?? null;
 
-  const { lastTournament, personalStats, recentMatches, isLoading, error } =
+  const { lastEvent, personalStats, recentMatches, isLoading, error } =
     useHomeData(userId);
 
   const { isPremium: _isPremium, refetch: refetchPremium } = usePremium(userId);
@@ -43,8 +43,8 @@ export const Home = () => {
     }
   };
 
-  const activeTournament =
-    lastTournament && !lastTournament.isFinished ? lastTournament : null;
+  const activeEvent =
+    lastEvent && !lastEvent.isFinished ? lastEvent : null;
 
   if (error) {
     return (
@@ -110,8 +110,8 @@ export const Home = () => {
             bg="bg-ping-yellow"
             color="text-navy"
             onClick={() =>
-              activeTournament
-                ? navigate(`/event/${activeTournament.id}`)
+              activeEvent
+                ? navigate(`/event/${activeEvent.id}`)
                 : navigate("/competitions?tab=events")
             }
           />
@@ -147,11 +147,11 @@ export const Home = () => {
           />
         </div>
 
-        {/* Active tournament banner */}
-        {activeTournament && (
+        {/* Active event banner */}
+        {activeEvent && (
           <button
             className="mt-5 w-full bg-navy-soft border-[1.5px] border-white rounded-lg p-4 shadow-[0_3px_0_#F4F2E8] flex items-center gap-3 text-left"
-            onClick={() => navigate(`/event/${activeTournament.id}`)}
+            onClick={() => navigate(`/event/${activeEvent.id}`)}
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
@@ -164,14 +164,14 @@ export const Home = () => {
                 </span>
               </div>
               <div className="font-archivo font-extrabold text-xl tracking-[-0.4px] truncate">
-                {activeTournament.name}
+                {activeEvent.name}
               </div>
               <div className="text-[13px] text-cool-gray mt-0.5 flex items-center gap-1.5">
-                <span>{activeTournament.playerCount} {activeTournament.playerCount === 1 ? "joueur" : "joueurs"}</span>
+                <span>{activeEvent.playerCount} {activeEvent.playerCount === 1 ? "joueur" : "joueurs"}</span>
                 <span className="opacity-40">·</span>
-                <span>{activeTournament.matchCount} {activeTournament.matchCount === 1 ? "match" : "matchs"}</span>
+                <span>{activeEvent.matchCount} {activeEvent.matchCount === 1 ? "match" : "matchs"}</span>
                 <span className="opacity-40">·</span>
-                <span>{activeTournament.format}</span>
+                <span>{activeEvent.format}</span>
                 <span className="opacity-40">·</span>
                 <span className="text-lime font-bold">ELO</span>
               </div>

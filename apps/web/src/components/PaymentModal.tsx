@@ -132,9 +132,19 @@ export const PaymentModal = ({
           .select();
         updateError = error;
       } else if (anonymousUserId) {
+        // mig 022: anon users live in `users` table
         const { error } = await supabase
-          .from("anonymous_users")
-          .upsert({ id: anonymousUserId, is_premium: true, pseudo: localUser?.pseudo || "Anonymous", device_fingerprint: localUser?.deviceFingerprint || null }, { onConflict: "id", ignoreDuplicates: false })
+          .from("users")
+          .upsert(
+            {
+              id: anonymousUserId,
+              is_premium: true,
+              is_anonymous: true,
+              pseudo: localUser?.pseudo || "Anonymous",
+              device_fingerprint: localUser?.deviceFingerprint || null,
+            },
+            { onConflict: "id", ignoreDuplicates: false },
+          )
           .select();
         updateError = error;
       }

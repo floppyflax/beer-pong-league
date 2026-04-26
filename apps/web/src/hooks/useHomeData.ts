@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase, isSupabaseAvailable } from "../lib/supabase";
 
-interface Tournament {
+interface Event {
   id: string;
   name: string;
   isFinished: boolean;
@@ -41,7 +41,7 @@ export interface RecentMatch {
 }
 
 interface HomeData {
-  lastTournament?: Tournament;
+  lastEvent?: Event;
   lastLeague?: League;
   personalStats?: PersonalStats;
   recentMatches: RecentMatch[];
@@ -54,7 +54,7 @@ async function fetchHomeData(userId: string) {
     // Guard: userId required (queryFn only runs when enabled: !!userId, but extra safety)
     if (!userId) {
       return {
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: undefined,
       };
@@ -62,87 +62,97 @@ async function fetchHomeData(userId: string) {
     // Project-context: Always check Supabase availability before operations
     if (!isSupabaseAvailable()) {
       return {
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: undefined,
       };
     }
 
-    // Fetch last tournament (either created by user OR participated in)
-    // First, get tournaments created by the user
+    // Fetch last event (either created by user OR participated in)
+    // First, get events created by the user
     if (!supabase)
       return {
-        lastTournament: undefined,
+        lastEvent: undefined,
         lastLeague: undefined,
         personalStats: undefined,
       };
-    const { data: createdTournament } = await supabase
-      .from("tournaments")
+    const { data: createdEvent } = await supabase
+      .from("events")
       .select("id, name, is_finished, updated_at, team1_size, team2_size")
       .eq("creator_user_id", userId)
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    // Also get tournaments where user is a participant
-    const { data: participatedTournament } = await supabase
-      .from("tournament_players")
-      .select("tournament:tournaments(id, name, is_finished, updated_at, team1_size, team2_size)")
+    // Also get events where user is a participant — mig 022:
+    // event_memberships → players (filter by player.user_id = userId).
+    const { data: myPlayer } = await supabase
+      .from("players")
+      .select("id")
       .eq("user_id", userId)
-      .order("joined_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
+    const myPlayerId = (myPlayer as { id: string } | null)?.id ?? null;
 
-    let lastTournament: Tournament | undefined;
+    const { data: participatedEvent } = myPlayerId
+      ? await supabase
+          .from("event_memberships")
+          .select("event:events(id, name, is_finished, updated_at, team1_size, team2_size)")
+          .eq("player_id", myPlayerId)
+          .order("joined_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : { data: null as null };
 
-    // Get the most recent tournament (created or participated)
-    const participatedTournamentData = participatedTournament
-      ? Array.isArray(participatedTournament.tournament)
-        ? participatedTournament.tournament[0]
-        : participatedTournament.tournament
+    let lastEvent: Event | undefined;
+
+    // Get the most recent event (created or participated)
+    const participatedEventData = participatedEvent
+      ? Array.isArray(participatedEvent.event)
+        ? participatedEvent.event[0]
+        : participatedEvent.event
       : null;
 
     // Choose the most recent one
-    let selectedTournament = null;
-    if (createdTournament && participatedTournamentData) {
-      const createdUpdated = createdTournament.updated_at ?? "";
+    let selectedEvent = null;
+    if (createdEvent && participatedEventData) {
+      const createdUpdated = createdEvent.updated_at ?? "";
       const participatedUpdated =
-        (participatedTournamentData as { updated_at?: string | null })
+        (participatedEventData as { updated_at?: string | null })
           .updated_at ?? "";
-      selectedTournament =
+      selectedEvent =
         new Date(createdUpdated) > new Date(participatedUpdated)
-          ? createdTournament
-          : participatedTournamentData;
-    } else if (createdTournament) {
-      selectedTournament = createdTournament;
-    } else if (participatedTournamentData) {
-      selectedTournament = participatedTournamentData;
+          ? createdEvent
+          : participatedEventData;
+    } else if (createdEvent) {
+      selectedEvent = createdEvent;
+    } else if (participatedEventData) {
+      selectedEvent = participatedEventData;
     }
 
-    if (selectedTournament) {
+    if (selectedEvent) {
       const [{ count: playerCount }, { count: matchCount }] = await Promise.all([
         supabase
-          .from("tournament_players")
+          .from("event_memberships")
           .select("*", { count: "exact", head: true })
-          .eq("tournament_id", selectedTournament.id),
+          .eq("event_id", selectedEvent.id),
         supabase
           .from("matches")
           .select("*", { count: "exact", head: true })
-          .eq("tournament_id", selectedTournament.id),
+          .eq("event_id", selectedEvent.id),
       ]);
 
-      const t1 = (selectedTournament as { team1_size?: number | null }).team1_size;
-      const t2 = (selectedTournament as { team2_size?: number | null }).team2_size;
+      const t1 = (selectedEvent as { team1_size?: number | null }).team1_size;
+      const t2 = (selectedEvent as { team2_size?: number | null }).team2_size;
       const format = t1 && t2 ? `${t1}v${t2}` : "2v2";
 
-      lastTournament = {
-        id: selectedTournament.id,
-        name: selectedTournament.name,
-        isFinished: selectedTournament.is_finished || false,
+      lastEvent = {
+        id: selectedEvent.id,
+        name: selectedEvent.name,
+        isFinished: selectedEvent.is_finished || false,
         playerCount: playerCount || 0,
         matchCount: matchCount || 0,
         format,
-        updatedAt: selectedTournament.updated_at,
+        updatedAt: selectedEvent.updated_at,
       };
     }
 
@@ -156,14 +166,16 @@ async function fetchHomeData(userId: string) {
       .limit(1)
       .maybeSingle();
 
-    // Also get leagues where user is a member
-    const { data: joinedLeague } = await supabase
-      .from("league_players")
-      .select("league:leagues(id, name, updated_at)")
-      .eq("user_id", userId)
-      .order("joined_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Also get leagues where user is a member — mig 022 via league_memberships.
+    const { data: joinedLeague } = myPlayerId
+      ? await supabase
+          .from("league_memberships")
+          .select("league:leagues(id, name, updated_at)")
+          .eq("player_id", myPlayerId)
+          .order("joined_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : { data: null as null };
 
     let lastLeague: League | undefined;
 
@@ -193,7 +205,7 @@ async function fetchHomeData(userId: string) {
     if (selectedLeague) {
       // Get member count for this league
       const { count: memberCount } = await supabase
-        .from("league_players")
+        .from("league_memberships")
         .select("*", { count: "exact", head: true })
         .eq("league_id", selectedLeague.id);
 
@@ -206,12 +218,15 @@ async function fetchHomeData(userId: string) {
       };
     }
 
-    // Fetch personal stats + recent matches from elo_history
-    const { data: eloHistory } = await supabase
-      .from("elo_history")
-      .select("elo_after, elo_change, match_id, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+    // Fetch personal stats + recent matches from elo_history — mig 022:
+    // elo_history is keyed by player_id (not user_id).
+    const { data: eloHistory } = myPlayerId
+      ? await supabase
+          .from("elo_history")
+          .select("elo_after, elo_change, match_id, created_at")
+          .eq("player_id", myPlayerId)
+          .order("created_at", { ascending: false })
+      : { data: null as null };
 
     let personalStats: PersonalStats;
     let recentMatches: RecentMatch[] = [];
@@ -259,7 +274,7 @@ async function fetchHomeData(userId: string) {
       if (recentIds.length > 0) {
         const { data: matchRows } = await supabase
           .from("matches")
-          .select("id, format, score_a, score_b, created_at, tournament_id, league_id, tournaments(name), leagues(name)")
+          .select("id, format, score_a, score_b, created_at, event_id, league_id, events(name), leagues(name)")
           .in("id", recentIds);
 
         if (matchRows) {
@@ -267,8 +282,8 @@ async function fetchHomeData(userId: string) {
             const m = matchRows.find((r) => r.id === mid);
             const histEntry = eloHistory.find((h) => h.match_id === mid);
             if (!m) return null;
-            const ctx = m.tournaments
-              ? (Array.isArray(m.tournaments) ? m.tournaments[0]?.name : (m.tournaments as { name: string }).name)
+            const ctx = m.events
+              ? (Array.isArray(m.events) ? m.events[0]?.name : (m.events as { name: string }).name)
               : m.leagues
               ? (Array.isArray(m.leagues) ? m.leagues[0]?.name : (m.leagues as { name: string }).name)
               : null;
@@ -289,7 +304,7 @@ async function fetchHomeData(userId: string) {
     }
 
     return {
-      lastTournament,
+      lastEvent,
       lastLeague,
       personalStats,
       recentMatches,
@@ -307,7 +322,7 @@ async function fetchHomeData(userId: string) {
 
     // Return empty data instead of throwing
     return {
-      lastTournament: undefined,
+      lastEvent: undefined,
       lastLeague: undefined,
       personalStats: undefined,
       recentMatches: [],
@@ -329,7 +344,7 @@ export function useHomeData(userId: string | null | undefined): HomeData {
   });
 
   return {
-    lastTournament: data?.lastTournament,
+    lastEvent: data?.lastEvent,
     lastLeague: data?.lastLeague,
     personalStats: data?.personalStats,
     recentMatches: data?.recentMatches ?? [],

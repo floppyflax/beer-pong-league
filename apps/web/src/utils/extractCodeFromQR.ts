@@ -11,13 +11,13 @@ export interface QRParseResult {
  *
  * QR codes can contain:
  * - Direct join code: "ABC123"
- * - Event URL: "https://bpl.com/event/{uuid}/join" or "https://bpl.com/tournament/{uuid}/join" (legacy)
+ * - Event URL: "https://bpl.com/event/{uuid}/join" or "https://bpl.com/event/{uuid}/join" (legacy)
  * - League URL: "https://bpl.com/league/{uuid}"
  * - Code param: "...?code=ABC123"
  */
 export function parseQRData(qrData: string): QRParseResult {
   try {
-    const eventUrlMatch = qrData.match(/\/(?:event|tournament)\/([a-f0-9-]{36})(?:\/join)?/i);
+    const eventUrlMatch = qrData.match(/\/(?:event|event)\/([a-f0-9-]{36})(?:\/join)?/i);
     if (eventUrlMatch) {
       return { type: 'event_url', entityId: eventUrlMatch[1] };
     }

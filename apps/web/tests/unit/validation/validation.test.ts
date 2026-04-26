@@ -3,12 +3,12 @@ import {
   playerSchema,
   matchSchema,
   leagueSchema,
-  tournamentSchema,
+  eventSchema,
   validatePlayer,
   safeValidatePlayer,
   createPlayerInputSchema,
   createLeagueInputSchema,
-  createTournamentInputSchema,
+  createEventInputSchema,
   createMatchInputSchema,
 } from '@/utils/validation';
 
@@ -313,9 +313,9 @@ describe('League Schema Validation', () => {
   });
 });
 
-describe('Tournament Schema Validation', () => {
-  it('should validate a valid tournament', () => {
-    const validTournament = {
+describe('Event Schema Validation', () => {
+  it('should validate a valid event', () => {
+    const validEvent = {
       id: '123e4567-e89b-12d3-a456-426614174004',
       name: 'Championship 2026',
       date: '2026-01-27T10:00:00Z',
@@ -326,7 +326,7 @@ describe('Tournament Schema Validation', () => {
       isFinished: false,
     };
 
-    const result = tournamentSchema.safeParse(validTournament);
+    const result = eventSchema.safeParse(validEvent);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.name).toBe('Championship 2026');
@@ -334,16 +334,16 @@ describe('Tournament Schema Validation', () => {
     }
   });
 
-  it('should allow null leagueId for autonomous tournaments', () => {
-    const autonomousTournament = {
+  it('should allow null leagueId for autonomous events', () => {
+    const autonomousEvent = {
       id: '123e4567-e89b-12d3-a456-426614174004',
-      name: 'Standalone Tournament',
+      name: 'Standalone Event',
       date: '2026-01-27T10:00:00Z',
       leagueId: null,
       createdAt: '2026-01-27T10:00:00Z',
     };
 
-    const result = tournamentSchema.safeParse(autonomousTournament);
+    const result = eventSchema.safeParse(autonomousEvent);
     expect(result.success).toBe(true);
   });
 });
@@ -400,16 +400,16 @@ describe('Input Schemas (for forms)', () => {
     expect(result.success).toBe(true);
   });
 
-  it('createTournamentInputSchema should not require ID or timestamps', () => {
-    const tournamentInput = {
-      name: 'New Tournament',
+  it('createEventInputSchema should not require ID or timestamps', () => {
+    const eventInput = {
+      name: 'New Event',
       date: '2026-01-27T10:00:00Z',
       leagueId: '123e4567-e89b-12d3-a456-426614174003',
       playerIds: [],
       isFinished: false,
     };
 
-    const result = createTournamentInputSchema.safeParse(tournamentInput);
+    const result = createEventInputSchema.safeParse(eventInput);
     expect(result.success).toBe(true);
   });
 

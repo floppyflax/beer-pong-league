@@ -1,7 +1,7 @@
 /**
  * GhostManagementSheet — admin-only sheet to manage ghost players.
  *
- * Lists every unclaimed (anonymous) player in a tournament/league and exposes
+ * Lists every unclaimed (anonymous) player in a event/league and exposes
  * three per-row actions:
  *
  *   - **Renommer** — inline edit, calls back `onRename(playerId, newPseudo)`.
@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { Ghost, Pencil, Trash2, Share2, X, Copy, Loader2, Check } from "lucide-react";
+import { Ghost, Pencil, Trash2, Share2, X, Copy, Loader2, Check, Archive } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import type { UnclaimedGuest } from "../../hooks/useUnclaimedGuests";
@@ -33,8 +33,19 @@ export interface GhostManagementSheetProps {
   joinPath: string;
   /** Rename a ghost. Resolve to apply, throw to keep editor open. */
   onRename: (playerId: string, newPseudo: string) => Promise<void>;
-  /** Delete a ghost. Resolve to remove from list. Reject to surface error. */
+  /**
+   * Delete a ghost. Resolve to remove from list. Reject with an Error whose
+   * message contains "match" (case-insensitive) to trigger the archive
+   * fallback prompt — used when the server blocks delete because the ghost
+   * has played matches.
+   */
   onDelete: (playerId: string) => Promise<void>;
+  /**
+   * Archive (soft-delete) a ghost — hides from future pickers but keeps
+   * existing matches. Surfaced as a fallback after a blocked delete, and
+   * also as a direct per-row action.
+   */
+  onArchive: (playerId: string) => Promise<void>;
   /** Generate an invite token. Returns the raw token (caller assembles URL). */
   onGenerateInvite: (playerId: string) => Promise<{ token: string }>;
   /** Optional title override. */
@@ -54,6 +65,7 @@ export function GhostManagementSheet({
   joinPath,
   onRename,
   onDelete,
+  onArchive,
   onGenerateInvite,
   title = "Joueurs fantômes",
 }: GhostManagementSheetProps) {
@@ -126,6 +138,40 @@ export function GhostManagementSheet({
     setPendingId(g.playerId);
     try {
       await onDelete(g.playerId);
+    } catch (err) {
+      // Parent toasts. If the server blocked because matches exist, propose
+      // the archive fallback (soft-delete keeps history intact).
+      const msg = err instanceof Error ? err.message : "";
+      if (
+        /match/i.test(msg) &&
+        confirm(
+          `"${g.pseudo}" a déjà joué des matchs et ne peut pas être supprimé. ` +
+            `Veux-tu plutôt l'archiver ? Les matchs existants restent visibles, ` +
+            `mais ce joueur ne pourra plus être ajouté à de nouveaux matchs.`,
+        )
+      ) {
+        try {
+          await onArchive(g.playerId);
+        } catch {
+          // Parent toasts.
+        }
+      }
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  const handleArchive = async (g: UnclaimedGuest) => {
+    if (
+      !confirm(
+        `Archiver "${g.pseudo}" ? Il ne pourra plus être ajouté à de nouveaux matchs, ` +
+          `mais les matchs existants restent inchangés.`,
+      )
+    )
+      return;
+    setPendingId(g.playerId);
+    try {
+      await onArchive(g.playerId);
     } catch {
       // Parent toasts.
     } finally {
@@ -363,6 +409,16 @@ export function GhostManagementSheet({
                               aria-label={`Renommer ${g.pseudo}`}
                             >
                               <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleArchive(g)}
+                              disabled={isOtherPending || isPending}
+                              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-cool-gray flex items-center justify-center transition-colors disabled:opacity-40"
+                              aria-label={`Archiver ${g.pseudo}`}
+                              title="Archiver (conserve les matchs joués)"
+                            >
+                              <Archive size={14} />
                             </button>
                             <button
                               type="button"

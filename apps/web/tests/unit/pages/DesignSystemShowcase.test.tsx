@@ -93,7 +93,7 @@ describe.skip("DesignSystemShowcase", () => {
     expect(screen.getByRole("tab", { name: "Paramètres" })).toBeInTheDocument();
   });
 
-  it("should render ListRow with player, tournament, league variants (Story 14-4)", () => {
+  it("should render ListRow with player, event, league variants (Story 14-4)", () => {
     renderWithRouter();
     expect(screen.getByText("Alice Martin")).toBeInTheDocument();
     expect(screen.getByText("Tournoi d'été")).toBeInTheDocument();

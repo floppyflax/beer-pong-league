@@ -1,17 +1,17 @@
 /**
- * SettingsSheet — Bottom sheet "Paramètres" pour Tournament / League
+ * SettingsSheet — Bottom sheet "Paramètres" pour Event / League
  *
  * Reprend l'architecture visuelle de `InviteSheet` (slide-up mobile, modal centrée
  * desktop, grabber, bouton X, header centré).
  *
  * Comporte :
  * - Champ nom (required)
- * - Champ format (tournament uniquement, radios)
- * - Affichage read-only du mode ELO/Bracket (tournament) ou du type event/season
+ * - Champ format (event uniquement, radios)
+ * - Affichage read-only du mode ELO/Bracket (event) ou du type event/season
  *   (league) — non modifiable après création (voir spec).
  * - Toggle "Limite de joueurs" + champ numérique avec alerte si nouvelle valeur
  *   < nombre de joueurs actuellement inscrits.
- * - Toggle "Événement privé" (tournament uniquement)
+ * - Toggle "Événement privé" (event uniquement)
  * - Actions destructives : Clôturer (si pas déjà terminé) + Supprimer.
  */
 
@@ -26,8 +26,8 @@ import {
 } from "react";
 import { PButton } from "@/components/ponglo/PButton";
 
-/** Valeurs éditables côté tournament. */
-export interface SettingsSheetTournamentValues {
+/** Valeurs éditables côté event. */
+export interface SettingsSheetEventValues {
   name: string;
   format: "1v1" | "2v2" | "3v3" | "libre";
   maxPlayers: number;
@@ -43,7 +43,7 @@ export interface SettingsSheetLeagueValues {
 }
 
 /** Updates émises vers le parent (subset des values : uniquement les champs modifiés). */
-export interface SettingsSheetTournamentUpdates {
+export interface SettingsSheetEventUpdates {
   name?: string;
   format?: "1v1" | "2v2" | "3v3" | "libre";
   maxPlayers?: number;
@@ -57,17 +57,17 @@ export interface SettingsSheetLeagueUpdates {
 
 type SettingsSheetProps =
   | {
-      kind: "tournament";
+      kind: "event";
       isOpen: boolean;
       onClose: () => void;
       /** Valeurs courantes (source de vérité à l'ouverture). */
-      initial: SettingsSheetTournamentValues;
+      initial: SettingsSheetEventValues;
       /** Mode compétition — read-only, affiché sous forme de chip verrouillé. */
       mode: "elo" | "bracket";
       /** Nombre de joueurs actuellement inscrits (pour l'alerte maxPlayers). */
       currentPlayersCount: number;
       /** Sauvegarde — ne contient que les champs modifiés. */
-      onSave: (updates: SettingsSheetTournamentUpdates) => Promise<void> | void;
+      onSave: (updates: SettingsSheetEventUpdates) => Promise<void> | void;
       onClose_?: never;
       onFinish?: () => void;
       onDelete?: () => void;
@@ -94,7 +94,7 @@ type SettingsSheetProps =
     };
 
 const FORMAT_OPTIONS: Array<{
-  value: SettingsSheetTournamentValues["format"];
+  value: SettingsSheetEventValues["format"];
   label: string;
   description: string;
 }> = [
@@ -110,22 +110,22 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
 
   // ── State hooks (declared unconditionally; populated from props when open) ──
   const [name, setName] = useState(props.initial.name);
-  const [format, setFormat] = useState<SettingsSheetTournamentValues["format"]>(
-    props.kind === "tournament" ? props.initial.format : "2v2",
+  const [format, setFormat] = useState<SettingsSheetEventValues["format"]>(
+    props.kind === "event" ? props.initial.format : "2v2",
   );
   const [hasPlayerLimit, setHasPlayerLimit] = useState<boolean>(
-    props.kind === "tournament"
+    props.kind === "event"
       ? props.initial.maxPlayers > 0 && props.initial.maxPlayers < 999
       : false,
   );
   const [playerLimit, setPlayerLimit] = useState<string>(
-    props.kind === "tournament" ? String(props.initial.maxPlayers) : "16",
+    props.kind === "event" ? String(props.initial.maxPlayers) : "16",
   );
   const [isPrivate, setIsPrivate] = useState<boolean>(
-    props.kind === "tournament" ? props.initial.isPrivate : true,
+    props.kind === "event" ? props.initial.isPrivate : true,
   );
   const [propagatesToLeagueElo, setPropagatesToLeagueElo] = useState<boolean>(
-    props.kind === "tournament" ? props.initial.propagatesToLeagueElo !== false : true,
+    props.kind === "event" ? props.initial.propagatesToLeagueElo !== false : true,
   );
   const [isSaving, setIsSaving] = useState(false);
 
@@ -133,7 +133,7 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
   useEffect(() => {
     if (!isOpen) return;
     setName(props.initial.name);
-    if (props.kind === "tournament") {
+    if (props.kind === "event") {
       setFormat(props.initial.format);
       setHasPlayerLimit(
         props.initial.maxPlayers > 0 && props.initial.maxPlayers < 999,
@@ -159,7 +159,7 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
   // Warning if the new limit is below current enrolled players.
   const parsedLimit = parseInt(playerLimit, 10);
   const playerLimitWarning = useMemo(() => {
-    if (props.kind !== "tournament") return null;
+    if (props.kind !== "event") return null;
     if (!hasPlayerLimit) return null;
     if (isNaN(parsedLimit)) return null;
     if (parsedLimit < props.currentPlayersCount) {
@@ -183,8 +183,8 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      if (props.kind === "tournament") {
-        const updates: SettingsSheetTournamentUpdates = {};
+      if (props.kind === "event") {
+        const updates: SettingsSheetEventUpdates = {};
         if (name.trim() !== props.initial.name) updates.name = name.trim();
         if (format !== props.initial.format) updates.format = format;
 
@@ -291,8 +291,8 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
               />
             </div>
 
-            {/* Tournament-specific fields */}
-            {props.kind === "tournament" && (
+            {/* Event-specific fields */}
+            {props.kind === "event" && (
               <>
                 {/* Format */}
                 <div className="space-y-2">
@@ -491,7 +491,7 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
 
           {/* Sticky footer */}
           <div className="px-5 pb-6 pt-3 border-t border-card flex flex-col gap-3">
-            {props.kind === "tournament" && props.onFinish && (
+            {props.kind === "event" && props.onFinish && (
               <PButton
                 type="button"
                 variant="ghost"

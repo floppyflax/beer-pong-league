@@ -28,7 +28,7 @@ vi.mock('../../src/services/AuthService', () => ({
 // TODO: re-enable after Epic 15 — IdentityMergeService was refactored to call a
 // single `supabase.rpc('merge_anonymous_identity', ...)` Postgres function,
 // replacing the earlier multi-table JS orchestration (league_players,
-// tournament_players, matches updates). These tests mock the old per-table
+// event_players, matches updates). These tests mock the old per-table
 // flow and need a full rewrite against the RPC contract.
 describe.skip('Identity Merge Flow', () => {
   const mockAnonymousUserId = 'anon-123';
@@ -77,7 +77,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         },
-        tournament_players: {
+        event_players: {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ data: [], error: null }),
           }),
@@ -107,7 +107,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         },
-        tournaments: {
+        events: {
           update: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
@@ -173,7 +173,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ data: [], error: null }),
           }),
         },
-        tournament_players: {
+        event_players: {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ data: [], error: null }),
           }),
@@ -191,7 +191,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         },
-        tournaments: {
+        events: {
           update: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
@@ -247,7 +247,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         },
-        tournament_players: {
+        event_players: {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ data: [], error: null }),
           }),
@@ -265,7 +265,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         },
-        tournaments: {
+        events: {
           update: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
@@ -339,7 +339,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         },
-        tournament_players: {
+        event_players: {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ data: [], error: null }),
           }),
@@ -357,7 +357,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         },
-        tournaments: {
+        events: {
           update: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
@@ -419,7 +419,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ data: [], error: null }),
           }),
         },
-        tournament_players: {
+        event_players: {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ data: [], error: null }),
           }),
@@ -441,7 +441,7 @@ describe.skip('Identity Merge Flow', () => {
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         },
-        tournaments: {
+        events: {
           update: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),
@@ -462,7 +462,7 @@ describe.skip('Identity Merge Flow', () => {
       );
 
       expect(result.success).toBe(true);
-      // Should have updated 2 matches (note: migrations also update leagues/tournaments)
+      // Should have updated 2 matches (note: migrations also update leagues/events)
       expect(updateSpy).toHaveBeenCalled();
       
       // Verify first match update

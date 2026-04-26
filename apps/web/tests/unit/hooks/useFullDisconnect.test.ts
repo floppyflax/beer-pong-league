@@ -74,9 +74,9 @@ describe("useFullDisconnect - Story 14.34", () => {
 
   it("should clear LeagueContext cache from localStorage", async () => {
     localStorage.setItem("bpl_leagues", '[{"id":"l1"}]');
-    localStorage.setItem("bpl_tournaments", '[{"id":"t1"}]');
+    localStorage.setItem("bpl_events", '[{"id":"t1"}]');
     localStorage.setItem("bpl_current_league_id", "l1");
-    localStorage.setItem("bpl_current_tournament_id", "t1");
+    localStorage.setItem("bpl_current_event_id", "t1");
 
     const { result } = renderHook(() => useFullDisconnect());
 
@@ -85,8 +85,8 @@ describe("useFullDisconnect - Story 14.34", () => {
     });
 
     expect(localStorage.getItem("bpl_leagues")).toBeNull();
-    expect(localStorage.getItem("bpl_tournaments")).toBeNull();
+    expect(localStorage.getItem("bpl_events")).toBeNull();
     expect(localStorage.getItem("bpl_current_league_id")).toBeNull();
-    expect(localStorage.getItem("bpl_current_tournament_id")).toBeNull();
+    expect(localStorage.getItem("bpl_current_event_id")).toBeNull();
   });
 });

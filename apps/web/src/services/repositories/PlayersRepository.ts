@@ -1,11 +1,11 @@
 /**
- * PlayersRepository — gère les `players` + `league_memberships` + `tournament_memberships`
+ * PlayersRepository — gère les `players` + `league_memberships` + `event_memberships`
  * (mig 022 — modèle unifié).
  *
  * Concepts :
  *   - `players` : entité de jeu, avec un `pseudo` et optionnellement un `user_id`.
  *   - `league_memberships` : appartenance d'un player à une league + ses stats ELO.
- *   - `tournament_memberships` : appartenance à un tournoi (pas de stats — l'ELO
+ *   - `event_memberships` : appartenance à un tournoi (pas de stats — l'ELO
  *     vit au niveau league).
  *   - Pseudo affiché : `membership.pseudo_override` si non-NULL, sinon `players.pseudo`.
  */
@@ -13,12 +13,12 @@
 import type { Player } from '../../types';
 import { BaseRepository, sb } from './_base';
 import { leaguesRepository } from './LeaguesRepository';
-import { tournamentsRepository } from './TournamentsRepository';
+import { eventsRepository } from './EventsRepository';
 
 interface PlayerWithMembership {
   id: string;             // membership row id (legacy callers expect a stable id per context)
   playerId: string;       // players.id
-  leaguePlayerId?: string; // alias kept for tournament participants who also have a league membership
+  leaguePlayerId?: string; // alias kept for event participants who also have a league membership
   name: string;
   elo: number;
   matchesPlayed: number;
@@ -115,19 +115,19 @@ class PlayersRepository extends BaseRepository {
 
   /**
    * Ajoute un guest (ghost player) directement à un tournoi standalone.
-   * Crée un nouveau `players` non-claimé puis le `tournament_memberships`.
+   * Crée un nouveau `players` non-claimé puis le `event_memberships`.
    */
-  async addGuestPlayerToTournament(tournamentId: string, playerName: string): Promise<string> {
+  async addGuestPlayerToEvent(eventId: string, playerName: string): Promise<string> {
     if (!this.isSupabaseAvailable()) {
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
+      const events = eventsRepository.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
         const newId = crypto.randomUUID();
-        tournament.playerIds.push(newId);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
+        event.playerIds.push(newId);
+        eventsRepository.saveEventToLocalStorage(event);
         return newId;
       }
-      throw new Error('Tournament not found');
+      throw new Error('Event not found');
     }
 
     const { data: created, error: createErr } = await sb!
@@ -139,18 +139,18 @@ class PlayersRepository extends BaseRepository {
     const playerId = (created as { id: string }).id;
 
     const { data: mem, error: memErr } = await sb!
-      .from('tournament_memberships')
-      .insert({ tournament_id: tournamentId, player_id: playerId })
+      .from('event_memberships')
+      .insert({ event_id: eventId, player_id: playerId })
       .select('id')
       .single();
     if (memErr) throw memErr;
 
-    // If the tournament is league-linked, also create a league_membership
+    // If the event is league-linked, also create a league_membership
     // so the ghost gets ELO tracking.
     const { data: tData } = await sb!
-      .from('tournaments')
+      .from('events')
       .select('league_id')
-      .eq('id', tournamentId)
+      .eq('id', eventId)
       .single();
     const t = tData as { league_id: string | null } | null;
     if (t?.league_id) {
@@ -168,21 +168,21 @@ class PlayersRepository extends BaseRepository {
    * Ajoute un player anonyme (déjà existant via son user_id anon) à un tournoi.
    * Réutilise le `players` lié à cet anonymous user_id, sinon en crée un.
    */
-  async addAnonymousPlayerToTournament(
-    tournamentId: string,
+  async addAnonymousPlayerToEvent(
+    eventId: string,
     playerName: string,
     anonymousUserId: string
   ): Promise<string> {
     if (!this.isSupabaseAvailable()) {
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (tournament) {
+      const events = eventsRepository.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (event) {
         const newId = crypto.randomUUID();
-        tournament.playerIds.push(newId);
-        tournamentsRepository.saveTournamentToLocalStorage(tournament);
+        event.playerIds.push(newId);
+        eventsRepository.saveEventToLocalStorage(event);
         return newId;
       }
-      throw new Error('Tournament not found');
+      throw new Error('Event not found');
     }
 
     // Resolve or create the players row owned by this anonymous user
@@ -207,15 +207,15 @@ class PlayersRepository extends BaseRepository {
     // Resolve event's league context — drives both auto-add to league
     // and ELO inheritance.
     const { data: tData } = await sb!
-      .from('tournaments')
+      .from('events')
       .select('league_id')
-      .eq('id', tournamentId)
+      .eq('id', eventId)
       .single();
     const t = tData as { league_id: string | null } | null;
 
     // If event is league-linked, ensure a league_membership exists for this
-    // player (auto-add) and inherit its ELO as the tournament_membership
-    // baseline. Otherwise, the tournament_membership starts at default 1000.
+    // player (auto-add) and inherit its ELO as the event_membership
+    // baseline. Otherwise, the event_membership starts at default 1000.
     let inheritedElo: number | null = null;
     if (t?.league_id) {
       const { data: existingLm } = await sb!
@@ -233,14 +233,14 @@ class PlayersRepository extends BaseRepository {
       }
     }
 
-    const insertPayload: { tournament_id: string; player_id: string; elo?: number } = {
-      tournament_id: tournamentId,
+    const insertPayload: { event_id: string; player_id: string; elo?: number } = {
+      event_id: eventId,
       player_id: playerId,
     };
     if (inheritedElo !== null) insertPayload.elo = inheritedElo;
 
     const { data: mem, error: memErr } = await sb!
-      .from('tournament_memberships')
+      .from('event_memberships')
       .insert(insertPayload)
       .select('id')
       .single();
@@ -251,12 +251,12 @@ class PlayersRepository extends BaseRepository {
 
   /**
    * Ajoute un league_membership existant à un tournoi (= "ajouter depuis la ligue").
-   * Crée un tournament_memberships pointant vers le même player_id.
+   * Crée un event_memberships pointant vers le même player_id.
    * Hérite de l'ELO de la ligue (mig 023 — chaque event a son propre ELO,
    * mais on démarre depuis le ELO ligue pour une transition naturelle).
    */
-  async addLeaguePlayerToTournament(
-    tournamentId: string,
+  async addLeaguePlayerToEvent(
+    eventId: string,
     leaguePlayerId: string
   ): Promise<string> {
     if (!this.isSupabaseAvailable()) {
@@ -272,19 +272,19 @@ class PlayersRepository extends BaseRepository {
     if (lmErr || !lm) throw new Error('League membership not found');
     const lmRow = lm as { player_id: string; elo: number };
 
-    // Reuse existing tournament_memberships if present
+    // Reuse existing event_memberships if present
     const { data: existing } = await sb!
-      .from('tournament_memberships')
+      .from('event_memberships')
       .select('id')
-      .eq('tournament_id', tournamentId)
+      .eq('event_id', eventId)
       .eq('player_id', lmRow.player_id)
       .maybeSingle();
     if (existing) return (existing as { id: string }).id;
 
     const { data: mem, error: memErr } = await sb!
-      .from('tournament_memberships')
+      .from('event_memberships')
       .insert({
-        tournament_id: tournamentId,
+        event_id: eventId,
         player_id: lmRow.player_id,
         elo: lmRow.elo,                 // inherit league ELO baseline
       })
@@ -299,14 +299,14 @@ class PlayersRepository extends BaseRepository {
   // ───────────────────────────────────────────────────────────────────────
 
   /**
-   * Charge un player par membership_id (league_memberships.id ou tournament_memberships.id)
+   * Charge un player par membership_id (league_memberships.id ou event_memberships.id)
    * — le caller donne l'id de la row de membership (legacy comportement).
    */
   async loadPlayerById(playerId: string): Promise<{
     player: Player;
     leagueId?: string;
     leagueName?: string;
-    tournamentId?: string;
+    eventId?: string;
   } | null> {
     if (!this.isSupabaseAvailable()) return null;
     try {
@@ -345,24 +345,24 @@ class PlayersRepository extends BaseRepository {
         };
       }
 
-      // 2. Try tournament_memberships
+      // 2. Try event_memberships
       const { data: tm } = await sb!
-        .from('tournament_memberships')
-        .select('id, tournament_id, player_id, pseudo_override, player:players(pseudo)')
+        .from('event_memberships')
+        .select('id, event_id, player_id, pseudo_override, player:players(pseudo)')
         .eq('id', playerId)
         .maybeSingle();
       if (tm) {
         const row = tm as unknown as {
           id: string;
-          tournament_id: string;
+          event_id: string;
           player_id: string;
           pseudo_override: string | null;
           player: { pseudo: string } | null;
         };
         const { data: tData } = await sb!
-          .from('tournaments')
+          .from('events')
           .select('league_id')
-          .eq('id', row.tournament_id)
+          .eq('id', row.event_id)
           .single();
         const tInfo = tData as { league_id: string | null } | null;
         let elo = 1500, wins = 0, losses = 0, matchesPlayed = 0;
@@ -394,7 +394,7 @@ class PlayersRepository extends BaseRepository {
           },
           leagueId: tInfo?.league_id ?? undefined,
           leagueName: league?.name,
-          tournamentId: row.tournament_id,
+          eventId: row.event_id,
         };
       }
       return null;
@@ -405,19 +405,19 @@ class PlayersRepository extends BaseRepository {
   }
 
   /**
-   * Charge les participants d'un tournoi (tournament_memberships joined avec
+   * Charge les participants d'un tournoi (event_memberships joined avec
    * players + éventuellement league_memberships pour les stats).
    */
-  async loadTournamentParticipants(tournamentId: string): Promise<PlayerWithMembership[]> {
+  async loadEventParticipants(eventId: string): Promise<PlayerWithMembership[]> {
     if (!this.isSupabaseAvailable()) {
-      const tournaments = tournamentsRepository.loadTournamentsFromLocalStorage();
-      const tournament = tournaments.find((t) => t.id === tournamentId);
-      if (!tournament || !tournament.leagueId) return [];
+      const events = eventsRepository.loadEventsFromLocalStorage();
+      const event = events.find((t) => t.id === eventId);
+      if (!event || !event.leagueId) return [];
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
-      const league = leagues.find((l) => l.id === tournament.leagueId);
+      const league = leagues.find((l) => l.id === event.leagueId);
       if (!league) return [];
       return league.players
-        .filter((p) => tournament.playerIds.includes(p.id))
+        .filter((p) => event.playerIds.includes(p.id))
         .map((p) => ({
           id: p.id,
           playerId: p.id,
@@ -431,10 +431,10 @@ class PlayersRepository extends BaseRepository {
     }
 
     try {
-      // Since mig 023, tournament_memberships has its own ELO/W/L/streak
+      // Since mig 023, event_memberships has its own ELO/W/L/streak
       // columns (per-event ELO bubble, optionally propagating to league).
       const { data, error } = await sb!
-        .from('tournament_memberships')
+        .from('event_memberships')
         .select(`
           id,
           player_id,
@@ -448,7 +448,7 @@ class PlayersRepository extends BaseRepository {
           streak,
           player:players ( id, pseudo, avatar_url, user_id )
         `)
-        .eq('tournament_id', tournamentId)
+        .eq('event_id', eventId)
         .order('joined_at', { ascending: true });
       if (error) throw error;
 
@@ -469,9 +469,9 @@ class PlayersRepository extends BaseRepository {
       // Optional: still resolve league_memberships.id for the few consumers
       // (e.g. PlayerProfile cross-context navigation) that need it.
       const { data: tData } = await sb!
-        .from('tournaments')
+        .from('events')
         .select('league_id')
-        .eq('id', tournamentId)
+        .eq('id', eventId)
         .single();
       const tInfo = tData as { league_id: string | null } | null;
 
@@ -504,7 +504,8 @@ class PlayersRepository extends BaseRepository {
         isArchived: r.archived_at != null,
       }));
     } catch (error) {
-      console.error('Error loading tournament participants:', error);
+      const detail = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error('Error loading event participants:', detail);
       return [];
     }
   }
@@ -518,12 +519,12 @@ class PlayersRepository extends BaseRepository {
    * Ce mapping retourne, pour un tournoi donné, la map playerId → display name
    * pour rendre les matches sans avoir besoin de la liste complète.
    */
-  async loadMatchPlayerNames(tournamentId: string): Promise<Map<string, string>> {
+  async loadMatchPlayerNames(eventId: string): Promise<Map<string, string>> {
     if (!this.isSupabaseAvailable()) return new Map();
     const { data } = await sb!
-      .from('tournament_memberships')
+      .from('event_memberships')
       .select('player_id, pseudo_override, player:players(pseudo)')
-      .eq('tournament_id', tournamentId);
+      .eq('event_id', eventId);
     const rows = (data ?? []) as unknown as Array<{
       player_id: string;
       pseudo_override: string | null;
@@ -640,7 +641,7 @@ class PlayersRepository extends BaseRepository {
         };
       }
       const { data: tm } = await sb!
-        .from('tournament_memberships')
+        .from('event_memberships')
         .select('joined_at, player:players(user_id, avatar_url)')
         .eq('id', membershipId)
         .maybeSingle();

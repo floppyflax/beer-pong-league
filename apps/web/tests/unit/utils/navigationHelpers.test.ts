@@ -52,7 +52,7 @@ describe("navigationHelpers", () => {
       expect(shouldShowBottomMenu("/unknown")).toBe(false);
     });
 
-    it("should return true for tournament invite/join sub-routes (design-system 5.5)", () => {
+    it("should return true for event invite/join sub-routes (design-system 5.5)", () => {
       expect(shouldShowBottomMenu("/event/123/invite")).toBe(true);
       expect(shouldShowBottomMenu("/event/123/join")).toBe(true);
     });
@@ -78,7 +78,7 @@ describe("navigationHelpers", () => {
       expect(getContentPaddingBottom("/leagues")).toContain("pb-20");
     });
 
-    it("should return pb-20 for tournament invite/join sub-routes", () => {
+    it("should return pb-20 for event invite/join sub-routes", () => {
       expect(getContentPaddingBottom("/event/123/invite")).toContain(
         "pb-20",
       );
@@ -104,7 +104,7 @@ describe("navigationHelpers", () => {
       expect(shouldShowBackButton("/join")).toBe(false);
     });
 
-    it("should return false for tournaments route (main nav, Story 14-12)", () => {
+    it("should return false for events route (main nav, Story 14-12)", () => {
       expect(shouldShowBackButton("/events")).toBe(false);
     });
 
@@ -112,7 +112,7 @@ describe("navigationHelpers", () => {
       expect(shouldShowBackButton("/leagues")).toBe(false);
     });
 
-    it("should return true for tournament detail pages", () => {
+    it("should return true for event detail pages", () => {
       expect(shouldShowBackButton("/event/123")).toBe(true);
       expect(shouldShowBackButton("/event/abc/invite")).toBe(true);
     });
@@ -139,7 +139,7 @@ describe("navigationHelpers", () => {
       expect(shouldShowSidebar("/join")).toBe(true);
     });
 
-    it("should return true for tournaments route", () => {
+    it("should return true for events route", () => {
       expect(shouldShowSidebar("/events")).toBe(true);
     });
 
@@ -151,7 +151,7 @@ describe("navigationHelpers", () => {
       expect(shouldShowSidebar("/user/profile")).toBe(true);
     });
 
-    it("should return true for tournament detail pages", () => {
+    it("should return true for event detail pages", () => {
       expect(shouldShowSidebar("/event/123")).toBe(true);
       expect(shouldShowSidebar("/event/abc/invite")).toBe(true);
     });

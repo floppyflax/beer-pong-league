@@ -25,7 +25,9 @@ export interface NavigationContextType {
 /**
  * Navigation context for managing navigation state across the app
  */
-const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
+// Exported so the design-system showcase can wrap pages with a
+// fixture-only Navigation context (see MockProviders.tsx).
+export const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 interface NavigationProviderProps {
   children: ReactNode;

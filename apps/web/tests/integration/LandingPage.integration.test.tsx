@@ -37,7 +37,7 @@ describe.skip("LandingPage Integration Tests", () => {
   });
 
   describe("Full Auth Flow (AC3)", () => {
-    it("should complete full auth flow for tournament creation", async () => {
+    it("should complete full auth flow for event creation", async () => {
       render(
         <BrowserRouter>
           <LandingPage />
@@ -45,8 +45,8 @@ describe.skip("LandingPage Integration Tests", () => {
       );
 
       // Click "Créer un tournoi" button
-      const tournamentButton = screen.getByText(/Créer un tournoi/i);
-      fireEvent.click(tournamentButton);
+      const eventButton = screen.getByText(/Créer un tournoi/i);
+      fireEvent.click(eventButton);
 
       // Verify auth modal opened
       expect(screen.getByTestId("auth-modal")).toBeInTheDocument();
@@ -91,9 +91,9 @@ describe.skip("LandingPage Integration Tests", () => {
         </BrowserRouter>,
       );
 
-      // Click tournament button
-      const tournamentButton = screen.getByText(/Créer un tournoi/i);
-      fireEvent.click(tournamentButton);
+      // Click event button
+      const eventButton = screen.getByText(/Créer un tournoi/i);
+      fireEvent.click(eventButton);
 
       // Verify stored immediately
       expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
@@ -113,7 +113,7 @@ describe.skip("LandingPage Integration Tests", () => {
         </BrowserRouter>,
       );
 
-      // Click tournament
+      // Click event
       fireEvent.click(screen.getByText(/Créer un tournoi/i));
       expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
 
@@ -129,7 +129,7 @@ describe.skip("LandingPage Integration Tests", () => {
   });
 
   describe("Public Access to Join (AC2)", () => {
-    it("should allow joining tournament without authentication", () => {
+    it("should allow joining event without authentication", () => {
       render(
         <BrowserRouter>
           <LandingPage />
@@ -176,7 +176,7 @@ describe.skip("LandingPage Integration Tests", () => {
         </BrowserRouter>,
       );
 
-      // 1. User clicks tournament
+      // 1. User clicks event
       fireEvent.click(screen.getByText(/Créer un tournoi/i));
       expect(sessionStorage.getItem("authReturnTo")).toBe("/create-event");
 
@@ -190,7 +190,7 @@ describe.skip("LandingPage Integration Tests", () => {
       // 4. User completes auth
       fireEvent.click(screen.getByText("Complete Auth"));
 
-      // Should go to league, not tournament
+      // Should go to league, not event
       await waitFor(() => {
         expect(window.location.href).toContain("/create-league");
       });

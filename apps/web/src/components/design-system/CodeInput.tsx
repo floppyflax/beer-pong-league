@@ -2,7 +2,7 @@
  * CodeInput — Everything ELO DS (§5.2)
  *
  * OTP-style code input with N separate boxes (default: 6).
- * Used in Join, TournamentJoin, AuthCallback OTP flows.
+ * Used in Join, EventJoin, AuthCallback OTP flows.
  *
  * - uppercase=true by default (6-char join codes are uppercase)
  * - Filters to alphanumeric only

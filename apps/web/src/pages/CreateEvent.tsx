@@ -1,7 +1,7 @@
 /**
- * CreateTournament Page — Everything ELO refonte (Phase 2)
+ * CreateEvent Page — Everything ELO refonte (Phase 2)
  *
- * Tournament creation form aligné DS Everything ELO :
+ * Event creation form aligné DS Everything ELO :
  * - PageHero (titre éditorial) au lieu de ContextualHeader sticky
  * - Premium banner mis en avant avec couronne (upgrade urgency)
  * - Sélecteur Type d'événement (ELO vs Bracket)
@@ -17,7 +17,7 @@ import { useIdentity } from "@/hooks/useIdentity";
 import { useLeague } from "@/context/LeagueContext";
 import { premiumService } from "@/services/PremiumService";
 import { databaseService } from "@/services/DatabaseService";
-import { generateTournamentCode } from "@/utils/tournamentCode";
+import { generateEventCode } from "@/utils/eventCode";
 import { PaymentModal } from "@/components/PaymentModal";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { PageHero, StickyCTA } from "@/components/design-system";
@@ -103,9 +103,9 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
   // Premium status and limits
   const [isLoadingPremium, setIsLoadingPremium] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
-  const [tournamentCount, setTournamentCount] = useState(0);
+  const [eventCount, setEventCount] = useState(0);
   const [canCreate, setCanCreate] = useState(false);
-  const [remainingTournaments, setRemainingTournaments] = useState(0);
+  const [remainingEvents, setRemainingEvents] = useState(0);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Form state
@@ -133,12 +133,12 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
       const premiumStatus = await premiumService.isPremium(userId, anonymousUserId);
       setIsPremium(premiumStatus);
 
-      const count = await premiumService.getTournamentCount(userId, anonymousUserId);
-      setTournamentCount(count);
+      const count = await premiumService.getEventCount(userId, anonymousUserId);
+      setEventCount(count);
 
-      const result = await premiumService.canCreateTournament(userId, anonymousUserId);
+      const result = await premiumService.canCreateEvent(userId, anonymousUserId);
       setCanCreate(result.allowed);
-      setRemainingTournaments(result.remaining || 0);
+      setRemainingEvents(result.remaining || 0);
     } catch (error) {
       console.error('Error checking premium status:', error);
       toast.error('Erreur lors de la vérification du statut premium');
@@ -152,7 +152,7 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
       setIsLoadingPremium(false);
       setIsPremium(false);
       setCanCreate(true);
-      setRemainingTournaments(2);
+      setRemainingEvents(2);
       return;
     }
     checkPremiumStatus();
@@ -205,8 +205,8 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
   const generateUniqueCode = async (): Promise<string> => {
     const maxAttempts = 10;
     for (let attempts = 0; attempts < maxAttempts; attempts++) {
-      const code = generateTournamentCode();
-      const exists = await databaseService.tournamentCodeExists(code);
+      const code = generateEventCode();
+      const exists = await databaseService.eventCodeExists(code);
       if (!exists) return code;
     }
     throw new Error('Impossible de générer un code unique. Réessayez.');
@@ -233,7 +233,7 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
       const selectedFormat = FORMAT_OPTIONS.find(f => f.value === format)!;
       const maxPlayersValue = hasPlayerLimit ? parseInt(playerLimit) : null;
 
-      const tournamentId = await databaseService.createTournament({
+      const eventId = await databaseService.createEvent({
         name: name.trim(),
         joinCode,
         formatType: selectedFormat.formatType,
@@ -248,9 +248,9 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
 
       toast.success('Événement créé ! 🎉');
       await reloadData();
-      navigate(`/event/${tournamentId}`);
+      navigate(`/event/${eventId}`);
     } catch (error) {
-      console.error('Error creating tournament:', error);
+      console.error('Error creating event:', error);
       const message =
         error instanceof Error && error.message.includes('code unique')
           ? error.message
@@ -312,11 +312,11 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
             <div className="flex-1 min-w-0">
               <div className="font-archivo font-extrabold uppercase tracking-tight text-base leading-tight">
                 <span className="text-ping-yellow text-2xl">
-                  {remainingTournaments}
+                  {remainingEvents}
                 </span>{" "}
                 <span className="text-white">
-                  événement{remainingTournaments > 1 ? "s" : ""} restant
-                  {remainingTournaments > 1 ? "s" : ""} sur 2
+                  événement{remainingEvents > 1 ? "s" : ""} restant
+                  {remainingEvents > 1 ? "s" : ""} sur 2
                 </span>
               </div>
               <p className="text-white/70 text-sm mt-0.5">
@@ -346,7 +346,7 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
 
         {!showLimitReachedModal && (
           <form
-            id="create-tournament-form"
+            id="create-event-form"
             onSubmit={handleSubmit}
             className="flex flex-col gap-6"
             noValidate
@@ -560,7 +560,7 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
         <StickyCTA>
           <PButton
             type="submit"
-            form="create-tournament-form"
+            form="create-event-form"
             variant="primary"
             size="lg"
             full
@@ -600,8 +600,8 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
               Limite atteinte
             </h2>
             <p className="text-cool-gray mb-6">
-              Tu as créé {tournamentCount} événement
-              {tournamentCount > 1 ? "s" : ""}. Passe Premium pour créer des
+              Tu as créé {eventCount} événement
+              {eventCount > 1 ? "s" : ""}. Passe Premium pour créer des
               événements illimités !
             </p>
             <div className="flex flex-col gap-3">

@@ -3,12 +3,12 @@ import { Award, Trophy } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formatRelativeTime } from "@/utils/dateUtils";
 
-export type LastActivityKind = "league" | "tournament";
+export type LastActivityKind = "league" | "event";
 
 export interface LastActivity {
   id: string;
   name: string;
-  /** members (league) ou joueurs (tournament) */
+  /** members (league) ou joueurs (event) */
   count: number;
   /** ISO date of last activity */
   updatedAt: string;
@@ -49,7 +49,7 @@ const CONFIG: Record<LastActivityKind, KindConfig> = {
     finishedLabel: "Terminée",
     activeLabel: "Active",
   },
-  tournament: {
+  event: {
     Icon: Trophy,
     emptyTitle: "Aucun événement",
     emptyDescription: "Rejoignez un événement pour commencer à jouer",
@@ -98,7 +98,7 @@ export function LastActivityCard({
         <button
           type="button"
           onClick={handleEmpty}
-          className="w-full bg-signal-red text-white border-[1.5px] border-signal-red-deep shadow-[0_3px_0_#C42418] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 rounded-full transition-[transform,box-shadow,filter] duration-75 flex items-center justify-center gap-2"
+          className="w-full bg-ping-yellow text-navy border-[1.5px] border-ping-yellow-deep shadow-[0_3px_0_#D9B400] hover:brightness-110 active:translate-y-[2px] active:shadow-[0_1px_0_#D9B400] font-archivo font-bold uppercase tracking-tight py-3 rounded-full transition-[transform,box-shadow,filter] duration-75 flex items-center justify-center gap-2"
         >
           {cfg.emptyCta}
           {emptyActionLocked && <span aria-label="Premium requis">🔒</span>}
@@ -138,7 +138,7 @@ export function LastActivityCard({
         Dernière activité : {formatRelativeTime(activity.updatedAt)}
       </p>
 
-      <div className="w-full bg-signal-red text-white border-[1.5px] border-signal-red-deep shadow-[0_3px_0_#C42418] font-archivo font-bold uppercase tracking-tight py-3 rounded-full text-center">
+      <div className="w-full bg-ping-yellow text-navy border-[1.5px] border-ping-yellow-deep shadow-[0_3px_0_#D9B400] font-archivo font-bold uppercase tracking-tight py-3 rounded-full text-center">
         Voir le classement
       </div>
     </button>
