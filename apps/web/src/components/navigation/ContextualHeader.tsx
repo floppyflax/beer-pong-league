@@ -83,7 +83,7 @@ export const ContextualHeader: React.FC<ContextualHeaderProps> = ({
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-navy/80 backdrop-blur-md border-b border-card flex items-center justify-between px-4">
+    <header className="sticky top-0 z-30 h-16 bg-navy/85 backdrop-blur-md flex items-center justify-between px-4">
       <div className="flex items-center gap-2 flex-1 min-w-0">
         {showBackButton && (
           <button

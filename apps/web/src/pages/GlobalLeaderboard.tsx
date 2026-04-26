@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import { ScreenLayout, PageHero } from "@/components/design-system";
 import { SegmentedTabs } from "@/components/design-system";
-import { LeaderRow } from "@/components/ponglo/LeaderRow";
+import { PlayerCard } from "@/components/design-system/PlayerCard";
 import type { LeaderboardPlayer } from "@/components/ponglo/LeaderRow";
 import { Trophy } from "lucide-react";
 import { useIsAnonymous } from "@/hooks/useIsAnonymous";
@@ -150,10 +150,17 @@ export function GlobalLeaderboard() {
         {sorted.length > 0 && (
           <div className="space-y-1.5">
             {sorted.map((player, idx) => (
-              <LeaderRow
+              <PlayerCard
                 key={player.id}
+                variant="leaderRow"
                 rank={idx + 1}
-                player={player}
+                name={player.name}
+                avatarUrl={player.avatarUrl}
+                elo={player.elo}
+                delta={player.delta}
+                wins={player.wins}
+                losses={player.losses}
+                winRate={player.winRate}
                 onClick={() => navigate(`/player/${player.id}`)}
               />
             ))}

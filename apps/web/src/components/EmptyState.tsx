@@ -1,28 +1,42 @@
+/**
+ * Re-export of the design-system `EmptyState` atom with a backwards-compatible
+ * shim that accepts a Lucide icon as a class component (legacy callers passed
+ * `icon={Trophy}`). Internally we wrap it in the same circle the legacy
+ * component used so existing pages render unchanged.
+ */
+
 import { ReactNode } from "react";
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { EmptyState as DSEmptyState } from "./design-system/atoms/EmptyState";
 
 interface EmptyStateProps {
+  /** Lucide icon class (legacy) — wrapped in a circle automatically. */
   icon?: LucideIcon;
   title: string;
   description?: string;
   action?: ReactNode;
 }
 
-export const EmptyState = ({ icon: Icon, title, description, action }: EmptyStateProps) => {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-      {Icon && (
-        <div className="mb-4 p-4 bg-navy-soft rounded-full">
-          <Icon size={48} className="text-cool-gray" />
-        </div>
-      )}
-      <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-      {description && (
-        <p className="text-cool-gray mb-6 max-w-sm">{description}</p>
-      )}
-      {action && <div className="mt-4">{action}</div>}
+export const EmptyState = ({
+  icon: Icon,
+  title,
+  description,
+  action,
+}: EmptyStateProps) => {
+  const iconNode = Icon ? (
+    <div className="p-4 bg-navy-soft rounded-full">
+      <Icon size={48} className="text-cool-gray" />
     </div>
+  ) : (
+    <span aria-hidden>·</span>
+  );
+
+  return (
+    <DSEmptyState
+      icon={iconNode}
+      title={title}
+      description={description}
+      action={action}
+    />
   );
 };
-
-

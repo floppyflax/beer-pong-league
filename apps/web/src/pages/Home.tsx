@@ -13,6 +13,7 @@ import { PaymentModal } from "../components/PaymentModal";
 import { PongloGlyph } from "../components/ponglo/Wordmark";
 import { PButton } from "../components/ponglo/PButton";
 import { EloDelta } from "../components/ponglo/EloDelta";
+import { QuickAction } from "../components/design-system";
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -234,40 +235,4 @@ export const Home = () => {
   );
 };
 
-function QuickAction({
-  label,
-  sub,
-  icon,
-  bg,
-  color,
-  border,
-  onClick,
-}: {
-  label: string;
-  sub: string;
-  icon: React.ReactNode;
-  bg: string;
-  color: string;
-  border?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`${bg} ${color} ${
-        border ? "border-[1.5px] border-card" : ""
-      } rounded-lg p-3.5 flex flex-col justify-between gap-[22px] min-h-[86px] text-left transition-transform active:scale-[0.98]`}
-    >
-      <div className="opacity-80">{icon}</div>
-      <div>
-        <div className="font-archivo font-extrabold text-sm tracking-[-0.2px]">
-          {label}
-        </div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.5px] opacity-70 mt-0.5">
-          {sub}
-        </div>
-      </div>
-    </button>
-  );
-}
 

@@ -12,7 +12,6 @@ import {
   Banner,
   StatCard,
   HelpCard,
-  InfoCard,
   FAB,
   SegmentedTabs,
   SearchBar,
@@ -20,6 +19,7 @@ import {
   MatchHistoryCard,
   ScreenLayout,
   EventCard,
+  PlayerCard,
 } from "@/components/design-system";
 import {
   PongloWordmark,
@@ -41,7 +41,7 @@ import {
   MatchRow,
   DayGroup,
 } from "@/components/ponglo";
-import { Calendar, Users, LayoutGrid, Plus, Trophy } from "lucide-react";
+import { Users, LayoutGrid, Plus, Trophy } from "lucide-react";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { AchievementCard } from "@/components/achievements/AchievementCard";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
@@ -85,6 +85,106 @@ function Section({
       </header>
       {children}
     </section>
+  );
+}
+
+/**
+ * Catalogue d'états vides utilisés dans l'app — sélectionne via dropdown
+ * pour éviter d'empiler 8 cartes.
+ */
+const EMPTY_STATE_VARIANTS = [
+  {
+    id: "events",
+    icon: "🏆",
+    title: "Aucun événement",
+    description: "Crée un événement ou rejoins-en un via le code d'invitation.",
+    cta: "Créer un événement",
+  },
+  {
+    id: "leagues",
+    icon: "🏅",
+    title: "Aucune ligue",
+    description:
+      "Crée une ligue ou rejoins-en une via QR pour un championnat long-terme.",
+    cta: "Créer une ligue",
+  },
+  {
+    id: "matches",
+    icon: "🍻",
+    title: "Aucun match enregistré",
+    description: "Démarre une partie pour voir les résultats apparaître ici.",
+    cta: "Nouveau match",
+  },
+  {
+    id: "players",
+    icon: "👥",
+    title: "Aucun joueur",
+    description: "Invite les premiers joueurs pour démarrer le classement.",
+    cta: "Inviter",
+  },
+  {
+    id: "ranking",
+    icon: "📈",
+    title: "Pas encore de classement",
+    description: "Le classement apparaît après le premier match confirmé.",
+  },
+  {
+    id: "achievements",
+    icon: "✨",
+    title: "Aucun succès débloqué",
+    description: "Joue ton premier match pour décrocher ton premier badge.",
+  },
+  {
+    id: "history",
+    icon: "📜",
+    title: "Pas d'historique",
+    description: "Tes derniers matchs s'afficheront ici.",
+  },
+  {
+    id: "search",
+    icon: "🔍",
+    title: "Aucun résultat",
+    description: "Aucun joueur ne correspond à ta recherche.",
+  },
+] as const;
+
+function EmptyStatesGallery() {
+  const [selected, setSelected] = useState<string>(EMPTY_STATE_VARIANTS[0].id);
+  const variant =
+    EMPTY_STATE_VARIANTS.find((v) => v.id === selected) ??
+    EMPTY_STATE_VARIANTS[0];
+  return (
+    <div className="space-y-3">
+      <select
+        value={selected}
+        onChange={(e) => setSelected(e.target.value)}
+        className="bg-navy-soft border border-card rounded-input px-3 py-2 text-sm text-white font-mono"
+      >
+        {EMPTY_STATE_VARIANTS.map((v) => (
+          <option key={v.id} value={v.id}>
+            {v.title}
+          </option>
+        ))}
+      </select>
+      <div className="bg-navy-soft border border-card rounded-card max-w-md">
+        <EmptyState
+          icon={variant.icon}
+          title={variant.title}
+          description={variant.description}
+          minHeight="min-h-[28vh]"
+          action={
+            "cta" in variant && variant.cta ? (
+              <button
+                type="button"
+                className="bg-ping-yellow text-navy border-[1.5px] border-ping-yellow-deep shadow-[0_3px_0_#D9B400] px-5 h-11 rounded-full font-archivo font-extrabold uppercase text-[11px] tracking-[1px] hover:brightness-110 transition"
+              >
+                {variant.cta}
+              </button>
+            ) : undefined
+          }
+        />
+      </div>
+    </div>
   );
 }
 
@@ -657,23 +757,74 @@ export function DesignSystemShowcase() {
                 rank={2}
                 delta={-12}
               />
-              <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pt-2">
-                ↓ Variants event / league legacy — utilisés nulle part en prod, voir EventCard / LeagueCard à la place
-              </p>
-              <ListRow
-                variant="event"
-                name="Tournoi d'été"
-                date="15 juin 2025"
-                status="En cours"
-                metrics={{ matches: 12, players: 8, format: "Simple" }}
-              />
-              <ListRow
-                variant="league"
-                name="Ligue Pro"
-                date="2025"
-                status="Terminée"
-                metrics={{ matches: 50, players: 12, format: "Round-robin" }}
-              />
+            </div>
+          </div>
+
+          {/* PlayerCard — variants compact / leaderRow / detailed */}
+          <div>
+            <SubHeading>PlayerCard — 3 variants (compact · leaderRow · detailed)</SubHeading>
+            <div className="space-y-3">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray">variant=&quot;compact&quot; — picker</p>
+              <div className="space-y-2 max-w-md">
+                <PlayerCard variant="compact" name="Florian" avatarUrl="https://i.pravatar.cc/150?img=12" selected />
+                <PlayerCard variant="compact" name="Amar" />
+              </div>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pt-2">variant=&quot;leaderRow&quot; — classement avec rang à gauche, stats W/L/% inline + dots</p>
+              <div className="space-y-2 max-w-md">
+                <PlayerCard
+                  variant="leaderRow"
+                  name="Alice Martin"
+                  elo={1547}
+                  rank={1}
+                  delta={25}
+                  wins={12}
+                  losses={5}
+                  recentResults={[true, true, false, true, true]}
+                  avatarUrl="https://i.pravatar.cc/150?img=45"
+                />
+                <PlayerCard
+                  variant="leaderRow"
+                  name="Bob Dupont"
+                  elo={1180}
+                  rank={2}
+                  delta={-12}
+                  wins={10}
+                  losses={2}
+                  recentResults={[true, false, true, true, true]}
+                />
+                <PlayerCard
+                  variant="leaderRow"
+                  name="Niko"
+                  elo={1102}
+                  rank={3}
+                  wins={6}
+                  losses={9}
+                  recentResults={[false, false, true, false, false]}
+                />
+              </div>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pt-2">variant=&quot;detailed&quot; — profil joueur (2 lignes)</p>
+              <div className="space-y-2 max-w-md">
+                <PlayerCard
+                  variant="detailed"
+                  name="Florian"
+                  elo={1234}
+                  delta={18}
+                  rank={1}
+                  wins={19}
+                  losses={9}
+                  recentResults={[true, true, true, false, true]}
+                  avatarUrl="https://i.pravatar.cc/150?img=12"
+                />
+                <PlayerCard
+                  variant="detailed"
+                  name="Niko"
+                  elo={1102}
+                  delta={-7}
+                  wins={10}
+                  losses={13}
+                  recentResults={[false, false, true, false, true]}
+                />
+              </div>
             </div>
           </div>
 
@@ -687,22 +838,6 @@ export function DesignSystemShowcase() {
                 { number: 3, text: "Ils rejoignent l'événement" },
               ]}
               successMessage="C'est parti pour la compétition !"
-            />
-          </div>
-
-          <div>
-            <SubHeading>
-              InfoCard — <span className="text-signal-red">legacy / unused en prod</span> (DetailHero a remplacé son usage sur les dashboards)
-            </SubHeading>
-            <InfoCard
-              title="Tournoi Beer Pong Mars 2025"
-              statusBadge="En cours"
-              statusVariant="active"
-              infos={[
-                { icon: Calendar, text: "15 mars 2025" },
-                { icon: Users, text: "8 joueurs" },
-                { icon: LayoutGrid, text: "2v2" },
-              ]}
             />
           </div>
 
@@ -1209,15 +1344,8 @@ export function DesignSystemShowcase() {
             </div>
           </div>
           <div className="space-y-2 mt-4">
-            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">EmptyState</p>
-            <div className="bg-navy-soft border border-card rounded-card">
-              <EmptyState
-                icon="🏆"
-                title="Aucun événement"
-                description="Crée un événement ou rejoins-en un via le code d'invitation."
-                minHeight="min-h-[20vh]"
-              />
-            </div>
+            <p className="text-xs font-mono text-cool-gray uppercase tracking-wider">EmptyState — galerie via dropdown</p>
+            <EmptyStatesGallery />
           </div>
         </Section>
 

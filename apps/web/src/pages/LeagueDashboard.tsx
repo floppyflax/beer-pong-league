@@ -36,7 +36,8 @@ import { identityMergeService } from "@/services/IdentityMergeService";
 import { getDeltaFromLastMatch } from "@/utils/playerStats";
 import { exportLeagueJSON, exportPlayersCSV, exportMatchesCSV } from "@/services/ExportService";
 import { Podium } from "@/components/ponglo/Podium";
-import { LeaderRow } from "@/components/ponglo/LeaderRow";
+import { PButton } from "@/components/ponglo/PButton";
+import { PlayerCard } from "@/components/design-system/PlayerCard";
 
 export const LeagueDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -99,12 +100,9 @@ export const LeagueDashboard = () => {
           title="Ligue introuvable"
           description="Cette ligue n'existe pas ou a été supprimée."
           action={
-            <button
-              onClick={() => navigate("/")}
-              className="px-4 py-2 bg-signal-red text-white rounded-lg font-bold hover:brightness-110 transition-colors"
-            >
-              Retour à l'accueil
-            </button>
+            <PButton variant="primary" size="md" onClick={() => navigate("/")}>
+              Retour à l&apos;accueil
+            </PButton>
           }
         />
       </div>
@@ -333,13 +331,14 @@ export const LeagueDashboard = () => {
                 title="Aucun joueur"
                 description="Ajoute des joueurs pour commencer à enregistrer des matchs."
                 action={
-                  <button
+                  <PButton
+                    variant="primary"
+                    size="md"
+                    icon={<Plus size={16} />}
                     onClick={() => setShowAddPlayer(true)}
-                    className="px-4 py-2 bg-signal-red text-white rounded-lg font-bold hover:brightness-110 transition-colors"
                   >
-                    <Plus size={16} className="inline mr-2" />
                     Ajouter un joueur
-                  </button>
+                  </PButton>
                 }
               />
             ) : (
@@ -371,15 +370,15 @@ export const LeagueDashboard = () => {
                       sortedMatches,
                     );
                     return (
-                      <LeaderRow
+                      <PlayerCard
                         key={player.id}
+                        variant="leaderRow"
+                        name={player.name}
+                        elo={player.elo}
+                        delta={delta ?? undefined}
                         rank={rank}
-                        player={{
-                          id: player.id,
-                          name: player.name,
-                          elo: player.elo,
-                          delta: delta ?? undefined,
-                        }}
+                        wins={player.wins}
+                        losses={player.losses}
                         onClick={() => navigate(`/player/${player.id}`)}
                       />
                     );
@@ -397,13 +396,14 @@ export const LeagueDashboard = () => {
                 title="Aucun match"
                 description="Enregistre ton premier match pour voir l'évolution des classements."
                 action={
-                  <button
+                  <PButton
+                    variant="primary"
+                    size="md"
+                    icon={<Plus size={16} />}
                     onClick={() => navigate(`/record-match/league/${league.id}`)}
-                    className="px-4 py-2 bg-signal-red text-white rounded-lg font-bold hover:brightness-110 transition-colors"
                   >
-                    <Plus size={16} className="inline mr-2" />
                     Enregistrer un match
-                  </button>
+                  </PButton>
                 }
               />
             ) : (
@@ -495,15 +495,16 @@ export const LeagueDashboard = () => {
                 title="Aucun événement"
                 description="Cette ligue n'a pas encore d'événement associé."
                 action={
-                  <button
+                  <PButton
+                    variant="primary"
+                    size="md"
+                    icon={<Plus size={16} />}
                     onClick={() =>
                       navigate(`/create-event?leagueId=${league.id}`)
                     }
-                    className="px-4 py-2 bg-signal-red text-white rounded-lg font-bold hover:brightness-110 transition-colors"
                   >
-                    <Plus size={16} className="inline mr-2" />
                     Créer un événement
-                  </button>
+                  </PButton>
                 }
               />
             )}

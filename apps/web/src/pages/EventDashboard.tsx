@@ -44,7 +44,8 @@ import { identityMergeService } from "@/services/IdentityMergeService";
 import { matchAdminService } from "@/services/MatchAdminService";
 import { eloRecalcService } from "@/services/EloRecalcService";
 import { Podium } from "@/components/ponglo/Podium";
-import { LeaderRow } from "@/components/ponglo/LeaderRow";
+import { PButton } from "@/components/ponglo/PButton";
+import { PlayerCard } from "@/components/design-system/PlayerCard";
 
 import { getDeltaFromLastMatch } from "@/utils/playerStats";
 
@@ -235,12 +236,9 @@ export const EventDashboard = () => {
           title="Événement introuvable"
           description="Cet événement n'existe pas ou a été supprimé."
           action={
-            <button
-              onClick={() => navigate("/")}
-              className="px-4 py-2 bg-signal-red text-white rounded-lg font-bold hover:brightness-110 transition-colors"
-            >
-              Retour à l'accueil
-            </button>
+            <PButton variant="primary" size="md" onClick={() => navigate("/")}>
+              Retour à l&apos;accueil
+            </PButton>
           }
         />
       </div>
@@ -645,15 +643,15 @@ export const EventDashboard = () => {
                         sortedMatches,
                       );
                       return (
-                        <LeaderRow
+                        <PlayerCard
                           key={player.id}
+                          variant="leaderRow"
+                          name={player.name}
+                          elo={player.elo}
+                          delta={delta ?? undefined}
                           rank={rank}
-                          player={{
-                            id: player.id,
-                            name: player.name,
-                            elo: player.elo,
-                            delta: delta ?? undefined,
-                          }}
+                          wins={player.wins}
+                          losses={player.losses}
                           onClick={() => navigate(`/player/${profileId}`)}
                         />
                       );

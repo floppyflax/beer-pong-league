@@ -19,6 +19,25 @@
 import { ChevronLeft, MoreVertical } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+/**
+ * Tracks vertical scroll on the closest scrollable ancestor (or window) and
+ * returns true once the threshold is crossed. Used by DetailHero to collapse
+ * into a compact pinned header.
+ */
+function useScrollPast(threshold: number) {
+  const [past, setPast] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY ?? document.documentElement.scrollTop;
+      setPast(y > threshold);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [threshold]);
+  return past;
+}
+
 export interface DetailHeroStat {
   /** Label court (mono uppercase, ex: "ROUND", "JOUEURS"). */
   label: string;
@@ -208,9 +227,17 @@ export const DetailHero = ({
           ? "grid-cols-4"
           : "grid-cols-3";
 
+  // Once the page has scrolled past ~80px, collapse into a compact pinned
+  // header (back + title only). The whole section is `position: sticky` so
+  // it stays at the top of the viewport while the rest of the page scrolls
+  // behind it.
+  const collapsed = useScrollPast(80);
+
   return (
     <section
-      className={`bg-electric-blue px-5 pt-12 pb-5 text-white shadow-glow-electric ${className}`}
+      className={`sticky top-0 z-20 bg-electric-blue px-5 ${
+        collapsed ? "pt-3 pb-3 shadow-modal" : "pt-12 pb-5 shadow-glow-electric"
+      } text-white transition-[padding,box-shadow] duration-200 ${className}`}
     >
       {/* Top row: back + title + admin badge */}
       <div className="flex items-center gap-3">
@@ -234,42 +261,61 @@ export const DetailHero = ({
         )}
       </div>
 
-      {/* Meta row: status + infos */}
-      {(status || meta.length > 0) && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
-          {status && <StatusChip status={status} />}
-          {meta.map((item, i) => (
-            <span key={i} className="font-mono text-white/85">
-              {item}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* Meta row: status + infos — fades out when collapsed */}
+      <div
+        className={`overflow-hidden transition-[max-height,opacity,margin] duration-200 ${
+          collapsed ? "max-h-0 opacity-0 mt-0" : "max-h-24 opacity-100 mt-3"
+        }`}
+        aria-hidden={collapsed}
+      >
+        {(status || meta.length > 0) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
+            {status && <StatusChip status={status} />}
+            {meta.map((item, i) => (
+              <span key={i} className="font-mono text-white/85">
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* Stats mini-grid */}
-      {stats.length > 0 && (
-        <div className={`mt-4 grid gap-2 ${statColsClass}`}>
-          {stats.map((stat, i) => (
-            <div
-              key={i}
-              className="bg-navy/25 rounded-md px-3 py-2 min-w-0"
-            >
-              <div className="font-mono uppercase text-[9px] tracking-[1.5px] text-white/70 truncate">
-                {stat.label}
+      {/* Stats mini-grid — fades out when collapsed */}
+      <div
+        className={`overflow-hidden transition-[max-height,opacity,margin] duration-200 ${
+          collapsed ? "max-h-0 opacity-0 mt-0" : "max-h-40 opacity-100 mt-4"
+        }`}
+        aria-hidden={collapsed}
+      >
+        {stats.length > 0 && (
+          <div className={`grid gap-2 ${statColsClass}`}>
+            {stats.map((stat, i) => (
+              <div
+                key={i}
+                className="bg-navy/25 rounded-md px-3 py-2 min-w-0"
+              >
+                <div className="font-mono uppercase text-[9px] tracking-[1.5px] text-white/70 truncate">
+                  {stat.label}
+                </div>
+                <div className="mt-0.5 font-archivo font-bold text-white text-[14px] leading-tight truncate">
+                  {stat.value}
+                </div>
               </div>
-              <div className="mt-0.5 font-archivo font-bold text-white text-[14px] leading-tight truncate">
-                {stat.value}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Actions row — all variants align on the same baseline (h-11). Tight
           horizontal padding so the trio Inviter + Paramètres + IconOnly fits
           on a single mobile row (375px) without wrap. */}
       {(actions.length > 0 || menuItems.length > 0) && (
-        <div className="mt-4 flex items-center gap-1.5 flex-nowrap overflow-x-auto -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          className={`flex items-center gap-1.5 flex-nowrap overflow-x-auto -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overflow-hidden transition-[max-height,opacity,margin] duration-200 ${
+            collapsed ? "max-h-0 opacity-0 mt-0" : "max-h-16 opacity-100 mt-4"
+          }`}
+          aria-hidden={collapsed}
+        >
           {actions.map((action, i) => {
             if (action.variant === "iconOnly") {
               return (

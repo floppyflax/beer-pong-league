@@ -5,7 +5,7 @@
  * - Button, Input, Select, Card, Avatar, Badge, PremiumGate
  *
  * Domain-specific components:
- * - StatCard, SegmentedTabs, ListRow, InfoCard, FAB, Banner, SearchBar, HelpCard, PlayerCard
+ * - StatCard, SegmentedTabs, ListRow, FAB, Banner, SearchBar, HelpCard, PlayerCard
  */
 
 // --- Foundational ---
@@ -34,18 +34,7 @@ export type {
   SegmentedTabsVariant,
 } from './SegmentedTabs';
 export { ListRow } from './ListRow';
-export type {
-  ListRowProps,
-  ListRowPlayerProps,
-  ListRowEventProps,
-  ListRowLeagueProps,
-} from './ListRow';
-export { InfoCard } from './InfoCard';
-export type {
-  InfoCardProps,
-  InfoCardInfoItem,
-  InfoCardStatusVariant,
-} from './InfoCard';
+export type { ListRowProps, ListRowPlayerProps } from './ListRow';
 export { FAB } from './FAB';
 export type { FABProps, FABVariant } from './FAB';
 export { Banner } from './Banner';
@@ -58,7 +47,8 @@ export { PlayerCard } from './PlayerCard';
 export type {
   PlayerCardProps,
   PlayerCardCompactProps,
-  PlayerCardFullProps,
+  PlayerCardLeaderRowProps,
+  PlayerCardDetailedProps,
 } from './PlayerCard';
 export { ScreenLayout } from './ScreenLayout';
 export type { ScreenLayoutProps } from './ScreenLayout';
@@ -145,6 +135,12 @@ export { Stepper } from './molecules/Stepper';
 export type { StepperProps } from './molecules/Stepper';
 export { QuickAction } from './molecules/QuickAction';
 export type { QuickActionProps } from './molecules/QuickAction';
+export { CardShell } from './molecules/CardShell';
+export type {
+  CardShellProps,
+  CardShellStatus,
+  CardShellStatusTone,
+} from './molecules/CardShell';
 export { EventCard } from './molecules/EventCard';
 export type { EventCardProps } from './molecules/EventCard';
 export { LeagueCard } from './molecules/LeagueCard';
@@ -193,12 +189,5 @@ export type {
   ShowcaseSubSectionProps,
 } from './showcase/ShowcaseSection';
 
-// --- Archetype mocks ---
-export {
-  ListWithCTAMock,
-  DetailDashboardMock,
-  FormWizardMock,
-  ProfileDetailMock,
-  InviteJoinMock,
-  DisplayTVMock,
-} from './archetypes';
+// Archetype mocks removed: the showcase now embeds the real pages via
+// LivePagePreview iframes (see DesignSystemShowcase.tsx §12).
