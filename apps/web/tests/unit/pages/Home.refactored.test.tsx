@@ -152,7 +152,7 @@ describe.skip("Home (Refactored)", () => {
       mockUseHomeData.mockReturnValue({
         lastTournament: undefined,
         lastLeague: undefined,
-        personalStats: { totalMatches: 0, winRate: 0, averageElo: 0 },
+        personalStats: { totalMatches: 0, winRate: 0, bestStreak: 0 },
         isLoading: false,
         error: null,
       });
@@ -180,7 +180,7 @@ describe.skip("Home (Refactored)", () => {
           updatedAt: new Date().toISOString(),
         },
         lastLeague: undefined,
-        personalStats: { totalMatches: 10, winRate: 60, averageElo: 1200 },
+        personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
         error: null,
       });
@@ -206,7 +206,7 @@ describe.skip("Home (Refactored)", () => {
           status: "active" as const,
           updatedAt: new Date().toISOString(),
         },
-        personalStats: { totalMatches: 10, winRate: 60, averageElo: 1200 },
+        personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
         error: null,
       });
@@ -224,7 +224,7 @@ describe.skip("Home (Refactored)", () => {
       mockUseHomeData.mockReturnValue({
         lastTournament: undefined,
         lastLeague: undefined,
-        personalStats: { totalMatches: 10, winRate: 60, averageElo: 1200 },
+        personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
         error: null,
       });
@@ -251,7 +251,7 @@ describe.skip("Home (Refactored)", () => {
       mockUseHomeData.mockReturnValue({
         lastTournament: undefined,
         lastLeague: undefined,
-        personalStats: { totalMatches: 10, winRate: 60, averageElo: 1200 },
+        personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
         error: null,
       });
@@ -276,7 +276,7 @@ describe.skip("Home (Refactored)", () => {
       mockUseHomeData.mockReturnValue({
         lastTournament: undefined,
         lastLeague: undefined,
-        personalStats: { totalMatches: 10, winRate: 60, averageElo: 1200 },
+        personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
         error: null,
       });
@@ -296,7 +296,7 @@ describe.skip("Home (Refactored)", () => {
       mockUseHomeData.mockReturnValue({
         lastTournament: undefined,
         lastLeague: undefined,
-        personalStats: { totalMatches: 10, winRate: 60, averageElo: 1200 },
+        personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
         error: null,
       });
@@ -318,7 +318,7 @@ describe.skip("Home (Refactored)", () => {
       mockUseHomeData.mockReturnValue({
         lastTournament: undefined,
         lastLeague: undefined,
-        personalStats: { totalMatches: 10, winRate: 60, averageElo: 1200 },
+        personalStats: { totalMatches: 10, winRate: 60, bestStreak: 5 },
         isLoading: false,
         error: null,
       });

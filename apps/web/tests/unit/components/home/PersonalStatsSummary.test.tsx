@@ -39,7 +39,7 @@ describe('PersonalStatsSummary', () => {
       const stats = {
         totalMatches: 0,
         winRate: 0,
-        averageElo: 0,
+        bestStreak: 0,
       };
 
       render(
@@ -57,7 +57,7 @@ describe('PersonalStatsSummary', () => {
     const stats = {
       totalMatches: 42,
       winRate: 65.5,
-      averageElo: 1250,
+      bestStreak: 7,
     };
 
     it('should display total matches', () => {
@@ -82,15 +82,15 @@ describe('PersonalStatsSummary', () => {
       expect(screen.getByText(/Taux de victoire/i)).toBeInTheDocument();
     });
 
-    it('should display average ELO', () => {
+    it('should display best streak', () => {
       render(
         <BrowserRouter>
           <PersonalStatsSummary stats={stats} isLoading={false} isPremium={true} />
         </BrowserRouter>
       );
 
-      expect(screen.getByText('1250')).toBeInTheDocument();
-      expect(screen.getByText(/ELO moyen/i)).toBeInTheDocument();
+      expect(screen.getByText('7')).toBeInTheDocument();
+      expect(screen.getByText(/Meilleure série/i)).toBeInTheDocument();
     });
 
     it('should show "Voir toutes mes stats" link', () => {
@@ -123,7 +123,7 @@ describe('PersonalStatsSummary', () => {
     const stats = {
       totalMatches: 42,
       winRate: 65.5,
-      averageElo: 1250,
+      bestStreak: 7,
     };
 
     it('should show premium paywall heading', () => {
@@ -183,7 +183,7 @@ describe('PersonalStatsSummary', () => {
     const stats = {
       totalMatches: 42,
       winRate: 65.5,
-      averageElo: 1250,
+      bestStreak: 7,
     };
 
     it('should apply card styling', () => {
@@ -206,7 +206,7 @@ describe('PersonalStatsSummary', () => {
           <PersonalStatsSummary stats={{
             totalMatches: 42,
             winRate: 65.5,
-            averageElo: 1250,
+            bestStreak: 7,
           }} isLoading={false} isPremium={true} />
         </BrowserRouter>
       );

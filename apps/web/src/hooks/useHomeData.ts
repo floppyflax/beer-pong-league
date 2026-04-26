@@ -22,7 +22,12 @@ interface League {
 interface PersonalStats {
   totalMatches: number;
   winRate: number;
-  averageElo: number;
+  /**
+   * Plus longue série de victoires consécutives observée dans l'historique.
+   * Remplace l'ancien `averageElo` (méta agrégée trompeuse — l'ELO se calibre
+   * par contexte, pas globalement, cf. docs/architecture.md §ELO model).
+   */
+  bestStreak: number;
 }
 
 export interface RecentMatch {
@@ -216,10 +221,23 @@ async function fetchHomeData(userId: string) {
       const wins = eloHistory.filter((h) => h.elo_change > 0).length;
       const winRate =
         totalMatches > 0 ? Math.round((wins / totalMatches) * 10000) / 100 : 0;
-      const averageElo = Math.round(
-        eloHistory.reduce((sum, h) => sum + h.elo_after, 0) / eloHistory.length,
-      );
-      personalStats = { totalMatches, winRate, averageElo };
+
+      // bestStreak — plus longue série de victoires consécutives.
+      // L'historique est trié desc (created_at). On parcourt en sens
+      // chronologique inverse (donc itération directe = nouveau → ancien),
+      // ce qui n'affecte pas le max d'une série consécutive.
+      let bestStreak = 0;
+      let current = 0;
+      for (const h of eloHistory) {
+        if (h.elo_change > 0) {
+          current += 1;
+          if (current > bestStreak) bestStreak = current;
+        } else {
+          current = 0;
+        }
+      }
+
+      personalStats = { totalMatches, winRate, bestStreak };
 
       // Fetch match details for the 3 most recent entries
       const recentIds = eloHistory
@@ -256,7 +274,7 @@ async function fetchHomeData(userId: string) {
         }
       }
     } else {
-      personalStats = { totalMatches: 0, winRate: 0, averageElo: 0 };
+      personalStats = { totalMatches: 0, winRate: 0, bestStreak: 0 };
     }
 
     return {

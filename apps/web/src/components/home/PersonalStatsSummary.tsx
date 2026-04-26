@@ -5,7 +5,9 @@ import { PButton } from "../ponglo/PButton";
 interface PersonalStats {
   totalMatches: number;
   winRate: number;
-  averageElo: number;
+  /** Plus longue série de victoires consécutives. Remplace l'ancien `averageElo`
+   *  (méta agrégée trompeuse — l'ELO se calibre par contexte, pas globalement). */
+  bestStreak: number;
 }
 
 interface PersonalStatsSummaryProps {
@@ -94,7 +96,7 @@ export const PersonalStatsSummary = ({
 
         <ul className="bg-navy/60 border border-card rounded-card p-4 mb-5 text-left space-y-2">
           {[
-            "Évolution ELO globale",
+            "Évolution ELO par ligue / event",
             "Taux de victoire détaillé",
             "Statistiques par adversaire",
             "Graphiques de performance",
@@ -131,7 +133,7 @@ export const PersonalStatsSummary = ({
       <div className="space-y-2.5">
         <Kpi label="Matchs joués" value={stats.totalMatches} />
         <Kpi label="Taux de victoire" value={`${stats.winRate}%`} accent="lime" />
-        <Kpi label="ELO moyen" value={stats.averageElo} accent="electric-blue" />
+        <Kpi label="Meilleure série" value={stats.bestStreak} accent="ping-yellow" />
       </div>
 
       <button

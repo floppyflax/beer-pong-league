@@ -1,11 +1,14 @@
 /**
- * GlobalLeaderboard — Phase D.5
+ * GlobalLeaderboard — "Statistiques globales"
  *
- * Cross-league ELO leaderboard. Agrège tous les joueurs de toutes les ligues
- * du contexte, déduplique par player ID (ELO max), et affiche Podium + LeaderRow.
+ * Cross-league lifetime activity feed. Aggrège tous les joueurs de toutes les
+ * ligues du contexte, déduplique par player ID, et affiche un classement par
+ * activité (matchs joués · victoires · win rate).
  *
- * Sort pills : ELO (défaut) · Victoires · Win Rate.
- * Pattern : ScreenLayout + PageHero (titre éditorial, pas de back button).
+ * ⚠️ Pas de classement ELO global ici (cf. docs/architecture.md §ELO model) :
+ * l'ELO n'est calibré qu'à l'intérieur d'un cluster local (Event ou League),
+ * agréger l'ELO max ne produit pas un classement comparable. On surface donc
+ * uniquement des stats lifetime, qui n'ont pas besoin de calibration.
  */
 
 import { useMemo, useState } from "react";
@@ -13,17 +16,16 @@ import { useNavigate } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import { ScreenLayout, PageHero } from "@/components/design-system";
 import { SegmentedTabs } from "@/components/design-system";
-import { Podium } from "@/components/ponglo/Podium";
 import { LeaderRow } from "@/components/ponglo/LeaderRow";
 import type { LeaderboardPlayer } from "@/components/ponglo/LeaderRow";
 import { Trophy } from "lucide-react";
 
 // ── Sort options ────────────────────────────────────────────────────────────
 
-type SortKey = "elo" | "wins" | "winrate";
+type SortKey = "matches" | "wins" | "winrate";
 
 const SORT_TABS = [
-  { id: "elo",     label: "ELO"       },
+  { id: "matches", label: "Matchs"   },
   { id: "wins",    label: "Victoires" },
   { id: "winrate", label: "Win Rate"  },
 ];
@@ -33,6 +35,7 @@ const SORT_TABS = [
 interface AggPlayer extends LeaderboardPlayer {
   wins: number;
   losses: number;
+  matches: number;
   winRate: number;
 }
 
@@ -41,9 +44,11 @@ interface AggPlayer extends LeaderboardPlayer {
 export function GlobalLeaderboard() {
   const { leagues } = useLeague();
   const navigate = useNavigate();
-  const [sort, setSort] = useState<SortKey>("elo");
+  const [sort, setSort] = useState<SortKey>("matches");
 
-  // Agrège les joueurs de toutes les ligues — max ELO, cumul W/L
+  // Agrège les joueurs de toutes les ligues — cumul lifetime W/L/matches.
+  // L'ELO max est conservé par compatibilité avec LeaderRow mais n'est PAS
+  // utilisé comme clé de tri (cf. en-tête de fichier).
   const aggregated = useMemo<AggPlayer[]>(() => {
     const map = new Map<
       string,
@@ -72,14 +77,15 @@ export function GlobalLeaderboard() {
     });
 
     return Array.from(map.entries()).map(([id, data]) => {
-      const total = data.wins + data.losses;
+      const matches = data.wins + data.losses;
       return {
         id,
         name: data.name,
         elo: data.elo,
         wins: data.wins,
         losses: data.losses,
-        winRate: total > 0 ? Math.round((data.wins / total) * 100) : 0,
+        matches,
+        winRate: matches > 0 ? Math.round((data.wins / matches) * 100) : 0,
         avatarUrl: data.avatarUrl,
       };
     });
@@ -89,19 +95,19 @@ export function GlobalLeaderboard() {
     return [...aggregated].sort((a, b) => {
       if (sort === "wins")    return b.wins - a.wins;
       if (sort === "winrate") return b.winRate - a.winRate;
-      return b.elo - a.elo;
+      // default: matches played
+      return b.matches - a.matches;
     });
   }, [aggregated, sort]);
 
-  const top3 = sorted.slice(0, 3);
   const hasData = sorted.length > 0;
 
   return (
     <ScreenLayout>
       <PageHero
-        eyebrow="Classement"
-        title="Classement global"
-        subtitle="Tous les joueurs, toutes ligues confondues — l'ELO max est conservé."
+        eyebrow="Stats"
+        title="Activité globale"
+        subtitle="Stats lifetime de tous les joueurs — aucun classement ELO global (l'ELO se calibre par contexte, pas globalement)."
       />
       <div className="space-y-5 pb-bottom-nav lg:pb-bottom-nav-lg">
 
@@ -124,20 +130,7 @@ export function GlobalLeaderboard() {
           </div>
         )}
 
-        {/* Podium top 3 */}
-        {top3.length >= 3 && (
-          <Podium
-            top3={top3.map((p) => ({
-              id: p.id,
-              name: p.name,
-              elo: p.elo,
-              avatar: p.avatarUrl,
-            }))}
-            scope="Classement global"
-          />
-        )}
-
-        {/* Liste complète */}
+        {/* Liste — tous les joueurs, classés par activité (pas de podium ELO). */}
         {sorted.length > 0 && (
           <div className="space-y-1.5">
             {sorted.map((player, idx) => (

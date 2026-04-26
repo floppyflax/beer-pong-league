@@ -72,7 +72,7 @@ Les migrations vivent dans `supabase/migrations/` : `001_initial_schema.sql` et 
 
 **`matches`** — `tournament_id` et/ou `league_id`, `format` (`1v1`|`2v2`|`3v3`), `team_a_player_ids[]`, `team_b_player_ids[]`, `score_a`, `score_b`, `is_ranked`, `created_by_*`, et pour l'anti-cheat : `status` (`pending`|`confirmed`|`rejected`), `confirmed_by_*`, `confirmed_at`.
 
-**`elo_history`** — `match_id`, `user_id`/`anonymous_user_id`, `elo_before`, `elo_after`, `elo_change`.
+**`elo_history`** — `match_id`, `tournament_id?`, `league_id?`, `user_id`/`anonymous_user_id`, `elo_before`, `elo_after`, `elo_change`. Une ligne par joueur impacté par un match. Les colonnes `tournament_id` / `league_id` indiquent dans quel contexte la modification ELO s'applique.
 
 **`user_identity_merges`** — audit des fusions anonyme → compte.
 
@@ -81,6 +81,24 @@ Les migrations vivent dans `supabase/migrations/` : `001_initial_schema.sql` et 
 - Exactement un des deux couples `user_id` / `anonymous_user_id` doit être défini (CHECK constraints).
 - Les pseudos sont uniques par league ou tournoi, pas globalement.
 - Les types TypeScript sont générés dans `src/types/supabase.ts`, les types métier partagés dans `src/types.ts`.
+
+### Modèle ELO (canonique)
+
+**Principe** : l'ELO est **toujours local** à un cluster d'adversaires. Un ELO n'est calibré que par les matchs effectivement joués entre des joueurs de ce cluster ; agréger des ELO entre clusters disjoints (ex. deux groupes d'amis qui ne se sont jamais croisés) ne produit pas un classement comparable. **Pas d'ELO global.**
+
+**Trois niveaux de granularité** :
+
+1. **Event ELO** (per-event) — chaque match enregistré dans un événement met à jour l'ELO **dans le contexte de cet événement**. Source de vérité : `tournament_players.elo` (cf. roadmap §gap connu : la colonne n'est pas encore wired pour les events autonomes — actuellement, les events liés à une ligue exposent l'ELO de la ligue, et les events autonomes affichent un ELO par défaut non persisté).
+2. **League ELO** (per-league) — les matchs d'un événement rattaché à une ligue mettent à jour `league_players.elo` **si le paramétrage de l'événement le permet** (propagation activable / désactivable). Un match de ligue hors événement met aussi à jour `league_players.elo`.
+3. **Stats lifetime** (per-user, app-wide) — agrégat lifetime non-ELO : `totalMatches`, `winRate`, `bestStreak`. Calculé à la volée depuis `elo_history`. **Pas d'ELO agrégé** — ces stats n'ont pas besoin de calibration cross-cluster.
+
+**Surface UI** :
+- Event Dashboard, League Dashboard : afficher l'ELO du contexte courant (Event ELO ou League ELO).
+- Page `/leaderboard` (« Stats globales ») : classement par activité (matchs / wins / win rate), **pas par ELO**.
+- Home : stat hero card sur les matchs joués lifetime (pas d'ELO global).
+- Profil joueur : ELO **par contexte** (chart + tableau par ligue/event), jamais une moyenne agrégée.
+
+**Anti-cheat** : ELO calculé serveur pour les matchs ranked confirmés (cf. skill `elo-logic`).
 
 ## Composants
 

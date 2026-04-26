@@ -21,7 +21,7 @@ export const Home = () => {
 
   const userId = user?.id ?? localUser?.anonymousUserId ?? null;
 
-  const { lastTournament, lastLeague, personalStats, recentMatches, isLoading, error } =
+  const { lastTournament, personalStats, recentMatches, isLoading, error } =
     useHomeData(userId);
 
   const { isPremium: _isPremium, refetch: refetchPremium } = usePremium(userId);
@@ -30,10 +30,10 @@ export const Home = () => {
   const pseudo =
     localUser?.pseudo ?? user?.email?.split("@")[0] ?? "Champion";
   const initials = pseudo.slice(0, 2).toUpperCase();
-  const elo = Math.round(personalStats?.averageElo ?? 1000);
   const totalMatches = personalStats?.totalMatches ?? 0;
   const wins = Math.round(totalMatches * (personalStats?.winRate ?? 0) / 100);
   const losses = Math.max(0, totalMatches - wins);
+  const bestStreak = personalStats?.bestStreak ?? 0;
 
   const handlePaymentSuccess = () => {
     setShowPaymentModal(false);
@@ -76,25 +76,22 @@ export const Home = () => {
 
       {/* Main scroll area */}
       <div className="flex-1 px-[18px] pb-[110px] overflow-auto">
-        {/* ELO hero card */}
+        {/* Stats hero card — lifetime activity (no global ELO, cf. docs §ELO model) */}
         <div className="relative overflow-hidden bg-electric-blue text-navy rounded-xl p-[22px] shadow-card-lg">
           <div className="flex justify-between items-start mb-3.5">
-            <div>
-              <div className="font-mono text-[10px] uppercase tracking-[1.5px] opacity-55">
-                {isLoading ? "ELO · —" : `ELO · ${lastLeague?.name ?? "Ta saison"}`}
-              </div>
+            <div className="font-mono text-[10px] uppercase tracking-[1.5px] opacity-55">
+              {isLoading ? "Matchs joués · —" : "Matchs joués · Lifetime"}
             </div>
-            <EloDelta value={0} />
           </div>
           <div
             className="font-archivo font-black text-lime"
             style={{ fontSize: 72, lineHeight: 0.9, letterSpacing: -2 }}
           >
-            {elo}
+            {totalMatches}
           </div>
           <div className="text-xs opacity-60 mt-1 font-mono">
             {totalMatches > 0
-              ? `${wins}W — ${losses}L · ${totalMatches} matchs`
+              ? `${wins}W — ${losses}L${bestStreak > 1 ? ` · streak max ${bestStreak}` : ""}`
               : "Pas encore de matchs"}
           </div>
           {/* lime glow decoration */}

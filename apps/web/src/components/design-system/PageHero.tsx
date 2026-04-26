@@ -8,7 +8,7 @@
  *   avec `line-height: 0.95` et `letter-spacing: -1.2px`.
  * - Sous-titre optionnel (mini tagline) en dessous du titre.
  * - Bouton retour optionnel (pill 36×36, `border-card`). Par défaut absent —
- *   les pages principales (Mes événements, Classement global, Profil, détails
+ *   les pages principales (Mes événements, Stats globales, Profil, détails
  *   ligue/événement) n'ont pas de back button.
  *
  * Remplace `ContextualHeader` sur les pages qui veulent un titre éditorial

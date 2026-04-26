@@ -189,6 +189,7 @@ Détails complets : `architecture.md` section "Design system Ponglo Arcade".
 - **Aucun secret côté client** — `STRIPE_SECRET_KEY`, `service_role` key restent en edge function
 - **RLS activée** sur toutes les tables Supabase — pas d'exception
 - **ELO calculé côté serveur** pour les matchs ranked confirmés (anti-cheat)
+- **ELO toujours local** — par event ou par league, jamais agrégé globalement (cf. `docs/architecture.md` §Modèle ELO). Stats lifetime app-wide = matchs joués / win rate / streak, pas d'ELO moyen.
 - **Validation des inputs** côté edge function, pas seulement côté client
 
 ---

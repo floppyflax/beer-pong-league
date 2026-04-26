@@ -44,10 +44,10 @@ const tabs: Tab[] = [
   },
   {
     id: "leaderboard",
-    label: "CLASSEMENT",
+    label: "STATS",
     icon: BarChart2,
     route: "/leaderboard",
-    ariaLabel: "Leaderboard",
+    ariaLabel: "Statistiques globales",
   },
   {
     id: "profile",

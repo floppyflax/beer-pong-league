@@ -10,12 +10,12 @@ interface NavItem {
   route: string;
 }
 
-// Aligned with BottomTabMenu: 4 entries — Accueil · Jouer · Classement · Profil.
+// Aligned with BottomTabMenu: 4 entries — Accueil · Jouer · Stats · Profil.
 // "Rejoindre" is NOT a menu entry; it's a page (/join) reached from CTAs.
 const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Accueil', icon: Home, route: '/' },
   { id: 'play', label: 'Jouer', icon: Swords, route: '/competitions' },
-  { id: 'leaderboard', label: 'Classement', icon: BarChart2, route: '/leaderboard' },
+  { id: 'leaderboard', label: 'Stats', icon: BarChart2, route: '/leaderboard' },
   { id: 'profile', label: 'Profil', icon: User, route: '/user/profile' },
 ];
 

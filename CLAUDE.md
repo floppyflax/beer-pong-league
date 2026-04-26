@@ -47,8 +47,9 @@ Depuis la racine (`npm` est configuré avec workspaces) :
 5. **Secrets serveur uniquement** — `STRIPE_SECRET_KEY`, `service_role` key restent en edge function. Aucune exception.
 6. **RLS sur chaque table Supabase** — pas de table sans policies. Voir skill `supabase-migrations`.
 7. **ELO calculé côté serveur** pour les matchs ranked confirmés (anti-cheat). Voir skill `elo-logic`.
-8. **Jamais de `any`** — `unknown` si le type est réellement inconnu. Strict mode enforce.
-9. **Jamais exposer une erreur technique à l'utilisateur** — `toast.error('message user-friendly')`, pas `console.error(err)` tout seul.
+8. **ELO toujours local au contexte** — par event ou par league, jamais d'agrégat global. Stats lifetime app-wide = matchs joués / win rate / streak. Voir `docs/architecture.md` §Modèle ELO.
+9. **Jamais de `any`** — `unknown` si le type est réellement inconnu. Strict mode enforce.
+10. **Jamais exposer une erreur technique à l'utilisateur** — `toast.error('message user-friendly')`, pas `console.error(err)` tout seul.
 
 ---
 

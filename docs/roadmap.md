@@ -56,7 +56,7 @@ Légende : [x] livré · [~] en cours · [ ] backlog
 - [x] Anti-cheat optionnel (confirmation de match).
 - [x] Export données (JSON complet + CSV joueurs + CSV matchs).
 - [ ] Partage par lien / QR code.
-- [ ] Onglet Statistiques détaillées (win streak, top scorers, head-to-head global).
+- [ ] Onglet Statistiques détaillées (win streak, top scorers, head-to-head **par contexte** — pas d'ELO global agrégé).
 - [ ] Paramètres avancés (règles ELO personnalisées, visibilité publique/privée).
 
 ### Événements
@@ -82,11 +82,23 @@ Légende : [x] livré · [~] en cours · [ ] backlog
 - [ ] Historique complet des matchs avec filtres.
 
 ### Classement
-- [x] Classement global cross-league (`/leaderboard`) avec podium et tri ELO / Victoires / Win Rate.
 - [x] Classement par événement (dashboard événement).
 - [x] Classement par league (dashboard league — LeaderRow + Podium).
-- [ ] Classements publics (visibles sans compte).
+- [x] Page `/leaderboard` (« Stats globales ») — classement par activité (matchs / wins / win rate). **Pas de classement ELO global** (cf. `architecture.md` §Modèle ELO : l'ELO n'est calibré que par contexte).
+- [ ] Classements publics par contexte (visibles sans compte).
 - [ ] Filtres saison / période.
+
+#### Gap connu — Event ELO autonome
+L'invariant produit dit : « chaque match dans un événement compte pour le ELO de l'événement, et **optionnellement** pour le ELO de la ligue rattachée ». Implémentation actuelle :
+- Event lié à une ligue → utilise `league_players.elo` (pas de ELO event distinct).
+- Event autonome → ELO par défaut 1500 figé, **non persisté**.
+
+**À faire** pour atteindre l'invariant :
+1. Migration : ajouter `tournament_players.elo` (default 1000) + index.
+2. `MatchesRepository.recordTournamentMatch` : mettre à jour `tournament_players.elo` à chaque match d'event ; conditionnellement propager à `league_players.elo` selon un nouveau toggle event (`propagates_to_league_elo`, default `true`).
+3. `tournaments` : ajouter le toggle `propagates_to_league_elo` (settings event).
+4. `elo_history` : déjà capable de logger par contexte (colonnes `tournament_id` + `league_id`) ; vérifier que `user_id`/`anonymous_user_id` sont correctement renseignés (FUTURE WORK noté dans `MatchesRepository.ts`).
+5. Profil joueur : surface ELO **par contexte** dans `EloChart` + tableau, jamais agrégé.
 
 ### Paiements & Premium
 - [x] Intégration Stripe Checkout (edge functions Supabase).
