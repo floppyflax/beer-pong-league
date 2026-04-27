@@ -18,6 +18,7 @@ import { useAuthContext } from "./context/AuthContext";
 import { useIdentity } from "./hooks/useIdentity";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ScrollToTop } from "./components/ScrollToTop";
 import {
   shouldShowBottomMenu,
   getContentPaddingBottom,
@@ -120,6 +121,7 @@ function App() {
         <IdentityProvider>
           <LeagueProvider>
             <Router>
+              <ScrollToTop />
               <NavigationProvider>
                 <AppContent />
               </NavigationProvider>
