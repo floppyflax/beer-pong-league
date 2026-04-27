@@ -368,13 +368,13 @@ export const EventDashboard = () => {
   });
 
   // Hero actions — spec refonte :
-  //  • Admin : [Inviter primary] [Paramètres secondary] [📺 Mode Diffusion iconOnly]
-  //  • Non-admin : [Inviter primary], avec Quitter accessible via menu (seul item
+  //  • Admin : [Ajouter primary] [Paramètres secondary] [📺 Mode Diffusion iconOnly]
+  //  • Non-admin : [Ajouter primary], avec Quitter accessible via menu (seul item
   //    conservé pour les participants).
   const detailHeroActions: DetailHeroAction[] = [];
   if (isAdmin || canInvite) {
     detailHeroActions.push({
-      label: "Inviter",
+      label: "Ajouter",
       icon: <UserPlus size={16} />,
       onClick: () => setShowAddPlayer(true),
       variant: "primary",
