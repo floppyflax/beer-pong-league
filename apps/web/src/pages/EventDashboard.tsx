@@ -850,6 +850,7 @@ export const EventDashboard = () => {
           title="Paramètres"
           initial={{
             name: event.name,
+            date: event.date,
             format: event.format,
             maxPlayers: event.maxPlayers ?? 999,
             isPrivate: event.isPrivate ?? true,

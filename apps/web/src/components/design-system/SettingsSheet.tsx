@@ -29,6 +29,8 @@ import { PButton } from "@/components/ponglo/PButton";
 /** Valeurs éditables côté event. */
 export interface SettingsSheetEventValues {
   name: string;
+  /** ISO `YYYY-MM-DD`. */
+  date?: string;
   format: "1v1" | "2v2" | "3v3" | "libre";
   maxPlayers: number;
   isPrivate: boolean;
@@ -45,6 +47,7 @@ export interface SettingsSheetLeagueValues {
 /** Updates émises vers le parent (subset des values : uniquement les champs modifiés). */
 export interface SettingsSheetEventUpdates {
   name?: string;
+  date?: string;
   format?: "1v1" | "2v2" | "3v3" | "libre";
   maxPlayers?: number;
   isPrivate?: boolean;
@@ -104,12 +107,23 @@ const FORMAT_OPTIONS: Array<{
   { value: "libre", label: "Libre", description: "Équipes flexibles" },
 ];
 
+const toIsoDay = (raw: string | null | undefined): string => {
+  if (!raw) return "";
+  // Accepts both "YYYY-MM-DD" and full ISO timestamps.
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+};
+
 export const SettingsSheet = (props: SettingsSheetProps) => {
   const { isOpen, onClose, title = "Paramètres" } = props;
   const sheetRef = useRef<HTMLDivElement>(null);
 
   // ── State hooks (declared unconditionally; populated from props when open) ──
   const [name, setName] = useState(props.initial.name);
+  const [date, setDate] = useState<string>(
+    props.kind === "event" ? toIsoDay(props.initial.date) : "",
+  );
   const [format, setFormat] = useState<SettingsSheetEventValues["format"]>(
     props.kind === "event" ? props.initial.format : "2v2",
   );
@@ -134,6 +148,7 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
     if (!isOpen) return;
     setName(props.initial.name);
     if (props.kind === "event") {
+      setDate(toIsoDay(props.initial.date));
       setFormat(props.initial.format);
       setHasPlayerLimit(
         props.initial.maxPlayers > 0 && props.initial.maxPlayers < 999,
@@ -155,6 +170,19 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
+
+  // Date édition — verrouillée si l'event est "en cours"
+  // (date passée ou aujourd'hui ET pas encore terminé). Cohérent avec EventCard.
+  const initialDateIso =
+    props.kind === "event" ? toIsoDay(props.initial.date) : "";
+  const isFinishedEvent = props.kind === "event" && props.isFinished === true;
+  const isDateLocked = useMemo(() => {
+    if (props.kind !== "event") return false;
+    if (isFinishedEvent) return false;
+    if (!initialDateIso) return false;
+    const today = new Date().toISOString().slice(0, 10);
+    return initialDateIso <= today;
+  }, [props.kind, isFinishedEvent, initialDateIso]);
 
   // Warning if the new limit is below current enrolled players.
   const parsedLimit = parseInt(playerLimit, 10);
@@ -186,6 +214,9 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
       if (props.kind === "event") {
         const updates: SettingsSheetEventUpdates = {};
         if (name.trim() !== props.initial.name) updates.name = name.trim();
+        if (!isDateLocked && date && date !== initialDateIso) {
+          updates.date = date;
+        }
         if (format !== props.initial.format) updates.format = format;
 
         const effectiveLimit = hasPlayerLimit
@@ -294,6 +325,33 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
             {/* Event-specific fields */}
             {props.kind === "event" && (
               <>
+                {/* Date */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="settings-date"
+                    className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray flex items-center gap-1.5"
+                  >
+                    Date
+                    {isDateLocked && <Lock size={11} className="text-cool-gray" />}
+                  </label>
+                  <input
+                    id="settings-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    disabled={isDateLocked}
+                    className={`${inputClass} ${
+                      isDateLocked ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                    aria-label="Date de l'événement"
+                  />
+                  {isDateLocked && (
+                    <p className="text-cool-gray text-xs">
+                      Impossible de modifier la date d'un événement en cours.
+                    </p>
+                  )}
+                </div>
+
                 {/* Format */}
                 <div className="space-y-2">
                   <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
