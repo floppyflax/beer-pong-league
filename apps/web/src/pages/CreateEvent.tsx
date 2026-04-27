@@ -98,7 +98,7 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
-  const { reloadData } = useLeague();
+  const { reloadData, addAnonymousPlayerToEvent } = useLeague();
 
   // Premium status and limits
   const [isLoadingPremium, setIsLoadingPremium] = useState(true);
@@ -110,6 +110,9 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
 
   // Form state
   const [name, setName] = useState("");
+  const [date, setDate] = useState<string>(() =>
+    new Date().toISOString().slice(0, 10),
+  );
   const [format, setFormat] = useState<'2v2' | '1v1' | 'libre'>('2v2');
   const [mode, setMode] = useState<'elo' | 'bracket'>('elo');
   const [hasPlayerLimit, setHasPlayerLimit] = useState(false);
@@ -189,6 +192,10 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
       newErrors.name = 'Le nom ne peut pas dépasser 50 caractères';
     }
 
+    if (!date) {
+      newErrors.date = "La date de l'événement est requise";
+    }
+
     if (hasPlayerLimit) {
       const limitNum = parseInt(playerLimit);
       if (!playerLimit || isNaN(limitNum) || limitNum < 2) {
@@ -242,9 +249,20 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
         maxPlayers: maxPlayersValue || UNLIMITED_PLAYERS,
         isPrivate,
         mode,
+        date,
         creatorUserId: user?.id || null,
         creatorAnonymousUserId: localUser?.anonymousUserId || null,
       });
+
+      const creatorPseudo =
+        localUser?.pseudo?.trim() ||
+        (user?.user_metadata?.name as string | undefined) ||
+        'Joueur';
+      try {
+        await addAnonymousPlayerToEvent(eventId, creatorPseudo);
+      } catch (err) {
+        console.error('Auto-add creator to event failed:', err);
+      }
 
       toast.success('Événement créé ! 🎉');
       await reloadData();
@@ -381,6 +399,32 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
               <p className="text-cool-gray text-xs font-mono">
                 {name.length}/50 caractères
               </p>
+            </div>
+
+            {/* Date */}
+            <div className="space-y-2">
+              <label
+                htmlFor="date"
+                className="text-xs font-archivo font-extrabold uppercase tracking-[0.6px] text-cool-gray block"
+              >
+                Date de l'événement *
+              </label>
+              <input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                onBlur={() => validateForm()}
+                className={fieldInputClass(!!errors.date)}
+                aria-label="Date de l'événement"
+                aria-invalid={!!errors.date}
+                aria-describedby={errors.date ? "date-error" : undefined}
+              />
+              {errors.date && (
+                <p id="date-error" className="text-sm text-signal-red" role="alert">
+                  {errors.date}
+                </p>
+              )}
             </div>
 
             {/* Format du match */}
