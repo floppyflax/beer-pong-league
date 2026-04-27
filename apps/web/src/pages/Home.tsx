@@ -13,7 +13,7 @@ import { PaymentModal } from "../components/PaymentModal";
 import { PongloGlyph } from "../components/ponglo/Wordmark";
 import { PButton } from "../components/ponglo/PButton";
 import { EloDelta } from "../components/ponglo/EloDelta";
-import { QuickAction } from "../components/design-system";
+import { QuickAction, Sheet } from "../components/design-system";
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -21,15 +21,16 @@ export const Home = () => {
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showNoContextSheet, setShowNoContextSheet] = useState(false);
 
   const userId = user?.id ?? localUser?.anonymousUserId ?? null;
   const isAnonymous = useIsAnonymous();
 
-  const { lastEvent, personalStats, recentMatches, isLoading, error } =
+  const { lastEvent, lastLeague, personalStats, recentMatches, isLoading, error } =
     useHomeData(userId);
 
   const { isPremium: _isPremium, refetch: refetchPremium } = usePremium(userId);
-  const { canCreateLeague, isAtLeagueLimit: _isAtLeagueLimit } = usePremiumLimits();
+  const { canCreateEvent, canCreateLeague, isAtLeagueLimit: _isAtLeagueLimit } = usePremiumLimits();
 
   const pseudo =
     localUser?.pseudo ?? user?.email?.split("@")[0] ?? "Champion";
@@ -49,6 +50,32 @@ export const Home = () => {
 
   const activeEvent =
     lastEvent && !lastEvent.isFinished ? lastEvent : null;
+
+  const handleNewMatch = () => {
+    if (activeEvent) {
+      navigate(`/record-match/event/${activeEvent.id}`);
+      return;
+    }
+    if (lastLeague) {
+      navigate(`/record-match/league/${lastLeague.id}`);
+      return;
+    }
+    setShowNoContextSheet(true);
+  };
+
+  const handleCreateEventFromSheet = () => {
+    setShowNoContextSheet(false);
+    if (canCreateEvent) {
+      navigate("/create-event");
+    } else {
+      setShowPaymentModal(true);
+    }
+  };
+
+  const handleJoinFromSheet = () => {
+    setShowNoContextSheet(false);
+    navigate("/join");
+  };
 
   if (error) {
     return (
@@ -122,11 +149,7 @@ export const Home = () => {
             icon={<Zap size={22} strokeWidth={2.2} />}
             bg="bg-ping-yellow"
             color="text-navy"
-            onClick={() =>
-              activeEvent
-                ? navigate(`/event/${activeEvent.id}`)
-                : navigate("/competitions?tab=events")
-            }
+            onClick={handleNewMatch}
           />
           <QuickAction
             label="Rejoindre"
@@ -231,6 +254,28 @@ export const Home = () => {
         onClose={() => setShowPaymentModal(false)}
         onSuccess={handlePaymentSuccess}
       />
+
+      <Sheet
+        isOpen={showNoContextSheet}
+        onClose={() => setShowNoContextSheet(false)}
+        title="Aucun event ou ligue"
+        footer={
+          <div className="flex flex-col gap-2.5">
+            <PButton variant="primary" full onClick={handleCreateEventFromSheet}>
+              Créer un événement
+            </PButton>
+            <PButton variant="ghost" full onClick={handleJoinFromSheet}>
+              Rejoindre avec un code
+            </PButton>
+          </div>
+        }
+      >
+        <p className="text-cool-gray text-[14px] leading-relaxed">
+          Pour enregistrer un match, tu dois d'abord rejoindre ou créer un
+          événement ou une ligue. L'ELO est toujours local au contexte — pas
+          d'event ou de ligue, pas de match.
+        </p>
+      </Sheet>
     </div>
   );
 };
