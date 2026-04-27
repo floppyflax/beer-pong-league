@@ -425,15 +425,18 @@ class EventsRepository extends BaseRepository {
     maxPlayers: number;
     isPrivate: boolean;
     mode?: 'elo' | 'bracket';
+    /** ISO date string `YYYY-MM-DD`. Defaults to today if omitted. */
+    date?: string;
     creatorUserId: string | null;
     creatorAnonymousUserId: string | null;
   }): Promise<string> {
+    const eventDate = data.date || new Date().toISOString().split('T')[0];
     if (!this.isSupabaseAvailable()) {
       const eventId = crypto.randomUUID();
       const event: Event = {
         id: eventId,
         name: data.name,
-        date: new Date().toISOString(),
+        date: eventDate,
         format: data.formatType === 'fixed' ? '2v2' : 'libre',
         leagueId: null,
         playerIds: [data.creatorUserId || data.creatorAnonymousUserId || ''],
@@ -449,7 +452,7 @@ class EventsRepository extends BaseRepository {
         .from('events')
         .insert({
           name: data.name,
-          date: new Date().toISOString().split('T')[0],
+          date: eventDate,
           join_code: data.joinCode,
           format_type: data.formatType,
           team1_size: data.team1Size,

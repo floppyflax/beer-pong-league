@@ -104,6 +104,8 @@ class DatabaseService {
     // Only passed when caller wants to create a Bracket event; the DB
     // default handles the common ELO case.
     mode?: 'elo' | 'bracket';
+    /** ISO date string `YYYY-MM-DD`. Defaults to today if omitted. */
+    date?: string;
     creatorUserId: string | null;
     creatorAnonymousUserId: string | null;
   }): Promise<string> {
