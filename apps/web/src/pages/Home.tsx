@@ -18,7 +18,7 @@ import { QuickAction, Sheet } from "../components/design-system";
 export const Home = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuthContext();
+  const { user, userProfile } = useAuthContext();
   const { localUser } = useIdentity();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showNoContextSheet, setShowNoContextSheet] = useState(false);
@@ -33,7 +33,10 @@ export const Home = () => {
   const { canCreateEvent, canCreateLeague, isAtLeagueLimit: _isAtLeagueLimit } = usePremiumLimits();
 
   const pseudo =
-    localUser?.pseudo ?? user?.email?.split("@")[0] ?? "Champion";
+    userProfile?.pseudo ||
+    localUser?.pseudo ||
+    user?.email?.split("@")[0] ||
+    "Champion";
   const initials = pseudo.slice(0, 2).toUpperCase();
   const totalMatches = personalStats?.totalMatches ?? 0;
   const wins = Math.round(totalMatches * (personalStats?.winRate ?? 0) / 100);
