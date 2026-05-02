@@ -78,10 +78,13 @@ export const Competitions: React.FC = () => {
     reloadData();
   };
 
+  const [paymentContext, setPaymentContext] = useState<Scope>("events");
+
   const handleCreateEvent = () => {
     if (canCreateEvent) {
       navigate("/create-event");
     } else {
+      setPaymentContext("events");
       setShowPaymentModal(true);
     }
   };
@@ -90,6 +93,7 @@ export const Competitions: React.FC = () => {
     if (canCreateLeague) {
       navigate("/create-league");
     } else {
+      setPaymentContext("leagues");
       setShowPaymentModal(true);
     }
   };
@@ -192,7 +196,9 @@ export const Competitions: React.FC = () => {
             <Crown
               size={14}
               className="ml-1.5 text-ping-yellow"
-              aria-label="Premium requis"
+              aria-label={
+                scope === "leagues" ? "Fonctionnalité Premium" : "Premium requis"
+              }
             />
           )}
         </PButton>
@@ -212,14 +218,18 @@ export const Competitions: React.FC = () => {
           onClose={() => setShowPaymentModal(false)}
           onSuccess={handlePaymentSuccess}
           title={
-            isAtEventLimit && isAtLeagueLimit
-              ? "Limite gratuite atteinte"
-              : undefined
+            paymentContext === "leagues"
+              ? "Les ligues sont une fonctionnalité Premium"
+              : isAtEventLimit
+                ? "Limite gratuite atteinte"
+                : undefined
           }
           subtitle={
-            isAtEventLimit && isAtLeagueLimit
-              ? "La version gratuite est limitée à 2 événements et 1 ligue actifs. Passez Premium pour des créations illimitées."
-              : undefined
+            paymentContext === "leagues"
+              ? "Crée des ligues saisonnières ou continues, organise des championnats long-terme et débloque toutes les fonctionnalités avancées."
+              : isAtEventLimit
+                ? "La version gratuite est limitée à 2 événements actifs. Passez Premium pour des créations illimitées."
+                : undefined
           }
         />
       )}

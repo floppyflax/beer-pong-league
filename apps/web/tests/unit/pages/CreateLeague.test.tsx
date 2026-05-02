@@ -17,6 +17,7 @@ import { CreateLeague } from "../../../src/pages/CreateLeague";
 import { useAuthContext } from "../../../src/context/AuthContext";
 import { AuthProvider } from "../../../src/context/AuthContext";
 import { IdentityProvider } from "../../../src/context/IdentityContext";
+import { usePremiumLimits } from "../../../src/hooks/usePremiumLimits";
 import "@testing-library/jest-dom";
 
 const mockNavigate = vi.fn();
@@ -33,7 +34,28 @@ vi.mock("react-router-dom", async () => {
 vi.mock("../../../src/context/LeagueContext", () => ({
   useLeague: () => ({
     createLeague: mockCreateLeague,
+    reloadData: vi.fn(),
+    events: [],
+    leagues: [],
   }),
+}));
+
+// Default mock: premium user — la création de ligue est réservée Premium.
+// Les tests qui veulent simuler un user non-premium peuvent override la valeur.
+const mockRefetchPremium = vi.fn();
+vi.mock("../../../src/hooks/usePremiumLimits", () => ({
+  usePremiumLimits: vi.fn(() => ({
+    canCreateLeague: true,
+    canCreateEvent: true,
+    leagueCount: 0,
+    eventCount: 0,
+    limits: { leagues: Infinity, events: Infinity },
+    isPremium: true,
+    isAtLeagueLimit: false,
+    isAtEventLimit: false,
+    isPremiumLoading: false,
+    refetchPremium: mockRefetchPremium,
+  })),
 }));
 
 vi.mock("../../../src/context/AuthContext", async () => {
@@ -57,6 +79,19 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => (
   </BrowserRouter>
 );
 
+const premiumDefault = {
+  canCreateLeague: true,
+  canCreateEvent: true,
+  leagueCount: 0,
+  eventCount: 0,
+  limits: { leagues: Infinity, events: Infinity },
+  isPremium: true,
+  isAtLeagueLimit: false,
+  isAtEventLimit: false,
+  isPremiumLoading: false,
+  refetchPremium: vi.fn(),
+};
+
 describe("CreateLeague - Story 14.18", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -67,6 +102,8 @@ describe("CreateLeague - Story 14.18", () => {
       user: { id: "user-1" },
       signOut: vi.fn(),
     });
+    // Default premium user — un test peut override pour simuler un free user.
+    vi.mocked(usePremiumLimits).mockReturnValue(premiumDefault);
   });
 
   describe("AC1: Header with title + back", () => {
@@ -252,6 +289,43 @@ describe("CreateLeague - Story 14.18", () => {
         expect(mockCreateLeague).toHaveBeenCalled();
       });
       expect(mockNavigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Premium guard (création réservée Premium)", () => {
+    it("should NOT render the form for non-premium users", () => {
+      vi.mocked(usePremiumLimits).mockReturnValue({
+        ...premiumDefault,
+        isPremium: false,
+        canCreateLeague: false,
+        isAtLeagueLimit: true,
+        limits: { leagues: 0, events: 2 },
+      });
+      render(<CreateLeague />, { wrapper: Wrapper });
+      expect(
+        screen.queryByLabelText(/nom de la ligue/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it("should expose the Premium upgrade dialog for non-premium users", () => {
+      vi.mocked(usePremiumLimits).mockReturnValue({
+        ...premiumDefault,
+        isPremium: false,
+        canCreateLeague: false,
+        isAtLeagueLimit: true,
+        limits: { leagues: 0, events: 2 },
+      });
+      render(<CreateLeague />, { wrapper: Wrapper });
+      // PaymentModal renders avec aria-modal="true" et CTA "Passer Premium"
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /passer premium/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("should render the form for premium users", () => {
+      render(<CreateLeague />, { wrapper: Wrapper });
+      expect(screen.getByLabelText(/nom de la ligue/i)).toBeInTheDocument();
     });
   });
 

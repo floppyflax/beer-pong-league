@@ -140,15 +140,17 @@ describe("Leagues Page", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default to premium user — la création de ligue est réservée Premium.
     vi.mocked(usePremiumLimits).mockReturnValue({
       canCreateLeague: true,
       canCreateEvent: true,
       leagueCount: 0,
       eventCount: 0,
-      limits: { leagues: 1, events: 2 },
-      isPremium: false,
+      limits: { leagues: Infinity, events: Infinity },
+      isPremium: true,
       isAtLeagueLimit: false,
       isAtEventLimit: false,
+      isPremiumLoading: false,
       refetchPremium: vi.fn(),
     });
   });
@@ -223,7 +225,7 @@ describe("Leagues Page", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/create-league");
     });
 
-    it("should show payment modal when at league limit in empty state", () => {
+    it("should show payment modal for non-premium users in empty state", () => {
       vi.mocked(useLeaguesList).mockReturnValue({
         leagues: [],
         isLoading: false,
@@ -232,12 +234,13 @@ describe("Leagues Page", () => {
       vi.mocked(usePremiumLimits).mockReturnValue({
         canCreateLeague: false,
         canCreateEvent: true,
-        leagueCount: 1,
+        leagueCount: 0,
         eventCount: 0,
-        limits: { leagues: 1, events: 2 },
+        limits: { leagues: 0, events: 2 },
         isPremium: false,
         isAtLeagueLimit: true,
         isAtEventLimit: false,
+        isPremiumLoading: false,
         refetchPremium: vi.fn(),
       });
 
@@ -281,7 +284,7 @@ describe("Leagues Page", () => {
         </BrowserRouter>,
       );
 
-      expect(screen.getByText("Mes Leagues")).toBeInTheDocument();
+      expect(screen.getByText("Mes Ligues")).toBeInTheDocument();
     });
 
     it("should display search bar", () => {
@@ -480,14 +483,13 @@ describe("Leagues Page", () => {
       });
     });
 
-    it("should show FAB for create league action", () => {
+    it("should expose a floating create-league button (FAB)", () => {
       render(
         <BrowserRouter>
           <Leagues />
         </BrowserRouter>,
       );
 
-      expect(screen.getByTestId("fab")).toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: /créer une league/i }),
       ).toBeInTheDocument();
@@ -500,22 +502,23 @@ describe("Leagues Page", () => {
         </BrowserRouter>,
       );
 
-      const fab = screen.getByTestId("fab");
+      const fab = screen.getByRole("button", { name: /créer une league/i });
       fireEvent.click(fab);
 
       expect(mockNavigate).toHaveBeenCalledWith("/create-league");
     });
 
-    it("should show payment modal when at league limit", () => {
+    it("should show payment modal for non-premium users", () => {
       vi.mocked(usePremiumLimits).mockReturnValue({
         canCreateLeague: false,
         canCreateEvent: true,
-        leagueCount: 1,
+        leagueCount: 0,
         eventCount: 0,
-        limits: { leagues: 1, events: 2 },
+        limits: { leagues: 0, events: 2 },
         isPremium: false,
         isAtLeagueLimit: true,
         isAtEventLimit: false,
+        isPremiumLoading: false,
         refetchPremium: vi.fn(),
       });
 
@@ -525,22 +528,23 @@ describe("Leagues Page", () => {
         </BrowserRouter>,
       );
 
-      const fab = screen.getByTestId("fab");
+      const fab = screen.getByRole("button", { name: /créer une league/i });
       fireEvent.click(fab);
 
       expect(screen.getByTestId("payment-modal")).toBeInTheDocument();
     });
 
-    it("should show lock icon when at league limit", () => {
+    it("should expose Premium-required signal on create button for non-premium users", () => {
       vi.mocked(usePremiumLimits).mockReturnValue({
         canCreateLeague: false,
         canCreateEvent: true,
-        leagueCount: 1,
+        leagueCount: 0,
         eventCount: 0,
-        limits: { leagues: 1, events: 2 },
+        limits: { leagues: 0, events: 2 },
         isPremium: false,
         isAtLeagueLimit: true,
         isAtEventLimit: false,
+        isPremiumLoading: false,
         refetchPremium: vi.fn(),
       });
 
@@ -550,8 +554,8 @@ describe("Leagues Page", () => {
         </BrowserRouter>,
       );
 
-      // Lock icon appears in header create button
-      expect(screen.getByText("🔒")).toBeInTheDocument();
+      // Lock icon dans la CTA du header (aria-label "Premium")
+      expect(screen.getAllByLabelText(/premium/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -571,18 +575,19 @@ describe("Leagues Page", () => {
         isPremium: true,
         isAtLeagueLimit: false,
         isAtEventLimit: false,
+        isPremiumLoading: false,
         refetchPremium: vi.fn(),
       });
     });
 
-    it("should NOT show lock icon for premium users", () => {
+    it("should NOT show Premium-required signal for premium users", () => {
       render(
         <BrowserRouter>
           <Leagues />
         </BrowserRouter>,
       );
 
-      expect(screen.queryByText("🔒")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/premium requis/i)).not.toBeInTheDocument();
     });
 
     it("should allow creating leagues without showing payment modal", () => {
@@ -592,7 +597,7 @@ describe("Leagues Page", () => {
         </BrowserRouter>,
       );
 
-      const fab = screen.getByTestId("fab");
+      const fab = screen.getByRole("button", { name: /créer une league/i });
       fireEvent.click(fab);
 
       expect(mockNavigate).toHaveBeenCalledWith("/create-league");

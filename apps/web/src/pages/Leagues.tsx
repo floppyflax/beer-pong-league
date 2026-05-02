@@ -111,12 +111,8 @@ export const Leagues: React.FC = () => {
       isOpen={showPaymentModal}
       onClose={() => setShowPaymentModal(false)}
       onSuccess={handlePaymentSuccess}
-      title={isAtLeagueLimit ? "Limite gratuite atteinte" : undefined}
-      subtitle={
-        isAtLeagueLimit
-          ? "La version gratuite est limitée à 1 league active. Passez Premium pour créer des leagues illimitées et profiter de toutes les fonctionnalités avancées."
-          : undefined
-      }
+      title="Les ligues sont une fonctionnalité Premium"
+      subtitle="Crée des ligues saisonnières ou continues, organise des championnats long-terme et débloque toutes les fonctionnalités avancées."
     />
   );
 
@@ -131,8 +127,18 @@ export const Leagues: React.FC = () => {
                 variant="primary"
                 size="lg"
                 onClick={handleCreate}
-                aria-label="Créer une league"
-                icon={<Plus size={22} />}
+                aria-label={
+                  isAtLeagueLimit
+                    ? "Créer une league (Premium)"
+                    : "Créer une league"
+                }
+                icon={
+                  isAtLeagueLimit ? (
+                    <Lock size={20} aria-label="Premium requis" />
+                  ) : (
+                    <Plus size={22} />
+                  )
+                }
                 className="!rounded-full !h-14 !w-14 !p-0 shadow-modal"
               />
             </div>
@@ -175,8 +181,18 @@ export const Leagues: React.FC = () => {
               variant="primary"
               size="lg"
               onClick={handleCreate}
-              aria-label="Créer une league"
-              icon={<Plus size={22} />}
+              aria-label={
+                isAtLeagueLimit
+                  ? "Créer une league (Premium)"
+                  : "Créer une league"
+              }
+              icon={
+                isAtLeagueLimit ? (
+                  <Lock size={20} aria-label="Premium requis" />
+                ) : (
+                  <Plus size={22} />
+                )
+              }
               className="!rounded-full !h-14 !w-14 !p-0 shadow-modal"
             />
           </div>
