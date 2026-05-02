@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Crown } from "lucide-react";
+import { Plus, Crown, QrCode } from "lucide-react";
 import { PaymentModal } from "@/components/PaymentModal";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { EventCard } from "@/components/events/EventCard";
@@ -196,6 +196,14 @@ export const Competitions: React.FC = () => {
             />
           )}
         </PButton>
+        <button
+          type="button"
+          onClick={() => navigate("/join")}
+          aria-label="Rejoindre via code ou QR"
+          className="pointer-events-auto w-14 h-14 md:w-16 md:h-16 shrink-0 flex items-center justify-center rounded-full bg-electric-blue border-[1.5px] border-electric-blue-deep shadow-card hover:brightness-110 active:translate-y-[2px] transition-[transform,filter] duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
+        >
+          <QrCode size={22} className="text-white" />
+        </button>
         <button
           type="button"
           onClick={handleQuickScore}
