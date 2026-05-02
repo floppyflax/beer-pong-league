@@ -30,7 +30,7 @@ export const Home = () => {
     useHomeData(userId);
 
   const { isPremium: _isPremium, refetch: refetchPremium } = usePremium(userId);
-  const { canCreateEvent, canCreateLeague, isAtLeagueLimit: _isAtLeagueLimit } = usePremiumLimits();
+  const { canCreateEvent } = usePremiumLimits();
 
   const pseudo =
     userProfile?.pseudo ||
@@ -178,11 +178,7 @@ export const Home = () => {
             bg="bg-navy-soft"
             color="text-white"
             border
-            onClick={() =>
-              canCreateLeague
-                ? navigate("/competitions?tab=leagues")
-                : setShowPaymentModal(true)
-            }
+            onClick={() => navigate("/competitions?tab=leagues")}
           />
         </div>
 

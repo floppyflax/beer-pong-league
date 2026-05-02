@@ -5,7 +5,8 @@
  * - PageHero (titre éditorial) au lieu de ContextualHeader sticky
  * - Sticky bottom CTA (pattern page Rejoindre) — pas de divider
  *
- * Les ligues ne sont pas limitées par le freemium (pas de banner Premium ici).
+ * La création de ligue est réservée Premium : si un user non-premium atterrit
+ * ici (URL directe, deep link…), on affiche le PaymentModal en garde-fou.
  */
 
 import React, { useState, useEffect } from "react";
@@ -13,6 +14,8 @@ import { useNavigate } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import { useAuthContext } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
+import { PaymentModal } from "@/components/PaymentModal";
+import { usePremiumLimits } from "@/hooks/usePremiumLimits";
 import { PageHero, StickyCTA } from "@/components/design-system";
 import { Trophy, Calendar } from "lucide-react";
 import { PButton } from "@/components/ponglo/PButton";
@@ -25,6 +28,11 @@ export const CreateLeague = () => {
   const [touched, setTouched] = useState(false);
   const { createLeague } = useLeague();
   const { isAuthenticated, isLoading } = useAuthContext();
+  const {
+    canCreateLeague,
+    isPremiumLoading,
+    refetchPremium,
+  } = usePremiumLimits();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -34,6 +42,28 @@ export const CreateLeague = () => {
       setShowAuthModal(true);
     }
   }, [isAuthenticated, isLoading]);
+
+  // Garde Premium : si auth est chargé, premium statut connu et user non-premium,
+  // on bloque l'accès au formulaire et on ouvre PaymentModal.
+  const isLocked =
+    !isLoading &&
+    !isPremiumLoading &&
+    isAuthenticated &&
+    !canCreateLeague;
+
+  if (isLocked) {
+    return (
+      <div className="min-h-screen bg-navy text-white">
+        <PaymentModal
+          isOpen
+          onClose={() => navigate("/competitions?tab=leagues", { replace: true })}
+          onSuccess={refetchPremium}
+          title="Les ligues sont une fonctionnalité Premium"
+          subtitle="Crée des ligues saisonnières ou continues, organise des championnats long-terme et débloque toutes les fonctionnalités avancées."
+        />
+      </div>
+    );
+  }
 
   const validateName = (value: string): string | null => {
     const trimmed = value.trim();

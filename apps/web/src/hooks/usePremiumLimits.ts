@@ -10,7 +10,7 @@ import { usePremium } from "./usePremium";
  *
  * Free user limits:
  * - Events: 2 active events max
- * - Leagues: 1 active league max
+ * - Leagues: 0 (création réservée Premium)
  *
  * Premium users: Unlimited
  *
@@ -29,6 +29,7 @@ export interface PremiumLimitsResult {
   isPremium: boolean;
   isAtEventLimit: boolean;
   isAtLeagueLimit: boolean;
+  isPremiumLoading: boolean;
   /** Call after payment success to refresh premium status */
   refetchPremium: () => void;
 }
@@ -37,7 +38,11 @@ export const usePremiumLimits = (): PremiumLimitsResult => {
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
   const { events = [], leagues = [] } = useLeague();
-  const { isPremium, refetch: refetchPremium } = usePremium(
+  const {
+    isPremium,
+    isLoading: isPremiumLoading,
+    refetch: refetchPremium,
+  } = usePremium(
     user?.id ?? null,
     localUser?.anonymousUserId ?? null,
   );
@@ -48,10 +53,10 @@ export const usePremiumLimits = (): PremiumLimitsResult => {
     (l) => !("status" in l) || (l as { status?: string }).status === "active",
   ).length;
 
-  // Define limits
+  // Define limits — la création de ligue est entièrement réservée aux Premium.
   const limits = {
     events: isPremium ? Infinity : 2,
-    leagues: isPremium ? Infinity : 1,
+    leagues: isPremium ? Infinity : 0,
   };
 
   // Check if at limit
@@ -67,6 +72,7 @@ export const usePremiumLimits = (): PremiumLimitsResult => {
     isPremium,
     isAtEventLimit,
     isAtLeagueLimit,
+    isPremiumLoading,
     refetchPremium,
   };
 };

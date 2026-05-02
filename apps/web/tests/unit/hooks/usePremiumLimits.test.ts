@@ -105,7 +105,7 @@ describe("usePremiumLimits", () => {
       expect(result.current.eventCount).toBe(1);
     });
 
-    it("should allow creating leagues when under limit (0/1)", () => {
+    it("should prevent creating leagues for free users (premium-only feature)", () => {
       mockUseLeague.mockReturnValue({
         events: [],
         leagues: [],
@@ -113,13 +113,13 @@ describe("usePremiumLimits", () => {
 
       const { result } = renderHook(() => usePremiumLimits());
 
-      expect(result.current.canCreateLeague).toBe(true);
-      expect(result.current.isAtLeagueLimit).toBe(false);
+      expect(result.current.canCreateLeague).toBe(false);
+      expect(result.current.isAtLeagueLimit).toBe(true);
       expect(result.current.leagueCount).toBe(0);
-      expect(result.current.limits.leagues).toBe(1);
+      expect(result.current.limits.leagues).toBe(0);
     });
 
-    it("should prevent creating leagues when at limit (1/1)", () => {
+    it("should still report league count when free user is member of leagues", () => {
       mockUseLeague.mockReturnValue({
         events: [],
         leagues: [{ id: "1", status: "active" }],
@@ -129,21 +129,6 @@ describe("usePremiumLimits", () => {
 
       expect(result.current.canCreateLeague).toBe(false);
       expect(result.current.isAtLeagueLimit).toBe(true);
-      expect(result.current.leagueCount).toBe(1);
-    });
-
-    it("should not count inactive leagues against limit", () => {
-      mockUseLeague.mockReturnValue({
-        events: [],
-        leagues: [
-          { id: "1", status: "active" },
-          { id: "2", status: "archived" },
-        ],
-      } as any);
-
-      const { result } = renderHook(() => usePremiumLimits());
-
-      expect(result.current.canCreateLeague).toBe(false);
       expect(result.current.leagueCount).toBe(1);
     });
   });
@@ -233,7 +218,7 @@ describe("usePremiumLimits", () => {
 
       expect(result.current.isPremium).toBe(false);
       expect(result.current.limits.events).toBe(2);
-      expect(result.current.limits.leagues).toBe(1);
+      expect(result.current.limits.leagues).toBe(0);
     });
 
     it("should handle missing events array", () => {
@@ -260,7 +245,7 @@ describe("usePremiumLimits", () => {
       expect(result.current.canCreateEvent).toBe(true);
     });
 
-    it("should handle missing leagues array", () => {
+    it("should handle missing leagues array (free user still cannot create)", () => {
       mockUseAuthContext.mockReturnValue({
         user: { id: "user-1", user_metadata: { isPremium: false } },
         isAuthenticated: true,
@@ -281,7 +266,7 @@ describe("usePremiumLimits", () => {
       const { result } = renderHook(() => usePremiumLimits());
 
       expect(result.current.leagueCount).toBe(0);
-      expect(result.current.canCreateLeague).toBe(true);
+      expect(result.current.canCreateLeague).toBe(false);
     });
   });
 });
