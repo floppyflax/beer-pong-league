@@ -363,11 +363,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
           isAuthenticated && user ? user.id : null,
           !isAuthenticated && localUser ? localUser.anonymousUserId : null,
         );
-        setLeagues((prev) =>
-          prev.map((l) =>
-            l.id === newLeague.id ? { ...l, players: [creatorPlayer] } : l,
-          ),
-        );
+        // Reload from Supabase so the league shows the membership with the
+        // canonical players.pseudo (mig 022) rather than our fallback string,
+        // and so player.id matches league_memberships.id (required by
+        // downstream consumers like edit/delete).
+        await loadDataFromSupabase();
       } catch (err) {
         console.error('Auto-add creator to league failed:', err);
       }
