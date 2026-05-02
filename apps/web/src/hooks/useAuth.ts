@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { authService } from '../services/AuthService';
+import type { UserRow } from '../services/repositories/_base';
 
 export interface AuthState {
   user: User | null;
+  userProfile: UserRow | null;
   isLoading: boolean;
   isAuthenticated: boolean;
 }
@@ -11,16 +13,37 @@ export interface AuthState {
 export function useAuth() {
   const [state, setState] = useState<AuthState>({
     user: null,
+    userProfile: null,
     isLoading: true,
     isAuthenticated: false,
   });
 
+  // Track current user id for refreshUserProfile() callbacks without
+  // forcing the callback identity to change on every state update.
+  const userIdRef = useRef<string | null>(null);
+
+  const loadUserProfile = useCallback(async (userId: string): Promise<UserRow | null> => {
+    const profile = await authService.getUserProfile(userId);
+    return (profile as UserRow | null) ?? null;
+  }, []);
+
+  const refreshUserProfile = useCallback(async (): Promise<void> => {
+    const userId = userIdRef.current;
+    if (!userId) return;
+    const profile = await loadUserProfile(userId);
+    setState((prev) =>
+      prev.user?.id === userId ? { ...prev, userProfile: profile } : prev,
+    );
+  }, [loadUserProfile]);
+
   useEffect(() => {
-    // Load initial auth state
     const loadAuth = async () => {
       const user = await authService.getCurrentUser();
+      userIdRef.current = user?.id ?? null;
+      const userProfile = user ? await loadUserProfile(user.id) : null;
       setState({
         user,
+        userProfile,
         isLoading: false,
         isAuthenticated: !!user,
       });
@@ -28,30 +51,23 @@ export function useAuth() {
 
     loadAuth();
 
-    // Listen to auth state changes
     const {
       data: { subscription },
     } = authService.onAuthStateChange(async (user) => {
+      userIdRef.current = user?.id ?? null;
+      const userProfile = user ? await loadUserProfile(user.id) : null;
       setState({
         user,
+        userProfile,
         isLoading: false,
         isAuthenticated: !!user,
       });
-
-      // If user just signed in, create profile if doesn't exist
-      if (user) {
-        const profile = await authService.getUserProfile(user.id);
-        if (!profile) {
-          // Profile will be created when user claims their account
-          // or we can create it here with a default pseudo
-        }
-      }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loadUserProfile]);
 
   const signInWithOTP = async (email: string): Promise<{ error: Error | null }> => {
     return await authService.signInWithOTP(email);
@@ -59,8 +75,10 @@ export function useAuth() {
 
   const signOut = async (): Promise<void> => {
     await authService.signOut();
+    userIdRef.current = null;
     setState({
       user: null,
+      userProfile: null,
       isLoading: false,
       isAuthenticated: false,
     });
@@ -70,8 +88,6 @@ export function useAuth() {
     ...state,
     signInWithOTP,
     signOut,
+    refreshUserProfile,
   };
 }
-
-
-

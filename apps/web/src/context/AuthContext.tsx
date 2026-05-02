@@ -5,6 +5,7 @@ import { useAuth, type AuthState } from '../hooks/useAuth';
 export interface AuthContextType extends AuthState {
   signInWithOTP: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
 }
 
 // Exported so the design-system showcase can wrap pages with a

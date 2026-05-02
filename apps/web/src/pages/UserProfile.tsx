@@ -13,7 +13,6 @@ import { PaymentModal } from "@/components/PaymentModal";
 import { WebcamCaptureSheet } from "@/components/WebcamCaptureSheet";
 import { premiumService } from "@/services/PremiumService";
 import { authService } from "@/services/AuthService";
-import { localUserService } from "@/services/LocalUserService";
 import { PhotoService } from "@/services/PhotoService";
 import { Trophy, Calendar, Mail, LogOut, Crown, ChevronRight, Camera, Image as ImageIcon, Pencil, Check, X } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
@@ -21,8 +20,8 @@ import toast from "react-hot-toast";
 
 export const UserProfile = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuthContext();
-  const { localUser } = useIdentity();
+  const { user, isAuthenticated, refreshUserProfile } = useAuthContext();
+  const { localUser, updateIdentity } = useIdentity();
   const { fullDisconnect } = useFullDisconnect();
   const isAnonymous = useIsAnonymous();
   const [isDisconnecting, setIsDisconnecting] = useState(false);
@@ -87,12 +86,15 @@ export const UserProfile = () => {
       if (isAuthenticated && user) {
         const ok = await authService.updateUserProfile(user.id, { pseudo: trimmed });
         if (!ok) throw new Error("update failed");
+        // Refresh the auth context profile so consumers (Home, header avatar,
+        // etc.) reflect the new pseudo without waiting for a remount.
+        await refreshUserProfile();
         // Refresh leagues/events so the new pseudo appears in podium,
         // leaderboard, history, etc. (snapshots have been propagated
         // server-side by updateUserProfile).
         await reloadData();
       } else {
-        localUserService.updateLocalUser({ pseudo: trimmed });
+        updateIdentity({ pseudo: trimmed });
       }
       setPseudo(trimmed);
       setIsEditingName(false);
