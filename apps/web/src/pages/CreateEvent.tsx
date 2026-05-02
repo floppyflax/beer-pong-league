@@ -415,7 +415,7 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 onBlur={() => validateForm()}
-                className={fieldInputClass(!!errors.date)}
+                className={`${fieldInputClass(!!errors.date)} appearance-none min-w-0 box-border`}
                 aria-label="Date de l'événement"
                 aria-invalid={!!errors.date}
                 aria-describedby={errors.date ? "date-error" : undefined}

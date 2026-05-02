@@ -340,7 +340,7 @@ export const SettingsSheet = (props: SettingsSheetProps) => {
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     disabled={isDateLocked}
-                    className={`${inputClass} ${
+                    className={`${inputClass} appearance-none min-w-0 box-border ${
                       isDateLocked ? "opacity-60 cursor-not-allowed" : ""
                     }`}
                     aria-label="Date de l'événement"
