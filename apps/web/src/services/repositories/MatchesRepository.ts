@@ -1,11 +1,17 @@
 /**
- * MatchesRepository — enregistre les matches (mig 022).
+ * MatchesRepository — enregistre les matches.
  *
  * Depuis mig 022 : `matches.team_a/b_player_ids` référencent `players.id`
- * directement (plus de mapping event/league_player). Les stats vivent
- * dans `league_memberships` (pas de membership = pas de stats).
+ * directement.
  *
- * Les eloChanges passés ici sont indexés par players.id.
+ * Depuis mig 025 : l'ELO est calculé serveur via la fonction `apply_match_elo`
+ * (SECURITY DEFINER). Le repo n'écrit plus elo_history ni *_memberships
+ * stats — il insère le match puis appelle la RPC. Les `eloChanges` reçus
+ * du caller sont uniquement utilisés pour la preview UI immédiate
+ * (EloChangeDisplay) ; la source de vérité reste le calcul serveur.
+ *
+ * Si la migration 025 n'est pas appliquée, le match sera bien créé mais
+ * l'ELO ne sera pas calculé — un warning console est émis dans ce cas.
  */
 
 import type { Match } from '../../types';
@@ -13,21 +19,34 @@ import { BaseRepository, sb } from './_base';
 import { leaguesRepository } from './LeaguesRepository';
 import { eventsRepository } from './EventsRepository';
 
-interface LeagueMembershipStats {
-  wins: number | null;
-  losses: number | null;
-  matches_played: number | null;
-  streak: number | null;
-}
-
 class MatchesRepository extends BaseRepository {
+  /**
+   * Calls the SECURITY DEFINER `apply_match_elo` RPC — this is the only
+   * legitimate write path for elo_history / *_memberships stats since
+   * mig 025.
+   */
+  private async applyMatchElo(matchId: string): Promise<void> {
+    if (!sb) return;
+    const { error } = await sb.rpc('apply_match_elo', { p_match_id: matchId });
+    if (error) {
+      // Log but don't throw: the match row is already saved, the local
+      // React state is up-to-date with the client-side preview, and a
+      // later admin recalculate_league_elo can rebuild from authoritative
+      // server logic. Throwing here would surface a user-facing error
+      // for what is effectively an eventually-consistent gap.
+      console.error('apply_match_elo failed:', error);
+    }
+  }
+
   async recordMatch(
     leagueId: string,
     match: Match,
-    eloChanges: Record<string, { before: number; after: number; change: number }>,
+    /** @deprecated since mig 025 — kept for API compat; eloChanges are recomputed server-side. */
+    _eloChanges: Record<string, { before: number; after: number; change: number }>,
     userId?: string | null,
-    anonymousUserId?: string | null
+    anonymousUserId?: string | null,
   ): Promise<void> {
+    void _eloChanges;
     if (!this.isSupabaseAvailable()) {
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
       const league = leagues.find((l) => l.id === leagueId);
@@ -40,9 +59,11 @@ class MatchesRepository extends BaseRepository {
 
     try {
       const format =
-        match.teamA.length === 1 && match.teamB.length === 1 ? '1v1'
-        : match.teamA.length === 2 && match.teamB.length === 2 ? '2v2'
-        : '3v3';
+        match.teamA.length === 1 && match.teamB.length === 1
+          ? '1v1'
+          : match.teamA.length === 2 && match.teamB.length === 2
+            ? '2v2'
+            : '3v3';
 
       const callerUserId = userId || anonymousUserId || null;
 
@@ -62,50 +83,9 @@ class MatchesRepository extends BaseRepository {
       });
       if (matchError) throw matchError;
 
-      // ELO history — match player_id directly.
-      const eloHistoryEntries = Object.entries(eloChanges).map(([playerId, change]) => ({
-        match_id: match.id,
-        league_id: leagueId,
-        event_id: null,
-        player_id: playerId,
-        elo_before: change.before,
-        elo_after: change.after,
-        elo_change: change.change,
-      }));
-      if (eloHistoryEntries.length > 0) {
-        const { error: eloError } = await sb!.from('elo_history').insert(eloHistoryEntries);
-        if (eloError) throw eloError;
-      }
-
-      // Update league_memberships stats keyed by player_id
-      for (const [playerId, change] of Object.entries(eloChanges)) {
-        const { data: lmRow } = await sb!
-          .from('league_memberships')
-          .select('wins, losses, matches_played, streak')
-          .eq('league_id', leagueId)
-          .eq('player_id', playerId)
-          .maybeSingle();
-        if (!lmRow) continue;
-        const stats = lmRow as unknown as LeagueMembershipStats;
-        const isWinner = change.change > 0;
-        const newWins = isWinner ? (stats.wins || 0) + 1 : stats.wins || 0;
-        const newLosses = !isWinner ? (stats.losses || 0) + 1 : stats.losses || 0;
-        const newStreak = isWinner
-          ? (stats.streak || 0) > 0 ? (stats.streak || 0) + 1 : 1
-          : (stats.streak || 0) < 0 ? (stats.streak || 0) - 1 : -1;
-
-        await sb!
-          .from('league_memberships')
-          .update({
-            elo: change.after,
-            wins: newWins,
-            losses: newLosses,
-            matches_played: (stats.matches_played || 0) + 1,
-            streak: newStreak,
-          } as never)
-          .eq('league_id', leagueId)
-          .eq('player_id', playerId);
-      }
+      // Server-side ELO calculation (mig 025) — single source of truth
+      // for elo_history rows + league_memberships stats.
+      await this.applyMatchElo(match.id);
 
       // localStorage cache
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
@@ -126,33 +106,26 @@ class MatchesRepository extends BaseRepository {
   }
 
   /**
-   * Event match. Records the match + per-context ELO history + per-context
-   * stats updates. Mig 023.
-   *
-   * Two ELO contexts are tracked independently:
-   *   - **Event ELO** (always) — `event_memberships.elo` updated from
-   *     `eventEloChanges`. Written as `elo_history` rows with `event_id`
-   *     set, `league_id` NULL.
-   *   - **League ELO** (optional) — `league_memberships.elo` updated from
-   *     `leagueEloChanges` when provided. Written as `elo_history` rows with
-   *     `league_id` set, `event_id` NULL. The caller decides whether to
-   *     propagate based on `events.propagates_to_league_elo`.
-   *
-   * One match row is inserted (with both `event_id` and `league_id` so
-   * it shows up in both contexts' match feeds), but the ELO history is
-   * cleanly split per context — querying `elo_history` by either
-   * `event_id` or `league_id` returns a single delta per player.
+   * Event match. Inserts a single match row that may also link to a league
+   * (when the event is league-linked and propagates_to_league_elo is true).
+   * The server-side `apply_match_elo` walks both contexts independently —
+   * one set of elo_history rows for the event context, one for the league
+   * context, with separate baselines.
    */
   async recordEventMatch(
     eventId: string,
     match: Match,
-    eventEloChanges: Record<string, { before: number; after: number; change: number }>,
+    /** @deprecated since mig 025 — eloChanges are recomputed server-side. */
+    _eventEloChanges: Record<string, { before: number; after: number; change: number }>,
     userId?: string | null,
     anonymousUserId?: string | null,
-    leagueEloChanges?: Record<string, { before: number; after: number; change: number }>,
-    /** @deprecated since mig 022. Ignored — match.teamA/teamB are already players.id. */
-    _legacyMapping?: Record<string, string>
+    /** @deprecated since mig 025. */
+    _leagueEloChanges?: Record<string, { before: number; after: number; change: number }>,
+    /** @deprecated since mig 022. */
+    _legacyMapping?: Record<string, string>,
   ): Promise<void> {
+    void _eventEloChanges;
+    void _leagueEloChanges;
     void _legacyMapping;
     if (!this.isSupabaseAvailable()) {
       const events = eventsRepository.loadEventsFromLocalStorage();
@@ -174,13 +147,14 @@ class MatchesRepository extends BaseRepository {
       const leagueId = (tData as { league_id: string | null }).league_id;
 
       const format =
-        match.teamA.length === 1 && match.teamB.length === 1 ? '1v1'
-        : match.teamA.length === 2 && match.teamB.length === 2 ? '2v2'
-        : '3v3';
+        match.teamA.length === 1 && match.teamB.length === 1
+          ? '1v1'
+          : match.teamA.length === 2 && match.teamB.length === 2
+            ? '2v2'
+            : '3v3';
 
       const callerUserId = userId || anonymousUserId || null;
 
-      // ── 1. Match row (one row, both context ids) ─────────────────────
       const { error: matchError } = await sb!.from('matches').insert({
         id: match.id,
         league_id: leagueId,
@@ -197,94 +171,10 @@ class MatchesRepository extends BaseRepository {
       });
       if (matchError) throw matchError;
 
-      // ── 2. Event-context elo_history (event_id only) ────────────
-      const eventHistoryRows = Object.entries(eventEloChanges).map(([playerId, change]) => ({
-        match_id: match.id,
-        league_id: null,
-        event_id: eventId,
-        player_id: playerId,
-        elo_before: change.before,
-        elo_after: change.after,
-        elo_change: change.change,
-      }));
-      if (eventHistoryRows.length > 0) {
-        const { error: ehErr } = await sb!.from('elo_history').insert(eventHistoryRows);
-        if (ehErr) throw ehErr;
-      }
-
-      // ── 3. event_memberships ELO + stats update ─────────────────
-      for (const [playerId, change] of Object.entries(eventEloChanges)) {
-        const { data: tmRow } = await sb!
-          .from('event_memberships')
-          .select('wins, losses, matches_played, streak')
-          .eq('event_id', eventId)
-          .eq('player_id', playerId)
-          .maybeSingle();
-        if (!tmRow) continue;
-        const stats = tmRow as unknown as LeagueMembershipStats;
-        const isWinner = change.change > 0;
-        const newWins = isWinner ? (stats.wins || 0) + 1 : stats.wins || 0;
-        const newLosses = !isWinner ? (stats.losses || 0) + 1 : stats.losses || 0;
-        const newStreak = isWinner
-          ? (stats.streak || 0) > 0 ? (stats.streak || 0) + 1 : 1
-          : (stats.streak || 0) < 0 ? (stats.streak || 0) - 1 : -1;
-
-        await sb!
-          .from('event_memberships')
-          .update({
-            elo: change.after,
-            wins: newWins,
-            losses: newLosses,
-            matches_played: (stats.matches_played || 0) + 1,
-            streak: newStreak,
-          } as never)
-          .eq('event_id', eventId)
-          .eq('player_id', playerId);
-      }
-
-      // ── 4. League-context propagation (when caller provided deltas) ──
-      if (leagueId && leagueEloChanges && Object.keys(leagueEloChanges).length > 0) {
-        const leagueHistoryRows = Object.entries(leagueEloChanges).map(([playerId, change]) => ({
-          match_id: match.id,
-          league_id: leagueId,
-          event_id: null,
-          player_id: playerId,
-          elo_before: change.before,
-          elo_after: change.after,
-          elo_change: change.change,
-        }));
-        const { error: lhErr } = await sb!.from('elo_history').insert(leagueHistoryRows);
-        if (lhErr) throw lhErr;
-
-        for (const [playerId, change] of Object.entries(leagueEloChanges)) {
-          const { data: lmRow } = await sb!
-            .from('league_memberships')
-            .select('wins, losses, matches_played, streak')
-            .eq('league_id', leagueId)
-            .eq('player_id', playerId)
-            .maybeSingle();
-          if (!lmRow) continue;
-          const stats = lmRow as unknown as LeagueMembershipStats;
-          const isWinner = change.change > 0;
-          const newWins = isWinner ? (stats.wins || 0) + 1 : stats.wins || 0;
-          const newLosses = !isWinner ? (stats.losses || 0) + 1 : stats.losses || 0;
-          const newStreak = isWinner
-            ? (stats.streak || 0) > 0 ? (stats.streak || 0) + 1 : 1
-            : (stats.streak || 0) < 0 ? (stats.streak || 0) - 1 : -1;
-
-          await sb!
-            .from('league_memberships')
-            .update({
-              elo: change.after,
-              wins: newWins,
-              losses: newLosses,
-              matches_played: (stats.matches_played || 0) + 1,
-              streak: newStreak,
-            } as never)
-            .eq('league_id', leagueId)
-            .eq('player_id', playerId);
-        }
-      }
+      // Server-side ELO calculation handles both contexts (event +
+      // optional league propagation) in one call — no need to differentiate
+      // here. Propagation honours events.propagates_to_league_elo.
+      await this.applyMatchElo(match.id);
 
       const events = eventsRepository.loadEventsFromLocalStorage();
       const event = events.find((t) => t.id === eventId);
