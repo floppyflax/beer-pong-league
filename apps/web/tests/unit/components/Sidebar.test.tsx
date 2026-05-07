@@ -84,7 +84,7 @@ describe('Sidebar', () => {
 
       expect(screen.getByText('Accueil')).toBeInTheDocument();
       expect(screen.getByText('Jouer')).toBeInTheDocument();
-      expect(screen.getByText('Classement')).toBeInTheDocument();
+      expect(screen.getByText('Stats')).toBeInTheDocument();
       expect(screen.getByText('Profil')).toBeInTheDocument();
     });
 
@@ -208,7 +208,7 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const leaderboardButton = screen.getByText('Classement').closest('button');
+      const leaderboardButton = screen.getByText('Stats').closest('button');
       expect(leaderboardButton).toHaveClass('bg-navy-deep');
       expect(leaderboardButton).toHaveClass('text-electric-blue');
     });
@@ -309,7 +309,7 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const leaderboardButton = screen.getByText('Classement');
+      const leaderboardButton = screen.getByText('Stats');
       await user.click(leaderboardButton);
 
       expect(mockNavigate).toHaveBeenCalledWith('/leaderboard');

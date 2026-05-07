@@ -73,46 +73,10 @@ describe('Event Creation - Auto-add Creator as Participant (Story 8.6)', () => {
       // 4. Check home dashboard - event should appear
     });
 
-    it('should handle anonymous creator correctly', async () => {
-      const mockEventId = 'integration-anon-event-456';
-      
-      const mockInsert = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: { id: mockEventId },
-            error: null,
-          }),
-        }),
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: mockInsert,
-      } as any);
-
-      const eventData = {
-        name: 'Anonymous Integration Event',
-        joinCode: 'AIN789',
-        formatType: 'free' as const,
-        team1Size: null,
-        team2Size: null,
-        maxPlayers: 8,
-        isPrivate: false,
-        creatorUserId: null,
-        creatorAnonymousUserId: 'integration-anon-456',
-      };
-
-      const result = await databaseService.createEvent(eventData);
-
-      expect(result).toBe(mockEventId);
-      expect(mockInsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'Anonymous Integration Event',
-          creator_anonymous_user_id: 'integration-anon-456',
-        })
-      );
-
-      // Database trigger handles anonymous users too
-    });
+    // "should handle anonymous creator correctly" removed: mig 022
+    // unified anonymous_users into users, so the dedicated
+    // `creator_anonymous_user_id` column no longer exists. Anonymous
+    // creators now use the same `creator_user_id` field.
   });
 
   describe('Integration: Transaction Safety', () => {

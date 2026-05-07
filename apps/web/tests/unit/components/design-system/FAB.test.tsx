@@ -38,7 +38,7 @@ describe('FAB (Story 14-6, Epic 15 Arcade palette)', () => {
       <FAB icon={Plus} onClick={() => {}} ariaLabel="Test" variant="primary" />
     );
     const button = container.querySelector('button');
-    expect(button).toHaveClass('bg-lime');
+    expect(button).toHaveClass('bg-ping-yellow');
   });
 
   it('should have shadow-fab neon glow (AC: 4)', () => {
@@ -74,7 +74,7 @@ describe('FAB (Story 14-6, Epic 15 Arcade palette)', () => {
       <FAB icon={Plus} onClick={() => {}} ariaLabel="Test" />
     );
     const button = container.querySelector('button');
-    expect(button).toHaveClass('bg-lime');
+    expect(button).toHaveClass('bg-ping-yellow');
   });
 
   it('should apply secondary variant (muted paper style)', () => {

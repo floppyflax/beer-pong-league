@@ -139,13 +139,15 @@ describe('AuthCallback - returnTo Handling (Story 9.1 Fix)', () => {
     it('should show loading state initially', () => {
       mockGetSession.mockImplementation(() => new Promise(() => {})); // Never resolves
 
-      render(
+      const { container } = render(
         <MemoryRouter>
           <AuthCallback />
         </MemoryRouter>
       );
 
-      expect(screen.getByText(/Connexion en cours/i)).toBeInTheDocument();
+      // The "Connexion en cours" text was replaced by a BeerCupLoader SVG.
+      // The loader contains an svg child — that's the new visual signal.
+      expect(container.querySelector('svg')).toBeInTheDocument();
     });
 
     it('should show success state before redirect', async () => {

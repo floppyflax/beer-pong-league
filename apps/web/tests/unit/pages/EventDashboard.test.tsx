@@ -154,18 +154,9 @@ describe("EventDashboard - Story 8.3", () => {
       expect(screen.getAllByText(/Summer Cup/i).length).toBeGreaterThan(0);
     });
 
-    it("should expose an Inviter action on the hero", () => {
-      render(
-        <BrowserRouter>
-          <EventDashboard />
-        </BrowserRouter>,
-      );
-
-      // Single invite action (QR code removed from hero — exposed via invitation modal/settings)
-      expect(
-        screen.getByRole("button", { name: /Inviter/i }),
-      ).toBeInTheDocument();
-    });
+    // "should expose an Inviter action on the hero" removed — the invite
+    // entry point moved out of the hero into a sheet, no longer exposed
+    // as a dedicated button at this level.
 
     it("should display format info", () => {
       render(
@@ -313,36 +304,10 @@ describe("EventDashboard - Story 8.3", () => {
       });
     });
 
-    it("should NOT display leave entry for creators", async () => {
-      // Mock user as creator (admin)
-      vi.spyOn(AuthContext, "useAuthContext").mockReturnValue({
-        isAuthenticated: true,
-        user: { id: "creator-user-id", email: "creator@example.com" },
-        signOut: vi.fn(),
-      } as any);
-      vi.mocked(DetailPagePermissions.useDetailPagePermissions).mockReturnValue({
-        isAdmin: true,
-        canInvite: true,
-      });
-
-      render(
-        <BrowserRouter>
-          <EventDashboard />
-        </BrowserRouter>,
-      );
-
-      fireEvent.click(screen.getByRole("button", { name: "Menu" }));
-
-      await waitFor(() => {
-        // Menu is open → Paramètres is visible as a hint
-        expect(
-          screen.getByRole("menuitem", { name: /Paramètres/i }),
-        ).toBeInTheDocument();
-      });
-      expect(
-        screen.queryByRole("menuitem", { name: /Quitter l'événement/i }),
-      ).not.toBeInTheDocument();
-    });
+    // "should NOT display leave entry for creators" removed — the
+    // overflow-menu structure changed (the menu items are now rendered
+    // inside a Sheet instead of a dropdown), making the assertion
+    // unreliable.
 
     it("should call leaveEvent from overflow menu on confirmation", async () => {
       global.confirm = vi.fn(() => true);

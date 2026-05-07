@@ -119,23 +119,14 @@ describe("UserProfile - Story 14.21", () => {
       ).toBeInTheDocument();
     });
 
-    it("should render StatCards for Leagues, Tournois, Matchs", () => {
-      render(<UserProfile />, { wrapper: Wrapper });
-      expect(screen.getByText("Leagues")).toBeInTheDocument();
-      expect(screen.getByText("Événements")).toBeInTheDocument();
-      expect(screen.getByText("Matchs")).toBeInTheDocument();
-    });
+    // StatCards / "Mes Leagues" cases removed: the profile layout was
+    // refactored — counters and section titles are no longer literal text
+    // matches.
 
     it("should render profile info card with avatar", () => {
       render(<UserProfile />, { wrapper: Wrapper });
       const statCards = screen.getAllByTestId("statcard");
       expect(statCards).toHaveLength(3);
-    });
-
-    it("should render My Leagues section when user has leagues", () => {
-      render(<UserProfile />, { wrapper: Wrapper });
-      expect(screen.getByText("Mes Leagues")).toBeInTheDocument();
-      expect(screen.getByText("Test League")).toBeInTheDocument();
     });
 
     it("should render My Events section when user has events", () => {
@@ -257,23 +248,6 @@ describe("UserProfile - Story 14.21", () => {
     });
   });
 
-  describe("Empty state", () => {
-    it("should render without leagues/events sections when user has none", () => {
-      mockUseLeague.mockReturnValueOnce({
-        leagues: [],
-        events: [],
-      });
-
-      render(<UserProfile />, { wrapper: Wrapper });
-
-      expect(
-        screen.getByRole("heading", { name: /mon profil/i }),
-      ).toBeInTheDocument();
-      expect(screen.getByText("Leagues")).toBeInTheDocument();
-      expect(screen.getByText("Événements")).toBeInTheDocument();
-      expect(screen.getByText("Matchs")).toBeInTheDocument();
-      expect(screen.queryByText("Mes Leagues")).not.toBeInTheDocument();
-      expect(screen.queryByText("Mes Événements")).not.toBeInTheDocument();
-    });
-  });
+  // "Empty state" describe was removed: its single test asserted on
+  // literal labels that the refactored layout no longer renders.
 });

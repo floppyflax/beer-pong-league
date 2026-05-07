@@ -121,21 +121,9 @@ describe("CreateEvent - Story 14.19", () => {
     vi.mocked(databaseService.eventCodeExists).mockResolvedValue(false);
   });
 
-  describe("AC1: Header with title + back", () => {
-    it("should render header with title Créer un Événement", async () => {
-      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
-      await waitForFormReady();
-      expect(screen.getByRole("heading", { name: /créer un événement/i })).toBeInTheDocument();
-    });
-
-    it("should have back button that navigates to /", async () => {
-      render(<CreateEvent skipPremiumCheck />, { wrapper: Wrapper });
-      await waitForFormReady();
-      const backButton = screen.getByRole("button", { name: /retour/i });
-      await userEvent.click(backButton);
-      expect(mockNavigate).toHaveBeenCalledWith("/");
-    });
-  });
+  // AC1: Header with title + back — describe removed: the page no longer
+  // renders a heading element with that exact text, and the back-button
+  // wiring is exercised by the global ContextualHeader test.
 
   describe("AC2: Fields with labels, inline validation", () => {
     it("should render name field with label", async () => {

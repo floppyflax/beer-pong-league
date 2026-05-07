@@ -136,70 +136,8 @@ describe('ListRow (Story 14-4)', () => {
     });
   });
 
-  describe('variant event (AC: 2)', () => {
-    it('should display name, date, status badge', () => {
-      render(
-        <ListRow
-          variant="event"
-          name="Tournoi d'été"
-          date="15 juin 2025"
-          status="En cours"
-          metrics={{ matches: 12, players: 8, format: 'Simple' }}
-        />
-      );
-      expect(screen.getByText("Tournoi d'été")).toBeInTheDocument();
-      expect(screen.getByText('15 juin 2025')).toBeInTheDocument();
-      expect(screen.getByText('En cours')).toBeInTheDocument();
-    });
-
-    it('should display metrics (Matchs, Joueurs, Format)', () => {
-      render(
-        <ListRow
-          variant="event"
-          name="Beer Pong Cup"
-          date="1 mars 2025"
-          status="Terminé"
-          metrics={{ matches: 24, players: 16, format: 'Double' }}
-        />
-      );
-      expect(screen.getByText(/24/)).toBeInTheDocument();
-      expect(screen.getByText(/16/)).toBeInTheDocument();
-      expect(screen.getByText('Double')).toBeInTheDocument();
-    });
-
-    it('should display chevron', () => {
-      render(
-        <ListRow
-          variant="event"
-          name="Test"
-          date="1 jan"
-          status="En cours"
-          metrics={{ matches: 0, players: 0, format: '-' }}
-        />
-      );
-      expect(screen.getByTestId('listrow-chevron')).toBeInTheDocument();
-    });
-  });
-
-  describe('variant league (AC: 2)', () => {
-    it('should display name, date, status badge and metrics', () => {
-      render(
-        <ListRow
-          variant="league"
-          name="Ligue Pro"
-          date="2025"
-          status="Active"
-          metrics={{ matches: 50, players: 12, format: 'Round-robin' }}
-        />
-      );
-      expect(screen.getByText('Ligue Pro')).toBeInTheDocument();
-      expect(screen.getByText('2025')).toBeInTheDocument();
-      expect(screen.getByText('Active')).toBeInTheDocument();
-      expect(screen.getByText(/50/)).toBeInTheDocument();
-      expect(screen.getByText(/12/)).toBeInTheDocument();
-      expect(screen.getByText('Round-robin')).toBeInTheDocument();
-    });
-  });
+  // Variants `event` and `league` were dropped from ListRow (only `player`
+  // remains — see ListRow.tsx header comment). Their tests have been removed.
 
   describe('cliquability (AC: 3)', () => {
     it('should call onClick when clicked', async () => {

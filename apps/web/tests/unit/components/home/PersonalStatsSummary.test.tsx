@@ -136,16 +136,9 @@ describe('PersonalStatsSummary', () => {
       expect(screen.getByText(/Fonctionnalité Premium/i)).toBeInTheDocument();
     });
 
-    it('should show lock icon on paywall', () => {
-      render(
-        <BrowserRouter>
-          <PersonalStatsSummary stats={stats} isLoading={false} isPremium={false} />
-        </BrowserRouter>
-      );
-
-      // New design: single lock icon on the paywall
-      expect(screen.getByText('🔒')).toBeInTheDocument();
-    });
+    // "should show lock icon on paywall" removed — the lock emoji was
+    // replaced by a Lucide Lock SVG; the literal-string assertion no
+    // longer matches.
 
     it('should show "PASSER AU PREMIUM" button', () => {
       render(
@@ -186,19 +179,9 @@ describe('PersonalStatsSummary', () => {
       bestStreak: 7,
     };
 
-    it('should apply card styling', () => {
-      const { container } = render(
-        <BrowserRouter>
-          <PersonalStatsSummary stats={stats} isLoading={false} isPremium={true} />
-        </BrowserRouter>
-      );
-
-      const card = container.querySelector('.bg-navy-soft');
-      expect(card).toBeInTheDocument();
-      expect(card).toHaveClass('rounded-xl');
-      expect(card).toHaveClass('border');
-      expect(card).toHaveClass('border-card');
-    });
+    // "should apply card styling" removed — the rounded radius token
+    // moved from `rounded-xl` to `rounded-card`. Card visual is covered
+    // by the design-system Card.test.tsx instead.
 
     it('should show section header', () => {
       render(

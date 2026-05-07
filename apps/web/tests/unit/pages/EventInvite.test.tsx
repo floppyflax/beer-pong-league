@@ -90,20 +90,9 @@ describe("EventInvite - Story 14-14", () => {
       expect(screen.getByText("Soirée Beer Pong 2024")).toBeInTheDocument();
     });
 
-    it("should display event status badge ACTIF when not finished", () => {
-      renderWithRouter();
-      expect(screen.getByText("ACTIF")).toBeInTheDocument();
-    });
-
-    it("should display TERMINÉ badge when event is finished", () => {
-      vi.spyOn(LeagueContext, "useLeague").mockReturnValue({
-        events: [{ ...mockEvent, isFinished: true }],
-        leagues: [],
-        isLoadingInitialData: false,
-      } as ReturnType<typeof LeagueContext.useLeague>);
-      renderWithRouter();
-      expect(screen.getByText("TERMINÉ")).toBeInTheDocument();
-    });
+    // Status badges (ACTIF / TERMINÉ) tests removed — the badge labels were
+    // dropped during the EventCard refactor (status is now visualised
+    // through icons / color, not through these literal strings).
   });
 
   describe("AC 3: QR code large and readable", () => {

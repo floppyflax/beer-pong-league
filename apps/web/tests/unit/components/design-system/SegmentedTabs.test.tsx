@@ -119,7 +119,7 @@ describe("SegmentedTabs", () => {
       expect(tablist).not.toHaveClass("gap-2");
     });
 
-    it("should apply bg-electric-blue text-white rounded-sm to active tab in encapsulated", () => {
+    it("should apply bg-lime text-navy rounded-sm to active tab in encapsulated", () => {
       render(
         <SegmentedTabs
           tabs={defaultTabs}
@@ -129,8 +129,8 @@ describe("SegmentedTabs", () => {
         />,
       );
       const activeTab = screen.getByRole("tab", { name: "Actifs" });
-      expect(activeTab).toHaveClass("bg-electric-blue");
-      expect(activeTab).toHaveClass("text-white");
+      expect(activeTab).toHaveClass("bg-lime");
+      expect(activeTab).toHaveClass("text-navy");
       expect(activeTab).toHaveClass("rounded-sm");
     });
 

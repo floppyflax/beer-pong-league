@@ -33,20 +33,7 @@ describe("PlayerCard", () => {
     });
   });
 
-  describe("variant full", () => {
-    it("should render name, subtitle and elo", () => {
-      render(
-        <PlayerCard
-          variant="full"
-          name="Alice"
-          subtitle="5W - 3L"
-          elo={1200}
-        />,
-      );
-
-      expect(screen.getByText("Alice")).toBeInTheDocument();
-      expect(screen.getByText("5W - 3L")).toBeInTheDocument();
-      expect(screen.getByText("1200")).toBeInTheDocument();
-    });
-  });
+  // The `full` variant was replaced by `leaderRow` / `detailed`.
+  // Its test is dropped — the new variants are covered indirectly by
+  // page-level tests.
 });

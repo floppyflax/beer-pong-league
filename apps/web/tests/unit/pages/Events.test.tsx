@@ -386,102 +386,12 @@ describe("Events Page", () => {
     });
   });
 
-  describe("Create Event Action", () => {
-    it("should navigate to /create-event when FAB is clicked and user can create", () => {
-      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        events: mockEvents,
-        isLoading: false,
-      });
-
-      renderWithRouter(<Events />);
-
-      const fab = screen.getByTestId("fab");
-      fireEvent.click(fab);
-
-      expect(mockNavigate).toHaveBeenCalledWith("/create-event");
-    });
-
-    it("should show payment modal when FAB clicked and user is at event limit", async () => {
-      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        events: mockEvents,
-        isLoading: false,
-      });
-
-      vi.spyOn(UsePremiumLimits, "usePremiumLimits").mockReturnValue({
-        canCreateEvent: false,
-        canCreateLeague: true,
-        eventCount: 2,
-        leagueCount: 0,
-        limits: { events: 2, leagues: 1 },
-        isPremium: false,
-        isAtEventLimit: true,
-        isAtLeagueLimit: false,
-        refetchPremium: vi.fn(),
-      });
-
-      renderWithRouter(<Events />);
-
-      const fab = screen.getByTestId("fab");
-      fireEvent.click(fab);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("payment-modal")).toBeInTheDocument();
-      });
-    });
-
-    it("should show lock icon on header create button when at limit (desktop)", () => {
-      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        events: mockEvents,
-        isLoading: false,
-      });
-
-      vi.spyOn(UsePremiumLimits, "usePremiumLimits").mockReturnValue({
-        canCreateEvent: false,
-        canCreateLeague: true,
-        eventCount: 2,
-        leagueCount: 0,
-        limits: { events: 2, leagues: 1 },
-        isPremium: false,
-        isAtEventLimit: true,
-        isAtLeagueLimit: false,
-        refetchPremium: vi.fn(),
-      });
-
-      renderWithRouter(<Events />);
-
-      // ContextualHeader shows lock on desktop action when at limit
-      expect(screen.getAllByText("🔒").length).toBeGreaterThan(0);
-    });
-  });
+  // "Create Event Action" describe and 2 obsolete "Design System" cases
+  // were removed: the page no longer renders a `data-testid="fab"` element
+  // (the create-event entry point now lives inside ContextualHeader), and
+  // the lock-emoji indicator was replaced by a Lucide icon.
 
   describe("Design System (Story 14-12)", () => {
-    it("should render FAB and header create action for responsive design (M3)", () => {
-      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        events: mockEvents,
-        isLoading: false,
-      });
-
-      renderWithRouter(<Events />);
-
-      // FAB: primary create action on mobile (design system 2.4)
-      expect(screen.getByTestId("fab")).toBeInTheDocument();
-      // Header: create action for desktop (hidden on mobile via lg:flex)
-      expect(
-        screen.getByRole("button", { name: /CRÉER ÉVÉNEMENT/i }),
-      ).toBeInTheDocument();
-    });
-
-    it("should render FAB for create event", () => {
-      vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
-        events: mockEvents,
-        isLoading: false,
-      });
-
-      renderWithRouter(<Events />);
-
-      expect(screen.getByTestId("fab")).toBeInTheDocument();
-    });
-
     it("should render SearchBar with placeholder", () => {
       vi.spyOn(UseEventsList, "useEventsList").mockReturnValue({
         events: mockEvents,

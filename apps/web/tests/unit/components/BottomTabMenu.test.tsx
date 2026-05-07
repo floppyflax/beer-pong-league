@@ -45,7 +45,7 @@ describe("BottomTabMenu", () => {
 
       expect(screen.getByText("ACCUEIL")).toBeInTheDocument();
       expect(screen.getByText("JOUER")).toBeInTheDocument();
-      expect(screen.getByText("CLASSEMENT")).toBeInTheDocument();
+      expect(screen.getByText("STATS")).toBeInTheDocument();
       expect(screen.getByText("PROFIL")).toBeInTheDocument();
     });
 
@@ -87,7 +87,7 @@ describe("BottomTabMenu", () => {
       mockLocation.pathname = "/leaderboard";
       render(<BottomTabMenu />);
 
-      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      const leaderboardButton = screen.getByLabelText("Statistiques globales");
       expect(leaderboardButton).toHaveClass("bg-gradient-tab-active");
       expect(leaderboardButton).toHaveClass("text-white");
     });
@@ -199,7 +199,7 @@ describe("BottomTabMenu", () => {
     it("should navigate to leaderboard when leaderboard tab clicked", () => {
       render(<BottomTabMenu />);
 
-      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      const leaderboardButton = screen.getByLabelText("Statistiques globales");
       fireEvent.click(leaderboardButton);
 
       expect(mockNavigate).toHaveBeenCalledWith("/leaderboard");
@@ -243,7 +243,7 @@ describe("BottomTabMenu", () => {
 
       expect(screen.getByLabelText("Home")).toBeInTheDocument();
       expect(screen.getByLabelText("Jouer")).toBeInTheDocument();
-      expect(screen.getByLabelText("Leaderboard")).toBeInTheDocument();
+      expect(screen.getByLabelText("Statistiques globales")).toBeInTheDocument();
       expect(screen.getByLabelText("Profile")).toBeInTheDocument();
     });
 
@@ -314,7 +314,7 @@ describe("BottomTabMenu", () => {
       const user = userEvent.setup();
       render(<BottomTabMenu />);
 
-      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      const leaderboardButton = screen.getByLabelText("Statistiques globales");
       leaderboardButton.focus();
       await user.keyboard(" ");
 
@@ -351,7 +351,7 @@ describe("BottomTabMenu", () => {
       // All labels should be in uppercase
       expect(screen.getByText("ACCUEIL")).toBeInTheDocument();
       expect(screen.getByText("JOUER")).toBeInTheDocument();
-      expect(screen.getByText("CLASSEMENT")).toBeInTheDocument();
+      expect(screen.getByText("STATS")).toBeInTheDocument();
       expect(screen.getByText("PROFIL")).toBeInTheDocument();
     });
   });
@@ -379,7 +379,7 @@ describe("BottomTabMenu", () => {
           previewOnTabClick={() => {}}
         />,
       );
-      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      const leaderboardButton = screen.getByLabelText("Statistiques globales");
       expect(leaderboardButton).toHaveClass("bg-gradient-tab-active");
       expect(leaderboardButton).toHaveAttribute("aria-current", "page");
     });
@@ -393,7 +393,7 @@ describe("BottomTabMenu", () => {
           previewOnTabClick={mockPreviewOnTabClick}
         />,
       );
-      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      const leaderboardButton = screen.getByLabelText("Statistiques globales");
       fireEvent.click(leaderboardButton);
       expect(mockPreviewOnTabClick).toHaveBeenCalledWith("/leaderboard");
       expect(mockNavigate).not.toHaveBeenCalled();
@@ -403,7 +403,7 @@ describe("BottomTabMenu", () => {
       render(
         <BottomTabMenu previewMode previewActiveRoute="/" />,
       );
-      const leaderboardButton = screen.getByLabelText("Leaderboard");
+      const leaderboardButton = screen.getByLabelText("Statistiques globales");
       fireEvent.click(leaderboardButton);
       expect(mockNavigate).not.toHaveBeenCalled();
     });

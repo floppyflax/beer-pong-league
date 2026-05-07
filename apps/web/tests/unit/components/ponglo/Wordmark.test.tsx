@@ -43,25 +43,25 @@ describe('PongloGlyph', () => {
 });
 
 describe('PongloWordmark', () => {
-  it('renders both glyph and "PONGLO" text by default', () => {
+  it('renders both glyph and "BEER PONG ELO" text by default', () => {
     const { container } = render(<PongloWordmark />);
     expect(container.querySelector('svg')).toBeInTheDocument();
-    expect(screen.getByText('PONGLO')).toBeInTheDocument();
+    expect(screen.getByText('BEER PONG ELO')).toBeInTheDocument();
   });
 
   it('hides the text when glyphOnly is true', () => {
     const { container } = render(<PongloWordmark glyphOnly />);
     expect(container.querySelector('svg')).toBeInTheDocument();
-    expect(screen.queryByText('PONGLO')).not.toBeInTheDocument();
+    expect(screen.queryByText('BEER PONG ELO')).not.toBeInTheDocument();
   });
 
-  it('exposes role="img" with default aria-label "Ponglo"', () => {
+  it('exposes role="img" with default aria-label "Beer Pong ELO"', () => {
     render(<PongloWordmark />);
-    expect(screen.getByRole('img', { name: /ponglo/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /beer pong elo/i })).toBeInTheDocument();
   });
 
   it('uses custom aria-label when provided', () => {
-    render(<PongloWordmark aria-label="Beer Pong ELO" />);
-    expect(screen.getByRole('img', { name: 'Beer Pong ELO' })).toBeInTheDocument();
+    render(<PongloWordmark aria-label="Custom Brand" />);
+    expect(screen.getByRole('img', { name: 'Custom Brand' })).toBeInTheDocument();
   });
 });
