@@ -18,10 +18,10 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-gradient-cta text-white font-bold shadow-md hover:opacity-90 active:opacity-80',
-  secondary: 'bg-slate-700 text-white font-semibold border border-slate-600 hover:bg-slate-600 active:bg-slate-500',
-  ghost: 'bg-transparent text-slate-300 hover:bg-slate-800 active:bg-slate-700',
+  secondary: 'bg-navy-soft text-white font-semibold border border-card hover:bg-navy active:bg-navy-deep',
+  ghost: 'bg-transparent text-cool-gray hover:bg-navy-soft hover:text-white active:bg-navy',
   danger: 'bg-signal-red/10 text-signal-red font-semibold border border-signal-red/30 hover:bg-signal-red/20 active:bg-signal-red/30',
-  premium: 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-900 font-bold shadow-md hover:opacity-90 active:opacity-80',
+  premium: 'bg-gradient-fab text-navy font-bold shadow-md hover:opacity-90 active:opacity-80',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

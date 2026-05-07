@@ -26,7 +26,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className={clsx(fullWidth && 'w-full')} data-testid="ds-select-wrapper">
         {label && (
-          <label htmlFor={selectId} className="block text-sm font-medium text-slate-300 mb-1.5">
+          <label htmlFor={selectId} className="block text-sm font-medium text-white mb-1.5">
             {label}
           </label>
         )}
@@ -36,11 +36,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={selectId}
             className={twMerge(
               clsx(
-                'appearance-none bg-slate-800 text-white rounded-input border px-4 py-2.5 pr-10 w-full transition-all duration-150',
+                'appearance-none bg-navy-soft text-white rounded-input border px-4 py-2.5 pr-10 w-full transition-all duration-150',
                 'focus:outline-none focus:ring-2 focus:ring-electric-blue/50 focus:border-electric-blue',
                 hasError
                   ? 'border-signal-red focus:ring-signal-red/50 focus:border-signal-red'
-                  : 'border-slate-700 hover:border-slate-600',
+                  : 'border-card hover:border-cool-gray/40',
               ),
               className,
             )}
@@ -61,7 +61,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </select>
           <ChevronDown
             size={18}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-cool-gray pointer-events-none"
           />
         </div>
         {error && (
@@ -69,7 +69,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             {error}
           </p>
         )}
-        {!error && hint && <p className="mt-1 text-sm text-slate-500">{hint}</p>}
+        {!error && hint && <p className="mt-1 text-sm text-cool-gray opacity-80">{hint}</p>}
       </div>
     );
   },

@@ -12,12 +12,12 @@ export interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-slate-700 text-slate-300',
-  active: 'bg-amber-500/20 text-amber-400',
-  success: 'bg-green-500/20 text-green-400',
-  error: 'bg-red-500/20 text-red-400',
-  premium: 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400',
-  info: 'bg-blue-500/20 text-blue-400',
+  default: 'bg-navy-soft text-cool-gray',
+  active: 'bg-ping-yellow/20 text-ping-yellow',
+  success: 'bg-lime/20 text-lime',
+  error: 'bg-signal-red/20 text-signal-red',
+  premium: 'bg-gradient-to-r from-ping-yellow/20 to-lime/20 text-ping-yellow',
+  info: 'bg-electric-blue/20 text-electric-blue',
 };
 
 const sizeClasses: Record<BadgeSize, string> = {

@@ -74,7 +74,7 @@ export const BottomMenuSpecific: React.FC<BottomMenuSpecificProps> = ({
               actions.length === 1 ? "w-full" : "flex-1"
             } ${
               variant === "gradient"
-                ? "bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700"
+                ? "bg-electric-blue hover:bg-electric-blue-deep"
                 : "bg-signal-red hover:brightness-110"
             } text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
           >

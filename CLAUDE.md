@@ -11,19 +11,19 @@ Application web + mobile de gestion de ligues et événements de beer-pong avec 
 ```
 apps/
   web/       # React 18 + Vite 5 + Tailwind (app principale)
-  mobile/    # React Native / Expo (9 screens miroirs)
+  mobile/    # React Native / Expo (15 screens, squelette UI sans services Supabase)
 packages/
-  shared/    # Types, services, utils partagés
+  shared/    # Types + utils partagés (services métier non encore extraits — cf. roadmap)
 supabase/
-  functions/ # Edge functions (Stripe checkout, verify-payment)
-  migrations/
+  functions/ # Edge functions (create-checkout-session, verify-payment-session)
+  migrations/ # 24 migrations (état mai 2026)
 docs/        # Documentation vivante
 .claude/     # Agents + skills spécifiques projet
 ```
 
 ## Commandes
 
-Depuis la racine (`npm` est configuré avec workspaces) :
+Depuis la racine (les scripts délèguent à `apps/web` via `--prefix`) :
 
 | Commande | Usage |
 |---|---|

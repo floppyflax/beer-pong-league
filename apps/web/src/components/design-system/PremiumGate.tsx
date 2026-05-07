@@ -17,11 +17,11 @@ export function PremiumGate({ locked, featureName, onUpgrade, children }: Premiu
       <div className="opacity-40 pointer-events-none select-none blur-[1px]">
         {children}
       </div>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/60 backdrop-blur-[2px] rounded-card">
-        <div className="p-3 bg-amber-500/20 rounded-full">
-          <Lock size={24} className="text-amber-400" />
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-navy-deep/60 backdrop-blur-[2px] rounded-card">
+        <div className="p-3 bg-ping-yellow/20 rounded-full">
+          <Lock size={24} className="text-ping-yellow" />
         </div>
-        <p className="text-sm text-slate-300 text-center px-4">
+        <p className="text-sm text-cool-gray text-center px-4">
           <span className="font-semibold text-white">{featureName}</span> est réservé aux membres Premium
         </p>
         <Button

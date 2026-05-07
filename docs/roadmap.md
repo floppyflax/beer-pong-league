@@ -137,11 +137,13 @@ L'invariant produit est désormais implémenté : chaque match dans un événeme
 - [ ] Animations (confettis victoire, transitions de page).
 
 ### Tests & qualité
-- [x] 77 fichiers de tests Vitest (unit + intégration — 912 tests).
-- [x] Tests E2E Playwright (anonyme, auth, merge).
+- [x] 85 fichiers de tests Vitest (unit + intégration).
+- [x] Tests E2E Playwright (anonyme, auth, merge — 3 spec files).
 - [x] Guide tests manuels (25+ scénarios).
+- [x] CI GitHub Actions (lint + unit sur PR, E2E en nightly) — `.github/workflows/`.
 - [ ] Mesure systématique de la couverture de code (cible > 80% sur auth/identity).
-- [ ] CI GitHub Actions (lint + unit sur PR, E2E en nightly).
+- [ ] Stabilisation des suites avec ~91 tests cassés préexistants (dérive du rebrand Ponglo → Beer Pong ELO).
+- [ ] Tests directs des services (`AuthService`, `IdentityMergeService`, `EloRecalcService`, `PremiumService`, `StripeService`, repositories).
 
 ---
 

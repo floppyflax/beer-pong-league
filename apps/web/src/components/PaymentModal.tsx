@@ -381,7 +381,7 @@ export const PaymentModal = ({
               <AlertCircle size={18} className="text-signal-red mt-0.5 shrink-0" />
               <div>
                 <div className="font-semibold text-signal-red text-sm">Erreur de paiement</div>
-                <div className="text-red-400 text-xs mt-0.5">{error}</div>
+                <div className="text-signal-red text-xs mt-0.5 opacity-80">{error}</div>
               </div>
             </div>
           )}

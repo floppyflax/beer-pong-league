@@ -2,7 +2,7 @@
 
 > **Status** : actif · créé 2026-04-23 · source = brand kit visuel fourni par le PO (image “Everything ELO”)
 > **Scope** : référence unique pour l’identité de marque du portefeuille Everything ELO et du produit **Beer Pong ELO** (ex-Beer Pong League / Ponglo).
-> **Usage** : tout changement d’UI, de wording, de token ou de composant doit respecter ce document. Les décisions produits liées à la refonte vivent dans `docs/redesign-spec.md` — ce fichier ne versionne que la **marque**.
+> **Usage** : tout changement d’UI, de wording, de token ou de composant doit respecter ce document. Les décisions produits liées à la refonte vivent dans `docs/archive/redesign-spec.md` — ce fichier ne versionne que la **marque**.
 
 ---
 
@@ -22,7 +22,7 @@
 **Règle de nommage produit** :
 - **Beer Pong ELO** = nom affiché partout (UI, store, marketing, factures Stripe).
 - **BPL** = acronyme toléré dans le code / commits / docs internes.
-- **Ponglo** = legacy, à retirer progressivement (voir redesign-spec §9.1).
+- **Ponglo** = legacy, à retirer progressivement (voir archive/redesign-spec.md §9.1).
 
 ---
 
@@ -88,7 +88,7 @@ Les alias legacy (`cream`, `paper`, `ink`, `forest`, `terracotta`, `gold`, `ruby
 
 **Décision produit (R4 = C)** :
 - Phase A = Sora + Teko via Google Fonts + fallback Space Grotesk (actuel). Pas de Satoshi au départ.
-- Satoshi reste un candidat “refine later” — voir redesign-spec §9.4.
+- Satoshi reste un candidat “refine later” — voir archive/redesign-spec.md §9.4.
 
 ### 3.2 Règles d’usage
 
@@ -192,14 +192,14 @@ Snapshot des décisions qui ont fait naître ce document :
 
 | Doc | Lien |
 |---|---|
-| Refonte UI/UX par écran | [`redesign-spec.md`](./redesign-spec.md) |
+| Refonte UI/UX par écran | [`archive/redesign-spec.md`](./archive/redesign-spec.md) |
 | Tokens Tailwind (source technique) | [`../apps/web/tailwind.config.js`](../apps/web/tailwind.config.js) |
 | Instructions agents (règle *tokens obligatoires*) | [`../CLAUDE.md`](../CLAUDE.md) |
 | Roadmap (multi-vertical, long terme) | [`roadmap.md`](./roadmap.md) |
 
 **Ordre de priorité si conflit** :
 1. Ce fichier (`brand-kit-everything-elo.md`) fait foi sur **identité / marque**.
-2. `redesign-spec.md` fait foi sur **décisions écran par écran**.
+2. `archive/redesign-spec.md` fait foi sur **décisions écran par écran**.
 3. `tailwind.config.js` doit refléter ce qui est ici — s’il diverge, c’est le code qui est faux.
 
 ---

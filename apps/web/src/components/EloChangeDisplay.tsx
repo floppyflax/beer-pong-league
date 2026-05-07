@@ -52,14 +52,14 @@ export const EloChangeDisplay: React.FC<EloChangeDisplayProps> = ({ players, elo
                 key={player.id}
                 className={`bg-navy-soft p-4 rounded-xl border flex items-center justify-between transform transition-all delay-${index * 100} ${
                   show ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'
-                } ${isGain ? 'border-green-500/50' : 'border-red-500/50'}`}
+                } ${isGain ? 'border-lime/50' : 'border-signal-red/50'}`}
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
                 <div className="flex items-center gap-3">
                   {isGain ? (
-                    <TrendingUp className="text-green-500" size={24} />
+                    <TrendingUp className="text-lime" size={24} />
                   ) : (
-                    <TrendingDown className="text-red-500" size={24} />
+                    <TrendingDown className="text-signal-red" size={24} />
                   )}
                   <div>
                     <div className="font-bold text-white">{player.name}</div>
@@ -69,7 +69,7 @@ export const EloChangeDisplay: React.FC<EloChangeDisplayProps> = ({ players, elo
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`font-black text-xl ${isGain ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className={`font-black text-xl ${isGain ? 'text-lime' : 'text-signal-red'}`}>
                     {isGain ? '+' : ''}{player.change}
                   </div>
                   <div className="text-xs text-cool-gray">

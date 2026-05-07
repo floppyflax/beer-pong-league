@@ -11,10 +11,10 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variantClasses: Record<CardVariant, string> = {
-  default: 'bg-slate-800/90 border border-slate-700/50',
-  gradient: 'bg-gradient-card border border-slate-700/50',
-  transparent: 'bg-gradient-card-transparent border border-slate-700/50',
-  interactive: 'bg-slate-800 border border-slate-700/50 hover:border-slate-600 transition-all cursor-pointer',
+  default: 'bg-navy-soft/90 border border-card',
+  gradient: 'bg-gradient-card border border-card',
+  transparent: 'bg-gradient-card-transparent border border-card',
+  interactive: 'bg-navy-soft border border-card hover:border-cool-gray/40 transition-all cursor-pointer',
 };
 
 const paddingClasses: Record<string, string> = {

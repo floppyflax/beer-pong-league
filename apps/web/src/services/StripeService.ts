@@ -1,4 +1,5 @@
 import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { supabase } from '../lib/supabase';
 
 /**
  * Stripe Service for handling payment integration
@@ -6,6 +7,20 @@ import { loadStripe, Stripe } from '@stripe/stripe-js';
  */
 
 let stripePromise: Promise<Stripe | null>;
+
+const anonKey: string = import.meta.env.VITE_SUPABASE_PUBLIC_KEY || '';
+
+/**
+ * Resolve the Authorization token to send to the Supabase Edge Function.
+ * Uses the user JWT when a session is present (the edge function checks
+ * userId ownership against this token), otherwise falls back to the
+ * publishable key for anonymous flows.
+ */
+const resolveBearerToken = async (): Promise<string> => {
+  if (!supabase) return anonKey;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token || anonKey;
+};
 
 /**
  * Initialize Stripe with publishable key
@@ -44,16 +59,18 @@ export const createCheckoutSession = async (
     // For now, we'll use a direct API call (NOT PRODUCTION READY)
     // In production, this should call a Supabase Edge Function or backend endpoint
     
+    const bearer = await resolveBearerToken();
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLIC_KEY}`,
+        'Authorization': `Bearer ${bearer}`,
+        'apikey': anonKey,
       },
       body: JSON.stringify({
         userId,
         anonymousUserId,
-        priceId: import.meta.env.VITE_STRIPE_PREMIUM_PRICE_ID || 'price_default',
+        priceId: import.meta.env.VITE_STRIPE_PREMIUM_PRICE_ID,
         successUrl: `${window.location.origin}/payment-success`,
         cancelUrl: `${window.location.origin}/payment-cancel`,
       }),
@@ -87,11 +104,13 @@ export const verifyPaymentSession = async (
     // TODO: Call Supabase Edge Function to verify session
     // This must be server-side to securely verify with Stripe
     
+    const bearer = await resolveBearerToken();
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payment-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLIC_KEY}`,
+        'Authorization': `Bearer ${bearer}`,
+        'apikey': anonKey,
       },
       body: JSON.stringify({ sessionId }),
     });

@@ -32,7 +32,7 @@ export function Avatar({ name, src, size = 'md', className }: AvatarProps) {
   return (
     <div
       className={clsx(
-        'rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-300 overflow-hidden flex-shrink-0',
+        'rounded-full bg-navy-soft flex items-center justify-center font-bold text-cool-gray overflow-hidden flex-shrink-0',
         sizeClasses[size],
         className,
       )}

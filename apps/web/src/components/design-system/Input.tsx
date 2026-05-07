@@ -45,14 +45,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-slate-300 mb-1.5"
+            className="block text-sm font-medium text-white mb-1.5"
           >
             {label}
           </label>
         )}
         <div className="relative">
           {Icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-cool-gray pointer-events-none">
               <Icon size={18} />
             </div>
           )}
@@ -61,15 +61,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={twMerge(
               clsx(
-                'bg-slate-800 text-white rounded-input border transition-all duration-150 w-full',
-                'placeholder:text-slate-500',
+                'bg-navy-soft text-white rounded-input border transition-all duration-150 w-full',
+                'placeholder:text-cool-gray placeholder:opacity-70',
                 'focus:outline-none focus:ring-2 focus:ring-electric-blue/50 focus:border-electric-blue',
                 sizeClasses[inputSize],
                 Icon && 'pl-10',
                 suffix && 'pr-10',
                 hasError
                   ? 'border-signal-red focus:ring-signal-red/50 focus:border-signal-red'
-                  : 'border-slate-700 hover:border-slate-600',
+                  : 'border-card hover:border-cool-gray/40',
               ),
               className,
             )}
@@ -81,7 +81,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...rest}
           />
           {suffix && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-cool-gray">
               {suffix}
             </div>
           )}
@@ -96,7 +96,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </p>
         )}
         {!error && hint && (
-          <p id={`${inputId}-hint`} className="mt-1 text-sm text-slate-500">
+          <p id={`${inputId}-hint`} className="mt-1 text-sm text-cool-gray opacity-80">
             {hint}
           </p>
         )}

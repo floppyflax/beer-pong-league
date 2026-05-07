@@ -424,9 +424,9 @@ export const PlayerProfile = () => {
             player.streak >= 3
               ? "bg-ping-yellow/20 border-ping-yellow/50"
               : player.streak > 0
-                ? "bg-lime/20 border-green-500/50"
+                ? "bg-lime/20 border-lime/50"
                 : player.streak < 0
-                  ? "bg-signal-red/20 border-red-500/50"
+                  ? "bg-signal-red/20 border-signal-red/50"
                   : "bg-navy-soft/50 border-card/50"
           }`}
         >
@@ -596,7 +596,7 @@ export const PlayerProfile = () => {
                 <div
                   key={match.id}
                   className={`bg-navy-soft p-4 rounded-xl border border-card/50 ${
-                    isWinner ? "border-green-500/50" : "border-red-500/50"
+                    isWinner ? "border-lime/50" : "border-signal-red/50"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">

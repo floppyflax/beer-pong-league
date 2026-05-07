@@ -68,12 +68,12 @@ export function MatchEnrichedDisplay({
               setImageError(false);
               setShowEnlarged(true);
             }}
-            className="block rounded-lg overflow-hidden border border-slate-600 hover:border-slate-500 transition-colors focus:outline-none focus:ring-2 focus:ring-electric-blue disabled:opacity-60 disabled:cursor-not-allowed"
+            className="block rounded-lg overflow-hidden border border-card hover:border-cool-gray/40 transition-colors focus:outline-none focus:ring-2 focus:ring-electric-blue disabled:opacity-60 disabled:cursor-not-allowed"
             aria-label="Agrandir la photo"
             disabled={imageError}
           >
             {imageError ? (
-              <div className="w-16 h-16 flex items-center justify-center bg-slate-700 text-slate-400 text-xs">
+              <div className="w-16 h-16 flex items-center justify-center bg-navy-soft text-cool-gray text-xs">
                 Erreur
               </div>
             ) : (
@@ -103,7 +103,7 @@ export function MatchEnrichedDisplay({
                   e.stopPropagation();
                   closeModal();
                 }}
-                className="absolute top-4 right-4 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white"
+                className="absolute top-4 right-4 p-2 rounded-lg bg-navy-soft hover:bg-navy text-white"
                 aria-label="Fermer"
               >
                 <X size={24} />
@@ -121,7 +121,7 @@ export function MatchEnrichedDisplay({
 
       {/* Task 2: Cups badge - "X cups remaining" */}
       {hasCups && (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/40">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ping-yellow/20 text-ping-yellow border border-ping-yellow/40">
           {formatCupsBadge(cupsRemaining)}
         </span>
       )}

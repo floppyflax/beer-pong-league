@@ -102,7 +102,7 @@ export function Sheet({
     >
       <div
         ref={sheetRef}
-        className={`w-full ${MAX_WIDTH_CLASS[maxWidth]} bg-navy-soft border-t border-card md:border md:border-card rounded-t-2xl md:rounded-2xl shadow-modal flex flex-col max-h-[92vh] animate-invite-sheet-up`}
+        className={`w-full ${MAX_WIDTH_CLASS[maxWidth]} bg-navy-soft border-t border-card md:border md:border-card rounded-t-2xl md:rounded-2xl shadow-modal flex flex-col max-h-[66dvh] md:max-h-[92vh] animate-invite-sheet-up`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Grabber (mobile only) */}

@@ -36,14 +36,25 @@ Configurer côté Supabase (Dashboard → Settings → Vault ou via CLI) :
 ```
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_PREMIUM_PRICE_ID=price_xxx
+STRIPE_ALLOWED_PRICE_IDS=price_xxx,price_yyy   # optionnel — whitelist csv pour bloquer les priceId arbitraires envoyés par le client
 ```
+
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY` sont injectés automatiquement par Supabase dans le runtime des edge functions — pas besoin de les configurer manuellement. Ils sont utilisés pour :
+- vérifier le JWT du caller via `supabase.auth.getUser(jwt)` quand un `userId` est passé ;
+- valider l'existence d'un `anonymous_users.id` côté admin avant de créer la session Stripe.
 
 Via CLI :
 
 ```bash
 supabase secrets set STRIPE_SECRET_KEY=sk_test_xxx
 supabase secrets set STRIPE_PREMIUM_PRICE_ID=price_xxx
+supabase secrets set STRIPE_ALLOWED_PRICE_IDS=price_xxx
 ```
+
+### Sécurité des edge functions
+
+- **`create-checkout-session`** valide le payload via `zod`, refuse les `priceId` hors de `STRIPE_ALLOWED_PRICE_IDS` (si défini), et exige un JWT Supabase valide quand un `userId` est passé. Les flows anonymes (sans JWT) sont acceptés mais l'`anonymousUserId` doit exister en DB.
+- Le client envoie le JWT user (`supabase.auth.getSession().access_token`) en `Authorization: Bearer ...` quand l'utilisateur est connecté, sinon la publishable key. Le header `apikey` reste toujours la publishable key.
 
 ## Setup Stripe
 

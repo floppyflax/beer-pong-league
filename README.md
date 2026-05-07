@@ -1,6 +1,6 @@
 # Beer Pong League
 
-Application web de gestion de ligues et tournois de beer-pong avec classement ELO individuel. React 18 + TypeScript + Vite, backend Supabase, paiements Stripe, déployée sur Vercel.
+Application web (+ squelette mobile) de gestion de ligues et événements de beer-pong avec classement ELO **par contexte** (par event ou par league, pas d'ELO global). Monorepo : web React 18 + Vite, mobile React Native / Expo, package `shared` pour les types et utils. Backend Supabase, paiements Stripe, déployée sur Vercel.
 
 **Live** : [beer-pong-elo.com](https://beer-pong-elo.com)
 

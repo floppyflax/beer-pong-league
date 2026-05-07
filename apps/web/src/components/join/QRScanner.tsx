@@ -154,7 +154,7 @@ export const QRScanner = ({ onScan, onClose, onFallbackToCodeInput }: QRScannerP
       <div className="flex-1 flex items-center justify-center p-4 bg-black">
         {hasPermission === false || error ? (
           <div className="text-center max-w-md">
-            <AlertCircle size={64} className="text-red-500 mx-auto mb-4" />
+            <AlertCircle size={64} className="text-signal-red mx-auto mb-4" />
             <p className="text-white font-bold text-xl mb-2">Accès caméra requis</p>
             <p className="text-cool-gray mb-6">{error}</p>
             <button
