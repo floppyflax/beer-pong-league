@@ -27,10 +27,17 @@
 --     by calling apply_match_elo. Used by admins after editing/deleting a
 --     match (cf. mig 021).
 --
--- The client is updated in the same PR to call these RPCs instead of writing
--- directly. A follow-up PR will harden RLS to *forbid* direct client writes
--- to the stat columns, completing the anti-cheat story; this PR delivers the
--- correct write path that any honest client will use.
+-- ─────────────────────────────────────────────────────────────────────────
+-- DASHBOARD COMPATIBILITY NOTE
+-- ─────────────────────────────────────────────────────────────────────────
+-- The Supabase Dashboard SQL Editor naively parses `SELECT ... INTO foo`
+-- as `SELECT INTO new_table` (CREATE TABLE shorthand) even inside a
+-- PL/pgSQL function body, then auto-injects an `ALTER TABLE foo ENABLE
+-- ROW LEVEL SECURITY` mid-function which terminates the dollar-quoted
+-- block prematurely. To work around that bug, this migration uses
+-- explicit `var := (SELECT ...)` assignments throughout instead of
+-- `SELECT ... INTO var`. The CLI (`supabase db push`) is happy with
+-- either form.
 
 BEGIN;
 
@@ -46,209 +53,13 @@ LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
 $$;
 
 -- ──────────────────────────────────────────────────────────────────────
--- 2. apply_match_elo — the only legitimate write path for ELO + stats.
--- ──────────────────────────────────────────────────────────────────────
-
-CREATE OR REPLACE FUNCTION public.apply_match_elo(p_match_id UUID)
-RETURNS VOID
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-DECLARE
-  v_match              RECORD;
-  v_league_anti_cheat  BOOLEAN;
-  v_event_anti_cheat   BOOLEAN;
-  v_propagates         BOOLEAN := FALSE;
-  v_winner             CHAR(1);
-  v_team_a_avg_elo     NUMERIC;
-  v_team_b_avg_elo     NUMERIC;
-  v_expected_a         NUMERIC;
-  v_expected_b         NUMERIC;
-  v_team_a_avg_elo_l   NUMERIC;  -- league-context averages (separate baselines)
-  v_team_b_avg_elo_l   NUMERIC;
-  v_expected_a_l       NUMERIC;
-  v_expected_b_l       NUMERIC;
-  v_player_id          UUID;
-  v_already_applied    BOOLEAN;
-BEGIN
-  -- 2a. Lock the match row to serialize concurrent calls
-  SELECT m.id, m.league_id, m.event_id,
-         m.team_a_player_ids, m.team_b_player_ids,
-         m.score_a, m.score_b,
-         m.is_ranked, m.status
-    INTO v_match
-    FROM public.matches m
-   WHERE m.id = p_match_id
-     FOR UPDATE;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'apply_match_elo: match % not found', p_match_id
-      USING ERRCODE = 'no_data_found';
-  END IF;
-
-  -- 2b. Refuse non-ranked or rejected matches
-  IF v_match.is_ranked IS NOT TRUE THEN
-    RAISE EXCEPTION 'apply_match_elo: match % is not ranked', p_match_id
-      USING ERRCODE = 'check_violation';
-  END IF;
-
-  IF v_match.status = 'rejected' THEN
-    RAISE EXCEPTION 'apply_match_elo: match % was rejected', p_match_id
-      USING ERRCODE = 'check_violation';
-  END IF;
-
-  -- 2c. Anti-cheat — when the parent context requires confirmation, refuse pending
-  IF v_match.event_id IS NOT NULL THEN
-    SELECT COALESCE(anti_cheat_enabled, FALSE), COALESCE(propagates_to_league_elo, TRUE)
-      INTO v_event_anti_cheat, v_propagates
-      FROM public.events
-     WHERE id = v_match.event_id;
-  END IF;
-
-  IF v_match.league_id IS NOT NULL THEN
-    SELECT COALESCE(anti_cheat_enabled, FALSE)
-      INTO v_league_anti_cheat
-      FROM public.leagues
-     WHERE id = v_match.league_id;
-  END IF;
-
-  IF (COALESCE(v_event_anti_cheat, FALSE) OR COALESCE(v_league_anti_cheat, FALSE))
-     AND v_match.status <> 'confirmed' THEN
-    RAISE EXCEPTION 'apply_match_elo: match % awaits confirmation under anti-cheat', p_match_id
-      USING ERRCODE = 'check_violation';
-  END IF;
-
-  -- 2d. Anti-replay
-  SELECT EXISTS(SELECT 1 FROM public.elo_history WHERE match_id = p_match_id)
-    INTO v_already_applied;
-  IF v_already_applied THEN
-    RAISE EXCEPTION 'apply_match_elo: match % already has elo_history (anti-replay)', p_match_id
-      USING ERRCODE = 'unique_violation';
-  END IF;
-
-  -- 2e. Decide the winner
-  IF v_match.score_a > v_match.score_b THEN
-    v_winner := 'A';
-  ELSIF v_match.score_b > v_match.score_a THEN
-    v_winner := 'B';
-  ELSE
-    -- Ties are not part of the spec — refuse rather than silently picking one
-    RAISE EXCEPTION 'apply_match_elo: match % has equal scores (no winner)', p_match_id
-      USING ERRCODE = 'check_violation';
-  END IF;
-
-  -- ──────────────────────────────────────────────────────────────────
-  -- 3. EVENT context (always when event_id IS NOT NULL)
-  --    Each player gets a delta computed from the team's average ELO
-  --    (in the EVENT context: event_memberships.elo).
-  -- ──────────────────────────────────────────────────────────────────
-  IF v_match.event_id IS NOT NULL THEN
-    -- Average ELO per team in the EVENT context.
-    SELECT AVG(em.elo) INTO v_team_a_avg_elo
-      FROM public.event_memberships em
-     WHERE em.event_id = v_match.event_id
-       AND em.player_id = ANY(v_match.team_a_player_ids);
-
-    SELECT AVG(em.elo) INTO v_team_b_avg_elo
-      FROM public.event_memberships em
-     WHERE em.event_id = v_match.event_id
-       AND em.player_id = ANY(v_match.team_b_player_ids);
-
-    -- Players without a membership yet → treat as 1000 (default), to mirror
-    -- the client's previous behaviour where the resolver returned a Player
-    -- with elo=1000 for missing memberships.
-    v_team_a_avg_elo := COALESCE(v_team_a_avg_elo, 1000);
-    v_team_b_avg_elo := COALESCE(v_team_b_avg_elo, 1000);
-
-    v_expected_a := 1.0 / (1.0 + power(10.0, (v_team_b_avg_elo - v_team_a_avg_elo) / 400.0));
-    v_expected_b := 1.0 / (1.0 + power(10.0, (v_team_a_avg_elo - v_team_b_avg_elo) / 400.0));
-
-    -- Walk team A
-    FOREACH v_player_id IN ARRAY v_match.team_a_player_ids LOOP
-      PERFORM public._apply_elo_for_player(
-        p_match_id        := p_match_id,
-        p_event_id        := v_match.event_id,
-        p_league_id       := NULL,
-        p_player_id       := v_player_id,
-        p_actual_score    := CASE WHEN v_winner = 'A' THEN 1 ELSE 0 END,
-        p_expected_score  := v_expected_a,
-        p_is_winner       := v_winner = 'A'
-      );
-    END LOOP;
-
-    FOREACH v_player_id IN ARRAY v_match.team_b_player_ids LOOP
-      PERFORM public._apply_elo_for_player(
-        p_match_id        := p_match_id,
-        p_event_id        := v_match.event_id,
-        p_league_id       := NULL,
-        p_player_id       := v_player_id,
-        p_actual_score    := CASE WHEN v_winner = 'B' THEN 1 ELSE 0 END,
-        p_expected_score  := v_expected_b,
-        p_is_winner       := v_winner = 'B'
-      );
-    END LOOP;
-  END IF;
-
-  -- ──────────────────────────────────────────────────────────────────
-  -- 4. LEAGUE context — when the match has a league_id AND
-  --    (no event, OR event.propagates_to_league_elo = true).
-  --    The league delta is computed independently from the league
-  --    baselines (NOT a copy of the event delta).
-  -- ──────────────────────────────────────────────────────────────────
-  IF v_match.league_id IS NOT NULL
-     AND (v_match.event_id IS NULL OR v_propagates) THEN
-
-    SELECT AVG(lm.elo) INTO v_team_a_avg_elo_l
-      FROM public.league_memberships lm
-     WHERE lm.league_id = v_match.league_id
-       AND lm.player_id = ANY(v_match.team_a_player_ids);
-
-    SELECT AVG(lm.elo) INTO v_team_b_avg_elo_l
-      FROM public.league_memberships lm
-     WHERE lm.league_id = v_match.league_id
-       AND lm.player_id = ANY(v_match.team_b_player_ids);
-
-    v_team_a_avg_elo_l := COALESCE(v_team_a_avg_elo_l, 1000);
-    v_team_b_avg_elo_l := COALESCE(v_team_b_avg_elo_l, 1000);
-
-    v_expected_a_l := 1.0 / (1.0 + power(10.0, (v_team_b_avg_elo_l - v_team_a_avg_elo_l) / 400.0));
-    v_expected_b_l := 1.0 / (1.0 + power(10.0, (v_team_a_avg_elo_l - v_team_b_avg_elo_l) / 400.0));
-
-    FOREACH v_player_id IN ARRAY v_match.team_a_player_ids LOOP
-      PERFORM public._apply_elo_for_player(
-        p_match_id        := p_match_id,
-        p_event_id        := NULL,
-        p_league_id       := v_match.league_id,
-        p_player_id       := v_player_id,
-        p_actual_score    := CASE WHEN v_winner = 'A' THEN 1 ELSE 0 END,
-        p_expected_score  := v_expected_a_l,
-        p_is_winner       := v_winner = 'A'
-      );
-    END LOOP;
-
-    FOREACH v_player_id IN ARRAY v_match.team_b_player_ids LOOP
-      PERFORM public._apply_elo_for_player(
-        p_match_id        := p_match_id,
-        p_event_id        := NULL,
-        p_league_id       := v_match.league_id,
-        p_player_id       := v_player_id,
-        p_actual_score    := CASE WHEN v_winner = 'B' THEN 1 ELSE 0 END,
-        p_expected_score  := v_expected_b_l,
-        p_is_winner       := v_winner = 'B'
-      );
-    END LOOP;
-  END IF;
-END;
-$$;
-
-COMMENT ON FUNCTION public.apply_match_elo(UUID) IS
-  'Computes and persists the ELO delta for a confirmed ranked match. Idempotent. SECURITY DEFINER — the only legitimate path for elo_history / memberships stats writes.';
-
--- ──────────────────────────────────────────────────────────────────────
--- 5. _apply_elo_for_player — internal helper, applies the per-player delta
+-- 2. _apply_elo_for_player — internal helper, applies the per-player delta
 --    in either the event or league context (exactly one of p_event_id /
 --    p_league_id must be non-NULL).
+--
+--    Defined first so the CREATE FUNCTION above doesn't FORWARD-reference
+--    it; PL/pgSQL will resolve the call at runtime regardless, but
+--    keeping the dependency order clean helps readers.
 -- ──────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION public._apply_elo_for_player(
@@ -264,81 +75,311 @@ RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $$
+AS $fn$
 DECLARE
-  v_membership_id    UUID;
-  v_elo_before       INTEGER;
-  v_matches_played   INTEGER;
-  v_wins             INTEGER;
-  v_losses           INTEGER;
-  v_streak           INTEGER;
-  v_k                INTEGER;
-  v_change           INTEGER;
-  v_elo_after        INTEGER;
-  v_new_streak       INTEGER;
+  membership_id  UUID;
+  prev_elo       INTEGER;
+  prev_played    INTEGER;
+  prev_wins      INTEGER;
+  prev_losses    INTEGER;
+  prev_streak    INTEGER;
+  k_factor       INTEGER;
+  delta          INTEGER;
+  next_elo       INTEGER;
+  next_wins      INTEGER;
+  next_losses    INTEGER;
+  next_streak    INTEGER;
 BEGIN
   IF (p_event_id IS NULL) = (p_league_id IS NULL) THEN
     RAISE EXCEPTION '_apply_elo_for_player: exactly one of p_event_id / p_league_id must be set';
   END IF;
 
   IF p_event_id IS NOT NULL THEN
-    SELECT id, elo, matches_played, wins, losses, streak
-      INTO v_membership_id, v_elo_before, v_matches_played, v_wins, v_losses, v_streak
+    -- Lock the row first (no INTO clause so the Dashboard parser can't trip)
+    PERFORM 1
       FROM public.event_memberships
      WHERE event_id = p_event_id AND player_id = p_player_id
        FOR UPDATE;
 
-    -- No membership for this player in this context: skip silently — mirrors
-    -- the legacy client behaviour (it just ignored unmapped players).
-    IF NOT FOUND THEN RETURN; END IF;
+    IF NOT FOUND THEN
+      -- Player has no membership in this event — skip silently (mirror
+      -- of the legacy client behaviour for unmapped players).
+      RETURN;
+    END IF;
+
+    membership_id := (SELECT id              FROM public.event_memberships WHERE event_id = p_event_id AND player_id = p_player_id);
+    prev_elo      := (SELECT elo             FROM public.event_memberships WHERE id = membership_id);
+    prev_played   := (SELECT matches_played  FROM public.event_memberships WHERE id = membership_id);
+    prev_wins     := (SELECT wins            FROM public.event_memberships WHERE id = membership_id);
+    prev_losses   := (SELECT losses          FROM public.event_memberships WHERE id = membership_id);
+    prev_streak   := (SELECT streak          FROM public.event_memberships WHERE id = membership_id);
   ELSE
-    SELECT id, elo, matches_played, wins, losses, streak
-      INTO v_membership_id, v_elo_before, v_matches_played, v_wins, v_losses, v_streak
+    PERFORM 1
       FROM public.league_memberships
      WHERE league_id = p_league_id AND player_id = p_player_id
        FOR UPDATE;
 
     IF NOT FOUND THEN RETURN; END IF;
+
+    membership_id := (SELECT id              FROM public.league_memberships WHERE league_id = p_league_id AND player_id = p_player_id);
+    prev_elo      := (SELECT elo             FROM public.league_memberships WHERE id = membership_id);
+    prev_played   := (SELECT matches_played  FROM public.league_memberships WHERE id = membership_id);
+    prev_wins     := (SELECT wins            FROM public.league_memberships WHERE id = membership_id);
+    prev_losses   := (SELECT losses          FROM public.league_memberships WHERE id = membership_id);
+    prev_streak   := (SELECT streak          FROM public.league_memberships WHERE id = membership_id);
   END IF;
 
-  v_k := public.elo_k_factor(v_matches_played);
-  v_change := round(v_k * (p_actual_score - p_expected_score));
-  v_elo_after := v_elo_before + v_change;
+  k_factor := public.elo_k_factor(prev_played);
+  delta    := round(k_factor * (p_actual_score - p_expected_score));
+  next_elo := prev_elo + delta;
 
-  -- Streak: positive streak = consecutive wins, negative = consecutive losses
+  -- Streak: positive = consecutive wins, negative = consecutive losses
   IF p_is_winner THEN
-    v_new_streak := CASE WHEN v_streak > 0 THEN v_streak + 1 ELSE 1 END;
-    v_wins  := v_wins + 1;
+    next_streak := CASE WHEN prev_streak > 0 THEN prev_streak + 1 ELSE 1 END;
+    next_wins   := prev_wins + 1;
+    next_losses := prev_losses;
   ELSE
-    v_new_streak := CASE WHEN v_streak < 0 THEN v_streak - 1 ELSE -1 END;
-    v_losses := v_losses + 1;
+    next_streak := CASE WHEN prev_streak < 0 THEN prev_streak - 1 ELSE -1 END;
+    next_wins   := prev_wins;
+    next_losses := prev_losses + 1;
   END IF;
 
   IF p_event_id IS NOT NULL THEN
     UPDATE public.event_memberships
-       SET elo = v_elo_after,
-           wins = v_wins,
-           losses = v_losses,
-           matches_played = v_matches_played + 1,
-           streak = v_new_streak
-     WHERE id = v_membership_id;
+       SET elo            = next_elo,
+           wins           = next_wins,
+           losses         = next_losses,
+           matches_played = prev_played + 1,
+           streak         = next_streak
+     WHERE id = membership_id;
   ELSE
     UPDATE public.league_memberships
-       SET elo = v_elo_after,
-           wins = v_wins,
-           losses = v_losses,
-           matches_played = v_matches_played + 1,
-           streak = v_new_streak
-     WHERE id = v_membership_id;
+       SET elo            = next_elo,
+           wins           = next_wins,
+           losses         = next_losses,
+           matches_played = prev_played + 1,
+           streak         = next_streak
+     WHERE id = membership_id;
   END IF;
 
   INSERT INTO public.elo_history (match_id, event_id, league_id, player_id, elo_before, elo_after, elo_change)
-  VALUES (p_match_id, p_event_id, p_league_id, p_player_id, v_elo_before, v_elo_after, v_change);
+  VALUES (p_match_id, p_event_id, p_league_id, p_player_id, prev_elo, next_elo, delta);
 END;
-$$;
+$fn$;
 
 COMMENT ON FUNCTION public._apply_elo_for_player(UUID, UUID, UUID, UUID, NUMERIC, NUMERIC, BOOLEAN) IS
   'Internal helper for apply_match_elo. Applies a per-player delta in either the event or league context. Skips silently if the player has no membership in that context.';
+
+-- ──────────────────────────────────────────────────────────────────────
+-- 3. apply_match_elo — the only legitimate write path for ELO + stats.
+-- ──────────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.apply_match_elo(p_match_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $fn$
+DECLARE
+  match_league_id        UUID;
+  match_event_id         UUID;
+  match_team_a_player_ids UUID[];
+  match_team_b_player_ids UUID[];
+  match_score_a          INTEGER;
+  match_score_b          INTEGER;
+  match_is_ranked        BOOLEAN;
+  match_status           TEXT;
+  league_anti_cheat      BOOLEAN := FALSE;
+  event_anti_cheat       BOOLEAN := FALSE;
+  propagates             BOOLEAN := FALSE;
+  winner                 CHAR(1);
+  team_a_avg_elo         NUMERIC;
+  team_b_avg_elo         NUMERIC;
+  expected_a             NUMERIC;
+  expected_b             NUMERIC;
+  team_a_avg_elo_l       NUMERIC;
+  team_b_avg_elo_l       NUMERIC;
+  expected_a_l           NUMERIC;
+  expected_b_l           NUMERIC;
+  loop_player_id         UUID;
+  already_applied        BOOLEAN;
+BEGIN
+  -- 3a. Lock the match row (no INTO clause)
+  PERFORM 1 FROM public.matches WHERE id = p_match_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'apply_match_elo: match % not found', p_match_id
+      USING ERRCODE = 'no_data_found';
+  END IF;
+
+  -- 3b. Read the match fields via scalar subqueries (lock is already held)
+  match_league_id          := (SELECT league_id          FROM public.matches WHERE id = p_match_id);
+  match_event_id           := (SELECT event_id           FROM public.matches WHERE id = p_match_id);
+  match_team_a_player_ids  := (SELECT team_a_player_ids  FROM public.matches WHERE id = p_match_id);
+  match_team_b_player_ids  := (SELECT team_b_player_ids  FROM public.matches WHERE id = p_match_id);
+  match_score_a            := (SELECT score_a            FROM public.matches WHERE id = p_match_id);
+  match_score_b            := (SELECT score_b            FROM public.matches WHERE id = p_match_id);
+  match_is_ranked          := (SELECT is_ranked          FROM public.matches WHERE id = p_match_id);
+  match_status             := (SELECT status             FROM public.matches WHERE id = p_match_id);
+
+  -- 3c. Refuse non-ranked or rejected matches
+  IF match_is_ranked IS NOT TRUE THEN
+    RAISE EXCEPTION 'apply_match_elo: match % is not ranked', p_match_id
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF match_status = 'rejected' THEN
+    RAISE EXCEPTION 'apply_match_elo: match % was rejected', p_match_id
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  -- 3d. Anti-cheat — when the parent context requires confirmation, refuse pending
+  IF match_event_id IS NOT NULL THEN
+    event_anti_cheat := COALESCE(
+      (SELECT anti_cheat_enabled FROM public.events WHERE id = match_event_id),
+      FALSE
+    );
+    propagates := COALESCE(
+      (SELECT propagates_to_league_elo FROM public.events WHERE id = match_event_id),
+      TRUE
+    );
+  END IF;
+
+  IF match_league_id IS NOT NULL THEN
+    league_anti_cheat := COALESCE(
+      (SELECT anti_cheat_enabled FROM public.leagues WHERE id = match_league_id),
+      FALSE
+    );
+  END IF;
+
+  IF (event_anti_cheat OR league_anti_cheat) AND match_status <> 'confirmed' THEN
+    RAISE EXCEPTION 'apply_match_elo: match % awaits confirmation under anti-cheat', p_match_id
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  -- 3e. Anti-replay
+  already_applied := EXISTS(SELECT 1 FROM public.elo_history WHERE match_id = p_match_id);
+  IF already_applied THEN
+    RAISE EXCEPTION 'apply_match_elo: match % already has elo_history (anti-replay)', p_match_id
+      USING ERRCODE = 'unique_violation';
+  END IF;
+
+  -- 3f. Decide the winner — ties refused (no winner).
+  IF match_score_a > match_score_b THEN
+    winner := 'A';
+  ELSIF match_score_b > match_score_a THEN
+    winner := 'B';
+  ELSE
+    RAISE EXCEPTION 'apply_match_elo: match % has equal scores (no winner)', p_match_id
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  -- ──────────────────────────────────────────────────────────────────
+  -- 4. EVENT context (always when event_id IS NOT NULL)
+  --    Each player gets a delta computed from the team's average ELO
+  --    (in the EVENT context: event_memberships.elo).
+  -- ──────────────────────────────────────────────────────────────────
+  IF match_event_id IS NOT NULL THEN
+    team_a_avg_elo := COALESCE(
+      (SELECT AVG(em.elo)
+         FROM public.event_memberships em
+        WHERE em.event_id = match_event_id
+          AND em.player_id = ANY(match_team_a_player_ids)),
+      1000
+    );
+
+    team_b_avg_elo := COALESCE(
+      (SELECT AVG(em.elo)
+         FROM public.event_memberships em
+        WHERE em.event_id = match_event_id
+          AND em.player_id = ANY(match_team_b_player_ids)),
+      1000
+    );
+
+    expected_a := 1.0 / (1.0 + power(10.0, (team_b_avg_elo - team_a_avg_elo) / 400.0));
+    expected_b := 1.0 / (1.0 + power(10.0, (team_a_avg_elo - team_b_avg_elo) / 400.0));
+
+    FOREACH loop_player_id IN ARRAY match_team_a_player_ids LOOP
+      PERFORM public._apply_elo_for_player(
+        p_match_id        := p_match_id,
+        p_event_id        := match_event_id,
+        p_league_id       := NULL,
+        p_player_id       := loop_player_id,
+        p_actual_score    := CASE WHEN winner = 'A' THEN 1 ELSE 0 END,
+        p_expected_score  := expected_a,
+        p_is_winner       := winner = 'A'
+      );
+    END LOOP;
+
+    FOREACH loop_player_id IN ARRAY match_team_b_player_ids LOOP
+      PERFORM public._apply_elo_for_player(
+        p_match_id        := p_match_id,
+        p_event_id        := match_event_id,
+        p_league_id       := NULL,
+        p_player_id       := loop_player_id,
+        p_actual_score    := CASE WHEN winner = 'B' THEN 1 ELSE 0 END,
+        p_expected_score  := expected_b,
+        p_is_winner       := winner = 'B'
+      );
+    END LOOP;
+  END IF;
+
+  -- ──────────────────────────────────────────────────────────────────
+  -- 5. LEAGUE context — when the match has a league_id AND
+  --    (no event, OR event.propagates_to_league_elo = true).
+  --    The league delta is computed independently from the league
+  --    baselines (NOT a copy of the event delta).
+  -- ──────────────────────────────────────────────────────────────────
+  IF match_league_id IS NOT NULL
+     AND (match_event_id IS NULL OR propagates) THEN
+
+    team_a_avg_elo_l := COALESCE(
+      (SELECT AVG(lm.elo)
+         FROM public.league_memberships lm
+        WHERE lm.league_id = match_league_id
+          AND lm.player_id = ANY(match_team_a_player_ids)),
+      1000
+    );
+
+    team_b_avg_elo_l := COALESCE(
+      (SELECT AVG(lm.elo)
+         FROM public.league_memberships lm
+        WHERE lm.league_id = match_league_id
+          AND lm.player_id = ANY(match_team_b_player_ids)),
+      1000
+    );
+
+    expected_a_l := 1.0 / (1.0 + power(10.0, (team_b_avg_elo_l - team_a_avg_elo_l) / 400.0));
+    expected_b_l := 1.0 / (1.0 + power(10.0, (team_a_avg_elo_l - team_b_avg_elo_l) / 400.0));
+
+    FOREACH loop_player_id IN ARRAY match_team_a_player_ids LOOP
+      PERFORM public._apply_elo_for_player(
+        p_match_id        := p_match_id,
+        p_event_id        := NULL,
+        p_league_id       := match_league_id,
+        p_player_id       := loop_player_id,
+        p_actual_score    := CASE WHEN winner = 'A' THEN 1 ELSE 0 END,
+        p_expected_score  := expected_a_l,
+        p_is_winner       := winner = 'A'
+      );
+    END LOOP;
+
+    FOREACH loop_player_id IN ARRAY match_team_b_player_ids LOOP
+      PERFORM public._apply_elo_for_player(
+        p_match_id        := p_match_id,
+        p_event_id        := NULL,
+        p_league_id       := match_league_id,
+        p_player_id       := loop_player_id,
+        p_actual_score    := CASE WHEN winner = 'B' THEN 1 ELSE 0 END,
+        p_expected_score  := expected_b_l,
+        p_is_winner       := winner = 'B'
+      );
+    END LOOP;
+  END IF;
+END;
+$fn$;
+
+COMMENT ON FUNCTION public.apply_match_elo(UUID) IS
+  'Computes and persists the ELO delta for a confirmed ranked match. Idempotent. SECURITY DEFINER — the only legitimate path for elo_history / memberships stats writes.';
 
 -- ──────────────────────────────────────────────────────────────────────
 -- 6. recalculate_league_elo — admin recovery path, replays every ranked
@@ -352,10 +393,10 @@ RETURNS INTEGER  -- number of matches replayed
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $$
+AS $fn$
 DECLARE
-  v_match_id UUID;
-  v_replayed INTEGER := 0;
+  next_match_id UUID;
+  replayed      INTEGER := 0;
 BEGIN
   -- Reset league memberships
   UPDATE public.league_memberships
@@ -368,7 +409,7 @@ BEGIN
    WHERE league_id = p_league_id;
 
   -- Replay every ranked, non-rejected match attached to this league in chrono order
-  FOR v_match_id IN
+  FOR next_match_id IN
     SELECT id
       FROM public.matches
      WHERE league_id = p_league_id
@@ -378,8 +419,8 @@ BEGIN
      ORDER BY created_at ASC
   LOOP
     BEGIN
-      PERFORM public.apply_match_elo(v_match_id);
-      v_replayed := v_replayed + 1;
+      PERFORM public.apply_match_elo(next_match_id);
+      replayed := replayed + 1;
     EXCEPTION
       WHEN OTHERS THEN
         -- Skip matches that fail individual checks (already-applied, pending+anti-cheat, …)
@@ -388,9 +429,9 @@ BEGIN
     END;
   END LOOP;
 
-  RETURN v_replayed;
+  RETURN replayed;
 END;
-$$;
+$fn$;
 
 COMMENT ON FUNCTION public.recalculate_league_elo(UUID) IS
   'Wipes league memberships stats + league elo_history, then replays every ranked match attached to the league in chronological order via apply_match_elo. Returns the number of matches replayed.';
