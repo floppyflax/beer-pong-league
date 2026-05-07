@@ -163,8 +163,12 @@ Cela permet de tracer l'évolution ELO **par contexte** indépendamment, et d'al
 ### Contexts et hooks
 - `AuthContext` / `useAuth` — session Supabase.
 - `IdentityContext` / `useIdentity` — identité unifiée (user authentifié ou anonyme local).
-- `LeagueContext` — **monolithique** (1100+ lignes — gère leagues, events, players, matches). Refactor planifié (cf. plan d'audit §2.2).
-- Hooks data : `useEventsList`, `useLeaguesList`, `useHomeData`, `useJoinEvent`, `useUnclaimedGuests`, `useDetailPagePermissions`, `usePremium`, `usePremiumLimits`, `useRequireIdentity`, `useFullDisconnect`, `useBreakpoint`, `useIsAnonymous`, `useNativeInit`.
+- `LeagueContext` / `useLeague` — umbrella context (1100+ lignes — leagues, events, players, matches). Refactor en cours (cf. plan d'audit §2.2). **Pour le code nouveau, préférer les hooks "facette" ci-dessous** — ils consomment le même provider mais exposent un slice ciblé, ce qui prépare un futur split du provider.
+  - `useLeagues()` — leagues state + CRUD + ranking.
+  - `useEvents()` — events state + CRUD + propagation league + ranking.
+  - `usePlayers()` — add / rename / delete / claim ghost.
+  - `useMatches()` — record match (déclenche `apply_match_elo` côté serveur depuis mig 025).
+- Hooks data dédiés : `useEventsList`, `useLeaguesList`, `useHomeData`, `useJoinEvent`, `useUnclaimedGuests`, `useDetailPagePermissions`, `usePremium`, `usePremiumLimits`, `useRequireIdentity`, `useFullDisconnect`, `useBreakpoint`, `useIsAnonymous`, `useNativeInit`.
 
 ## Contrats API
 

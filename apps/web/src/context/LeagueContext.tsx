@@ -104,11 +104,20 @@ export { LeagueContext };
 export type { LeagueContextType };
 
 /**
- * Hook to access global application data (leagues, events, players, matches).
- * 
- * Despite the name "useLeague", this hook provides access to ALL app data,
- * including both leagues and events.
- * 
+ * Hook to access ALL global application data — leagues, events, players,
+ * matches, and the data-sync controls. Despite the name "useLeague", this
+ * is the umbrella context.
+ *
+ * **Prefer the focused facade hooks for new code** (cf. audit plan §2.2):
+ * - `useLeagues()` — league list + CRUD + ranking
+ * - `useEvents()`  — event list + CRUD + ranking + propagation
+ * - `usePlayers()` — player ops (add / rename / delete / claim ghost)
+ * - `useMatches()` — match recording (server-side ELO since mig 025)
+ *
+ * `useLeague()` itself stays available — use it when a single consumer
+ * genuinely needs a wide slice of the umbrella state (e.g. the dashboard
+ * orchestrator). Not deprecated, but no longer the default entry point.
+ *
  * @example
  * const { leagues, events, reloadData } = useLeague();
  */

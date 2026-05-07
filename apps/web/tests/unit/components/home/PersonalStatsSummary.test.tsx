@@ -173,12 +173,6 @@ describe('PersonalStatsSummary', () => {
   });
 
   describe('Styling', () => {
-    const stats = {
-      totalMatches: 42,
-      winRate: 65.5,
-      bestStreak: 7,
-    };
-
     // "should apply card styling" removed — the rounded radius token
     // moved from `rounded-xl` to `rounded-card`. Card visual is covered
     // by the design-system Card.test.tsx instead.
@@ -186,11 +180,11 @@ describe('PersonalStatsSummary', () => {
     it('should show section header', () => {
       render(
         <BrowserRouter>
-          <PersonalStatsSummary stats={{
-            totalMatches: 42,
-            winRate: 65.5,
-            bestStreak: 7,
-          }} isLoading={false} isPremium={true} />
+          <PersonalStatsSummary
+            stats={{ totalMatches: 42, winRate: 65.5, bestStreak: 7 }}
+            isLoading={false}
+            isPremium={true}
+          />
         </BrowserRouter>
       );
 
