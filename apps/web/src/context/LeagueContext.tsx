@@ -339,6 +339,39 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     // Save to Supabase
     try {
       await databaseService.saveLeague(newLeague);
+
+      // Auto-add the creator as the first member of the league so they
+      // appear in the ranking and can record matches without an extra step.
+      // Mirrors the event creation flow (CreateEvent.handleSubmit).
+      const creatorPseudo =
+        localUser?.pseudo?.trim() ||
+        (user?.user_metadata?.name as string | undefined) ||
+        'Joueur';
+      const creatorPlayer: Player = {
+        id: crypto.randomUUID(),
+        name: creatorPseudo,
+        elo: 1000,
+        wins: 0,
+        losses: 0,
+        matchesPlayed: 0,
+        streak: 0,
+      };
+      try {
+        await databaseService.addPlayerToLeague(
+          newLeague.id,
+          creatorPlayer,
+          isAuthenticated && user ? user.id : null,
+          !isAuthenticated && localUser ? localUser.anonymousUserId : null,
+        );
+        // Reload from Supabase so the league shows the membership with the
+        // canonical players.pseudo (mig 022) rather than our fallback string,
+        // and so player.id matches league_memberships.id (required by
+        // downstream consumers like edit/delete).
+        await loadDataFromSupabase();
+      } catch (err) {
+        console.error('Auto-add creator to league failed:', err);
+      }
+
       toast.success(`Ligue "${name}" créée avec succès`);
     } catch (error) {
       console.error('Error saving league to Supabase:', error);
