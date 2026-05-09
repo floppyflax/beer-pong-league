@@ -640,21 +640,28 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     eventId: string,
     playerName: string
   ): Promise<string> => {
-    // Get or create local user identity
-    let localUser = localUserService.getLocalUser();
-    if (!localUser) {
-      const deviceFingerprint = getDeviceFingerprint();
-      localUser = localUserService.createLocalUser(playerName, deviceFingerprint);
+    // Mig 022 unified users — use the auth user id when authenticated, otherwise
+    // fall back to (or bootstrap) the anonymous local identity. Always passing
+    // localUser.anonymousUserId broke FK on `players.user_id` for OTP users
+    // whose anon id was never (or no longer) materialised in `public.users`.
+    let resolvedUserId: string;
+    if (isAuthenticated && user) {
+      resolvedUserId = user.id;
+    } else {
+      let localUser = localUserService.getLocalUser();
+      if (!localUser) {
+        const deviceFingerprint = getDeviceFingerprint();
+        localUser = localUserService.createLocalUser(playerName, deviceFingerprint);
+      }
+      resolvedUserId = localUser.anonymousUserId;
     }
 
-    // Add anonymous player to event via database service
     const playerId = await databaseService.addAnonymousPlayerToEvent(
       eventId,
       playerName,
-      localUser.anonymousUserId
+      resolvedUserId
     );
 
-    // Update event in context
     addPlayerToEvent(eventId, playerId);
 
     return playerId;
