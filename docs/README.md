@@ -13,6 +13,7 @@ Documentation technique et produit de l'application Beer Pong League. Ce dossier
 - [Testing](./testing.md) — stratégie, Vitest, Playwright, commandes et guide manuel.
 - [Déploiement](./deployment.md) — Vercel (prod + preview), variables d'env, domaine `beer-pong-elo.com`.
 - [Roadmap](./roadmap.md) — vision, personas, fonctionnalités livrées, en cours et backlog.
+- [Tech debt](./tech-debt.md) — chantiers en attente après l'audit de mai 2026 + tâches admin (CI secrets, branch protection, Supabase env vars).
 - [Archive BMAD legacy](./archive/bmad-legacy/) — snapshots produit de l'ère BMAD (jan–fév 2026), non maintenus.
 
 ## Projet en un coup d'œil

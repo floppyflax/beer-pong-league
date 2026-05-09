@@ -60,6 +60,7 @@ Depuis la racine (les scripts délèguent à `apps/web` via `--prefix`) :
 | Patterns, anti-patterns, naming conventions | [`docs/product-context.md`](docs/product-context.md) |
 | Architecture système, schéma DB, services | [`docs/architecture.md`](docs/architecture.md) |
 | Roadmap + fonctionnalités livrées/backlog | [`docs/roadmap.md`](docs/roadmap.md) |
+| Tech debt + chantiers en attente + tâches admin user | [`docs/tech-debt.md`](docs/tech-debt.md) |
 | Auth flow anonyme → OTP → merge | [`docs/auth-identity.md`](docs/auth-identity.md) |
 | Paiements Stripe + premium | [`docs/payments.md`](docs/payments.md) |
 | Supabase config + edge functions | [`docs/supabase.md`](docs/supabase.md) |
