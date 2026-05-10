@@ -1,31 +1,31 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+/**
+ * Web shim — exposes the shared Supabase client via the legacy
+ * `import { supabase } from '../lib/supabase'` API.
+ *
+ * The actual client is created in `@elofight/shared/lib/supabase` and
+ * resolved lazily once `initShared()` runs in `main.tsx`. We capture
+ * the value via `onSharedInit` so existing call sites keep using
+ * `if (!supabase)` truthy checks unchanged.
+ */
+
+import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  getSupabase,
+  isSupabaseAvailable as sharedIsSupabaseAvailable,
+  onSharedInit,
+} from '@elofight/shared';
 import type { Database } from '../types/supabase';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabasePublicKey = import.meta.env.VITE_SUPABASE_PUBLIC_KEY;
+export let supabase: SupabaseClient<Database> | null = null;
 
-// Create Supabase client only if environment variables are available
-// This allows the app to work in offline mode (localStorage only)
-export const supabase: SupabaseClient<Database> | null = 
-  supabaseUrl && supabasePublicKey
-    ? createClient<Database>(supabaseUrl, supabasePublicKey, {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true,
-        },
-      })
-    : null;
+onSharedInit(() => {
+  supabase = getSupabase();
+  if (!supabase) {
+    console.warn(
+      'Supabase not configured. App will work in offline mode (localStorage only). ' +
+        'To enable Supabase sync, create a .env.local file with VITE_SUPABASE_URL and VITE_SUPABASE_PUBLIC_KEY',
+    );
+  }
+});
 
-/** Project-context: Check Supabase availability before operations */
-export const isSupabaseAvailable = (): boolean => !!supabase;
-
-// Log warning if Supabase is not configured (but don't block the app)
-if (!supabase) {
-  console.warn(
-    'Supabase not configured. App will work in offline mode (localStorage only). ' +
-    'To enable Supabase sync, create a .env.local file with VITE_SUPABASE_URL and VITE_SUPABASE_PUBLIC_KEY'
-  );
-}
-
-
+export const isSupabaseAvailable = sharedIsSupabaseAvailable;

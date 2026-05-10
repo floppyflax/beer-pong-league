@@ -392,7 +392,7 @@ export type Database = {
           },
         ]
       }
-      tournaments: {
+      events: {
         Row: {
           created_at: string | null
           creator_user_id: string | null
@@ -455,7 +455,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "tournaments_creator_user_id_fkey"
+            foreignKeyName: "events_creator_user_id_fkey"
             columns: ["creator_user_id"]
             isOneToOne: false
             referencedRelation: "users"

@@ -29,7 +29,7 @@ export const CreateIdentityModal = ({
     try {
       const deviceFingerprint = getDeviceFingerprint();
 
-      const localUser = localUserService.createLocalUser(
+      const localUser = await localUserService.createLocalUser(
         pseudo.trim(),
         deviceFingerprint,
       );

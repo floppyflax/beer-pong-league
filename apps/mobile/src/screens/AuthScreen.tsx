@@ -1,5 +1,5 @@
 /**
- * AuthScreen — OTP / anonymous auth (Phase C.2)
+ * AuthScreen — OTP / anonymous auth
  */
 
 import React, { useState } from 'react';
@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthContext, getSupabase } from '@elofight/shared';
 import { palette, spacing, radius, typography } from '../theme/tokens';
 import { PButton } from '../components/ponglo/PButton';
 
@@ -23,17 +24,25 @@ interface AuthScreenProps {
 }
 
 export function AuthScreen({ onSuccess }: AuthScreenProps) {
+  const { signInWithOTP } = useAuthContext();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSendOTP = async () => {
-    if (!email.trim()) return;
+    const trimmed = email.trim();
+    if (!trimmed) return;
     setLoading(true);
+    setError(null);
     try {
-      // TODO: call supabase signInWithOTP
-      setStep('otp');
+      const result = await signInWithOTP(trimmed);
+      if (result.error) {
+        setError(result.error.message);
+      } else {
+        setStep('otp');
+      }
     } finally {
       setLoading(false);
     }
@@ -42,9 +51,23 @@ export function AuthScreen({ onSuccess }: AuthScreenProps) {
   const handleVerifyOTP = async () => {
     if (otp.length < 6) return;
     setLoading(true);
+    setError(null);
     try {
-      // TODO: call supabase verifyOtp
-      onSuccess?.();
+      const supabase = getSupabase();
+      if (!supabase) {
+        setError('Service non disponible');
+        return;
+      }
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp,
+        type: 'email',
+      });
+      if (verifyError) {
+        setError(verifyError.message);
+      } else {
+        onSuccess?.();
+      }
     } finally {
       setLoading(false);
     }
@@ -60,7 +83,6 @@ export function AuthScreen({ onSuccess }: AuthScreenProps) {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo / title */}
           <View style={styles.hero}>
             <Text style={styles.wordmark}>🏓 Beer Pong</Text>
             <Text style={styles.wordmarkAccent}>ELO</Text>
@@ -89,6 +111,8 @@ export function AuthScreen({ onSuccess }: AuthScreenProps) {
                   onSubmitEditing={handleSendOTP}
                 />
               </View>
+
+              {error && <Text style={styles.errorText}>{error}</Text>}
 
               <PButton
                 variant="accent"
@@ -134,6 +158,8 @@ export function AuthScreen({ onSuccess }: AuthScreenProps) {
                 />
               </View>
 
+              {error && <Text style={styles.errorText}>{error}</Text>}
+
               <PButton
                 variant="accent"
                 size="lg"
@@ -149,7 +175,7 @@ export function AuthScreen({ onSuccess }: AuthScreenProps) {
                 variant="ghost"
                 size="sm"
                 full
-                onPress={() => { setStep('email'); setOtp(''); }}
+                onPress={() => { setStep('email'); setOtp(''); setError(null); }}
               >
                 ← Changer l'email
               </PButton>
@@ -162,63 +188,26 @@ export function AuthScreen({ onSuccess }: AuthScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: palette.navy,
-  },
-  kav: {
-    flex: 1,
-  },
+  safe: { flex: 1, backgroundColor: palette.navy },
+  kav: { flex: 1 },
   content: {
     paddingHorizontal: spacing.page,
     paddingTop: spacing['3xl'],
     paddingBottom: 60,
     gap: spacing['2xl'],
   },
-  hero: {
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  wordmark: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: palette.white,
-    letterSpacing: -1,
-  },
+  hero: { alignItems: 'center', gap: spacing.sm },
+  wordmark: { fontSize: 32, fontWeight: '800', color: palette.white, letterSpacing: -1 },
   wordmarkAccent: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: palette.electricBlue,
-    letterSpacing: -1,
-    marginTop: -12,
+    fontSize: 32, fontWeight: '800', color: palette.electricBlue,
+    letterSpacing: -1, marginTop: -12,
   },
-  tagline: {
-    fontSize: 13,
-    color: palette.coolGray,
-    letterSpacing: 0.3,
-    marginTop: spacing.xs,
-  },
-  form: {
-    gap: spacing.md,
-  },
-  formTitle: {
-    ...typography.pageTitle,
-    color: palette.white,
-  },
-  formDesc: {
-    fontSize: 13,
-    color: palette.coolGray,
-    lineHeight: 18,
-  },
-  field: {
-    gap: spacing.xs,
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1,
-    color: palette.coolGray,
-  },
+  tagline: { fontSize: 13, color: palette.coolGray, letterSpacing: 0.3, marginTop: spacing.xs },
+  form: { gap: spacing.md },
+  formTitle: { ...typography.pageTitle, color: palette.white },
+  formDesc: { fontSize: 13, color: palette.coolGray, lineHeight: 18 },
+  field: { gap: spacing.xs },
+  fieldLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: palette.coolGray },
   input: {
     backgroundColor: palette.navySoft,
     borderRadius: radius.card,
@@ -229,28 +218,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: palette.white,
   },
-  otpInput: {
-    fontSize: 26,
-    fontWeight: '800',
-    letterSpacing: 8,
-    textAlign: 'center',
-  },
+  otpInput: { fontSize: 26, fontWeight: '800', letterSpacing: 8, textAlign: 'center' },
+  errorText: { fontSize: 13, color: palette.signalRed, textAlign: 'center' },
   divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginVertical: spacing.xs,
+    flexDirection: 'row', alignItems: 'center',
+    gap: spacing.sm, marginVertical: spacing.xs,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: palette.cardBorder,
-  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: palette.cardBorder },
   dividerText: {
-    fontSize: 11,
-    color: palette.coolGray,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 11, color: palette.coolGray, fontWeight: '600',
+    textTransform: 'uppercase', letterSpacing: 0.5,
   },
 });

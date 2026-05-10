@@ -1,9 +1,10 @@
 /**
- * LeaderboardScreen — global leaderboard with league switcher (Phase C.3)
+ * LeaderboardScreen — global lifetime-stats leaderboard
  */
 
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ScrollView,
   StyleSheet,
@@ -12,99 +13,156 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useGlobalLeaderboard, type LeaderboardSort, type LeaderboardEntry } from '@elofight/shared';
 import { palette, spacing, radius, typography } from '../theme/tokens';
-import { LeaderRow } from '../components/ponglo/LeaderRow';
 import { Podium } from '../components/ponglo/Podium';
+import { PAvatar } from '../components/ponglo/PAvatar';
 
-/* Mock data — replace with real context hook */
-const MOCK_PLAYERS = [
-  { id: '1', name: 'Alice Dupont',  elo: 1620, delta:  15, eloHistory: [1500, 1530, 1560, 1590, 1620] },
-  { id: '2', name: 'Bob Martin',   elo: 1540, delta: -10, eloHistory: [1550, 1545, 1535, 1540, 1540] },
-  { id: '3', name: 'Clara Roy',    elo: 1480, delta:   8, eloHistory: [1420, 1440, 1455, 1470, 1480] },
-  { id: '4', name: 'David Petit',  elo: 1320, delta:   0, eloHistory: [1310, 1315, 1320, 1315, 1320] },
-  { id: '5', name: 'Emma Blanc',   elo: 1280, delta: -5,  eloHistory: [1300, 1290, 1285, 1280, 1280] },
-  { id: '6', name: 'Frank Noir',   elo: 1200, delta:  20, eloHistory: [1100, 1130, 1160, 1180, 1200] },
+const SORT_TABS: { key: LeaderboardSort; label: string }[] = [
+  { key: 'matches', label: 'Matchs' },
+  { key: 'wins',    label: 'Victoires' },
+  { key: 'winrate', label: 'Win %' },
 ];
 
-const MOCK_LEAGUES = [
-  { id: 'all',      name: 'Global' },
-  { id: 'league-1', name: 'Ligue des Pingouins' },
-  { id: 'league-2', name: 'Tournoi Été 2026' },
-];
+function primaryStat(entry: LeaderboardEntry, sort: LeaderboardSort): string {
+  if (sort === 'matches') return String(entry.matchesPlayed);
+  if (sort === 'wins')    return String(entry.wins);
+  return `${entry.winRate}%`;
+}
+
+function subStat(entry: LeaderboardEntry, sort: LeaderboardSort): string {
+  if (sort === 'matches') return `${entry.wins}V · ${entry.losses}D`;
+  if (sort === 'wins')    return `${entry.matchesPlayed} matchs`;
+  return `${entry.matchesPlayed} matchs · ${entry.wins}V`;
+}
+
+const MEDAL_RING = [palette.pingYellow, palette.coolGray, palette.bronze];
+
+interface StatRowProps {
+  rank: number;
+  entry: LeaderboardEntry;
+  sort: LeaderboardSort;
+}
+
+function StatRow({ rank, entry, sort }: StatRowProps) {
+  const ring = rank <= 3 ? MEDAL_RING[rank - 1] : undefined;
+  return (
+    <View style={rowStyles.row}>
+      <View style={rowStyles.rankBox}>
+        <Text style={[rowStyles.rank, rank <= 3 && rowStyles.rankTop]}>{rank}</Text>
+      </View>
+      <PAvatar name={entry.pseudo} size={32} ring={ring} />
+      <View style={rowStyles.info}>
+        <Text style={rowStyles.name} numberOfLines={1}>{entry.pseudo}</Text>
+        <Text style={rowStyles.sub}>{subStat(entry, sort)}</Text>
+      </View>
+      <Text style={rowStyles.stat}>{primaryStat(entry, sort)}</Text>
+    </View>
+  );
+}
+
+const rowStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: palette.navySoft,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: palette.cardBorder,
+  },
+  rankBox: { width: 22, alignItems: 'center' },
+  rank: { fontSize: 12, fontWeight: '700', color: palette.coolGray },
+  rankTop: { color: palette.pingYellow },
+  info: { flex: 1, gap: 2 },
+  name: {
+    fontSize: 13, fontWeight: '700', color: palette.white,
+    textTransform: 'uppercase', letterSpacing: 0.3,
+  },
+  sub: { fontSize: 10, color: palette.coolGray },
+  stat: {
+    fontSize: 15, fontWeight: '800', color: palette.white,
+    fontVariant: ['tabular-nums'],
+  },
+});
 
 export function LeaderboardScreen() {
-  const [selectedLeague, setSelectedLeague] = useState('all');
+  const [sort, setSort] = useState<LeaderboardSort>('matches');
+  const { entries, isLoading, error } = useGlobalLeaderboard(sort);
 
-  const top3 = MOCK_PLAYERS.slice(0, 3);
-  const rest  = MOCK_PLAYERS.slice(3);
+  const top3Podium = entries.slice(0, 3).map((e) => ({
+    id: e.id,
+    name: e.pseudo,
+    elo: sort === 'matches' ? e.matchesPlayed : sort === 'wins' ? e.wins : e.winRate,
+  }));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* League switcher */}
+      {/* Sort tabs */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.switcher}
         style={styles.switcherBar}
       >
-        {MOCK_LEAGUES.map((league) => (
+        {SORT_TABS.map((tab) => (
           <TouchableOpacity
-            key={league.id}
-            style={[
-              styles.pill,
-              selectedLeague === league.id && styles.pillActive,
-            ]}
-            onPress={() => setSelectedLeague(league.id)}
+            key={tab.key}
+            style={[styles.pill, sort === tab.key && styles.pillActive]}
+            onPress={() => setSort(tab.key)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.pillText, selectedLeague === league.id && styles.pillTextActive]}>
-              {league.name}
+            <Text style={[styles.pillText, sort === tab.key && styles.pillTextActive]}>
+              {tab.label}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      <FlatList
-        data={rest}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <>
-            <Text style={styles.title}>Classement</Text>
-            {top3.length >= 3 && (
-              <Podium
-                top3={top3}
-                scope={MOCK_LEAGUES.find((l) => l.id === selectedLeague)?.name}
-              />
-            )}
-            <Text style={styles.sectionLabel}>SUITE DU CLASSEMENT</Text>
-          </>
-        }
-        renderItem={({ item, index }) => (
-          <LeaderRow
-            rank={index + 4}
-            player={item}
-          />
-        )}
-        ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>Aucun joueur dans ce classement.</Text>
-          </View>
-        }
-      />
+      {isLoading ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={palette.electricBlue} />
+        </View>
+      ) : error ? (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={entries.slice(3)}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <>
+              <Text style={styles.title}>Classement Global</Text>
+              {top3Podium.length >= 3 && <Podium top3={top3Podium} />}
+              {entries.length > 3 && (
+                <Text style={styles.sectionLabel}>SUITE DU CLASSEMENT</Text>
+              )}
+            </>
+          }
+          renderItem={({ item, index }) => (
+            <StatRow rank={index + 4} entry={item} sort={sort} />
+          )}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>🏓</Text>
+              <Text style={styles.emptyText}>Aucun joueur dans le classement.</Text>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: palette.navy },
-  switcherBar: {
-    flexGrow: 0,
-    borderBottomWidth: 1,
-    borderColor: palette.cardBorder,
-  },
+  switcherBar: { flexGrow: 0, borderBottomWidth: 1, borderColor: palette.cardBorder },
   switcher: {
     paddingHorizontal: spacing.page,
     paddingVertical: spacing.sm,
@@ -119,33 +177,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.cardBorder,
   },
-  pillActive: {
-    backgroundColor: palette.electricBlue,
-    borderColor: palette.electricBlue,
-  },
+  pillActive: { backgroundColor: palette.electricBlue, borderColor: palette.electricBlue },
   pillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: palette.coolGray,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    fontSize: 12, fontWeight: '700', color: palette.coolGray,
+    textTransform: 'uppercase', letterSpacing: 0.4,
   },
   pillTextActive: { color: palette.white },
-  list: {
-    paddingHorizontal: spacing.page,
-    paddingBottom: 100,
-    gap: spacing.sm,
-  },
+  list: { paddingHorizontal: spacing.page, paddingBottom: 100, gap: spacing.sm },
   title: { ...typography.pageTitle, color: palette.white, marginBottom: spacing.sm },
   sectionLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1,
-    color: palette.coolGray,
-    textTransform: 'uppercase',
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
+    fontSize: 10, fontWeight: '700', letterSpacing: 1,
+    color: palette.coolGray, textTransform: 'uppercase',
+    marginTop: spacing.sm, marginBottom: spacing.xs,
   },
-  empty: { alignItems: 'center', paddingVertical: spacing['2xl'] },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorText: { fontSize: 13, color: palette.signalRed, textAlign: 'center', padding: spacing.lg },
+  empty: { alignItems: 'center', paddingVertical: spacing['2xl'], gap: spacing.sm },
+  emptyIcon: { fontSize: 40 },
   emptyText: { fontSize: 13, color: palette.coolGray },
 });

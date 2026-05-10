@@ -653,14 +653,18 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     // fall back to (or bootstrap) the anonymous local identity. Always passing
     // localUser.anonymousUserId broke FK on `players.user_id` for OTP users
     // whose anon id was never (or no longer) materialised in `public.users`.
+    // (Preserved from origin PR #8.) The localUserService calls are awaited
+    // because the shared service was made async during the wave 2.3 extraction
+    // (mobile uses AsyncStorage, web uses localStorage — both behind the same
+    // KVStorage interface).
     let resolvedUserId: string;
     if (isAuthenticated && user) {
       resolvedUserId = user.id;
     } else {
-      let localUser = localUserService.getLocalUser();
+      let localUser = await localUserService.getLocalUser();
       if (!localUser) {
         const deviceFingerprint = getDeviceFingerprint();
-        localUser = localUserService.createLocalUser(playerName, deviceFingerprint);
+        localUser = await localUserService.createLocalUser(playerName, deviceFingerprint);
       }
       resolvedUserId = localUser.anonymousUserId;
     }

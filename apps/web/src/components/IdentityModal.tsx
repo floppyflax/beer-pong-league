@@ -20,7 +20,7 @@ export const IdentityModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      setLocalUser(localUserService.getLocalUser());
+      localUserService.getLocalUser().then(setLocalUser);
     }
   }, [isOpen]);
 
