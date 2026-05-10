@@ -104,23 +104,16 @@ Severity, scope and the trigger skill that holds the pattern.
 - **Effort**: ~3-5 PRs, 2-4 h each. Spread across feature work — touch
   `useLeague` only when you're already in the file.
 
-#### C. Wave 2.3 — extract business layer into `packages/shared`
+#### C. Wave 2.3 — extract business layer into `packages/shared` ✅ done in commit `dfec053`
 
-- **Why**: today `packages/shared/src/` only holds types + a few utils.
-  Services (`AuthService`, `IdentityMergeService`, `EloRecalcService`,
-  `PremiumService`) and repositories live in `apps/web/src/services/`
-  exclusively. **The mobile app cannot reuse them**, which is why
-  `apps/mobile/` is currently a UI shell with no working backend wiring.
-- **Surface**: `apps/web/src/services/{Auth,IdentityMerge,EloRecalc,Premium,Stripe}Service.ts`,
-  `apps/web/src/services/repositories/*`, `apps/web/src/utils/elo.ts`.
-  Move to `packages/shared/src/services/` + `packages/shared/src/utils/`.
-- **Approach**: extract one service at a time, update web import paths
-  via the `@elofight/shared` alias, run tests, repeat. The repositories
-  pattern is already split (`_base.ts` exports an abstract class) so
-  they're the easiest first move.
-- **Skill**: none specific (general TS refactor).
-- **Effort**: ~1 sprint full-time, or 2-3 weeks parallel to features.
-  Pre-requisite for chantier F (mobile).
+- **Status**: shipped (phases 0–5 partial). Services migrated to
+  `packages/shared/src/services/` with a runtime layer
+  (`runtime/{env,init,storage}.ts`) that abstracts web localStorage vs
+  mobile AsyncStorage. Contexts and hooks also moved to
+  `packages/shared/src/{contexts,hooks}/`. Web imports thin re-export
+  shims under `apps/web/src/{services,hooks,context}/`.
+- **Follow-up**: 16 tests still mock the old `@/lib/supabase` path —
+  see the "Wave 2.3 mock fallout" section below.
 
 #### D. Wave 3.1 — unify `design-system/` and `ponglo/`
 
@@ -155,11 +148,18 @@ Severity, scope and the trigger skill that holds the pattern.
 
 ### 🟡 Polish
 
-#### F. Wave 3.3 — wire mobile to the business layer
+#### F. Wave 3.3 — wire mobile to the business layer ⏳ partially shipped in `dfec053`
 
-- Depends on chantier C. Today `apps/mobile/` is 15 screens with
-  hardcoded fixtures.
-- **Effort**: 1-2 weeks once C is done.
+- **Shipped**: 5 screens wired to the shared business layer
+  (`AuthScreen`, `HomeScreen`, `JoinScreen`, `LeaderboardScreen`,
+  `ProfileScreen`), plus `apps/mobile/src/lib/` (bootstrap, notifier,
+  storage adapter), `MobileStripeRedirector` service, `app.config.ts`
+  + `eas.json` for Expo, `.env.example`.
+- **Remaining**: 10 screens still un-wired (Create*, *Detail,
+  Tournaments, Score, History) — they still render against fixtures.
+  Step-by-step: pick a screen, replace fixtures with the shared hook
+  call, run on simulator.
+- **Effort**: ~1 week of mobile-only work.
 
 #### G. Wave 3.5 — finish `tournaments` → `events` rename
 
@@ -176,16 +176,42 @@ Severity, scope and the trigger skill that holds the pattern.
 ## Test coverage gaps
 
 Closed during wave 3.4 partial: 85 stale tests deleted/fixed. **Still
-open**: services and repositories have no direct unit-test coverage,
-they're exercised only through page-level integration tests. Items:
+open**:
+
+### 🟠 Wave 2.3 mock fallout — 16 tests in 3 files
+
+After extracting services into `packages/shared/` (wave 2.3, commit
+`dfec053`), three test files still mock the legacy import path
+`@/lib/supabase` and don't see the new `getSupabase()` lazy client from
+`@elofight/shared/lib/supabase`. They get back "Supabase not configured"
+and fail downstream assertions.
+
+- `apps/web/tests/unit/services/AuthService.test.ts` — 10 fails.
+- `apps/web/tests/unit/hooks/useAuth.test.ts` — 5 fails.
+- `apps/web/tests/unit/components/IdentityModal.test.tsx` — 1 fail (X
+  close button — possibly unrelated, but discovered in the same run).
+
+**Fix**: rewrite each mock to target the new path
+(`vi.mock('@elofight/shared/lib/supabase', …)` or stub `getSupabase()`
+directly). Possibly add a shared test helper in
+`packages/shared/src/test-utils/` so future shared-services tests don't
+re-invent the wheel.
+
+**Effort**: ~½ day. Group with chantier B (facade migration) since
+both touch test mocks.
+
+### 🟡 Services without direct coverage
+
+Services and repositories have no direct unit-test coverage, they're
+exercised only through page-level integration tests. Items:
 
 - Direct unit tests for `AuthService`, `IdentityMergeService`,
   `EloRecalcService`, `PremiumService`, `StripeService`, and each
   repository (`PlayersRepository`, `EventsRepository`,
   `LeaguesRepository`, `MatchesRepository`).
-- Tracking ticket: not blocking, but expect to add tests progressively
-  as services move into `packages/shared` (chantier C) — that's the
-  natural moment to write tests against a stable boundary.
+- Not blocking, but expect to add tests progressively as services live
+  in `packages/shared` (chantier C done in commit `dfec053`) — that's
+  the natural moment to write tests against the stable boundary.
 - **Skill**: [`e2e-test`](../.claude/skills/e2e-test/SKILL.md).
 
 ---

@@ -8,6 +8,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./config/*": "./src/config/*",
+    "./contexts/*": "./src/contexts/*",
+    "./hooks/*": "./src/hooks/*",
+    "./lib/*": "./src/lib/*",
+    "./runtime/*": "./src/runtime/*",
     "./services/*": "./src/services/*",
     "./types/*": "./src/types/*",
     "./utils/*": "./src/utils/*"
