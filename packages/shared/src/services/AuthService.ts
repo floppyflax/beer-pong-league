@@ -170,6 +170,20 @@ class AuthService {
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', userId);
       if (error) throw error;
+
+      // Propagate the pseudo to the user's players row so every league /
+      // event they joined reflects the rename. Display reads
+      // `pseudo_override || players.pseudo` — overriding admin-set values
+      // is deliberately left out (RPC only updates players.pseudo).
+      if (updates.pseudo !== undefined) {
+        const { error: rpcError } = await supabase.rpc('propagate_user_pseudo');
+        if (rpcError) {
+          // Non-fatal: the users row is already updated, only the
+          // snapshots stay stale — log and continue.
+          console.warn('propagate_user_pseudo failed:', rpcError);
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Error updating user profile:', error);
