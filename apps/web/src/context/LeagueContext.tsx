@@ -142,7 +142,7 @@ export const useLeague = () => {
  */
 export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   // Get auth and identity info
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, userProfile, isAuthenticated, isLoading: authLoading } = useAuth();
   const { localUser, isLoading: identityLoading } = useIdentity();
 
   // Initialize from localStorage for immediate display (optimistic)
@@ -353,8 +353,10 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       // appear in the ranking and can record matches without an extra step.
       // Mirrors the event creation flow (CreateEvent.handleSubmit).
       const creatorPseudo =
+        userProfile?.pseudo?.trim() ||
         localUser?.pseudo?.trim() ||
         (user?.user_metadata?.name as string | undefined) ||
+        user?.email?.split('@')[0] ||
         'Joueur';
       const creatorPlayer: Player = {
         id: crypto.randomUUID(),

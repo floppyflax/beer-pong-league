@@ -96,7 +96,7 @@ interface CreateEventProps {
 
 export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {}) => {
   const navigate = useNavigate();
-  const { user } = useAuthContext();
+  const { user, userProfile } = useAuthContext();
   const { localUser } = useIdentity();
   const { reloadData, addAnonymousPlayerToEvent } = useLeague();
 
@@ -255,8 +255,10 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
       });
 
       const creatorPseudo =
+        userProfile?.pseudo?.trim() ||
         localUser?.pseudo?.trim() ||
         (user?.user_metadata?.name as string | undefined) ||
+        user?.email?.split('@')[0] ||
         'Joueur';
       try {
         await addAnonymousPlayerToEvent(eventId, creatorPseudo);
