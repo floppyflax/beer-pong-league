@@ -5,8 +5,12 @@
  * Story 14-35: Avatar photo, Membre depuis, streak "En feu !", matchs enrichis, head-to-head avatars, ELO graph.
  */
 
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
+import {
+  parsePlayerProfileContext,
+  buildHeadToHeadPath,
+} from "@/utils/playerProfileContext";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { StatCard, ListRow } from "@/components/design-system";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
@@ -25,8 +29,13 @@ import type { Match } from "@/types";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const { leagues, events } = useLeague();
+  const { leagues, events, getEventLocalRanking } = useLeague();
   const navigate = useNavigate();
+  const location = useLocation();
+  const profileContext = useMemo(
+    () => parsePlayerProfileContext(location.search),
+    [location.search],
+  );
   const [fetchedPlayer, setFetchedPlayer] = useState<{
     player: Player;
     playerLeague: { id: string; name: string } | null;
@@ -181,42 +190,49 @@ export const PlayerProfile = () => {
   // Hooks MUST be called unconditionally before any early returns (Rules of Hooks)
   const currentPlayer = player;
 
-  // Story 14-35: Build player matches with league/event context for display
+  // Story 14-35: Build player matches with league/event context for display.
+  // When profileContext is set, scope to that league or event only.
   const playerMatchesWithContext = useMemo(() => {
     if (!currentPlayer) return [];
     const items: { match: Match; leagueName: string | null; eventName: string | null }[] = [];
-    leagues.forEach((league) => {
-      league.matches.forEach((match) => {
-        if (
-          match.teamA.includes(currentPlayer.id) ||
-          match.teamB.includes(currentPlayer.id)
-        ) {
+    const includesPlayer = (m: Match) =>
+      m.teamA.includes(currentPlayer.id) || m.teamB.includes(currentPlayer.id);
+
+    if (profileContext?.type === "league") {
+      const league = leagues.find((l) => l.id === profileContext.id);
+      league?.matches.filter(includesPlayer).forEach((match) => {
+        items.push({ match, leagueName: league.name, eventName: null });
+      });
+    } else if (profileContext?.type === "event") {
+      const event = events.find((e) => e.id === profileContext.id);
+      if (event) {
+        const leagueName = event.leagueId
+          ? leagues.find((l) => l.id === event.leagueId)?.name ?? null
+          : null;
+        event.matches.filter(includesPlayer).forEach((match) => {
+          items.push({ match, leagueName, eventName: event.name });
+        });
+      }
+    } else {
+      leagues.forEach((league) => {
+        league.matches.filter(includesPlayer).forEach((match) => {
           items.push({ match, leagueName: league.name, eventName: null });
-        }
+        });
       });
-    });
-    events.forEach((event) => {
-      event.matches.forEach((match) => {
-        if (
-          match.teamA.includes(currentPlayer.id) ||
-          match.teamB.includes(currentPlayer.id)
-        ) {
-          const leagueName = event.leagueId
-            ? leagues.find((l) => l.id === event.leagueId)?.name ?? null
-            : null;
-          items.push({
-            match,
-            leagueName,
-            eventName: event.name,
-          });
-        }
+      events.forEach((event) => {
+        const leagueName = event.leagueId
+          ? leagues.find((l) => l.id === event.leagueId)?.name ?? null
+          : null;
+        event.matches.filter(includesPlayer).forEach((match) => {
+          items.push({ match, leagueName, eventName: event.name });
+        });
       });
-    });
+    }
     return items.sort(
       (a, b) =>
         new Date(a.match.date).getTime() - new Date(b.match.date).getTime(),
     );
-  }, [leagues, events, currentPlayer]);
+  }, [leagues, events, currentPlayer, profileContext]);
 
   const playerMatches = playerMatchesWithContext.map((x) => x.match);
   const sortedMatches = playerMatches;
@@ -258,8 +274,9 @@ export const PlayerProfile = () => {
   const eloEvolution = useMemo(() => {
     if (!currentPlayer) return [];
     // Story 14-35: Prefer elo_history from DB when available (monthly aggregation)
-    if (eloHistoryFromDb.length > 0) return eloHistoryFromDb;
-    // Fallback: compute from match data
+    // Skip the DB history when a context filter is active — it's not scoped.
+    if (!profileContext && eloHistoryFromDb.length > 0) return eloHistoryFromDb;
+    // Fallback: compute from context-scoped match data
     const evolution: { date: string; elo: number }[] = [];
     let currentElo = 1000;
     evolution.push({
@@ -277,7 +294,7 @@ export const PlayerProfile = () => {
       }
     });
     return evolution;
-  }, [sortedMatches, currentPlayer, eloHistoryFromDb]);
+  }, [sortedMatches, currentPlayer, eloHistoryFromDb, profileContext]);
 
   const playersMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -290,6 +307,47 @@ export const PlayerProfile = () => {
     if (player) map[player.id] = player.name;
     return map;
   }, [leagues, player, fetchedPlayer]);
+
+  // Ensure the chart ends on the displayed (context-scoped) ELO when the
+  // per-match deltas don't reach it (older matches without eloChanges).
+  const eloEvolutionWithCurrent = useMemo(() => {
+    if (eloEvolution.length === 0 || !currentPlayer) return eloEvolution;
+    const lastPoint = eloEvolution[eloEvolution.length - 1];
+    const ctxElo =
+      profileContext?.type === "league"
+        ? leagues.find((l) => l.id === profileContext.id)?.players.find((p) => p.id === currentPlayer.id)?.elo
+        : profileContext?.type === "event"
+          ? getEventLocalRanking(profileContext.id).find((p) => p.id === currentPlayer.id)?.elo
+          : currentPlayer.elo;
+    if (ctxElo === undefined || ctxElo === null) return eloEvolution;
+    if (lastPoint.elo === ctxElo) return eloEvolution;
+    const lastDate = sortedMatches[sortedMatches.length - 1]?.date ?? lastPoint.date;
+    return [...eloEvolution, { date: lastDate, elo: ctxElo }];
+  }, [eloEvolution, currentPlayer, profileContext, leagues, getEventLocalRanking, sortedMatches]);
+
+  // Context-scoped ELO + label for the header
+  const contextLabel = useMemo(() => {
+    if (!profileContext) return null;
+    if (profileContext.type === "league") {
+      return leagues.find((l) => l.id === profileContext.id)?.name ?? null;
+    }
+    return events.find((e) => e.id === profileContext.id)?.name ?? null;
+  }, [profileContext, leagues, events]);
+
+  const contextScopedElo = useMemo(() => {
+    if (!currentPlayer || !profileContext) return null;
+    if (profileContext.type === "league") {
+      const league = leagues.find((l) => l.id === profileContext.id);
+      const member = league?.players.find((p) => p.id === currentPlayer.id);
+      return member?.elo ?? null;
+    }
+    // event: replay event matches to get local ELO
+    const event = events.find((e) => e.id === profileContext.id);
+    if (!event) return null;
+    const ranking = getEventLocalRanking(event.id);
+    const ranked = ranking.find((p) => p.id === currentPlayer.id);
+    return ranked?.elo ?? null;
+  }, [currentPlayer, profileContext, leagues, events, getEventLocalRanking]);
 
   const statsByLeague = useMemo(() => {
     if (!player) return {};
@@ -393,9 +451,9 @@ export const PlayerProfile = () => {
                 {player.name}
               </h2>
             </div>
-            {playerLeague && (
+            {(contextLabel ?? playerLeague?.name) && (
               <p className="text-sm text-cool-gray truncate">
-                {playerLeague.name}
+                {contextLabel ?? playerLeague?.name}
               </p>
             )}
             {joinedAt && (
@@ -407,9 +465,13 @@ export const PlayerProfile = () => {
         </div>
       </div>
 
-      {/* AC3: StatCards (ELO, W/L, Win rate) */}
+      {/* AC3: StatCards (ELO, W/L, Win rate) — ELO scoped to context when set */}
       <div className="grid grid-cols-3 gap-2 px-4 py-4">
-        <StatCard value={player.elo} label="ELO" variant="accent" />
+        <StatCard
+          value={contextScopedElo ?? player.elo}
+          label="ELO"
+          variant="accent"
+        />
         <StatCard
           value={`${playerWins}V - ${playerLosses}D`}
           label="W/L"
@@ -459,7 +521,7 @@ export const PlayerProfile = () => {
       {/* AC5: Sections — ELO evolution, Stats par league, Head-to-head, Recent matches */}
       <div className="flex-grow overflow-y-auto px-4 py-4 space-y-6 pb-bottom-nav lg:pb-bottom-nav-lg">
         {/* ELO Evolution Chart — DS EloChart (§5.1) */}
-        {eloEvolution.length > 1 && (
+        {eloEvolutionWithCurrent.length > 1 && (
           <section>
             <h3 className="text-sm font-archivo font-extrabold uppercase tracking-tight mb-3 flex items-center gap-2 text-white">
               <BarChart3 size={18} className="text-cool-gray" />
@@ -467,14 +529,14 @@ export const PlayerProfile = () => {
             </h3>
             <div className="bg-navy-soft p-4 rounded-card border border-card">
               <EloChart
-                points={eloEvolution}
+                points={eloEvolutionWithCurrent}
                 width={330}
                 height={80}
                 highlightCurrent
                 className="w-full"
               />
               <div className="mt-2 text-xs text-cool-gray text-center font-mono">
-                {eloEvolution.length} points de données
+                {eloEvolutionWithCurrent.length} points de données
               </div>
             </div>
           </section>
@@ -495,8 +557,8 @@ export const PlayerProfile = () => {
           </section>
         )}
 
-        {/* Stats par league */}
-        {Object.keys(statsByLeague).length > 0 && (
+        {/* Stats par league — hidden when a context (league/event) is active */}
+        {!profileContext && Object.keys(statsByLeague).length > 0 && (
           <section>
             <h3 className="text-lg font-bold mb-3 text-white">
               Statistiques par League
@@ -561,7 +623,15 @@ export const PlayerProfile = () => {
                       elo={0}
                       rightLabel={`${stats.wins + stats.losses} matchs`}
                       avatarUrl={avatarUrl ?? undefined}
-                      onClick={() => navigate(`/player/${opponentId}`)}
+                      onClick={() =>
+                        navigate(
+                          buildHeadToHeadPath(
+                            currentPlayerId,
+                            opponentId,
+                            profileContext,
+                          ),
+                        )
+                      }
                     />
                   );
                 })}

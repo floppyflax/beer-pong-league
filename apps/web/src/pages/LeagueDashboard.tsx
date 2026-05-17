@@ -38,6 +38,7 @@ import { exportLeagueJSON, exportPlayersCSV, exportMatchesCSV } from "@/services
 import { Podium } from "@/components/ponglo/Podium";
 import { PButton } from "@/components/ponglo/PButton";
 import { PlayerCard } from "@/components/design-system/PlayerCard";
+import { buildPlayerProfilePath } from "@/utils/playerProfileContext";
 
 export const LeagueDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -379,7 +380,14 @@ export const LeagueDashboard = () => {
                         rank={rank}
                         wins={player.wins}
                         losses={player.losses}
-                        onClick={() => navigate(`/player/${player.id}`)}
+                        onClick={() =>
+                          navigate(
+                            buildPlayerProfilePath(player.id, {
+                              type: "league",
+                              id: league.id,
+                            }),
+                          )
+                        }
                       />
                     );
                   })}
@@ -675,7 +683,14 @@ export const LeagueDashboard = () => {
                       ) : (
                         <div className="bg-navy-deep/50 p-3 rounded-xl flex items-center justify-between border border-transparent">
                           <div
-                            onClick={() => navigate(`/player/${player.id}`)}
+                            onClick={() =>
+                              navigate(
+                                buildPlayerProfilePath(player.id, {
+                                  type: "league",
+                                  id: league.id,
+                                }),
+                              )
+                            }
                             className="flex-1 flex items-center gap-4 cursor-pointer"
                           >
                             <div className="font-bold text-white">{player.name}</div>

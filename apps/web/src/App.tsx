@@ -64,6 +64,11 @@ const EventDashboard = lazy(() =>
 const PlayerProfile = lazy(() =>
   import("./pages/PlayerProfile").then((m) => ({ default: m.PlayerProfile })),
 );
+const PlayerHeadToHead = lazy(() =>
+  import("./pages/PlayerHeadToHead").then((m) => ({
+    default: m.PlayerHeadToHead,
+  })),
+);
 const UserProfile = lazy(() =>
   import("./pages/UserProfile").then((m) => ({ default: m.UserProfile })),
 );
@@ -269,6 +274,10 @@ function AppContent() {
                     <Route
                       path="/player/:playerId"
                       element={<PlayerProfile />}
+                    />
+                    <Route
+                      path="/player/:playerId/vs/:opponentId"
+                      element={<PlayerHeadToHead />}
                     />
                     <Route path="/user/profile" element={<UserProfile />} />
                     <Route

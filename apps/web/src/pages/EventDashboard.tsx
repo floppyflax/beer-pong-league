@@ -42,6 +42,7 @@ import type {
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
 import { matchAdminService } from "@/services/MatchAdminService";
+import { buildPlayerProfilePath } from "@/utils/playerProfileContext";
 import { eloRecalcService } from "@/services/EloRecalcService";
 import { Podium } from "@/components/ponglo/Podium";
 import { PButton } from "@/components/ponglo/PButton";
@@ -652,7 +653,14 @@ export const EventDashboard = () => {
                           rank={rank}
                           wins={player.wins}
                           losses={player.losses}
-                          onClick={() => navigate(`/player/${profileId}`)}
+                          onClick={() =>
+                            navigate(
+                              buildPlayerProfilePath(profileId, {
+                                type: "event",
+                                id: event.id,
+                              }),
+                            )
+                          }
                         />
                       );
                     },

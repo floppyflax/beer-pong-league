@@ -365,7 +365,7 @@ class PlayersRepository extends BaseRepository {
           .eq('id', row.event_id)
           .single();
         const tInfo = tData as { league_id: string | null } | null;
-        let elo = 1500, wins = 0, losses = 0, matchesPlayed = 0;
+        let elo = 1000, wins = 0, losses = 0, matchesPlayed = 0;
         if (tInfo?.league_id) {
           const { data: lmStats } = await sb!
             .from('league_memberships')

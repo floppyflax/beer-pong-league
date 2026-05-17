@@ -36,6 +36,7 @@ const CORE_ROUTE_PATTERNS = [
   /^\/league\/[^/]+$/, // /league/:id (exclude /league/:id/display)
   /^\/league\/[^/]+\/join$/, // /league/:id/join (mig 016 parity)
   /^\/player\/[^/]+$/, // /player/:id
+  /^\/player\/[^/]+\/vs\/[^/]+$/, // /player/:id/vs/:opponentId
 ];
 
 /**
