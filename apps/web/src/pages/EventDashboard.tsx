@@ -626,12 +626,11 @@ export const EventDashboard = () => {
                     className="mb-1"
                   />
                 )}
-                {/* Leaderboard from rank 4 (top 3 are already on the podium).
-                    Fallback: show full list if there are fewer than 3 players. */}
+                {/* Full leaderboard starting from rank 1 (top 3 are also shown on the podium). */}
                 <div className="space-y-1.5">
-                  {(ranking.length >= 3 ? ranking.slice(3) : ranking).map(
+                  {ranking.map(
                     (player, index) => {
-                      const rank = (ranking.length >= 3 ? 3 : 0) + index + 1;
+                      const rank = index + 1;
                       const participant = eventParticipants.find(
                         (tp) => tp.id === player.id,
                       );
