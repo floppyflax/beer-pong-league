@@ -6,9 +6,7 @@ import {
   Plus,
   History,
   Users,
-  X,
   Trash2,
-  Edit,
   Monitor,
   UserPlus,
   FileJson,
@@ -46,9 +44,6 @@ export const LeagueDashboard = () => {
     events,
     addPlayer,
     deleteLeague,
-    updateLeague,
-    updatePlayer,
-    deletePlayer,
     isLoadingInitialData,
     reloadData,
   } = useLeague();
@@ -56,11 +51,9 @@ export const LeagueDashboard = () => {
 
   const league = leagues.find((l) => l.id === id);
   const [activeTab, setActiveTab] = useState<
-    "classement" | "matchs" | "events" | "parametres"
+    "classement" | "matchs" | "events"
   >("classement");
   const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
-  const [editingPlayerName, setEditingPlayerName] = useState("");
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
 
   // Ghosts (anonymous players manually added by the admin) for this league.
@@ -148,7 +141,7 @@ export const LeagueDashboard = () => {
     {
       label: "Paramètres",
       icon: <Settings size={20} />,
-      onClick: () => setActiveTab("parametres"),
+      onClick: () => navigate(`/league/${league.id}/settings`),
     },
     ...(isAdmin
       ? [
@@ -311,11 +304,9 @@ export const LeagueDashboard = () => {
             { id: "classement", label: "Classement" },
             { id: "events", label: "Events" },
           ]}
-          activeId={activeTab === "parametres" ? "" : activeTab}
+          activeId={activeTab}
           onChange={(id) =>
-            setActiveTab(
-              id as "classement" | "matchs" | "events" | "parametres",
-            )
+            setActiveTab(id as "classement" | "matchs" | "events")
           }
           variant="encapsulated"
         />
@@ -519,239 +510,6 @@ export const LeagueDashboard = () => {
                 Créer un événement
               </button>
             )}
-          </div>
-        )}
-        {activeTab === "parametres" && (
-          <div className="space-y-4">
-            {/* League info */}
-            <div className="bg-navy-soft p-4 rounded-xl border border-card/50">
-              <h3 className="font-bold text-white mb-4">Informations</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm text-cool-gray">
-                    Nom de la League
-                  </label>
-                  <input
-                    type="text"
-                    value={league.name}
-                    onChange={(e) =>
-                      updateLeague(league.id, e.target.value, league.type)
-                    }
-                    className="w-full bg-navy-deep border border-card-muted rounded-lg p-2 mt-1 text-white focus:ring-2 focus:ring-lime/30 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-cool-gray">Type</label>
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={() =>
-                        updateLeague(league.id, league.name, "one-shot")
-                      }
-                      className={`flex-1 py-2 rounded-lg font-bold text-sm ${
-                        league.type === "one-shot"
-                          ? "bg-electric-blue text-white"
-                          : "bg-navy-deep text-white"
-                      }`}
-                    >
-                      Continue
-                    </button>
-                    <button
-                      onClick={() =>
-                        updateLeague(league.id, league.name, "season")
-                      }
-                      className={`flex-1 py-2 rounded-lg font-bold text-sm ${
-                        league.type === "season"
-                          ? "bg-electric-blue text-white"
-                          : "bg-navy-deep text-white"
-                      }`}
-                    >
-                      Par Saison
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Events */}
-            <div className="bg-navy-soft p-4 rounded-xl border border-card/50">
-              <h3 className="font-bold text-white mb-4">Événements</h3>
-              {league.events && league.events.length > 0 ? (
-                <div className="space-y-2">
-                  {events
-                    .filter((t) => league.events?.includes(t.id))
-                    .map((event) => (
-                      <div
-                        key={event.id}
-                        onClick={() => navigate(`/event/${event.id}`)}
-                        className="bg-navy-deep/50 p-3 rounded-xl flex justify-between items-center hover:border-card-muted cursor-pointer transition-colors border border-transparent"
-                      >
-                        <div className="flex-1">
-                          <div className="font-bold text-white flex items-center gap-2">
-                            {event.name}
-                            {event.isFinished && (
-                              <span className="text-xs bg-lime/20 text-lime px-2 py-0.5 rounded">
-                                Terminé
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-cool-gray">
-                            {new Date(event.date).toLocaleDateString(
-                              "fr-FR",
-                            )}{" "}
-                            • {event.matches.length} matchs
-                          </div>
-                        </div>
-                        <div className="text-cool-gray">→</div>
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <p className="text-cool-gray text-sm mb-4">
-                  Aucun événement associé.
-                </p>
-              )}
-              <button
-                onClick={() =>
-                  navigate(`/create-event?leagueId=${league.id}`)
-                }
-                className="w-full bg-navy-deep hover:bg-navy-deep text-white font-bold py-3 rounded-lg"
-              >
-                <Plus size={16} className="inline mr-2" />
-                Créer un événement
-              </button>
-            </div>
-
-            {/* Players */}
-            <div className="bg-navy-soft p-4 rounded-xl border border-card/50">
-              <h3 className="font-bold text-white mb-4">Joueurs</h3>
-              {sortedPlayers.length === 0 ? (
-                <p className="text-cool-gray text-sm mb-4">
-                  Aucun joueur dans cette ligue.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {sortedPlayers.map((player) => (
-                    <div key={player.id}>
-                      {editingPlayerId === player.id ? (
-                        /* Inline edit form */
-                        <div className="bg-electric-blue/10 border border-electric-blue/30 p-3 rounded-xl flex items-center gap-2">
-                          <input
-                            autoFocus
-                            value={editingPlayerName}
-                            onChange={(e) => setEditingPlayerName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                const trimmed = editingPlayerName.trim();
-                                if (trimmed && trimmed !== player.name) {
-                                  updatePlayer(league.id, player.id, trimmed);
-                                }
-                                setEditingPlayerId(null);
-                              }
-                              if (e.key === "Escape") setEditingPlayerId(null);
-                            }}
-                            className="flex-1 bg-navy-deep border border-card rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-electric-blue"
-                            aria-label="Nouveau nom du joueur"
-                          />
-                          <button
-                            onClick={() => {
-                              const trimmed = editingPlayerName.trim();
-                              if (trimmed && trimmed !== player.name) {
-                                updatePlayer(league.id, player.id, trimmed);
-                              }
-                              setEditingPlayerId(null);
-                            }}
-                            className="px-3 py-1.5 bg-electric-blue text-white text-sm font-bold rounded-lg"
-                          >
-                            OK
-                          </button>
-                          <button
-                            onClick={() => setEditingPlayerId(null)}
-                            className="p-1.5 text-cool-gray hover:text-white"
-                            aria-label="Annuler"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="bg-navy-deep/50 p-3 rounded-xl flex items-center justify-between border border-transparent">
-                          <div
-                            onClick={() => navigate(`/player/${player.id}`)}
-                            className="flex-1 flex items-center gap-4 cursor-pointer"
-                          >
-                            <div className="font-bold text-white">{player.name}</div>
-                            <div className="text-xs text-cool-gray">
-                              {player.elo} ELO • {player.wins}V - {player.losses}D
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingPlayerId(player.id);
-                                setEditingPlayerName(player.name);
-                              }}
-                              className="p-2 hover:bg-navy-deep rounded-lg text-cool-gray hover:text-white"
-                              aria-label="Modifier"
-                            >
-                              <Edit size={16} />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm(`Supprimer ${player.name} ? Tous ses matchs seront également supprimés.`)) {
-                                  deletePlayer(league.id, player.id);
-                                }
-                              }}
-                              className="p-2 hover:bg-signal-red/20 text-signal-red rounded-lg"
-                              aria-label="Supprimer"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <button
-                onClick={() => setShowAddPlayer(true)}
-                className="w-full bg-navy-deep hover:bg-navy-deep text-white font-bold py-3 rounded-lg mt-4"
-              >
-                <Plus size={16} className="inline mr-2" />
-                Ajouter un joueur
-              </button>
-            </div>
-
-            {/* Actions */}
-            <div className="bg-navy-soft p-4 rounded-xl border border-card/50">
-              <h3 className="font-bold text-white mb-4">Actions</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    const dataStr = JSON.stringify(league, null, 2);
-                    const dataBlob = new Blob([dataStr], {
-                      type: "application/json",
-                    });
-                    const url = URL.createObjectURL(dataBlob);
-                    const link = document.createElement("a");
-                    link.href = url;
-                    link.download = `${league.name}.json`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="w-full bg-navy-deep hover:bg-navy-deep text-white font-bold py-3 rounded-lg"
-                >
-                  Exporter les données (JSON)
-                </button>
-                <button
-                  onClick={handleDeleteLeague}
-                  className="w-full bg-signal-red/20 hover:bg-signal-red/30 text-signal-red font-bold py-3 rounded-lg border border-signal-red/50"
-                >
-                  Supprimer la League
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>

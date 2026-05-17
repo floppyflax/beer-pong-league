@@ -3,8 +3,8 @@
  *
  * Canonical surface for any dismissible dialog in the DS. Replaces the legacy
  * centered `Modal` component. Mirrors the layout already used by
- * IdentityGateSheet / ClaimGuestSheet / InviteSheet / SettingsSheet so all
- * dialogs feel consistent.
+ * IdentityGateSheet / ClaimGuestSheet / InviteSheet so all dialogs feel
+ * consistent.
  *
  * Use this as a building block when you don't have a more specialized sheet
  * (e.g. ClaimGuestSheet for the claim flow). Pass `title`, `children`, and an

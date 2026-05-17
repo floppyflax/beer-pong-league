@@ -3,14 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import {
   Trophy,
-  Link as LinkIcon,
   Users,
   History,
   Monitor,
   LogOut,
   UserPlus,
   Settings,
-  Ghost,
   MoreVertical,
   Pencil,
   Trash2,
@@ -31,13 +29,11 @@ import {
   FAB,
   DetailHero,
   InviteSheet,
-  SettingsSheet,
   GhostManagementSheet,
 } from "@/components/design-system";
 import type {
   DetailHeroAction,
   DetailHeroMenuItem,
-  SettingsSheetEventUpdates,
 } from "@/components/design-system";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
@@ -83,15 +79,11 @@ export const EventDashboard = () => {
   const {
     events,
     leagues,
-    deleteEvent,
-    toggleEventStatus,
-    updateEvent,
     getEventLocalRanking,
     getLeagueGlobalRanking,
     addPlayer,
     addPlayerToEvent,
     addGuestPlayerToEvent,
-    associateEventToLeague,
     isLoadingInitialData,
     reloadData,
   } = useLeague();
@@ -103,7 +95,6 @@ export const EventDashboard = () => {
   const [showEloChanges, setShowEloChanges] = useState(false);
   const [lastEloChanges] = useState<Record<string, number>>({});
   const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
   const [openMatchMenuId, setOpenMatchMenuId] = useState<string | null>(null);
 
@@ -384,7 +375,7 @@ export const EventDashboard = () => {
     detailHeroActions.push({
       label: "Paramètres",
       icon: <Settings size={16} />,
-      onClick: () => setShowSettings(true),
+      onClick: () => navigate(`/event/${event.id}/settings`),
       variant: "secondary",
     });
     detailHeroActions.push({
@@ -405,33 +396,6 @@ export const EventDashboard = () => {
         },
       ]
     : [];
-
-  // SettingsSheet handlers
-  const handleSaveSettings = async (updates: SettingsSheetEventUpdates) => {
-    try {
-      await updateEvent(event.id, updates);
-      toast.success("Paramètres enregistrés");
-    } catch (err) {
-      console.error("Error saving event settings:", err);
-      toast.error("Erreur lors de la sauvegarde");
-    }
-  };
-
-  const handleFinishFromSettings = () => {
-    toggleEventStatus(event.id);
-    toast.success(
-      event.isFinished
-        ? "Événement rouvert"
-        : "Événement clôturé",
-    );
-    setShowSettings(false);
-  };
-
-  const handleDeleteFromSettings = () => {
-    deleteEvent(event.id);
-    setShowSettings(false);
-    navigate("/");
-  };
 
   // GhostManagementSheet handlers — admin-only.
   const handleRenameGhost = async (playerId: string, newPseudo: string) => {
@@ -840,119 +804,6 @@ export const EventDashboard = () => {
           event.leagueId ? handleInviteAddFromLeague : undefined
         }
       />
-
-      {/* Settings bottom sheet — admin only */}
-      {isAdmin && (
-        <SettingsSheet
-          kind="event"
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-          title="Paramètres"
-          initial={{
-            name: event.name,
-            date: event.date,
-            format: event.format,
-            maxPlayers: event.maxPlayers ?? 999,
-            isPrivate: event.isPrivate ?? true,
-            propagatesToLeagueElo: event.propagatesToLeagueElo !== false,
-          }}
-          mode={eventMode}
-          currentPlayersCount={eventParticipants.length}
-          onSave={handleSaveSettings}
-          onFinish={handleFinishFromSettings}
-          onDelete={handleDeleteFromSettings}
-          isFinished={event.isFinished}
-          hasLeagueLink={Boolean(event.leagueId)}
-          extraContent={
-            <div className="space-y-4">
-              {eventGhosts.length > 0 && (
-                <div className="space-y-2">
-                  <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Ghost size={12} />
-                      Joueurs fantômes ({eventGhosts.length})
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowSettings(false);
-                      setShowGhostMgmt(true);
-                    }}
-                    className="w-full p-3 rounded-card border border-card bg-navy-deep flex items-center gap-3 hover:border-white/60 transition-colors text-left"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white font-archivo font-semibold text-sm">
-                        Gérer les joueurs fantômes
-                      </div>
-                      <div className="text-cool-gray text-xs">
-                        Renommer, supprimer, envoyer un lien d'invitation
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              )}
-              <div className="space-y-2">
-              <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-                <span className="inline-flex items-center gap-1.5">
-                  <LinkIcon size={12} />
-                  Rattachement à une ligue
-                </span>
-              </span>
-              {event.leagueId ? (
-                <div className="p-3 rounded-card border border-card bg-navy-deep flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white font-archivo font-semibold text-sm truncate">
-                      {league?.name || "Ligue introuvable"}
-                    </div>
-                    <div className="text-cool-gray text-xs">Associé</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        confirm(
-                          "Voulez-vous dissocier cet événement de la ligue ?",
-                        )
-                      ) {
-                        associateEventToLeague(event.id, "");
-                      }
-                    }}
-                    className="px-3 h-8 rounded-full border border-card text-cool-gray hover:text-white hover:border-white/60 font-archivo font-extrabold uppercase text-[10px] tracking-[1px] transition-colors"
-                  >
-                    Dissocier
-                  </button>
-                </div>
-              ) : leagues.length > 0 ? (
-                <select
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      associateEventToLeague(
-                        event.id,
-                        e.target.value,
-                      );
-                    }
-                  }}
-                  className="w-full bg-navy-deep border border-card rounded-md p-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime/20"
-                >
-                  <option value="">Sélectionner une ligue…</option>
-                  {leagues.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p className="text-cool-gray text-xs">
-                  Aucune ligue disponible. Crée-en une pour pouvoir rattacher.
-                </p>
-              )}
-              </div>
-            </div>
-          }
-        />
-      )}
 
       {/* Ghost player management — admin only, only when ghosts exist */}
       {isAdmin && (

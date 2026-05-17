@@ -61,6 +61,16 @@ const EventDashboard = lazy(() =>
     default: m.EventDashboard,
   })),
 );
+const EventSettings = lazy(() =>
+  import("./pages/EventSettings").then((m) => ({
+    default: m.EventSettings,
+  })),
+);
+const LeagueSettings = lazy(() =>
+  import("./pages/LeagueSettings").then((m) => ({
+    default: m.LeagueSettings,
+  })),
+);
 const PlayerProfile = lazy(() =>
   import("./pages/PlayerProfile").then((m) => ({ default: m.PlayerProfile })),
 );
@@ -260,6 +270,22 @@ function AppContent() {
                     <Route
                       path="/event/:id/invite"
                       element={<EventInvite />}
+                    />
+                    <Route
+                      path="/event/:id/settings"
+                      element={
+                        <ErrorBoundary>
+                          <EventSettings />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/league/:id/settings"
+                      element={
+                        <ErrorBoundary>
+                          <LeagueSettings />
+                        </ErrorBoundary>
+                      }
                     />
                     <Route path="/event/:id/join" element={<EventJoin />} />
                     <Route
