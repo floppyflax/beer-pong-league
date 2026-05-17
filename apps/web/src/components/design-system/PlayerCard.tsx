@@ -281,7 +281,7 @@ export function PlayerCard(props: PlayerCardProps) {
 
     return (
       <Wrapper
-        className={`flex items-center gap-3 p-4 w-full bg-navy-soft rounded-card border border-card transition-colors hover:border-card-muted ${
+        className={`flex items-center gap-3 p-4 w-full bg-navy-soft rounded-card border border-card transition-colors hover:border-card-muted text-left ${
           props.onClick ? "cursor-pointer" : ""
         }`}
         data-testid="playercard-leaderrow"
@@ -298,7 +298,7 @@ export function PlayerCard(props: PlayerCardProps) {
           <div className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate">
             {props.name}
           </div>
-          <div className="flex items-center gap-3 flex-wrap mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 min-w-0">
             {hasStats && (
               <StatsInline
                 wins={props.wins ?? 0}
