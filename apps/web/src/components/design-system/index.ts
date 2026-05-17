@@ -86,14 +86,6 @@ export type {
 export { StickyCTA } from './StickyCTA';
 export type { StickyCTAProps } from './StickyCTA';
 
-export { SettingsSheet } from './SettingsSheet';
-export type {
-  SettingsSheetEventValues,
-  SettingsSheetLeagueValues,
-  SettingsSheetEventUpdates,
-  SettingsSheetLeagueUpdates,
-} from './SettingsSheet';
-
 // Match history card (per-row in dashboards / profile)
 export { MatchHistoryCard } from './MatchHistoryCard';
 export type {
