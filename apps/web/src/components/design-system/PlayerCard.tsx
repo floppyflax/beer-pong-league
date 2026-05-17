@@ -93,17 +93,30 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 function ResultDots({ results }: { results: boolean[] }) {
+  const slots = Array.from({ length: 5 }, (_, i) => results[i]);
   return (
     <div className="flex gap-0.5" role="img" aria-label="5 derniers résultats">
-      {results.slice(0, 5).map((won, i) => (
-        <div
-          key={i}
-          className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-            won ? "bg-lime" : "bg-signal-red"
-          }`}
-          title={won ? "Victoire" : "Défaite"}
-        />
-      ))}
+      {slots.map((won, i) => {
+        const cls =
+          won === undefined
+            ? "bg-cool-gray/30"
+            : won
+              ? "bg-lime"
+              : "bg-signal-red";
+        const title =
+          won === undefined
+            ? "Pas encore joué"
+            : won
+              ? "Victoire"
+              : "Défaite";
+        return (
+          <div
+            key={i}
+            className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cls}`}
+            title={title}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -112,10 +125,13 @@ function Avatar({
   name,
   avatarUrl,
   size = 10,
+  rank,
 }: {
   name: string;
   avatarUrl?: string;
   size?: 8 | 10 | 12 | 14;
+  /** When set, renders a small medallion overlay on the bottom-right with the rank. */
+  rank?: number;
 }) {
   const initials = getInitials(name);
   const cls =
@@ -126,15 +142,31 @@ function Avatar({
         : size === 8
           ? "w-8 h-8 text-xs"
           : "w-10 h-10 text-sm";
-  return (
+  const avatar = (
     <div
-      className={`flex-shrink-0 rounded-full bg-navy-deep flex items-center justify-center font-mono font-bold text-cool-gray overflow-hidden border border-card ${cls}`}
+      className={`rounded-full bg-navy-deep flex items-center justify-center font-mono font-bold text-cool-gray overflow-hidden border border-card ${cls}`}
     >
       {avatarUrl ? (
         <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
       ) : (
         <span>{initials}</span>
       )}
+    </div>
+  );
+  if (rank === undefined) {
+    return <div className="flex-shrink-0">{avatar}</div>;
+  }
+  return (
+    <div className="relative flex-shrink-0">
+      {avatar}
+      <div
+        className={`absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-mono font-bold ring-2 ring-navy-soft ${getRankBadgeClass(
+          rank,
+        )}`}
+        aria-label={`Rang ${rank}`}
+      >
+        {rank}
+      </div>
     </div>
   );
 }
@@ -255,9 +287,12 @@ export function PlayerCard(props: PlayerCardProps) {
         data-testid="playercard-leaderrow"
         {...wrapperProps}
       >
-        {/* Rank badge LEFT of avatar (per spec). */}
-        {props.rank !== undefined && <RankBadge rank={props.rank} />}
-        <Avatar name={props.name} avatarUrl={props.avatarUrl} />
+        {/* Rank shown as medallion overlay on the avatar to save horizontal space. */}
+        <Avatar
+          name={props.name}
+          avatarUrl={props.avatarUrl}
+          rank={props.rank}
+        />
 
         <div className="flex-1 min-w-0">
           <div className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate">
@@ -271,7 +306,7 @@ export function PlayerCard(props: PlayerCardProps) {
                 winRate={winRate}
               />
             )}
-            {props.recentResults && props.recentResults.length > 0 && (
+            {props.recentResults !== undefined && (
               <ResultDots results={props.recentResults} />
             )}
           </div>

@@ -47,7 +47,10 @@ import { Podium } from "@/components/ponglo/Podium";
 import { PButton } from "@/components/ponglo/PButton";
 import { PlayerCard } from "@/components/design-system/PlayerCard";
 
-import { getDeltaFromLastMatch } from "@/utils/playerStats";
+import {
+  getDeltaFromLastMatch,
+  getLast5MatchResults,
+} from "@/utils/playerStats";
 
 // Task 4 - Utility function for relative timestamps (AC4)
 function getRelativeTimestamp(date: string): string {
@@ -641,6 +644,10 @@ export const EventDashboard = () => {
                         player.id,
                         sortedMatches,
                       );
+                      const recentResults = getLast5MatchResults(
+                        player.id,
+                        sortedMatches,
+                      );
                       return (
                         <PlayerCard
                           key={player.id}
@@ -651,6 +658,7 @@ export const EventDashboard = () => {
                           rank={rank}
                           wins={player.wins}
                           losses={player.losses}
+                          recentResults={recentResults}
                           onClick={() => navigate(`/player/${profileId}`)}
                         />
                       );
