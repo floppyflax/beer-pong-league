@@ -122,16 +122,36 @@ export const Home = () => {
           <div className="relative overflow-hidden bg-electric-blue text-navy rounded-xl p-[22px] shadow-card-lg">
             <div className="flex justify-between items-start mb-3.5">
               <div className="font-mono text-[10px] uppercase tracking-[1.5px] opacity-55">
-                {isLoading ? "Matchs joués · —" : "Matchs joués · Lifetime"}
+                {isLoading ? "Stats · —" : "Stats · Lifetime"}
               </div>
             </div>
-            <div
-              className="font-archivo font-black text-lime"
-              style={{ fontSize: 72, lineHeight: 0.9, letterSpacing: -2 }}
-            >
-              {totalMatches}
+            <div className="grid grid-cols-2 gap-3 relative z-10">
+              <div>
+                <div
+                  className="font-archivo font-black text-lime"
+                  style={{ fontSize: 52, lineHeight: 0.9, letterSpacing: -1.5 }}
+                >
+                  {totalMatches}
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-[1.5px] opacity-55 mt-2">
+                  Matchs joués
+                </div>
+              </div>
+              <div>
+                <div
+                  className="font-archivo font-black text-navy"
+                  style={{ fontSize: 52, lineHeight: 0.9, letterSpacing: -1.5 }}
+                >
+                  {totalMatches > 0
+                    ? `${Math.round(personalStats?.winRate ?? 0)}%`
+                    : "—"}
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-[1.5px] opacity-55 mt-2">
+                  Win rate
+                </div>
+              </div>
             </div>
-            <div className="text-xs opacity-60 mt-1 font-mono">
+            <div className="text-xs opacity-60 mt-4 font-mono relative z-10">
               {totalMatches > 0
                 ? `${wins}W — ${losses}L${bestStreak > 1 ? ` · streak max ${bestStreak}` : ""}`
                 : "Pas encore de matchs"}

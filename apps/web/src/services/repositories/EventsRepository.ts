@@ -82,21 +82,34 @@ class EventsRepository extends BaseRepository {
       const tournRows = (eventsData ?? []) as EventRow[];
 
       const playerIdsByEvent = new Map<string, string[]>();
+      // Per-event map of players.id → event_memberships.id so we can rewrite
+      // matches.team_*_player_ids back to the membership-id namespace that
+      // the React state + UI consumers continue to use (player.id === teamA[i]).
+      // Without this, matches written post-fix would surface raw players.id
+      // values that don't line up with `league/event.players[i].id`.
+      const playerToMembershipByEvent = new Map<string, Map<string, string>>();
       ((allMembers ?? []) as EventMembershipRow[]).forEach((m) => {
         const list = playerIdsByEvent.get(m.event_id) ?? [];
         list.push(m.id); // legacy: playerIds carries membership id
         playerIdsByEvent.set(m.event_id, list);
+
+        const ptm = playerToMembershipByEvent.get(m.event_id) ?? new Map<string, string>();
+        ptm.set(m.player_id, m.id);
+        playerToMembershipByEvent.set(m.event_id, ptm);
       });
 
       const matchesByEvent = new Map<string, Match[]>();
       ((allMatches ?? []) as MatchRow[]).forEach((m) => {
         if (!m.event_id) return;
         const list = matchesByEvent.get(m.event_id) ?? [];
+        const ptm = playerToMembershipByEvent.get(m.event_id);
+        const remap = (ids: string[] | null): string[] =>
+          (ids || []).map((id) => ptm?.get(id) ?? id);
         list.push({
           id: m.id,
           date: m.created_at || new Date().toISOString(),
-          teamA: m.team_a_player_ids || [],
-          teamB: m.team_b_player_ids || [],
+          teamA: remap(m.team_a_player_ids),
+          teamB: remap(m.team_b_player_ids),
           scoreA: m.score_a || 0,
           scoreB: m.score_b || 0,
           created_by_user_id: m.created_by_user_id,

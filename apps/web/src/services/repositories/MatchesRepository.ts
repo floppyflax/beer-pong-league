@@ -38,6 +38,41 @@ class MatchesRepository extends BaseRepository {
     }
   }
 
+  /**
+   * Translate membership IDs (event_memberships.id or league_memberships.id)
+   * into the canonical players.id values that `matches.team_*_player_ids` is
+   * supposed to store per schema. React state historically keys players by
+   * membership ID (for per-context ELO/stats lookup) and the call sites pass
+   * those membership IDs through verbatim, so the DB row used to end up with
+   * the wrong namespace — silently breaking `apply_match_elo` (mig 025) which
+   * looks the IDs up in `*_memberships.player_id`. We fix that at the write
+   * boundary here.
+   *
+   * Falls back to the original ID for any unmapped value, so callers passing
+   * a real `players.id` (post-refactor) or an orphan membership ID stay
+   * intact rather than nullified.
+   */
+  private async resolveToPlayerIds(
+    ids: string[],
+    ctx: { eventId?: string | null; leagueId?: string | null },
+  ): Promise<string[]> {
+    if (!sb || ids.length === 0) return ids;
+    const table = ctx.eventId ? 'event_memberships' : 'league_memberships';
+    const ctxColumn = ctx.eventId ? 'event_id' : 'league_id';
+    const ctxValue = ctx.eventId ?? ctx.leagueId;
+    if (!ctxValue) return ids;
+    const { data, error } = await sb
+      .from(table)
+      .select('id, player_id')
+      .eq(ctxColumn, ctxValue)
+      .in('id', ids);
+    if (error || !data) return ids;
+    const map = new Map(
+      (data as Array<{ id: string; player_id: string }>).map((r) => [r.id, r.player_id]),
+    );
+    return ids.map((id) => map.get(id) ?? id);
+  }
+
   async recordMatch(
     leagueId: string,
     match: Match,
@@ -67,13 +102,18 @@ class MatchesRepository extends BaseRepository {
 
       const callerUserId = userId || anonymousUserId || null;
 
+      const [teamAPlayerIds, teamBPlayerIds] = await Promise.all([
+        this.resolveToPlayerIds(match.teamA, { leagueId }),
+        this.resolveToPlayerIds(match.teamB, { leagueId }),
+      ]);
+
       const { error: matchError } = await sb!.from('matches').insert({
         id: match.id,
         league_id: leagueId,
         event_id: null,
         format,
-        team_a_player_ids: match.teamA,
-        team_b_player_ids: match.teamB,
+        team_a_player_ids: teamAPlayerIds,
+        team_b_player_ids: teamBPlayerIds,
         score_a: match.scoreA,
         score_b: match.scoreB,
         created_at: match.date,
@@ -155,13 +195,18 @@ class MatchesRepository extends BaseRepository {
 
       const callerUserId = userId || anonymousUserId || null;
 
+      const [teamAPlayerIds, teamBPlayerIds] = await Promise.all([
+        this.resolveToPlayerIds(match.teamA, { eventId }),
+        this.resolveToPlayerIds(match.teamB, { eventId }),
+      ]);
+
       const { error: matchError } = await sb!.from('matches').insert({
         id: match.id,
         league_id: leagueId,
         event_id: eventId,
         format,
-        team_a_player_ids: match.teamA,
-        team_b_player_ids: match.teamB,
+        team_a_player_ids: teamAPlayerIds,
+        team_b_player_ids: teamBPlayerIds,
         score_a: match.scoreA,
         score_b: match.scoreB,
         created_at: match.date,

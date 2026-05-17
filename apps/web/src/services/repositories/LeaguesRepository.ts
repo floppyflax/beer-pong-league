@@ -74,6 +74,13 @@ class LeaguesRepository extends BaseRepository {
       const leagueRows = (leaguesData ?? []) as LeagueRow[];
 
       const playersByLeague = new Map<string, Player[]>();
+      // Per-league map of players.id → league_memberships.id. After mig 022 the
+      // canonical value stored in matches.team_*_player_ids is players.id, but
+      // React state (league.players[i].id) is the membership id (it carries
+      // per-league elo/wins/etc). We rewrite teamA/teamB into the membership-id
+      // namespace at hydration time so UI lookups like `players.find(p => p.id
+      // === teamA[i])` continue to work unchanged.
+      const playerToMembershipByLeague = new Map<string, Map<string, string>>();
       ((allMembers ?? []) as unknown as Array<LeagueMembershipRow & { player: { pseudo: string } | null }>).forEach((m) => {
         const list = playersByLeague.get(m.league_id) ?? [];
         list.push({
@@ -86,17 +93,24 @@ class LeaguesRepository extends BaseRepository {
           streak: m.streak,
         });
         playersByLeague.set(m.league_id, list);
+
+        const ptm = playerToMembershipByLeague.get(m.league_id) ?? new Map<string, string>();
+        ptm.set(m.player_id, m.id);
+        playerToMembershipByLeague.set(m.league_id, ptm);
       });
 
       const matchesByLeague = new Map<string, Match[]>();
       ((allMatches ?? []) as MatchRow[]).forEach((m) => {
         if (!m.league_id) return;
         const list = matchesByLeague.get(m.league_id) ?? [];
+        const ptm = playerToMembershipByLeague.get(m.league_id);
+        const remap = (ids: string[] | null): string[] =>
+          (ids || []).map((id) => ptm?.get(id) ?? id);
         list.push({
           id: m.id,
           date: m.created_at || new Date().toISOString(),
-          teamA: m.team_a_player_ids || [],
-          teamB: m.team_b_player_ids || [],
+          teamA: remap(m.team_a_player_ids),
+          teamB: remap(m.team_b_player_ids),
           scoreA: m.score_a || 0,
           scoreB: m.score_b || 0,
           created_by_user_id: m.created_by_user_id,
