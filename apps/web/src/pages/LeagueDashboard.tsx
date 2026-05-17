@@ -33,7 +33,10 @@ import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
-import { getDeltaFromLastMatch } from "@/utils/playerStats";
+import {
+  getDeltaFromLastMatch,
+  getLast5MatchResults,
+} from "@/utils/playerStats";
 import { exportLeagueJSON, exportPlayersCSV, exportMatchesCSV } from "@/services/ExportService";
 import { Podium } from "@/components/ponglo/Podium";
 import { PButton } from "@/components/ponglo/PButton";
@@ -364,6 +367,10 @@ export const LeagueDashboard = () => {
                       player.id,
                       sortedMatches,
                     );
+                    const recentResults = getLast5MatchResults(
+                      player.id,
+                      sortedMatches,
+                    );
                     return (
                       <PlayerCard
                         key={player.id}
@@ -374,6 +381,7 @@ export const LeagueDashboard = () => {
                         rank={rank}
                         wins={player.wins}
                         losses={player.losses}
+                        recentResults={recentResults}
                         onClick={() => navigate(`/player/${player.id}`)}
                       />
                     );
