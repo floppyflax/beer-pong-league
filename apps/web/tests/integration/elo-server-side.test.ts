@@ -17,6 +17,7 @@ interface QueryBuilder {
   delete: ReturnType<typeof vi.fn>;
   select: ReturnType<typeof vi.fn>;
   eq: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
   maybeSingle: ReturnType<typeof vi.fn>;
   single: ReturnType<typeof vi.fn>;
 }
@@ -31,6 +32,10 @@ const makeBuilder = (): QueryBuilder => {
     delete: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    // Membership lookup terminal (membership.id → player_id). Default to "no
+    // mapping found" so the write-path falls back to the original ids — the
+    // existing assertions on team_*_player_ids stay valid for player-id inputs.
+    in: vi.fn().mockResolvedValue({ data: [], error: null }),
     maybeSingle: vi.fn().mockResolvedValue({ data: { league_id: null }, error: null }),
     single: vi.fn().mockResolvedValue({ data: { league_id: null }, error: null }),
   };
