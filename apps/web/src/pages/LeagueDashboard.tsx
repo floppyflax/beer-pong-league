@@ -27,6 +27,7 @@ import {
   InviteSheet,
   GhostManagementSheet,
 } from "@/components/design-system";
+import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
@@ -54,7 +55,7 @@ export const LeagueDashboard = () => {
 
   const league = leagues.find((l) => l.id === id);
   const [activeTab, setActiveTab] = useState<
-    "classement" | "matchs" | "events"
+    "classement" | "matchs" | "stats" | "events"
   >("classement");
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
@@ -323,11 +324,12 @@ export const LeagueDashboard = () => {
           tabs={[
             { id: "matchs", label: "Matchs" },
             { id: "classement", label: "Classement" },
+            { id: "stats", label: "Stats" },
             { id: "events", label: "Events" },
           ]}
           activeId={activeTab}
           onChange={(id) =>
-            setActiveTab(id as "classement" | "matchs" | "events")
+            setActiveTab(id as "classement" | "matchs" | "stats" | "events")
           }
           variant="encapsulated"
         />
@@ -468,6 +470,14 @@ export const LeagueDashboard = () => {
               })
             )}
           </>
+        )}
+        {activeTab === "stats" && (
+          <DetailedStatsPanel
+            matches={league.matches}
+            players={league.players}
+            contextLabel="league"
+            onPlayerClick={(playerId) => navigate(`/player/${playerId}`)}
+          />
         )}
         {activeTab === "events" && (
           <div className="space-y-2">
