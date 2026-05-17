@@ -69,13 +69,13 @@ export type PlayerCardProps =
 function getRankBadgeClass(rank: number): string {
   switch (rank) {
     case 1:
-      return "bg-ping-yellow text-navy";
+      return "bg-ping-yellow text-navy"; // or
     case 2:
-      return "bg-cool-gray text-navy";
+      return "bg-cool-gray text-navy"; // argent
     case 3:
-      return "bg-signal-red-deep text-white";
+      return "bg-bronze text-white"; // bronze
     default:
-      return "bg-navy-deep text-cool-gray border border-card";
+      return "bg-cool-gray/50 text-white"; // gris atténué, moins brillant que l'argent
   }
 }
 
