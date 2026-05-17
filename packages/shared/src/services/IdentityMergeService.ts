@@ -167,6 +167,21 @@ class IdentityMergeService {
     }
   }
 
+  async unarchiveAnonymousPlayer(
+    kind: 'event' | 'league',
+    membershipOrPlayerId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!sb) return { success: false, error: 'Supabase not configured' };
+    try {
+      const playerId = await this.resolvePlayerId(kind, membershipOrPlayerId);
+      const { error } = await sb.from('players').update({ archived_at: null } as never).eq('id', playerId);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  }
+
   /** @deprecated mig 022 */
   async generateGhostInviteToken(_kind: 'event' | 'league', _playerId: string): Promise<{ success: boolean; error?: string; token?: string; expiresAt?: string }> {
     void _kind; void _playerId;

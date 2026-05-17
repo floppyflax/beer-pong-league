@@ -12,6 +12,14 @@ import { useState, useEffect, useCallback } from "react";
 import { sb } from "../services/repositories/_base";
 import { useAuth } from "./useAuth";
 
+function matchesArchivedFilter(
+  archivedAt: string | null,
+  filter: "active" | "archived" | "all",
+): boolean {
+  if (filter === "all") return true;
+  return filter === "archived" ? archivedAt !== null : archivedAt === null;
+}
+
 export interface UnclaimedGuest {
   /** membership.id (event_memberships.id OR league_memberships.id). */
   playerId: string;
@@ -20,6 +28,8 @@ export interface UnclaimedGuest {
   /** Display name (pseudo_override > players.pseudo). */
   pseudo: string;
   joinedAt: string;
+  /** True if the underlying player is soft-deleted (players.archived_at IS NOT NULL). */
+  archived: boolean;
 }
 
 interface RawEventRow {
@@ -39,9 +49,14 @@ interface RawLeagueRow {
 export function useUnclaimedGuests(
   kind: "event" | "league",
   contextId: string | null | undefined,
-  options: { mode?: "auth-only" | "any" } = {},
+  options: {
+    mode?: "auth-only" | "any";
+    /** Which subset of ghosts to return. Defaults to active only. */
+    archivedFilter?: "active" | "archived" | "all";
+  } = {},
 ) {
   const mode = options.mode ?? "auth-only";
+  const archivedFilter = options.archivedFilter ?? "active";
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [guests, setGuests] = useState<UnclaimedGuest[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -79,12 +94,13 @@ export function useUnclaimedGuests(
 
         const rows = (data ?? []) as unknown as RawEventRow[];
         const filtered: UnclaimedGuest[] = rows
-          .filter((r) => r.player && r.player.user_id === null && r.player.archived_at === null)
+          .filter((r) => r.player && r.player.user_id === null && matchesArchivedFilter(r.player.archived_at, archivedFilter))
           .map((r) => ({
             playerId: r.id,
             anonymousUserId: r.player!.id,
             pseudo: r.pseudo_override || r.player!.pseudo || "Joueur",
             joinedAt: r.joined_at ?? "",
+            archived: r.player!.archived_at !== null,
           }));
         setGuests(filtered);
       } else {
@@ -97,12 +113,13 @@ export function useUnclaimedGuests(
 
         const rows = (data ?? []) as unknown as RawLeagueRow[];
         const filtered: UnclaimedGuest[] = rows
-          .filter((r) => r.player && r.player.user_id === null && r.player.archived_at === null)
+          .filter((r) => r.player && r.player.user_id === null && matchesArchivedFilter(r.player.archived_at, archivedFilter))
           .map((r) => ({
             playerId: r.id,
             anonymousUserId: r.player!.id,
             pseudo: r.pseudo_override || r.player!.pseudo || "Joueur",
             joinedAt: r.joined_at ?? "",
+            archived: r.player!.archived_at !== null,
           }));
         setGuests(filtered);
       }
@@ -114,7 +131,7 @@ export function useUnclaimedGuests(
     } finally {
       setIsLoading(false);
     }
-  }, [kind, contextId, isAuthenticated, authLoading, mode]);
+  }, [kind, contextId, isAuthenticated, authLoading, mode, archivedFilter]);
 
   useEffect(() => {
     load();
