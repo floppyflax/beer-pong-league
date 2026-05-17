@@ -356,15 +356,10 @@ export const LeagueDashboard = () => {
                     className="mb-1"
                   />
                 )}
-                {/* Leaderboard from rank 4 (top 3 are already on the podium).
-                    Fallback: show full list if there are fewer than 3 players. */}
+                {/* Full leaderboard starting from rank 1 (top 3 are also shown on the podium). */}
                 <div className="space-y-1.5">
-                  {(sortedPlayers.length >= 3
-                    ? sortedPlayers.slice(3)
-                    : sortedPlayers
-                  ).map((player, index) => {
-                    const rank =
-                      (sortedPlayers.length >= 3 ? 3 : 0) + index + 1;
+                  {sortedPlayers.map((player, index) => {
+                    const rank = index + 1;
                     const delta = getDeltaFromLastMatch(
                       player.id,
                       sortedMatches,
