@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { Ghost, Pencil, Trash2, Share2, X, Copy, Loader2, Check, Archive } from "lucide-react";
+import { Ghost, Pencil, Trash2, Share2, X, Copy, Loader2, Check, Archive, ArchiveRestore } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import type { UnclaimedGuest } from "../../hooks/useUnclaimedGuests";
@@ -25,8 +25,10 @@ import type { UnclaimedGuest } from "../../hooks/useUnclaimedGuests";
 export interface GhostManagementSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Unclaimed ghosts (typically `useUnclaimedGuests(..., { mode: "any" })`). */
+  /** Active (non-archived) ghosts. */
   guests: UnclaimedGuest[];
+  /** Archived ghosts — listed in the "archivés" view with an Unarchive action. */
+  archivedGuests?: UnclaimedGuest[];
   /** Origin URL used to build invite links (defaults to window.location.origin). */
   origin?: string;
   /** Path prefix for the join page (e.g. "/event/<id>/join" or "/league/<id>/join"). */
@@ -35,17 +37,22 @@ export interface GhostManagementSheetProps {
   onRename: (playerId: string, newPseudo: string) => Promise<void>;
   /**
    * Delete a ghost. Resolve to remove from list. Reject with an Error whose
-   * message contains "match" (case-insensitive) to trigger the archive
-   * fallback prompt — used when the server blocks delete because the ghost
-   * has played matches.
+   * message contains "match" (case-insensitive) to trigger the silent archive
+   * fallback — the server blocks delete when the ghost has played matches,
+   * so we archive instead and surface a single toast.
    */
   onDelete: (playerId: string) => Promise<void>;
   /**
    * Archive (soft-delete) a ghost — hides from future pickers but keeps
-   * existing matches. Surfaced as a fallback after a blocked delete, and
-   * also as a direct per-row action.
+   * existing matches. Surfaced as a direct per-row action and as the
+   * automatic fallback when delete is blocked.
    */
   onArchive: (playerId: string) => Promise<void>;
+  /**
+   * Restore an archived ghost back to the active list. Optional — if absent,
+   * the archived view shows ghosts read-only.
+   */
+  onUnarchive?: (playerId: string) => Promise<void>;
   /** Generate an invite token. Returns the raw token (caller assembles URL). */
   onGenerateInvite: (playerId: string) => Promise<{ token: string }>;
   /** Optional title override. */
@@ -61,11 +68,13 @@ export function GhostManagementSheet({
   isOpen,
   onClose,
   guests,
+  archivedGuests = [],
   origin,
   joinPath,
   onRename,
   onDelete,
   onArchive,
+  onUnarchive,
   onGenerateInvite,
   title = "Joueurs fantômes",
 }: GhostManagementSheetProps) {
@@ -73,6 +82,7 @@ export function GhostManagementSheet({
   const [editingValue, setEditingValue] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [invite, setInvite] = useState<InviteState | null>(null);
+  const [view, setView] = useState<"active" | "archived">("active");
 
   const baseOrigin = origin ?? (typeof window !== "undefined" ? window.location.origin : "");
 
@@ -83,6 +93,7 @@ export function GhostManagementSheet({
       setEditingValue("");
       setPendingId(null);
       setInvite(null);
+      setView("active");
     }
   }, [isOpen]);
 
@@ -134,28 +145,40 @@ export function GhostManagementSheet({
   };
 
   const handleDelete = async (g: UnclaimedGuest) => {
-    if (!confirm(`Supprimer "${g.pseudo}" ? Cette action est définitive.`)) return;
+    if (
+      !confirm(
+        `Retirer "${g.pseudo}" ? S'il a déjà joué des matchs, il sera archivé ` +
+          `(matchs et ELO conservés). Sinon, supprimé définitivement.`,
+      )
+    )
+      return;
     setPendingId(g.playerId);
     try {
       await onDelete(g.playerId);
     } catch (err) {
-      // Parent toasts. If the server blocked because matches exist, propose
-      // the archive fallback (soft-delete keeps history intact).
+      // Server blocks delete when matches exist — fall back to archive
+      // automatically, without a second confirm.
       const msg = err instanceof Error ? err.message : "";
-      if (
-        /match/i.test(msg) &&
-        confirm(
-          `"${g.pseudo}" a déjà joué des matchs et ne peut pas être supprimé. ` +
-            `Veux-tu plutôt l'archiver ? Les matchs existants restent visibles, ` +
-            `mais ce joueur ne pourra plus être ajouté à de nouveaux matchs.`,
-        )
-      ) {
+      if (/match/i.test(msg)) {
         try {
           await onArchive(g.playerId);
         } catch {
           // Parent toasts.
         }
       }
+      // Other errors already toasted by the parent.
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  const handleUnarchive = async (g: UnclaimedGuest) => {
+    if (!onUnarchive) return;
+    setPendingId(g.playerId);
+    try {
+      await onUnarchive(g.playerId);
+    } catch {
+      // Parent toasts.
     } finally {
       setPendingId(null);
     }
@@ -314,6 +337,68 @@ export function GhostManagementSheet({
                 récupère automatiquement ce joueur.
               </p>
             </div>
+          ) : view === "archived" ? (
+            <>
+              <p className="text-cool-gray text-[13px] mb-4 text-center">
+                Joueurs fantômes archivés. Désarchive pour les rendre à nouveau
+                disponibles dans les pickers de match.
+              </p>
+
+              {archivedGuests.length === 0 ? (
+                <div className="text-center py-6 text-cool-gray text-[13px]">
+                  Aucun joueur archivé.
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {archivedGuests.map((g) => {
+                    const isPending = pendingId === g.playerId;
+                    const isOtherPending = !!pendingId && !isPending;
+                    return (
+                      <li
+                        key={g.playerId}
+                        className="bg-navy/60 rounded-xl border border-card px-3 py-2.5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white font-archivo font-bold text-[14px] truncate opacity-70">
+                              {g.pseudo}
+                            </div>
+                            <div className="text-cool-gray text-[10px] uppercase tracking-widest font-mono">
+                              Archivé
+                            </div>
+                          </div>
+                          {onUnarchive && (
+                            <button
+                              type="button"
+                              onClick={() => handleUnarchive(g)}
+                              disabled={isOtherPending || isPending}
+                              className="h-9 px-3 rounded-full bg-electric-blue/15 hover:bg-electric-blue/25 text-electric-blue flex items-center gap-1.5 text-[11px] font-archivo font-extrabold uppercase tracking-[0.5px] transition-colors disabled:opacity-40"
+                              aria-label={`Désarchiver ${g.pseudo}`}
+                            >
+                              {isPending ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <ArchiveRestore size={14} />
+                              )}
+                              Désarchiver
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setView("active")}
+                disabled={!!pendingId}
+                className="mt-4 w-full h-10 rounded-full bg-white/5 hover:bg-white/10 text-cool-gray text-[12px] font-archivo font-extrabold uppercase tracking-[0.5px] flex items-center justify-center transition-colors disabled:opacity-40"
+              >
+                ← Retour aux actifs
+              </button>
+            </>
           ) : (
             <>
               <p className="text-cool-gray text-[13px] mb-4 text-center">
@@ -435,6 +520,18 @@ export function GhostManagementSheet({
                     );
                   })}
                 </ul>
+              )}
+
+              {archivedGuests.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setView("archived")}
+                  disabled={!!pendingId}
+                  className="mt-4 w-full h-10 rounded-full bg-white/5 hover:bg-white/10 text-cool-gray text-[12px] font-archivo font-extrabold uppercase tracking-[0.5px] flex items-center justify-center gap-2 transition-colors disabled:opacity-40"
+                >
+                  <Archive size={14} />
+                  Voir archivés ({archivedGuests.length})
+                </button>
               )}
             </>
           )}

@@ -64,6 +64,10 @@ export const LeagueDashboard = () => {
     guests: leagueGhosts,
     refresh: refreshLeagueGhosts,
   } = useUnclaimedGuests("league", id, { mode: "any" });
+  const {
+    guests: archivedLeagueGhosts,
+    refresh: refreshArchivedLeagueGhosts,
+  } = useUnclaimedGuests("league", id, { mode: "any", archivedFilter: "archived" });
 
   // Escape key closes add-player modal
   useEffect(() => {
@@ -225,7 +229,7 @@ export const LeagueDashboard = () => {
       throw new Error(result.error);
     }
     toast.success("Joueur supprimé");
-    await refreshLeagueGhosts();
+    await Promise.all([refreshLeagueGhosts(), refreshArchivedLeagueGhosts()]);
     reloadData();
   };
 
@@ -239,7 +243,21 @@ export const LeagueDashboard = () => {
       throw new Error(result.error);
     }
     toast.success("Joueur archivé");
-    await refreshLeagueGhosts();
+    await Promise.all([refreshLeagueGhosts(), refreshArchivedLeagueGhosts()]);
+    reloadData();
+  };
+
+  const handleUnarchiveGhost = async (playerId: string) => {
+    const result = await identityMergeService.unarchiveAnonymousPlayer(
+      "league",
+      playerId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Désarchivage impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur désarchivé");
+    await Promise.all([refreshLeagueGhosts(), refreshArchivedLeagueGhosts()]);
     reloadData();
   };
 
@@ -538,10 +556,12 @@ export const LeagueDashboard = () => {
           isOpen={showGhostMgmt}
           onClose={() => setShowGhostMgmt(false)}
           guests={leagueGhosts}
+          archivedGuests={archivedLeagueGhosts}
           joinPath={`/league/${league.id}/join`}
           onRename={handleRenameGhost}
           onDelete={handleDeleteGhost}
           onArchive={handleArchiveGhost}
+          onUnarchive={handleUnarchiveGhost}
           onGenerateInvite={handleGenerateGhostInvite}
         />
       )}

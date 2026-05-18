@@ -108,6 +108,10 @@ export const EventDashboard = () => {
     guests: eventGhosts,
     refresh: refreshEventGhosts,
   } = useUnclaimedGuests("event", id, { mode: "any" });
+  const {
+    guests: archivedEventGhosts,
+    refresh: refreshArchivedEventGhosts,
+  } = useUnclaimedGuests("event", id, { mode: "any", archivedFilter: "archived" });
 
   // Escape key closes Add Player modal (InviteSheet manages its own but we keep
   // for backward compat with other modals that might be open)
@@ -422,15 +426,15 @@ export const EventDashboard = () => {
       playerId,
     );
     if (!result.success) {
-      // Suppress toast for the "matches recorded" case — the sheet will
-      // offer the archive fallback dialog right after.
+      // Suppress toast for the "matches recorded" case — the sheet auto-falls
+      // back to archive (which surfaces its own success toast).
       if (!result.error || !/match/i.test(result.error)) {
         toast.error(result.error || "Suppression impossible");
       }
       throw new Error(result.error);
     }
     toast.success("Joueur supprimé");
-    await refreshEventGhosts();
+    await Promise.all([refreshEventGhosts(), refreshArchivedEventGhosts()]);
     reloadData();
   };
 
@@ -444,7 +448,21 @@ export const EventDashboard = () => {
       throw new Error(result.error);
     }
     toast.success("Joueur archivé");
-    await refreshEventGhosts();
+    await Promise.all([refreshEventGhosts(), refreshArchivedEventGhosts()]);
+    reloadData();
+  };
+
+  const handleUnarchiveGhost = async (playerId: string) => {
+    const result = await identityMergeService.unarchiveAnonymousPlayer(
+      "event",
+      playerId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Désarchivage impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur désarchivé");
+    await Promise.all([refreshEventGhosts(), refreshArchivedEventGhosts()]);
     reloadData();
   };
 
@@ -818,10 +836,12 @@ export const EventDashboard = () => {
           isOpen={showGhostMgmt}
           onClose={() => setShowGhostMgmt(false)}
           guests={eventGhosts}
+          archivedGuests={archivedEventGhosts}
           joinPath={`/event/${event.id}/join`}
           onRename={handleRenameGhost}
           onDelete={handleDeleteGhost}
           onArchive={handleArchiveGhost}
+          onUnarchive={handleUnarchiveGhost}
           onGenerateInvite={handleGenerateGhostInvite}
         />
       )}
