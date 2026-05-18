@@ -516,6 +516,7 @@ export type Database = {
         Args: { p_anonymous_user_id: string }
         Returns: Json
       }
+      propagate_user_pseudo: { Args: Record<string, never>; Returns: Json }
       users_is_caller: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {
