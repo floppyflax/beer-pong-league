@@ -11,11 +11,14 @@ import { usePremium } from "./usePremium";
  * Free user limits:
  * - Events: 2 active events max
  * - Leagues: 0 (création réservée Premium)
+ * - Joueurs par event: 8 max
  *
  * Premium users: Unlimited
  *
  * @returns Object with limit information and creation flags
  */
+
+export const FREE_MAX_PLAYERS_PER_EVENT = 8;
 
 export interface PremiumLimitsResult {
   canCreateEvent: boolean;
@@ -25,6 +28,7 @@ export interface PremiumLimitsResult {
   limits: {
     events: number;
     leagues: number;
+    maxPlayersPerEvent: number;
   };
   isPremium: boolean;
   isAtEventLimit: boolean;
@@ -57,6 +61,7 @@ export const usePremiumLimits = (): PremiumLimitsResult => {
   const limits = {
     events: isPremium ? Infinity : 2,
     leagues: isPremium ? Infinity : 0,
+    maxPlayersPerEvent: isPremium ? Infinity : FREE_MAX_PLAYERS_PER_EVENT,
   };
 
   // Check if at limit

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { usePremiumLimits } from "../../../src/hooks/usePremiumLimits";
+import {
+  FREE_MAX_PLAYERS_PER_EVENT,
+  usePremiumLimits,
+} from "../../../src/hooks/usePremiumLimits";
 import * as AuthContext from "../../../src/context/AuthContext";
 import * as LeagueContext from "../../../src/context/LeagueContext";
 import * as UsePremium from "../../../src/hooks/usePremium";
@@ -131,6 +134,20 @@ describe("usePremiumLimits", () => {
       expect(result.current.isAtLeagueLimit).toBe(true);
       expect(result.current.leagueCount).toBe(1);
     });
+
+    it(`should cap players per event at ${FREE_MAX_PLAYERS_PER_EVENT}`, () => {
+      mockUseLeague.mockReturnValue({
+        events: [],
+        leagues: [],
+      } as any);
+
+      const { result } = renderHook(() => usePremiumLimits());
+
+      expect(result.current.limits.maxPlayersPerEvent).toBe(
+        FREE_MAX_PLAYERS_PER_EVENT,
+      );
+      expect(FREE_MAX_PLAYERS_PER_EVENT).toBe(8);
+    });
   });
 
   describe("Premium User Limits", () => {
@@ -191,6 +208,17 @@ describe("usePremiumLimits", () => {
       expect(result.current.canCreateLeague).toBe(true);
       expect(result.current.isAtLeagueLimit).toBe(false);
       expect(result.current.limits.leagues).toBe(Infinity);
+    });
+
+    it("should allow unlimited players per event for premium users", () => {
+      mockUseLeague.mockReturnValue({
+        events: [],
+        leagues: [],
+      } as any);
+
+      const { result } = renderHook(() => usePremiumLimits());
+
+      expect(result.current.limits.maxPlayersPerEvent).toBe(Infinity);
     });
   });
 

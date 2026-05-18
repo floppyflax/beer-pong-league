@@ -24,6 +24,7 @@ import { PageHero, StickyCTA } from "@/components/design-system";
 import toast from "react-hot-toast";
 import { Crown, ChevronRight, Trophy, Target, X } from "lucide-react";
 import { PButton } from "@/components/ponglo/PButton";
+import { FREE_MAX_PLAYERS_PER_EVENT } from "@/hooks/usePremiumLimits";
 
 /** Value used for "unlimited" players when hasPlayerLimit is false (design-system) */
 const UNLIMITED_PLAYERS = 999;
@@ -161,6 +162,15 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
     checkPremiumStatus();
   }, [skipPremiumCheck, checkPremiumStatus]);
 
+  // Free user: lock the player limit to FREE_MAX_PLAYERS_PER_EVENT
+  useEffect(() => {
+    if (isLoadingPremium) return;
+    if (!isPremium) {
+      setHasPlayerLimit(true);
+      setPlayerLimit(String(FREE_MAX_PLAYERS_PER_EVENT));
+    }
+  }, [isPremium, isLoadingPremium]);
+
   // Limit modal: Escape key closes, focus trap when open
   const showLimitReachedModal = !canCreate;
   useEffect(() => {
@@ -238,7 +248,10 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
     try {
       const joinCode = await generateUniqueCode();
       const selectedFormat = FORMAT_OPTIONS.find(f => f.value === format)!;
-      const maxPlayersValue = hasPlayerLimit ? parseInt(playerLimit) : null;
+      const parsedPlayerLimit = hasPlayerLimit ? parseInt(playerLimit) : null;
+      const maxPlayersValue = isPremium
+        ? parsedPlayerLimit
+        : FREE_MAX_PLAYERS_PER_EVENT;
 
       const eventId = await databaseService.createEvent({
         name: name.trim(),
@@ -519,22 +532,47 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
 
             {/* Limite joueurs */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-4 bg-navy-soft border border-card rounded-card">
+              <div
+                className={`flex items-center justify-between p-4 bg-navy-soft border border-card rounded-card ${
+                  !isPremium ? "cursor-pointer" : ""
+                }`}
+                onClick={
+                  !isPremium ? () => setShowPaymentModal(true) : undefined
+                }
+              >
                 <div className="flex-1">
-                  <div className="text-white font-archivo font-extrabold uppercase tracking-tight">
-                    Limiter le nombre de joueurs
+                  <div className="flex items-center gap-2">
+                    <div className="text-white font-archivo font-extrabold uppercase tracking-tight">
+                      Limiter le nombre de joueurs
+                    </div>
+                    {!isPremium && (
+                      <Crown
+                        size={16}
+                        className="text-ping-yellow flex-shrink-0"
+                        aria-label="Fonctionnalité Premium"
+                      />
+                    )}
                   </div>
                   <div className="text-cool-gray text-sm mt-1">
-                    Par défaut : aucune limite
+                    {isPremium
+                      ? "Par défaut : aucune limite"
+                      : `Limite gratuite : ${FREE_MAX_PLAYERS_PER_EVENT} joueurs · Premium pour modifier`}
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    if (!isPremium) {
+                      e.stopPropagation();
+                      setShowPaymentModal(true);
+                      return;
+                    }
                     setHasPlayerLimit(!hasPlayerLimit);
                     if (!hasPlayerLimit) setPlayerLimit("16");
                   }}
-                  className={toggleClass(hasPlayerLimit)}
+                  className={`${toggleClass(hasPlayerLimit)} ${
+                    !isPremium ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   aria-label="Limiter le nombre de joueurs"
                 >
                   <span className={toggleKnob(hasPlayerLimit)} />
@@ -549,22 +587,34 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
                   >
                     Nombre maximum de joueurs *
                   </label>
-                  <input
-                    id="playerLimit"
-                    type="number"
-                    value={playerLimit}
-                    onChange={(e) => setPlayerLimit(e.target.value)}
-                    onBlur={() => validateForm()}
-                    placeholder="Ex: 16"
-                    min={2}
-                    max={100}
-                    className={fieldInputClass(!!errors.playerLimit)}
-                    aria-label="Nombre maximum de joueurs"
-                    aria-invalid={!!errors.playerLimit}
-                    aria-describedby={
-                      errors.playerLimit ? "playerLimit-error" : undefined
+                  <div
+                    onClick={
+                      !isPremium ? () => setShowPaymentModal(true) : undefined
                     }
-                  />
+                    className={!isPremium ? "cursor-pointer" : ""}
+                  >
+                    <input
+                      id="playerLimit"
+                      type="number"
+                      value={playerLimit}
+                      onChange={(e) => setPlayerLimit(e.target.value)}
+                      onBlur={() => validateForm()}
+                      placeholder="Ex: 16"
+                      min={2}
+                      max={100}
+                      disabled={!isPremium}
+                      className={`${fieldInputClass(!!errors.playerLimit)} ${
+                        !isPremium
+                          ? "opacity-50 cursor-not-allowed pointer-events-none"
+                          : ""
+                      }`}
+                      aria-label="Nombre maximum de joueurs"
+                      aria-invalid={!!errors.playerLimit}
+                      aria-describedby={
+                        errors.playerLimit ? "playerLimit-error" : undefined
+                      }
+                    />
+                  </div>
                   {errors.playerLimit && (
                     <p
                       id="playerLimit-error"

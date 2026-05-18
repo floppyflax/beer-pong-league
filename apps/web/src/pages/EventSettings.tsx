@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
+  Crown,
   Ghost,
   Link as LinkIcon,
   Lock,
@@ -10,14 +11,19 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+import { useAuthContext } from "@/context/AuthContext";
 import { useLeague } from "@/context/LeagueContext";
 import { useDetailPagePermissions } from "@/hooks/useDetailPagePermissions";
+import { useIdentity } from "@/hooks/useIdentity";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
+import { FREE_MAX_PLAYERS_PER_EVENT } from "@/hooks/usePremiumLimits";
 import { databaseService } from "@/services/DatabaseService";
 import { identityMergeService } from "@/services/IdentityMergeService";
+import { premiumService } from "@/services/PremiumService";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { PaymentModal } from "@/components/PaymentModal";
 import { GhostManagementSheet } from "@/components/design-system";
 import { PButton } from "@/components/ponglo/PButton";
 import type { EventUpdates } from "@/services/DatabaseService";
@@ -43,6 +49,8 @@ const toIsoDay = (raw: string | null | undefined): string => {
 export const EventSettings = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthContext();
+  const { localUser } = useIdentity();
   const {
     events,
     leagues,
@@ -59,6 +67,24 @@ export const EventSettings = () => {
     ? leagues.find((l) => l.id === event.leagueId)
     : null;
   const { isAdmin } = useDetailPagePermissions(id || "", "event");
+
+  // Premium gating for player limit
+  const [isPremium, setIsPremium] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    premiumService
+      .isPremium(user?.id || null, localUser?.anonymousUserId || null)
+      .then((p) => {
+        if (!cancelled) setIsPremium(p);
+      })
+      .catch(() => {
+        if (!cancelled) setIsPremium(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, localUser?.anonymousUserId]);
 
   const [currentPlayersCount, setCurrentPlayersCount] = useState(0);
   useEffect(() => {
@@ -184,11 +210,14 @@ export const EventSettings = () => {
       if (!isDateLocked && date && date !== initialDateIso) updates.date = date;
       if (format !== event.format) updates.format = format;
 
-      const effectiveLimit = hasPlayerLimit
-        ? Math.max(2, Math.min(100, parsedLimit || (event.maxPlayers ?? 16)))
-        : 999;
-      if (effectiveLimit !== (event.maxPlayers ?? 999)) {
-        updates.maxPlayers = effectiveLimit;
+      // Free users can't edit the player limit — skip any maxPlayers update.
+      if (isPremium) {
+        const effectiveLimit = hasPlayerLimit
+          ? Math.max(2, Math.min(100, parsedLimit || (event.maxPlayers ?? 16)))
+          : 999;
+        if (effectiveLimit !== (event.maxPlayers ?? 999)) {
+          updates.maxPlayers = effectiveLimit;
+        }
       }
       if (isPrivate !== (event.isPrivate ?? true)) updates.isPrivate = isPrivate;
 
@@ -418,19 +447,44 @@ export const EventSettings = () => {
 
         {/* Player limit */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card">
+          <div
+            className={`flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card ${
+              !isPremium ? "cursor-pointer" : ""
+            }`}
+            onClick={!isPremium ? () => setShowPaymentModal(true) : undefined}
+          >
             <div className="flex-1 min-w-0">
-              <div className="text-white font-archivo font-semibold text-sm">
-                Limiter le nombre de joueurs
+              <div className="flex items-center gap-2">
+                <div className="text-white font-archivo font-semibold text-sm">
+                  Limiter le nombre de joueurs
+                </div>
+                {!isPremium && (
+                  <Crown
+                    size={14}
+                    className="text-ping-yellow flex-shrink-0"
+                    aria-label="Fonctionnalité Premium"
+                  />
+                )}
               </div>
               <div className="text-cool-gray text-xs mt-0.5">
-                Par défaut : aucune limite
+                {isPremium
+                  ? "Par défaut : aucune limite"
+                  : `Limite gratuite : ${FREE_MAX_PLAYERS_PER_EVENT} joueurs · Premium pour modifier`}
               </div>
             </div>
             <button
               type="button"
-              onClick={() => setHasPlayerLimit((v) => !v)}
-              className={toggleClass(hasPlayerLimit)}
+              onClick={(e) => {
+                if (!isPremium) {
+                  e.stopPropagation();
+                  setShowPaymentModal(true);
+                  return;
+                }
+                setHasPlayerLimit((v) => !v);
+              }}
+              className={`${toggleClass(hasPlayerLimit)} ${
+                !isPremium ? "opacity-50 cursor-not-allowed" : ""
+              }`}
               aria-label="Limiter le nombre de joueurs"
               aria-pressed={hasPlayerLimit}
             >
@@ -440,16 +494,28 @@ export const EventSettings = () => {
 
           {hasPlayerLimit && (
             <>
-              <input
-                id="settings-player-limit"
-                type="number"
-                value={playerLimit}
-                onChange={(e) => setPlayerLimit(e.target.value)}
-                min={2}
-                max={100}
-                className={inputClass}
-                aria-label="Nombre maximum de joueurs"
-              />
+              <div
+                onClick={
+                  !isPremium ? () => setShowPaymentModal(true) : undefined
+                }
+                className={!isPremium ? "cursor-pointer" : ""}
+              >
+                <input
+                  id="settings-player-limit"
+                  type="number"
+                  value={playerLimit}
+                  onChange={(e) => setPlayerLimit(e.target.value)}
+                  min={2}
+                  max={100}
+                  disabled={!isPremium}
+                  className={`${inputClass} ${
+                    !isPremium
+                      ? "opacity-50 cursor-not-allowed pointer-events-none"
+                      : ""
+                  }`}
+                  aria-label="Nombre maximum de joueurs"
+                />
+              </div>
               {playerLimitWarning && (
                 <div className="flex items-start gap-2 p-3 rounded-card bg-ping-yellow/10 border border-ping-yellow/30 text-ping-yellow text-xs">
                   <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
@@ -629,6 +695,12 @@ export const EventSettings = () => {
         onDelete={handleDeleteGhost}
         onArchive={handleArchiveGhost}
         onGenerateInvite={handleGenerateGhostInvite}
+      />
+
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => setIsPremium(true)}
       />
     </div>
   );

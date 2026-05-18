@@ -73,7 +73,7 @@ export interface Event {
   formatType?: 'fixed' | 'free'; // fixed = fixed team sizes (1v1, 2v2), free = flexible
   team1Size?: number | null; // Team 1 size (null for free format)
   team2Size?: number | null; // Team 2 size (null for free format)
-  maxPlayers?: number; // Maximum number of players (999 = unlimited for free users)
+  maxPlayers?: number; // 999 = unlimited. Free users cappés à 8 (cf. usePremiumLimits.ts)
   isPrivate?: boolean; // Private event (not listed publicly)
   status?: 'active' | 'finished' | 'cancelled'; // Event status
   // Phase A.5: competition mode (ELO = classement ponctuel, Bracket = élimination directe)
