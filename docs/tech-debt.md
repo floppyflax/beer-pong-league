@@ -178,14 +178,22 @@ Severity, scope and the trigger skill that holds the pattern.
 Closed during wave 3.4 partial: 85 stale tests deleted/fixed. **Still
 open**:
 
-### 🟠 Wave 2.3 mock fallout — 16 tests in 3 files
+### 🟠 Wave 2.3 mock fallout — 27 tests in 6 files
 
-After extracting services into `packages/shared/` (wave 2.3, commit
-`dfec053`), three test files still mock the legacy import path
-`@/lib/supabase` and don't see the new `getSupabase()` lazy client from
-`@elofight/shared/lib/supabase`. They get back "Supabase not configured"
-and fail downstream assertions.
+After extracting services into `packages/shared/` (waves 2.3 / phases 0–5,
+commits `dfec053` then `620ea84`), six test files still mock the legacy
+import path `@/lib/supabase` and don't see the new `getSupabase()` lazy
+client from `@elofight/shared/lib/supabase`. They get back "Supabase not
+configured" and fail downstream assertions.
 
+The boot-time crash (`shared storage not initialized`) was patched in
+commit `849c633` (PR #17) by calling `initShared()` in `vitest.setup.ts`,
+so tests now **run** instead of crashing at module import — but the
+assertion failures remain.
+
+- `apps/web/tests/integration/auth-flow.test.ts` — 6 fails.
+- `apps/web/tests/integration/elo-server-side.test.ts` — 4 fails.
+- `apps/web/tests/integration/event-creation-auto-participant.test.ts` — 1 fail.
 - `apps/web/tests/unit/services/AuthService.test.ts` — 10 fails.
 - `apps/web/tests/unit/hooks/useAuth.test.ts` — 5 fails.
 - `apps/web/tests/unit/components/IdentityModal.test.tsx` — 1 fail (X
