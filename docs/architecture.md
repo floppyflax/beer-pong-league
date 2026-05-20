@@ -72,7 +72,9 @@ Les migrations vivent dans `supabase/migrations/` (24 migrations cumulées). RLS
 
 **`players`** (mig 022) — entité de jeu. Optionnellement claimée par un user via `user_id`. `null` = ghost.
 
-**`leagues`** — `id`, `name`, `type` (`one-shot` | `season` depuis mig 019), `creator_user_id`, `anti_cheat_enabled`, `join_code?`, timestamps.
+**`leagues`** — `id`, `name`, `type` (`one-shot` | `season` depuis mig 019, désormais cosmétique — voir cycle de vie), `creator_user_id`, `anti_cheat_enabled`, `join_code?`, `paused_at?` / `ended_at?` (mig 028, lifecycle admin), `current_season_number` + `current_season_started_at` (mig 028, cycle de saisons), timestamps.
+
+**`league_season_archives`** (mig 028) — snapshot d'une saison close : `id`, `league_id`, `season_number`, `started_at`, `ended_at`, `rankings` (JSONB), `match_count`, `created_at`. Lecture publique via RLS, écriture uniquement via RPC `start_new_league_season`.
 
 **`league_memberships`** (mig 022) — pivot league ↔ player avec stats ELO : `elo` (défaut 1000), `wins`, `losses`, `matches_played`, `streak`, `pseudo_override?`, `joined_at`, `archived_at?`.
 
@@ -116,6 +118,34 @@ Transitions admin :
 Auto-start : un event créé pour une date future reste `not_started` jusqu'au jour J ; arrivé à la date, le helper le bascule en `in_progress` sans toucher la DB. La migration 027 backfille `started_at` pour les events historiques non terminés dont la date est passée.
 
 Effet de la pause (choix produit) : bloque l'enregistrement de matchs uniquement. Le join, l'invitation, l'édition de pseudo restent autorisés.
+
+### Cycle de vie d'une league + saisons (mig 028)
+
+Une league a trois états dérivés depuis `paused_at` + `ended_at` (helper `apps/web/src/utils/leagueLifecycle.ts`) :
+
+| État       | Condition                  | Match logging |
+|------------|----------------------------|---------------|
+| `finished` | `ended_at` non NULL        | bloqué         |
+| `paused`   | non-fini, `paused_at` non NULL | bloqué     |
+| `active`   | non-fini, non en pause     | autorisé       |
+
+Transitions admin :
+- **Mettre en pause** (depuis `active`) → `paused_at = NOW()`.
+- **Reprendre** (depuis `paused`) → `paused_at = NULL`.
+- **Clôturer la ligue** (depuis `active`) → `ended_at = NOW()`.
+- **Réouvrir la ligue** (depuis `finished`) → `ended_at = NULL`.
+
+Cycle de saisons (toutes leagues, indépendamment de `type`) :
+- Chaque league a un `current_season_number` (1-indexé) + `current_season_started_at`.
+- L'admin peut "Démarrer une nouvelle saison" (RPC `start_new_league_season`) qui :
+  1. Snapshote le classement courant dans `league_season_archives` (JSONB).
+  2. Reset `league_memberships` (ELO=1000, wins/losses/streak=0).
+  3. Wipe `elo_history` côté league (l'historique vit dans l'archive).
+  4. Incrémente `current_season_number`, reset `current_season_started_at = NOW()`.
+- La RPC `recalculate_league_elo` (patch mig 028) ne rejoue que les matchs `created_at >= current_season_started_at` — chaque saison est isolée.
+- L'historique des saisons closes est consultable via `/league/:id/seasons`.
+
+Effet du `paused`/`finished` (choix produit) : bloque uniquement l'enregistrement de nouveaux matchs (consultation libre, édition d'un match passé toujours possible via admin).
 
 ### Modèle ELO (canonique)
 

@@ -51,6 +51,11 @@ const LeagueDashboard = lazy(() =>
     default: m.LeagueDashboard,
   })),
 );
+const LeagueSeasons = lazy(() =>
+  import("./pages/LeagueSeasons").then((m) => ({
+    default: m.LeagueSeasons,
+  })),
+);
 const CreateEvent = lazy(() =>
   import("./pages/CreateEvent").then((m) => ({
     default: m.CreateEvent,
@@ -284,6 +289,14 @@ function AppContent() {
                       element={
                         <ErrorBoundary>
                           <LeagueSettings />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/league/:id/seasons"
+                      element={
+                        <ErrorBoundary>
+                          <LeagueSeasons />
                         </ErrorBoundary>
                       }
                     />

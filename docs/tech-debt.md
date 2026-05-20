@@ -161,6 +161,20 @@ Severity, scope and the trigger skill that holds the pattern.
   call, run on simulator.
 - **Effort**: ~1 week of mobile-only work.
 
+#### G-ter. Retirer `leagues.type` (devenu cosmétique avec le système de saisons)
+
+- Avant mig 028, `leagues.type` (`one-shot` | `season`) servait à afficher
+  un label différent ("Ligue continue" vs "Ligue par saison"). Aucun
+  comportement réel n'y était branché.
+- Depuis mig 028, le concept de saison est implémenté pour TOUTES les
+  leagues via `current_season_number` + `start_new_league_season` RPC.
+  L'admin peut cycler des saisons quelle que soit la valeur de `type`.
+- Le champ `type` est conservé en DB par rétrocompat mais ignoré côté
+  logique. À retirer dans une migration future : DROP COLUMN + clean les
+  refs résiduelles dans `apps/web/src/pages/CreateLeague.tsx`,
+  `LeagueDashboard.tsx`, `DisplayView.tsx`, `LeagueJoin.tsx`.
+- **Effort** : ~1 h (migration + chasse aux refs cosmétiques).
+
 #### G-bis. Promote `eventLifecycle` helper to `packages/shared`
 
 - Mig 027 added the lifecycle helper at
