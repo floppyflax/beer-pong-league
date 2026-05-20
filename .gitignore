@@ -43,3 +43,7 @@ build
 playwright-report/
 test-results/
 
+# Claude Code runtime locks (session-local)
+.claude/scheduled_tasks.lock
+.claude/worktrees/
+
