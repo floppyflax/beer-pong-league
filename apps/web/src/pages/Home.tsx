@@ -14,6 +14,7 @@ import { PongloGlyph } from "../components/ponglo/Wordmark";
 import { PButton } from "../components/ponglo/PButton";
 import { EloDelta } from "../components/ponglo/EloDelta";
 import { QuickAction, Sheet } from "../components/design-system";
+import { getWinRateColorClass } from "../utils/winRate";
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -145,7 +146,11 @@ export const Home = () => {
               </div>
               <div>
                 <div
-                  className="font-archivo font-black text-navy"
+                  className={`font-archivo font-black ${
+                    totalMatches > 0
+                      ? getWinRateColorClass(personalStats?.winRate ?? 0)
+                      : "text-white"
+                  }`}
                   style={{ fontSize: 52, lineHeight: 0.9, letterSpacing: -1.5 }}
                 >
                   {totalMatches > 0
