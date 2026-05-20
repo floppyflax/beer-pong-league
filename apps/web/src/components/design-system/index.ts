@@ -39,6 +39,8 @@ export { FAB } from './FAB';
 export type { FABProps, FABVariant } from './FAB';
 export { Banner } from './Banner';
 export type { BannerProps, BannerVariant, BannerPosition } from './Banner';
+export { LifecycleStrip } from './LifecycleStrip';
+export type { LifecycleStripProps, LifecycleStripTone } from './LifecycleStrip';
 export { SearchBar } from './SearchBar';
 export type { SearchBarProps } from './SearchBar';
 export { HelpCard } from './HelpCard';

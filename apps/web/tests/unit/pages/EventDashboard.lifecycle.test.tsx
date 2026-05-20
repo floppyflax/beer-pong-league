@@ -160,7 +160,7 @@ describe('EventDashboard — lifecycle (mig 027)', () => {
     expect(screen.getByTestId('lifecycle-banner')).toHaveTextContent(
       /Événement non démarré/i,
     );
-    const startBtn = screen.getByRole('button', { name: /Démarrer/i });
+    const startBtn = screen.getByRole('button', { name: /Démarrer l'événement/i });
     fireEvent.click(startBtn);
     expect(startEvent).toHaveBeenCalledWith('evt-1');
   });
@@ -190,7 +190,7 @@ describe('EventDashboard — lifecycle (mig 027)', () => {
     expect(screen.getByTestId('lifecycle-banner')).toHaveTextContent(
       /Événement en pause/i,
     );
-    const resumeBtn = screen.getByRole('button', { name: /Reprendre/i });
+    const resumeBtn = screen.getByRole('button', { name: /Reprendre l'événement/i });
     fireEvent.click(resumeBtn);
     expect(resumeEvent).toHaveBeenCalledWith('evt-1');
   });
@@ -202,7 +202,7 @@ describe('EventDashboard — lifecycle (mig 027)', () => {
 
     expect(screen.getByTestId('lifecycle-banner')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /Démarrer/i }),
+      screen.queryByRole('button', { name: /Démarrer l'événement/i }),
     ).not.toBeInTheDocument();
   });
 });

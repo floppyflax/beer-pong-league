@@ -34,6 +34,7 @@ import {
   DetailHero,
   InviteSheet,
   GhostManagementSheet,
+  LifecycleStrip,
 } from "@/components/design-system";
 import type {
   DetailHeroAction,
@@ -406,30 +407,30 @@ export const EventDashboard = () => {
   if (isAdmin) {
     if (lifecycle === "not_started") {
       detailHeroActions.push({
-        label: "Démarrer",
-        icon: <Play size={16} />,
+        label: "Démarrer l'événement",
+        icon: <Play size={18} />,
         onClick: () => {
           void startEvent(event.id);
         },
-        variant: "secondary",
+        variant: "iconOnly",
       });
     } else if (lifecycle === "in_progress") {
       detailHeroActions.push({
         label: "Mettre en pause",
-        icon: <Pause size={16} />,
+        icon: <Pause size={18} />,
         onClick: () => {
           void pauseEvent(event.id);
         },
-        variant: "secondary",
+        variant: "iconOnly",
       });
     } else if (lifecycle === "paused") {
       detailHeroActions.push({
-        label: "Reprendre",
-        icon: <Play size={16} />,
+        label: "Reprendre l'événement",
+        icon: <Play size={18} />,
         onClick: () => {
           void resumeEvent(event.id);
         },
-        variant: "secondary",
+        variant: "iconOnly",
       });
     }
     detailHeroActions.push({
@@ -600,6 +601,30 @@ export const EventDashboard = () => {
         menuItems={detailHeroMenuItems}
       />
 
+      {/* Lifecycle status strip — sits between hero and content, sticky so it
+          stays visible while scrolling. Distinct ping-yellow accent so it
+          doesn't get confused with match cards. */}
+      {(lifecycle === "not_started" || lifecycle === "paused") && (
+        <LifecycleStrip
+          tone={lifecycle}
+          testId="lifecycle-banner"
+          title={
+            lifecycle === "not_started"
+              ? "Événement non démarré"
+              : "Événement en pause"
+          }
+          description={
+            lifecycle === "not_started"
+              ? isAdmin
+                ? "Démarre l'événement pour autoriser l'enregistrement des matchs."
+                : "Les matchs pourront être enregistrés une fois l'événement démarré."
+              : isAdmin
+                ? "Reprends l'événement pour réautoriser l'enregistrement des matchs."
+                : "L'enregistrement de matchs est suspendu."
+          }
+        />
+      )}
+
       {/* SegmentedTabs: Matchs / Classement */}
       <div className="px-4 pt-4 pb-4">
         <SegmentedTabs
@@ -644,36 +669,6 @@ export const EventDashboard = () => {
 
       {/* Content */}
       <div className="flex-grow overflow-y-auto px-4 py-4 space-y-2 pb-bottom-nav lg:pb-bottom-nav-lg">
-        {/* Lifecycle banner — informs players when match logging is gated. */}
-        {(lifecycle === "not_started" || lifecycle === "paused") && (
-          <div
-            role="status"
-            className="rounded-card border border-card bg-navy-soft px-4 py-3 text-sm text-cool-gray flex items-start gap-3"
-            data-testid="lifecycle-banner"
-          >
-            {lifecycle === "not_started" ? (
-              <Play size={18} className="mt-0.5 shrink-0 text-ping-yellow" />
-            ) : (
-              <Pause size={18} className="mt-0.5 shrink-0 text-ping-yellow" />
-            )}
-            <div className="leading-snug">
-              <div className="font-bold text-white">
-                {lifecycle === "not_started"
-                  ? "Événement non démarré"
-                  : "Événement en pause"}
-              </div>
-              <div className="mt-0.5">
-                {lifecycle === "not_started"
-                  ? isAdmin
-                    ? "Démarre l'événement pour autoriser l'enregistrement des matchs."
-                    : "Les matchs pourront être enregistrés une fois l'événement démarré."
-                  : isAdmin
-                    ? "Reprends l'événement pour réautoriser l'enregistrement des matchs."
-                    : "L'enregistrement de matchs est suspendu."}
-              </div>
-            </div>
-          </div>
-        )}
         {activeTab === "classement" && (
           <>
             {ranking.length === 0 ? (
