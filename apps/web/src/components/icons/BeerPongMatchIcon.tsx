@@ -3,7 +3,8 @@ import React from "react";
 /**
  * BeerPongMatchIcon — Icône identitaire pour l'action « Nouveau match »
  *
- * Représente un gobelet de beer pong avec une balle de ping-pong.
+ * Représente un gobelet de beer pong avec un « + » centré (signal « ajouter »)
+ * et une balle de ping-pong au-dessus.
  * Utilisée sur les dashboards tournoi/league pour renforcer l'identité visuelle.
  *
  * @see design-system-convergence.md section 2.3
@@ -44,6 +45,25 @@ export const BeerPongMatchIcon: React.FC<BeerPongMatchIconProps> = ({
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
+      />
+      {/* Signe « + » centré dans le gobelet — signale l'action « ajouter » */}
+      <line
+        x1="10"
+        y1="12.5"
+        x2="14"
+        y2="12.5"
+        stroke={cupColor}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+      <line
+        x1="12"
+        y1="10.5"
+        x2="12"
+        y2="14.5"
+        stroke={cupColor}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
       />
       {/* Balle de ping-pong — au-dessus du gobelet, suggère le lancer */}
       <circle
