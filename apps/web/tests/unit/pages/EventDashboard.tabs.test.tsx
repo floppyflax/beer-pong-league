@@ -100,13 +100,14 @@ describe("EventDashboard - Tab Navigation (Task 1)", () => {
   });
 
   describe("AC1: Tab Navigation Structure", () => {
-    it("should display 2 tabs: Matchs, Classement (Paramètres moved to overflow menu)", () => {
+    it("should display 3 tabs: Matchs, Classement, Stats (Paramètres moved to overflow menu)", () => {
       renderDashboard();
 
       expect(screen.getByRole("tab", { name: "Matchs" })).toBeInTheDocument();
       expect(
         screen.getByRole("tab", { name: "Classement" }),
       ).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Stats" })).toBeInTheDocument();
       expect(
         screen.queryByRole("tab", { name: "Paramètres" }),
       ).not.toBeInTheDocument();
@@ -119,13 +120,14 @@ describe("EventDashboard - Tab Navigation (Task 1)", () => {
       expect(classementTab).toHaveAttribute("aria-selected", "true");
     });
 
-    it("should highlight active tab (SegmentedTabs encapsulated, duel red on 2nd tab)", () => {
+    it("should highlight the active Classement tab (SegmentedTabs encapsulated)", () => {
       renderDashboard();
 
       const classementTab = screen.getByRole("tab", { name: "Classement" });
-      // SegmentedTabs applies a "duel" red to the 2nd tab when there are exactly 2 tabs
-      expect(classementTab).toHaveClass("bg-signal-red");
-      expect(classementTab).toHaveClass("text-white");
+      // With 3+ tabs the duel red treatment no longer applies; active tab
+      // uses the default lime accent.
+      expect(classementTab).toHaveClass("bg-lime");
+      expect(classementTab).toHaveClass("text-navy");
     });
 
     it("should switch to Matchs tab when clicked", () => {

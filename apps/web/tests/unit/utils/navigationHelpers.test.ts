@@ -13,7 +13,7 @@ describe("navigationHelpers", () => {
       expect(shouldShowBottomMenu("/events")).toBe(true);
       expect(shouldShowBottomMenu("/leagues")).toBe(true);
       expect(shouldShowBottomMenu("/competitions")).toBe(true);
-      expect(shouldShowBottomMenu("/leaderboard")).toBe(true);
+      expect(shouldShowBottomMenu("/stats")).toBe(true);
       expect(shouldShowBottomMenu("/user/profile")).toBe(true);
     });
 

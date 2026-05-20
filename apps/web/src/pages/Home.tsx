@@ -26,8 +26,15 @@ export const Home = () => {
   const userId = user?.id ?? localUser?.anonymousUserId ?? null;
   const isAnonymous = useIsAnonymous();
 
-  const { lastEvent, lastLeague, personalStats, recentMatches, isLoading, error } =
-    useHomeData(userId);
+  const {
+    lastEvent,
+    lastLeague,
+    personalStats,
+    recentMatches,
+    recentResults,
+    isLoading,
+    error,
+  } = useHomeData(userId);
 
   const { isPremium: _isPremium, refetch: refetchPremium } = usePremium(userId);
   const { canCreateEvent } = usePremiumLimits();
@@ -41,7 +48,6 @@ export const Home = () => {
   const totalMatches = personalStats?.totalMatches ?? 0;
   const wins = Math.round(totalMatches * (personalStats?.winRate ?? 0) / 100);
   const losses = Math.max(0, totalMatches - wins);
-  const bestStreak = personalStats?.bestStreak ?? 0;
 
   const handlePaymentSuccess = () => {
     setShowPaymentModal(false);
@@ -151,10 +157,35 @@ export const Home = () => {
                 </div>
               </div>
             </div>
-            <div className="text-xs opacity-60 mt-4 font-mono relative z-10">
-              {totalMatches > 0
-                ? `${wins}W — ${losses}L${bestStreak > 1 ? ` · streak max ${bestStreak}` : ""}`
-                : "Pas encore de matchs"}
+            <div className="mt-4 font-mono text-xs relative z-10 flex items-center gap-2 flex-wrap">
+              {totalMatches > 0 ? (
+                <>
+                  <span className="opacity-60">
+                    {wins}W — {losses}L
+                  </span>
+                  {recentResults.length > 0 && (
+                    <div
+                      className="flex items-center gap-0.5"
+                      role="img"
+                      aria-label={`5 derniers résultats : ${recentResults
+                        .map((won) => (won ? "victoire" : "défaite"))
+                        .join(", ")}`}
+                    >
+                      {recentResults.map((won, i) => (
+                        <span
+                          key={i}
+                          className={`w-2.5 h-2.5 rounded-full ${
+                            won ? "bg-lime" : "bg-signal-red"
+                          }`}
+                          title={won ? "Victoire" : "Défaite"}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <span className="opacity-60">Pas encore de matchs</span>
+              )}
             </div>
             {/* lime glow decoration */}
             <div

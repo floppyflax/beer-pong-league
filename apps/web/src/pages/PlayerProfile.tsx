@@ -11,7 +11,16 @@ import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { StatCard, ListRow } from "@/components/design-system";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { databaseService } from "@/services/DatabaseService";
-import { TrendingUp, TrendingDown, BarChart3, Flame, Medal } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  Flame,
+  Medal,
+  Activity,
+  Heart,
+  Skull,
+} from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { formatRelativeTime, formatJoinedSince } from "@/utils/dateUtils";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
@@ -20,6 +29,12 @@ import { PAvatar } from "@/components/ponglo/PAvatar";
 import { AchievementCard } from "@/components/achievements/AchievementCard";
 import type { Achievement } from "@/components/achievements/AchievementCard";
 import { supabase, isSupabaseAvailable } from "@/lib/supabase";
+import {
+  computeBestAlly,
+  computeFormTrend,
+  computeNemesis,
+  computeWinRateByFormat,
+} from "@/utils/playerStatsAdvanced";
 import type { Player } from "@/types";
 import type { Match } from "@/types";
 
@@ -323,6 +338,26 @@ export const PlayerProfile = () => {
     return stats;
   }, [leagues, currentPlayer]);
 
+  const formatWinRates = useMemo(
+    () => (currentPlayer ? computeWinRateByFormat(currentPlayer.id, playerMatches) : []),
+    [currentPlayer, playerMatches],
+  );
+
+  const bestAlly = useMemo(
+    () => (currentPlayer ? computeBestAlly(currentPlayer.id, playerMatches) : null),
+    [currentPlayer, playerMatches],
+  );
+
+  const nemesis = useMemo(
+    () => (currentPlayer ? computeNemesis(currentPlayer.id, playerMatches) : null),
+    [currentPlayer, playerMatches],
+  );
+
+  const formTrend = useMemo(
+    () => (currentPlayer ? computeFormTrend(currentPlayer.id, playerMatches) : null),
+    [currentPlayer, playerMatches],
+  );
+
   // Early returns AFTER all hooks
   if (isLoadingPlayer && !player) {
     return (
@@ -458,6 +493,122 @@ export const PlayerProfile = () => {
 
       {/* AC5: Sections — ELO evolution, Stats par league, Head-to-head, Recent matches */}
       <div className="flex-grow overflow-y-auto px-4 py-4 space-y-6 pb-bottom-nav lg:pb-bottom-nav-lg">
+        {/* Win rate par format */}
+        {formatWinRates.some((f) => f.matches > 0) && (
+          <section>
+            <h3 className="text-sm font-archivo font-extrabold uppercase tracking-tight mb-3 flex items-center gap-2 text-white">
+              <Activity size={18} className="text-cool-gray" />
+              Win rate par format
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {formatWinRates.map((f) => (
+                <StatCard
+                  key={f.format}
+                  value={f.matches > 0 ? `${f.winRate}%` : "—"}
+                  label={`${f.format} · ${f.matches} m.`}
+                  variant={f.winRate >= 50 ? "success" : "default"}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Best ally / Nemesis */}
+        {(bestAlly || nemesis) && (
+          <section>
+            <h3 className="text-sm font-archivo font-extrabold uppercase tracking-tight mb-3 flex items-center gap-2 text-white">
+              <Heart size={18} className="text-cool-gray" />
+              Allié & Nemesis
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {bestAlly && (
+                <div className="bg-lime/10 border border-lime/40 p-4 rounded-card flex items-center gap-3">
+                  <Heart className="text-lime flex-shrink-0" size={24} aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-cool-gray font-mono uppercase tracking-widest">
+                      Meilleur allié
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/player/${bestAlly.playerId}`)}
+                      className="font-bold text-white truncate text-left hover:text-lime transition-colors"
+                    >
+                      {playersMap[bestAlly.playerId] ??
+                        `Joueur ${bestAlly.playerId.slice(0, 8)}`}
+                    </button>
+                    <div className="text-xs text-cool-gray">
+                      {bestAlly.wins}V - {bestAlly.losses}D · {bestAlly.winRate}%
+                    </div>
+                  </div>
+                </div>
+              )}
+              {nemesis && (
+                <div className="bg-signal-red/10 border border-signal-red/40 p-4 rounded-card flex items-center gap-3">
+                  <Skull className="text-signal-red flex-shrink-0" size={24} aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-cool-gray font-mono uppercase tracking-widest">
+                      Nemesis
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/player/${nemesis.playerId}`)}
+                      className="font-bold text-white truncate text-left hover:text-signal-red transition-colors"
+                    >
+                      {playersMap[nemesis.playerId] ??
+                        `Joueur ${nemesis.playerId.slice(0, 8)}`}
+                    </button>
+                    <div className="text-xs text-cool-gray">
+                      {nemesis.wins}V - {nemesis.losses}D · {nemesis.winRate}%
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Form trend */}
+        {formTrend && formTrend.recentMatches >= 5 && (
+          <section>
+            <h3 className="text-sm font-archivo font-extrabold uppercase tracking-tight mb-3 flex items-center gap-2 text-white">
+              <Activity size={18} className="text-cool-gray" />
+              Forme récente
+            </h3>
+            <div
+              className={`bg-navy-soft p-4 rounded-card border flex items-center gap-3 ${
+                formTrend.delta > 0
+                  ? "border-lime/40"
+                  : formTrend.delta < 0
+                    ? "border-signal-red/40"
+                    : "border-card"
+              }`}
+            >
+              {formTrend.delta > 0 ? (
+                <TrendingUp className="text-lime flex-shrink-0" size={24} aria-hidden />
+              ) : formTrend.delta < 0 ? (
+                <TrendingDown
+                  className="text-signal-red flex-shrink-0"
+                  size={24}
+                  aria-hidden
+                />
+              ) : (
+                <Activity className="text-cool-gray flex-shrink-0" size={24} aria-hidden />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-white">
+                  {formTrend.delta > 0 ? "+" : ""}
+                  {formTrend.delta}% vs lifetime
+                </div>
+                <div className="text-xs text-cool-gray">
+                  Forme ({formTrend.recentMatches} derniers) : {formTrend.recentWinRate}%
+                  {" · "}
+                  Lifetime ({formTrend.lifetimeMatches} m.) : {formTrend.lifetimeWinRate}%
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ELO Evolution Chart — DS EloChart (§5.1) */}
         {eloEvolution.length > 1 && (
           <section>

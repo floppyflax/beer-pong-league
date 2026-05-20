@@ -21,7 +21,7 @@ const CORE_ROUTES = [
   "/events",
   "/leagues",
   "/competitions",
-  "/leaderboard",
+  "/stats",
   "/user/profile",
 ] as const;
 
@@ -53,7 +53,7 @@ const EXCLUDED_PATTERNS = [
  * Determines if the bottom menu should be visible for a given route.
  *
  * Bottom Menu Visibility Rules (design system 2.1, post refonte 4 onglets) :
- * - SHOW on core routes : /, /competitions, /leaderboard, /user/profile
+ * - SHOW on core routes : /, /competitions, /stats, /user/profile
  *   (+ /events, /leagues)
  * - SHOW on detail pages (lecture) : /event/:id, /league/:id, /player/:id
  * - HIDE on action pages (modale-équivalent) : /join, /create-event,

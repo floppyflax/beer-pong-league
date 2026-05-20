@@ -1493,10 +1493,10 @@ function PagesArchetypesSection() {
           url="/competitions"
         />
         <PageMount
-          title="Global leaderboard · /leaderboard"
-          file="apps/web/src/pages/GlobalLeaderboard.tsx"
-          shot="leaderboard"
-          url="/leaderboard"
+          title="Mes stats · /stats"
+          file="apps/web/src/pages/Stats.tsx"
+          shot="stats"
+          url="/stats"
         />
       </PageGroup>
 

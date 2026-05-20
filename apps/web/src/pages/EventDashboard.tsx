@@ -20,6 +20,7 @@ import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "@/components/EloChangeDisplay";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { databaseService } from "@/services/DatabaseService";
@@ -98,9 +99,9 @@ export const EventDashboard = () => {
   } = useLeague();
 
   const [rankingMode, setRankingMode] = useState<"local" | "global">("local");
-  const [activeTab, setActiveTab] = useState<"classement" | "matchs">(
-    "classement",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "classement" | "matchs" | "stats"
+  >("classement");
   const [showEloChanges, setShowEloChanges] = useState(false);
   const [lastEloChanges] = useState<Record<string, number>>({});
   const [showAddPlayer, setShowAddPlayer] = useState(false);
@@ -605,9 +606,12 @@ export const EventDashboard = () => {
           tabs={[
             { id: "matchs", label: "Matchs" },
             { id: "classement", label: "Classement" },
+            { id: "stats", label: "Stats" },
           ]}
           activeId={activeTab}
-          onChange={(id) => setActiveTab(id as "classement" | "matchs")}
+          onChange={(id) =>
+            setActiveTab(id as "classement" | "matchs" | "stats")
+          }
           variant="encapsulated"
         />
       </div>
@@ -870,6 +874,22 @@ export const EventDashboard = () => {
               })
             )}
           </>
+        )}
+        {activeTab === "stats" && (
+          <DetailedStatsPanel
+            matches={event.matches}
+            players={eventParticipants}
+            contextLabel="event"
+            onPlayerClick={(playerId) => {
+              const participant = eventParticipants.find(
+                (p) => p.id === playerId,
+              );
+              const profileId = participant
+                ? getPlayerProfileId(participant)
+                : playerId;
+              navigate(`/player/${profileId}`);
+            }}
+          />
         )}
       </div>
 

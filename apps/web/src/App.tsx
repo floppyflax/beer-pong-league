@@ -113,9 +113,9 @@ const DesignSystemShowcase = lazy(() =>
 const RecordMatch = lazy(() =>
   import("./pages/RecordMatch").then((m) => ({ default: m.RecordMatch })),
 );
-const GlobalLeaderboard = lazy(() =>
-  import("./pages/GlobalLeaderboard").then((m) => ({
-    default: m.GlobalLeaderboard,
+const Stats = lazy(() =>
+  import("./pages/Stats").then((m) => ({
+    default: m.Stats,
   })),
 );
 const Competitions = lazy(() =>
@@ -309,11 +309,8 @@ function AppContent() {
                       path="/record-match/:contextType/:id"
                       element={<RecordMatch />}
                     />
-                    {/* D.5: Global cross-league leaderboard */}
-                    <Route
-                      path="/leaderboard"
-                      element={<GlobalLeaderboard />}
-                    />
+                    {/* Personal stats hub — cross-context lifetime */}
+                    <Route path="/stats" element={<Stats />} />
                     {/* Backward-compat redirects from the old /tournament/*
                         URLs were removed: the schema migration renamed every
                         path /tournament → /event, so these redirects became
