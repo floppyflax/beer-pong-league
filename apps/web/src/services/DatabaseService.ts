@@ -13,7 +13,7 @@
  *   - src/services/repositories/_base.ts (helpers partagés)
  */
 
-import type { League, Event, Player, Match } from '../types';
+import type { League, LeagueSeasonArchive, Event, Player, Match } from '../types';
 import { leaguesRepository } from './repositories/LeaguesRepository';
 import {
   eventsRepository,
@@ -51,6 +51,26 @@ class DatabaseService {
 
   leagueCodeExists(joinCode: string): Promise<boolean> {
     return leaguesRepository.leagueCodeExists(joinCode);
+  }
+
+  // Lifecycle league (mig 028)
+  pauseLeague(leagueId: string): Promise<void> {
+    return leaguesRepository.pauseLeague(leagueId);
+  }
+  resumeLeague(leagueId: string): Promise<void> {
+    return leaguesRepository.resumeLeague(leagueId);
+  }
+  finishLeague(leagueId: string): Promise<void> {
+    return leaguesRepository.finishLeague(leagueId);
+  }
+  reopenLeague(leagueId: string): Promise<void> {
+    return leaguesRepository.reopenLeague(leagueId);
+  }
+  startNewLeagueSeason(leagueId: string): Promise<number> {
+    return leaguesRepository.startNewSeason(leagueId);
+  }
+  loadLeagueSeasonArchives(leagueId: string): Promise<LeagueSeasonArchive[]> {
+    return leaguesRepository.loadSeasonArchives(leagueId);
   }
 
   // ===== Events =====

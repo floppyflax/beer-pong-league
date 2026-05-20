@@ -50,6 +50,34 @@ export interface League {
   /** @deprecated since mig 022. Always null. Kept for legacy callers; use creator_user_id. */
   creator_anonymous_user_id?: string | null;
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
+  // Mig 028 — lifecycle + saisons
+  // Derived state: see apps/web/src/utils/leagueLifecycle.ts
+  pausedAt?: string | null;            // ISO timestamp — admin "Mettre en pause"
+  endedAt?: string | null;             // ISO timestamp — admin "Clôturer la league"
+  currentSeasonNumber?: number;        // 1-indexed, bumped via startNewSeason()
+  currentSeasonStartedAt?: string;     // ISO timestamp — début saison courante
+}
+
+/** League season archive (mig 028 — league_season_archives row). */
+export interface LeagueSeasonArchive {
+  id: string;
+  leagueId: string;
+  seasonNumber: number;
+  startedAt: string;
+  endedAt: string;
+  matchCount: number;
+  /** Snapshot des rankings au moment de la clôture, triés par rank. */
+  rankings: Array<{
+    player_id: string;
+    pseudo: string;
+    elo: number;
+    wins: number;
+    losses: number;
+    matches_played: number;
+    streak: number;
+    rank: number;
+  }>;
+  createdAt: string;
 }
 
 export interface Event {

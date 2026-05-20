@@ -25,6 +25,7 @@ import { X, UserPlus, Check, ChevronDown, ChevronLeft, Trophy, Calendar, Minus, 
 import toast from "react-hot-toast";
 import type { Player } from "@/types";
 import { canLogMatch } from "@/utils/eventLifecycle";
+import { canRecordLeagueMatch } from "@/utils/leagueLifecycle";
 
 type ContextType = "event" | "league";
 type Step = "compose" | "score";
@@ -626,6 +627,18 @@ export const RecordMatch = () => {
     navigate(`/event/${event.id}`, { replace: true });
   }, [event, isEditMode, navigate]);
 
+  /* Mig 028 — same guard for leagues (paused / finished). */
+  useEffect(() => {
+    if (!league || isEditMode) return;
+    if (canRecordLeagueMatch(league)) return;
+    toast.error(
+      league.endedAt
+        ? "Cette ligue est terminée."
+        : "Cette ligue est en pause.",
+    );
+    navigate(`/league/${league.id}`, { replace: true });
+  }, [league, isEditMode, navigate]);
+
   const hasContext = Boolean(event || league);
   const contextName = event?.name ?? league?.name ?? "";
   const format = event?.format ?? "libre";
@@ -1221,7 +1234,13 @@ function ContextPickerModal({
     startedAt?: string | null;
     pausedAt?: string | null;
   }>;
-  leagues: Array<{ id: string; name: string; status?: string }>;
+  leagues: Array<{
+    id: string;
+    name: string;
+    status?: string;
+    pausedAt?: string | null;
+    endedAt?: string | null;
+  }>;
   currentType: ContextType | null;
   currentId: string | null;
   onPick: (type: ContextType, id: string) => void;
@@ -1235,7 +1254,13 @@ function ContextPickerModal({
       pausedAt: t.pausedAt ?? null,
     }),
   );
-  const activeLeagues = leagues.filter((l) => l.status !== "finished");
+  // Mig 028 — only league with lifecycle `active` can host a match.
+  const activeLeagues = leagues.filter((l) =>
+    canRecordLeagueMatch({
+      pausedAt: l.pausedAt ?? null,
+      endedAt: l.endedAt ?? null,
+    }),
+  );
 
   return (
     <Sheet isOpen={isOpen} onClose={onClose} title="Choisir un contexte" maxWidth="md">

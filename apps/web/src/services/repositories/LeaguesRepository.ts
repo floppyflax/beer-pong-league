@@ -3,13 +3,14 @@
  * + matches (mig 022).
  */
 
-import type { League, Player, Match } from '../../types';
+import type { League, LeagueSeasonArchive, Player, Match } from '../../types';
 import { safeValidateLeague } from '../../utils/validation';
 import {
   BaseRepository,
   sb,
   type LeagueRow,
   type LeagueMembershipRow,
+  type LeagueSeasonArchiveRow,
   type MatchRow,
 } from './_base';
 
@@ -145,6 +146,11 @@ class LeaguesRepository extends BaseRepository {
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
+        // Mig 028 — lifecycle + saisons
+        pausedAt: row.paused_at ?? null,
+        endedAt: row.ended_at ?? null,
+        currentSeasonNumber: row.current_season_number ?? 1,
+        currentSeasonStartedAt: row.current_season_started_at ?? row.created_at,
       }));
     } catch (error) {
       console.error('Error loading leagues from Supabase:', error);
@@ -238,6 +244,123 @@ class LeaguesRepository extends BaseRepository {
     } catch (error) {
       console.error('Error updating league:', error);
     }
+  }
+
+  // ── Lifecycle (mig 028) ────────────────────────────────────────────────
+
+  private patchLocalLeague(
+    leagueId: string,
+    patch: Partial<Pick<League, 'pausedAt' | 'endedAt' | 'currentSeasonNumber' | 'currentSeasonStartedAt'>>,
+  ): void {
+    const leagues = this.loadLeaguesFromLocalStorage();
+    const league = leagues.find((l) => l.id === leagueId);
+    if (!league) return;
+    Object.assign(league, patch);
+    this.saveLeagueToLocalStorage(league);
+  }
+
+  /** Admin "Mettre en pause" — bloque l'enregistrement de nouveaux matchs. */
+  async pauseLeague(leagueId: string): Promise<void> {
+    const now = new Date().toISOString();
+    if (!this.isSupabaseAvailable()) {
+      this.patchLocalLeague(leagueId, { pausedAt: now });
+      return;
+    }
+    const { error } = await sb!
+      .from('leagues')
+      .update({ paused_at: now })
+      .eq('id', leagueId);
+    if (error) throw error;
+    this.patchLocalLeague(leagueId, { pausedAt: now });
+  }
+
+  /** Admin "Reprendre" — réautorise les matchs. */
+  async resumeLeague(leagueId: string): Promise<void> {
+    if (!this.isSupabaseAvailable()) {
+      this.patchLocalLeague(leagueId, { pausedAt: null });
+      return;
+    }
+    const { error } = await sb!
+      .from('leagues')
+      .update({ paused_at: null })
+      .eq('id', leagueId);
+    if (error) throw error;
+    this.patchLocalLeague(leagueId, { pausedAt: null });
+  }
+
+  /** Admin "Clôturer la league" — état final, read-only. */
+  async finishLeague(leagueId: string): Promise<void> {
+    const now = new Date().toISOString();
+    if (!this.isSupabaseAvailable()) {
+      this.patchLocalLeague(leagueId, { endedAt: now });
+      return;
+    }
+    const { error } = await sb!
+      .from('leagues')
+      .update({ ended_at: now })
+      .eq('id', leagueId);
+    if (error) throw error;
+    this.patchLocalLeague(leagueId, { endedAt: now });
+  }
+
+  /** Admin "Réouvrir la league" — annule la clôture. */
+  async reopenLeague(leagueId: string): Promise<void> {
+    if (!this.isSupabaseAvailable()) {
+      this.patchLocalLeague(leagueId, { endedAt: null });
+      return;
+    }
+    const { error } = await sb!
+      .from('leagues')
+      .update({ ended_at: null })
+      .eq('id', leagueId);
+    if (error) throw error;
+    this.patchLocalLeague(leagueId, { endedAt: null });
+  }
+
+  /**
+   * Démarre une nouvelle saison via la RPC `start_new_league_season` :
+   * archive le classement, reset les ELO à 1000, bump le numéro de saison.
+   * Renvoie le numéro de la nouvelle saison.
+   */
+  async startNewSeason(leagueId: string): Promise<number> {
+    if (!this.isSupabaseAvailable()) {
+      throw new Error('Démarrer une nouvelle saison nécessite une connexion serveur.');
+    }
+    const { data, error } = await sb!.rpc('start_new_league_season', {
+      p_league_id: leagueId,
+    });
+    if (error) throw error;
+    const newSeasonNumber = (data as number) ?? 1;
+    const nowIso = new Date().toISOString();
+    this.patchLocalLeague(leagueId, {
+      currentSeasonNumber: newSeasonNumber,
+      currentSeasonStartedAt: nowIso,
+    });
+    return newSeasonNumber;
+  }
+
+  /** Charge l'historique des saisons closes pour une league, DESC par numéro. */
+  async loadSeasonArchives(leagueId: string): Promise<LeagueSeasonArchive[]> {
+    if (!this.isSupabaseAvailable()) return [];
+    const { data, error } = await sb!
+      .from('league_season_archives')
+      .select('*')
+      .eq('league_id', leagueId)
+      .order('season_number', { ascending: false });
+    if (error) {
+      console.error('Error loading season archives:', error);
+      return [];
+    }
+    return ((data ?? []) as LeagueSeasonArchiveRow[]).map((row) => ({
+      id: row.id,
+      leagueId: row.league_id,
+      seasonNumber: row.season_number,
+      startedAt: row.started_at,
+      endedAt: row.ended_at,
+      matchCount: row.match_count,
+      rankings: row.rankings,
+      createdAt: row.created_at,
+    }));
   }
 
   async getLeagueById(leagueId: string): Promise<{ name: string } | null> {

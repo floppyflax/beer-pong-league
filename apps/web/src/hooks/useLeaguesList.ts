@@ -1,10 +1,14 @@
 import { useMemo } from 'react';
 import { useLeague } from '../context/LeagueContext';
+import { getLeagueLifecycle, type LeagueLifecycle } from '@/utils/leagueLifecycle';
 
 export interface LeagueListItem {
   id: string;
   name: string;
+  /** @deprecated Mig 028 — préfère `lifecycle`. Conservé pour compat (toujours `'active'`). */
   status: 'active' | 'finished';
+  lifecycle: LeagueLifecycle;
+  currentSeasonNumber: number;
   creator_user_id: string | null;
   creator_anonymous_user_id: string | null;
   createdAt: string;
@@ -40,29 +44,34 @@ export const useLeaguesList = () => {
     }
 
     // Transform to list items with computed fields
-    const leagueItems: LeagueListItem[] = leagues.map(league => ({
-      id: league.id,
-      name: league.name,
-      // LIMITATION: All leagues hardcoded as 'active' - leagues table needs status column
-      status: 'active',
-      creator_user_id: league.creator_user_id || null,
-      creator_anonymous_user_id: league.creator_anonymous_user_id || null,
-      createdAt: league.createdAt,
-      // LIMITATION: Using createdAt as updatedAt - leagues table needs updated_at column
-      updatedAt: league.createdAt,
-      // Count members: length of players array (Player[] objects)
-      member_count: league.players?.length || 0,
-      // Count events: length of events array (string[] of event IDs)
-      event_count: league.events?.length || 0,
-    }));
+    const leagueItems: LeagueListItem[] = leagues.map(league => {
+      const lifecycle = getLeagueLifecycle(league);
+      return {
+        id: league.id,
+        name: league.name,
+        // Legacy status field: 'finished' uniquement quand lifecycle === 'finished'.
+        status: lifecycle === 'finished' ? 'finished' : 'active',
+        lifecycle,
+        currentSeasonNumber: league.currentSeasonNumber ?? 1,
+        creator_user_id: league.creator_user_id || null,
+        creator_anonymous_user_id: league.creator_anonymous_user_id || null,
+        createdAt: league.createdAt,
+        // LIMITATION: Using createdAt as updatedAt - leagues table needs updated_at column
+        updatedAt: league.createdAt,
+        // Count members: length of players array (Player[] objects)
+        member_count: league.players?.length || 0,
+        // Count events: length of events array (string[] of event IDs)
+        event_count: league.events?.length || 0,
+      };
+    });
 
     // Story 10.3 AC2 (PARTIAL): Sort by status, then by date
     // NOTE: Currently sorts by createdAt (not updatedAt) because leagues.updated_at doesn't exist
     // This means "last activity" is actually "creation date" until database migration is done
     return [...leagueItems].sort((a, b) => {
-      // First, separate by status (currently all 'active' until status column added)
+      // First, separate by status (finished goes last)
       if (a.status !== b.status) {
-        return a.status === 'finished' ? 1 : -1; // Active comes before Finished
+        return a.status === 'finished' ? 1 : -1;
       }
 
       // Within same status, sort by date descending (most recent first)

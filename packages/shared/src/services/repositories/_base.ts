@@ -78,6 +78,32 @@ export interface LeagueRow {
   creator_user_id: string | null;
   anti_cheat_enabled?: boolean;
   join_code?: string | null;
+  // Mig 028 — lifecycle + saisons
+  paused_at?: string | null;
+  ended_at?: string | null;
+  current_season_number?: number;
+  current_season_started_at?: string;
+}
+
+/** Mig 028 — snapshot d'une saison close, table league_season_archives. */
+export interface LeagueSeasonArchiveRow {
+  id: string;
+  league_id: string;
+  season_number: number;
+  started_at: string;
+  ended_at: string;
+  rankings: Array<{
+    player_id: string;
+    pseudo: string;
+    elo: number;
+    wins: number;
+    losses: number;
+    matches_played: number;
+    streak: number;
+    rank: number;
+  }>;
+  match_count: number;
+  created_at: string;
 }
 
 export interface EventRow {

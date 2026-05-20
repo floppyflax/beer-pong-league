@@ -14,6 +14,7 @@ export type {
   UserRow,
   PlayerRow,
   LeagueRow,
+  LeagueSeasonArchiveRow,
   EventRow,
   LeagueMembershipRow,
   EventMembershipRow,

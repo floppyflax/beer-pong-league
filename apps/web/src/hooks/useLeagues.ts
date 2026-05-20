@@ -27,6 +27,12 @@ export const useLeagues = () => {
       deleteLeague: ctx.deleteLeague,
       selectLeague: ctx.selectLeague,
       getLeagueGlobalRanking: ctx.getLeagueGlobalRanking,
+      // Lifecycle league (mig 028)
+      pauseLeague: ctx.pauseLeague,
+      resumeLeague: ctx.resumeLeague,
+      finishLeague: ctx.finishLeague,
+      reopenLeague: ctx.reopenLeague,
+      startNewLeagueSeason: ctx.startNewLeagueSeason,
     }),
     [
       ctx.leagues,
@@ -38,6 +44,11 @@ export const useLeagues = () => {
       ctx.deleteLeague,
       ctx.selectLeague,
       ctx.getLeagueGlobalRanking,
+      ctx.pauseLeague,
+      ctx.resumeLeague,
+      ctx.finishLeague,
+      ctx.reopenLeague,
+      ctx.startNewLeagueSeason,
     ],
   );
 };

@@ -13,7 +13,12 @@ import {
   FileSpreadsheet,
   Settings,
   Ghost,
+  Pause,
+  Play,
+  Archive,
+  RotateCcw,
 } from "lucide-react";
+import { getLeagueLifecycle, canRecordLeagueMatch } from "@/utils/leagueLifecycle";
 import toast from "react-hot-toast";
 import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
@@ -26,6 +31,7 @@ import {
   DetailHero,
   InviteSheet,
   GhostManagementSheet,
+  LifecycleStrip,
 } from "@/components/design-system";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
@@ -48,6 +54,11 @@ export const LeagueDashboard = () => {
     events,
     addPlayer,
     deleteLeague,
+    pauseLeague,
+    resumeLeague,
+    finishLeague,
+    reopenLeague,
+    startNewLeagueSeason,
     isLoadingInitialData,
     reloadData,
   } = useLeague();
@@ -146,6 +157,11 @@ export const LeagueDashboard = () => {
   };
 
   const detailHeroMenuItems = [
+    {
+      label: "Historique des saisons",
+      icon: <History size={20} />,
+      onClick: () => navigate(`/league/${league.id}/seasons`),
+    },
     {
       label: "Paramètres",
       icon: <Settings size={20} />,
@@ -282,6 +298,106 @@ export const LeagueDashboard = () => {
 
   const topElo = sortedPlayers.length > 0 ? sortedPlayers[0].elo : null;
 
+  // Mig 028 — Lifecycle league
+  const lifecycle = getLeagueLifecycle(league);
+  const matchLoggingAllowed = canRecordLeagueMatch(league);
+  const seasonNumber = league.currentSeasonNumber ?? 1;
+  const seasonStartedAt = league.currentSeasonStartedAt ?? league.createdAt;
+  const seasonStartedLabel = new Date(seasonStartedAt).toLocaleDateString(
+    "fr-FR",
+    shortDateFormatter,
+  );
+
+  const heroStatusVariant: "active" | "scheduled" | "finished" =
+    lifecycle === "finished"
+      ? "finished"
+      : lifecycle === "paused"
+        ? "scheduled"
+        : "active";
+  const heroStatusLabel =
+    lifecycle === "finished"
+      ? "Terminée"
+      : lifecycle === "paused"
+        ? "En pause"
+        : "Active";
+
+  const handleStartNewSeason = async () => {
+    if (
+      !confirm(
+        `Démarrer la Saison ${seasonNumber + 1} ?\n\nLe classement actuel (Saison ${seasonNumber}) sera archivé et les ELO de tous les joueurs seront reset à 1000.\n\nCette action est irréversible.`,
+      )
+    )
+      return;
+    try {
+      await startNewLeagueSeason(league.id);
+    } catch {
+      // toast déjà affiché côté context
+    }
+  };
+
+  const detailHeroAdminActions: Parameters<typeof DetailHero>[0]["actions"] = [];
+  if (isAdmin || canInvite) {
+    detailHeroAdminActions.push({
+      label: "Inviter",
+      icon: <UserPlus size={16} />,
+      onClick: () => setShowAddPlayer(true),
+      variant: "secondary",
+    });
+  }
+  if (isAdmin) {
+    if (lifecycle === "paused") {
+      detailHeroAdminActions.push({
+        label: "Reprendre la ligue",
+        icon: <Play size={18} />,
+        onClick: () => {
+          void resumeLeague(league.id);
+        },
+        variant: "iconOnly",
+      });
+    } else if (lifecycle === "active") {
+      detailHeroAdminActions.push({
+        label: "Mettre en pause",
+        icon: <Pause size={18} />,
+        onClick: () => {
+          void pauseLeague(league.id);
+        },
+        variant: "iconOnly",
+      });
+      detailHeroAdminActions.push({
+        label: `Démarrer la Saison ${seasonNumber + 1}`,
+        icon: <RotateCcw size={18} />,
+        onClick: handleStartNewSeason,
+        variant: "iconOnly",
+      });
+    } else if (lifecycle === "finished") {
+      detailHeroAdminActions.push({
+        label: "Réouvrir la ligue",
+        icon: <Play size={18} />,
+        onClick: () => {
+          void reopenLeague(league.id);
+        },
+        variant: "iconOnly",
+      });
+    }
+    // Clôturer : disponible uniquement quand active (sinon n'a pas de sens)
+    if (lifecycle === "active") {
+      detailHeroAdminActions.push({
+        label: "Clôturer la ligue",
+        icon: <Archive size={18} />,
+        onClick: () => {
+          if (
+            confirm(
+              "Clôturer cette ligue ? Plus aucun match ne pourra être enregistré (réversible via Réouvrir).",
+            )
+          ) {
+            void finishLeague(league.id);
+          }
+        },
+        variant: "iconOnly",
+      });
+    }
+  }
+
   return (
     <div className="min-h-screen bg-navy text-white flex flex-col relative">
       {/* DetailHero — bloc bleu pleine largeur (bleed sous padding ResponsiveLayout + App). */}
@@ -290,33 +406,40 @@ export const LeagueDashboard = () => {
         onBack={() => navigate("/competitions")}
         adminBadge={isAdmin}
         title={league.name}
-        status={{ label: "En cours", variant: "active" }}
+        status={{ label: heroStatusLabel, variant: heroStatusVariant }}
         meta={[
-          league.type === "season" ? "Championnat par saison" : "Ligue continue",
-          new Date(league.createdAt).toLocaleDateString(
-            "fr-FR",
-            shortDateFormatter,
-          ),
+          `Saison ${seasonNumber} · démarrée le ${seasonStartedLabel}`,
         ]}
         stats={[
           { label: "Joueurs", value: String(league.players.length) },
           { label: "Matchs", value: String(league.matches.length) },
           { label: "Top ELO", value: topElo !== null ? String(topElo) : "—" },
         ]}
-        actions={
-          isAdmin || canInvite
-            ? [
-                {
-                  label: "Inviter",
-                  icon: <UserPlus size={16} />,
-                  onClick: () => setShowAddPlayer(true),
-                  variant: "secondary",
-                },
-              ]
-            : []
-        }
+        actions={detailHeroAdminActions}
         menuItems={detailHeroMenuItems}
       />
+
+      {/* Lifecycle status strip — sticky, ping-yellow accent. Sit entre le hero et les tabs. */}
+      {(lifecycle === "paused" || lifecycle === "finished") && (
+        <LifecycleStrip
+          tone={lifecycle === "paused" ? "paused" : "finished"}
+          testId="league-lifecycle-banner"
+          title={
+            lifecycle === "paused"
+              ? "Ligue en pause"
+              : "Ligue terminée"
+          }
+          description={
+            lifecycle === "paused"
+              ? isAdmin
+                ? "Reprends la ligue pour réautoriser l'enregistrement des matchs."
+                : "L'enregistrement de matchs est suspendu."
+              : isAdmin
+                ? "Plus aucun match ne peut être enregistré. Réouvre la ligue depuis le menu admin si besoin."
+                : "Cette ligue est clôturée. Le classement est figé."
+          }
+        />
+      )}
 
       {/* SegmentedTabs: Matchs / Classement / Events */}
       <div className="px-4 pt-4 pb-4">
@@ -545,12 +668,15 @@ export const LeagueDashboard = () => {
         )}
       </div>
 
-      {/* AC6: FAB Nouveau match — navigate to RecordMatch page */}
-      <FAB
-        icon={BeerPongMatchIcon}
-        onClick={() => navigate(`/record-match/league/${league.id}`)}
-        ariaLabel="Nouveau match"
-      />
+      {/* AC6: FAB Nouveau match — navigate to RecordMatch page.
+          Hidden when lifecycle disallows match logging (paused / finished). */}
+      {matchLoggingAllowed && (
+        <FAB
+          icon={BeerPongMatchIcon}
+          onClick={() => navigate(`/record-match/league/${league.id}`)}
+          ariaLabel="Nouveau match"
+        />
+      )}
 
       {/* Invite bottom sheet — add player to the league (manual pseudo).
           Leagues have no joinCode/QR yet → sheet shows only the "add" section. */}

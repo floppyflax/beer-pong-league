@@ -80,6 +80,12 @@ interface LeagueContextType {
     participantsOverride?: Player[]
   ) => Promise<Record<string, number> | null>;
   deleteLeague: (id: string) => Promise<void>;
+  // Lifecycle league (mig 028)
+  pauseLeague: (leagueId: string) => Promise<void>;
+  resumeLeague: (leagueId: string) => Promise<void>;
+  finishLeague: (leagueId: string) => Promise<void>;
+  reopenLeague: (leagueId: string) => Promise<void>;
+  startNewLeagueSeason: (leagueId: string) => Promise<number>;
   deleteEvent: (id: string) => Promise<void>;
   toggleEventStatus: (eventId: string) => Promise<void>;
   startEvent: (eventId: string) => Promise<void>;
@@ -634,7 +640,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     if (currentLeagueId === id) {
       setCurrentLeagueId(null);
     }
-    
+
     // Delete from Supabase
     try {
       await databaseService.deleteLeague(id);
@@ -642,6 +648,87 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error deleting league:', error);
       toast.error('Erreur lors de la suppression de la ligue');
+    }
+  };
+
+  // ── Lifecycle league (mig 028) ──────────────────────────────────────────
+  const pauseLeague = async (leagueId: string) => {
+    const league = leagues.find((l) => l.id === leagueId);
+    if (!league) return;
+    const now = new Date().toISOString();
+    setLeagues((prev) =>
+      prev.map((l) => (l.id === leagueId ? { ...l, pausedAt: now } : l)),
+    );
+    try {
+      await databaseService.pauseLeague(leagueId);
+      toast.success("Ligue mise en pause");
+    } catch (error) {
+      console.error('Error pausing league:', error);
+      toast.error("Impossible de mettre en pause");
+    }
+  };
+
+  const resumeLeague = async (leagueId: string) => {
+    const league = leagues.find((l) => l.id === leagueId);
+    if (!league) return;
+    setLeagues((prev) =>
+      prev.map((l) => (l.id === leagueId ? { ...l, pausedAt: null } : l)),
+    );
+    try {
+      await databaseService.resumeLeague(leagueId);
+      toast.success("Ligue reprise");
+    } catch (error) {
+      console.error('Error resuming league:', error);
+      toast.error("Impossible de reprendre la ligue");
+    }
+  };
+
+  const finishLeague = async (leagueId: string) => {
+    const league = leagues.find((l) => l.id === leagueId);
+    if (!league) return;
+    const now = new Date().toISOString();
+    setLeagues((prev) =>
+      prev.map((l) => (l.id === leagueId ? { ...l, endedAt: now } : l)),
+    );
+    try {
+      await databaseService.finishLeague(leagueId);
+      toast.success("Ligue clôturée");
+    } catch (error) {
+      console.error('Error finishing league:', error);
+      toast.error("Impossible de clôturer la ligue");
+    }
+  };
+
+  const reopenLeague = async (leagueId: string) => {
+    const league = leagues.find((l) => l.id === leagueId);
+    if (!league) return;
+    setLeagues((prev) =>
+      prev.map((l) => (l.id === leagueId ? { ...l, endedAt: null } : l)),
+    );
+    try {
+      await databaseService.reopenLeague(leagueId);
+      toast.success("Ligue rouverte");
+    } catch (error) {
+      console.error('Error reopening league:', error);
+      toast.error("Impossible de rouvrir la ligue");
+    }
+  };
+
+  const startNewLeagueSeason = async (leagueId: string): Promise<number> => {
+    try {
+      const newSeasonNumber = await databaseService.startNewLeagueSeason(leagueId);
+      // La RPC reset les memberships → on recharge pour refléter l'état serveur.
+      await loadDataFromSupabase();
+      toast.success(`Saison ${newSeasonNumber} démarrée 🏆`);
+      return newSeasonNumber;
+    } catch (error) {
+      console.error('Error starting new league season:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Impossible de démarrer une nouvelle saison",
+      );
+      throw error;
     }
   };
 
@@ -1254,6 +1341,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         recordMatch,
         recordEventMatch,
         deleteLeague,
+        pauseLeague,
+        resumeLeague,
+        finishLeague,
+        reopenLeague,
+        startNewLeagueSeason,
         deleteEvent,
         toggleEventStatus,
         startEvent,

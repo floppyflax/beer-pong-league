@@ -29,7 +29,7 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
       localUser.anonymousUserId === league.creator_anonymous_user_id);
 
   const lastActivity = formatRelativeTime(league.updatedAt);
-  const isFinished = league.status === "finished";
+  const lifecycle = league.lifecycle;
 
   const body = (
     <div className="flex items-baseline gap-5 mt-3">
@@ -64,8 +64,13 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
     <CardShell
       title={league.name}
       status={{
-        label: isFinished ? "Terminée" : "Active",
-        tone: isFinished ? "muted" : "live",
+        label:
+          lifecycle === "finished"
+            ? "Terminée"
+            : lifecycle === "paused"
+              ? "En pause"
+              : `Saison ${league.currentSeasonNumber}`,
+        tone: lifecycle === "active" ? "live" : "muted",
       }}
       ownerLabel={isOwner ? "Propriétaire" : undefined}
       body={body}
