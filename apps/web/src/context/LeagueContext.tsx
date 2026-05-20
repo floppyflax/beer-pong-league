@@ -82,6 +82,9 @@ interface LeagueContextType {
   deleteLeague: (id: string) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   toggleEventStatus: (eventId: string) => Promise<void>;
+  startEvent: (eventId: string) => Promise<void>;
+  pauseEvent: (eventId: string) => Promise<void>;
+  resumeEvent: (eventId: string) => Promise<void>;
   updateLeague: (
     leagueId: string,
     name: string,
@@ -549,7 +552,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     if (!event) return;
 
     const newStatus = !event.isFinished;
-    
+
     setEvents((prev) =>
       prev.map((event) => {
         if (event.id !== eventId) return event;
@@ -564,6 +567,61 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error toggling event status:', error);
       toast.error('Erreur lors du changement de statut');
+    }
+  };
+
+  // ── Lifecycle (mig 027) — admin start / pause / resume ───────────────────
+  const startEvent = async (eventId: string) => {
+    const event = events.find((t) => t.id === eventId);
+    if (!event) return;
+    const now = new Date().toISOString();
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === eventId ? { ...e, startedAt: now, pausedAt: null } : e,
+      ),
+    );
+    try {
+      await databaseService.startEvent(eventId);
+      toast.success("Événement démarré");
+    } catch (error) {
+      console.error('Error starting event:', error);
+      toast.error("Impossible de démarrer l'événement");
+    }
+  };
+
+  const pauseEvent = async (eventId: string) => {
+    const event = events.find((t) => t.id === eventId);
+    if (!event) return;
+    const now = new Date().toISOString();
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, pausedAt: now } : e)),
+    );
+    try {
+      await databaseService.pauseEvent(eventId);
+      toast.success("Événement mis en pause");
+    } catch (error) {
+      console.error('Error pausing event:', error);
+      toast.error("Impossible de mettre en pause");
+    }
+  };
+
+  const resumeEvent = async (eventId: string) => {
+    const event = events.find((t) => t.id === eventId);
+    if (!event) return;
+    const now = new Date().toISOString();
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === eventId
+          ? { ...e, pausedAt: null, startedAt: e.startedAt ?? now }
+          : e,
+      ),
+    );
+    try {
+      await databaseService.resumeEvent(eventId);
+      toast.success("Événement repris");
+    } catch (error) {
+      console.error('Error resuming event:', error);
+      toast.error("Impossible de reprendre l'événement");
     }
   };
 
@@ -1198,6 +1256,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         deleteLeague,
         deleteEvent,
         toggleEventStatus,
+        startEvent,
+        pauseEvent,
+        resumeEvent,
         updateLeague,
         updateEvent,
         updatePlayer,

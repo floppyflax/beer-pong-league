@@ -10,6 +10,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import type { Event } from "@/types";
 import { CardShell, type CardShellStatus } from "./CardShell";
+import { getEventLifecycle } from "@/utils/eventLifecycle";
 
 export interface EventCardProps {
   event: Event;
@@ -31,24 +32,25 @@ export const EventCard: React.FC<EventCardProps> = ({
       ? "Libre"
       : event.format.toUpperCase().replace("V", "v");
 
-  const today = new Date().toISOString().slice(0, 10);
-  const eventDay = event.date
-    ? new Date(event.date).toISOString().slice(0, 10)
-    : null;
-  const isFuture = eventDay ? eventDay > today : false;
-  const isLive = !event.isFinished && !isFuture;
+  const lifecycle = getEventLifecycle(event);
+  const futureDateLabel = event.date
+    ? new Date(event.date).toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+      })
+    : "À venir";
 
   const status: CardShellStatus = {
-    label: event.isFinished
-      ? "Terminé"
-      : isFuture && eventDay
-        ? new Date(event.date!).toLocaleDateString("fr-FR", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "2-digit",
-          })
-        : "En ce moment",
-    tone: isLive ? "live" : "muted",
+    label:
+      lifecycle === "finished"
+        ? "Terminé"
+        : lifecycle === "paused"
+          ? "En pause"
+          : lifecycle === "not_started"
+            ? futureDateLabel
+            : "En ce moment",
+    tone: lifecycle === "in_progress" ? "live" : "muted",
   };
 
   const body = (

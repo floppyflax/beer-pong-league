@@ -100,6 +100,9 @@ export interface EventRow {
   status?: string;
   format?: string;
   mode?: 'elo' | 'bracket';
+  // Mig 027 — lifecycle timestamps.
+  started_at?: string | null;
+  paused_at?: string | null;
 }
 
 export interface LeagueMembershipRow {

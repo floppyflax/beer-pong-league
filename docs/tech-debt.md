@@ -161,6 +161,18 @@ Severity, scope and the trigger skill that holds the pattern.
   call, run on simulator.
 - **Effort**: ~1 week of mobile-only work.
 
+#### G-bis. Promote `eventLifecycle` helper to `packages/shared`
+
+- Mig 027 added the lifecycle helper at
+  `apps/web/src/utils/eventLifecycle.ts`. When mobile starts wiring its
+  event screens to Supabase (see F.), move this helper to
+  `packages/shared/src/utils/eventLifecycle.ts` so the mobile FAB /
+  CTA can guard match logging the same way the web does, without
+  duplicating the truth table.
+- **Trigger**: first mobile PR that touches `RecordMatch` or the event
+  detail screen against the real backend.
+- **Effort**: ~30 min (mechanical move + import update).
+
 #### G. Wave 3.5 — finish `tournaments` → `events` rename
 
 - Mig 024 renamed the DB but a few code-side references remain in

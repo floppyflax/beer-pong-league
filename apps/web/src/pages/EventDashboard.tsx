@@ -12,7 +12,10 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  Play,
+  Pause,
 } from "lucide-react";
+import { getEventLifecycle, canLogMatch } from "@/utils/eventLifecycle";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "@/components/EloChangeDisplay";
 import { EmptyState } from "@/components/EmptyState";
@@ -82,6 +85,9 @@ export const EventDashboard = () => {
   const {
     events,
     leagues,
+    startEvent,
+    pauseEvent,
+    resumeEvent,
     getEventLocalRanking,
     getLeagueGlobalRanking,
     addPlayer,
@@ -332,23 +338,41 @@ export const EventDashboard = () => {
   };
 
   // ── DetailHero derived state ─────────────────────────────────────────────
-  const eventStatusVariant: "finished" | "cancelled" | "live" | "active" =
-    event.status === "finished" || event.isFinished
-      ? "finished"
-      : event.status === "cancelled"
-        ? "cancelled"
-        : event.matches.some((m) => m.is_live)
-          ? "live"
-          : "active";
+  // Lifecycle (mig 027) — drives the chip, the FAB visibility and the
+  // contextual admin action (Démarrer / Pause / Reprendre).
+  const lifecycle = getEventLifecycle(event);
+  const matchLoggingAllowed = canLogMatch(event);
+
+  const eventStatusVariant:
+    | "finished"
+    | "cancelled"
+    | "live"
+    | "active"
+    | "scheduled" =
+    event.status === "cancelled"
+      ? "cancelled"
+      : lifecycle === "finished"
+        ? "finished"
+        : lifecycle === "not_started"
+          ? "scheduled"
+          : lifecycle === "paused"
+            ? "scheduled"
+            : event.matches.some((m) => m.is_live)
+              ? "live"
+              : "active";
 
   const eventStatusLabel =
-    eventStatusVariant === "finished"
-      ? "Terminé"
-      : eventStatusVariant === "cancelled"
-        ? "Annulé"
-        : eventStatusVariant === "live"
-          ? "En direct"
-          : "En cours";
+    eventStatusVariant === "cancelled"
+      ? "Annulé"
+      : lifecycle === "finished"
+        ? "Terminé"
+        : lifecycle === "not_started"
+          ? "Non démarré"
+          : lifecycle === "paused"
+            ? "En pause"
+            : eventStatusVariant === "live"
+              ? "En direct"
+              : "En cours";
 
   const formatLabel =
     event.format === "libre" ? "Format libre" : `Format ${event.format}`;
@@ -379,6 +403,34 @@ export const EventDashboard = () => {
     });
   }
   if (isAdmin) {
+    if (lifecycle === "not_started") {
+      detailHeroActions.push({
+        label: "Démarrer",
+        icon: <Play size={16} />,
+        onClick: () => {
+          void startEvent(event.id);
+        },
+        variant: "secondary",
+      });
+    } else if (lifecycle === "in_progress") {
+      detailHeroActions.push({
+        label: "Mettre en pause",
+        icon: <Pause size={16} />,
+        onClick: () => {
+          void pauseEvent(event.id);
+        },
+        variant: "secondary",
+      });
+    } else if (lifecycle === "paused") {
+      detailHeroActions.push({
+        label: "Reprendre",
+        icon: <Play size={16} />,
+        onClick: () => {
+          void resumeEvent(event.id);
+        },
+        variant: "secondary",
+      });
+    }
     detailHeroActions.push({
       label: "Paramètres",
       icon: <Settings size={16} />,
@@ -588,6 +640,36 @@ export const EventDashboard = () => {
 
       {/* Content */}
       <div className="flex-grow overflow-y-auto px-4 py-4 space-y-2 pb-bottom-nav lg:pb-bottom-nav-lg">
+        {/* Lifecycle banner — informs players when match logging is gated. */}
+        {(lifecycle === "not_started" || lifecycle === "paused") && (
+          <div
+            role="status"
+            className="rounded-card border border-card bg-navy-soft px-4 py-3 text-sm text-cool-gray flex items-start gap-3"
+            data-testid="lifecycle-banner"
+          >
+            {lifecycle === "not_started" ? (
+              <Play size={18} className="mt-0.5 shrink-0 text-ping-yellow" />
+            ) : (
+              <Pause size={18} className="mt-0.5 shrink-0 text-ping-yellow" />
+            )}
+            <div className="leading-snug">
+              <div className="font-bold text-white">
+                {lifecycle === "not_started"
+                  ? "Événement non démarré"
+                  : "Événement en pause"}
+              </div>
+              <div className="mt-0.5">
+                {lifecycle === "not_started"
+                  ? isAdmin
+                    ? "Démarre l'événement pour autoriser l'enregistrement des matchs."
+                    : "Les matchs pourront être enregistrés une fois l'événement démarré."
+                  : isAdmin
+                    ? "Reprends l'événement pour réautoriser l'enregistrement des matchs."
+                    : "L'enregistrement de matchs est suspendu."}
+              </div>
+            </div>
+          </div>
+        )}
         {activeTab === "classement" && (
           <>
             {ranking.length === 0 ? (
@@ -791,8 +873,10 @@ export const EventDashboard = () => {
         )}
       </div>
 
-      {/* FAB (AC6): Nouveau match — navigate to RecordMatch page */}
-      {!event.isFinished && (
+      {/* FAB (AC6): Nouveau match — navigate to RecordMatch page.
+          Hidden when the event lifecycle disallows match logging
+          (not_started / paused / finished). */}
+      {matchLoggingAllowed && (
         <FAB
           icon={BeerPongMatchIcon}
           onClick={() =>

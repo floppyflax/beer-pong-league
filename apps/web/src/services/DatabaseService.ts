@@ -82,6 +82,18 @@ class DatabaseService {
     return eventsRepository.toggleEventStatus(eventId, isFinished);
   }
 
+  startEvent(eventId: string): Promise<void> {
+    return eventsRepository.startEvent(eventId);
+  }
+
+  pauseEvent(eventId: string): Promise<void> {
+    return eventsRepository.pauseEvent(eventId);
+  }
+
+  resumeEvent(eventId: string): Promise<void> {
+    return eventsRepository.resumeEvent(eventId);
+  }
+
   associateEventToLeague(
     eventId: string,
     leagueId: string | null,

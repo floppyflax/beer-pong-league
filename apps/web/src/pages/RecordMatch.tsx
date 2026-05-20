@@ -24,6 +24,7 @@ import { SearchBar, ScreenLayout, StickyCTA } from "@/components/design-system";
 import { X, UserPlus, Check, ChevronDown, ChevronLeft, Trophy, Calendar, Minus, Plus, Lock } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Player } from "@/types";
+import { canLogMatch } from "@/utils/eventLifecycle";
 
 type ContextType = "event" | "league";
 type Step = "compose" | "score";
@@ -607,6 +608,23 @@ export const RecordMatch = () => {
     contextType === "league" && contextId
       ? leagues.find((l) => l.id === contextId)
       : null;
+
+  /* Mig 027 — guard direct URL access: if the event lifecycle blocks match
+   * logging (not_started / paused / finished), bounce back to the event page.
+   * `isEditMode` is allowed through: editing an existing match must remain
+   * possible even after the event is closed. */
+  useEffect(() => {
+    if (!event || isEditMode) return;
+    if (canLogMatch(event)) return;
+    toast.error(
+      event.isFinished
+        ? "Cet événement est terminé."
+        : event.pausedAt
+          ? "Cet événement est en pause."
+          : "Cet événement n'a pas encore démarré.",
+    );
+    navigate(`/event/${event.id}`, { replace: true });
+  }, [event, isEditMode, navigate]);
 
   const hasContext = Boolean(event || league);
   const contextName = event?.name ?? league?.name ?? "";
@@ -1194,13 +1212,29 @@ function ContextPickerModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  events: Array<{ id: string; name: string; isFinished?: boolean; format?: string }>;
+  events: Array<{
+    id: string;
+    name: string;
+    isFinished?: boolean;
+    format?: string;
+    date?: string;
+    startedAt?: string | null;
+    pausedAt?: string | null;
+  }>;
   leagues: Array<{ id: string; name: string; status?: string }>;
   currentType: ContextType | null;
   currentId: string | null;
   onPick: (type: ContextType, id: string) => void;
 }) {
-  const activeEvents = events.filter((t) => !t.isFinished);
+  // Mig 027 — only events whose lifecycle is `in_progress` can host a match.
+  const activeEvents = events.filter((t) =>
+    canLogMatch({
+      isFinished: Boolean(t.isFinished),
+      date: t.date ?? "",
+      startedAt: t.startedAt ?? null,
+      pausedAt: t.pausedAt ?? null,
+    }),
+  );
   const activeLeagues = leagues.filter((l) => l.status !== "finished");
 
   return (

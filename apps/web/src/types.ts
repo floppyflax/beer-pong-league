@@ -76,6 +76,10 @@ export interface Event {
   maxPlayers?: number; // 999 = unlimited. Free users cappés à 8 (cf. usePremiumLimits.ts)
   isPrivate?: boolean; // Private event (not listed publicly)
   status?: 'active' | 'finished' | 'cancelled'; // Event status
+  // Mig 027 — Lifecycle timestamps. NULL until admin acts.
+  // Derived state: see apps/web/src/utils/eventLifecycle.ts
+  startedAt?: string | null; // ISO timestamp — admin "Démarrer" (early start) or implicit on resume
+  pausedAt?: string | null;  // ISO timestamp — admin "Mettre en pause" (cleared on resume)
   // Phase A.5: competition mode (ELO = classement ponctuel, Bracket = élimination directe)
   // Set at creation time and immutable afterwards (see CreateEvent).
   mode?: 'elo' | 'bracket';

@@ -136,6 +136,8 @@ class EventsRepository extends BaseRepository {
         playerIds: playerIdsByEvent.get(row.id) || [],
         matches: matchesByEvent.get(row.id) || [],
         isFinished: row.is_finished || false,
+        startedAt: row.started_at ?? null,
+        pausedAt: row.paused_at ?? null,
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
@@ -188,6 +190,8 @@ class EventsRepository extends BaseRepository {
         playerIds: ((members || []) as { id: string }[]).map((p) => p.id),
         matches: [],
         isFinished: row.is_finished || false,
+        startedAt: row.started_at ?? null,
+        pausedAt: row.paused_at ?? null,
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
@@ -427,6 +431,72 @@ class EventsRepository extends BaseRepository {
     } catch (error) {
       console.error('Error toggling event status:', error);
     }
+  }
+
+  // ── Lifecycle (mig 027) ────────────────────────────────────────────────────
+
+  private patchLocalEvent(
+    eventId: string,
+    patch: Partial<Pick<Event, 'startedAt' | 'pausedAt'>>,
+  ): void {
+    const events = this.loadEventsFromLocalStorage();
+    const event = events.find((t) => t.id === eventId);
+    if (!event) return;
+    Object.assign(event, patch);
+    this.saveEventToLocalStorage(event);
+  }
+
+  /** Admin "Démarrer" — early start (before the scheduled date) or resume. */
+  async startEvent(eventId: string): Promise<void> {
+    const now = new Date().toISOString();
+    if (!this.isSupabaseAvailable()) {
+      this.patchLocalEvent(eventId, { startedAt: now, pausedAt: null });
+      return;
+    }
+    const { error } = await sb!
+      .from('events')
+      .update({ started_at: now, paused_at: null })
+      .eq('id', eventId);
+    if (error) throw error;
+    this.patchLocalEvent(eventId, { startedAt: now, pausedAt: null });
+  }
+
+  /** Admin "Mettre en pause" — blocks new match logging. */
+  async pauseEvent(eventId: string): Promise<void> {
+    const now = new Date().toISOString();
+    if (!this.isSupabaseAvailable()) {
+      this.patchLocalEvent(eventId, { pausedAt: now });
+      return;
+    }
+    const { error } = await sb!
+      .from('events')
+      .update({ paused_at: now })
+      .eq('id', eventId);
+    if (error) throw error;
+    this.patchLocalEvent(eventId, { pausedAt: now });
+  }
+
+  /**
+   * Admin "Reprendre" — clear pause and ensure started_at is set so the event
+   * stays in `in_progress` even if its scheduled date is still in the future.
+   */
+  async resumeEvent(eventId: string): Promise<void> {
+    const now = new Date().toISOString();
+    const events = this.loadEventsFromLocalStorage();
+    const existing = events.find((t) => t.id === eventId);
+    const startedAt = existing?.startedAt ?? now;
+    if (!this.isSupabaseAvailable()) {
+      this.patchLocalEvent(eventId, { pausedAt: null, startedAt });
+      return;
+    }
+    // Use COALESCE on the server so we don't overwrite a legitimate earlier
+    // start. The fallback `startedAt` is only used when the column was NULL.
+    const { error } = await sb!
+      .from('events')
+      .update({ paused_at: null, started_at: startedAt })
+      .eq('id', eventId);
+    if (error) throw error;
+    this.patchLocalEvent(eventId, { pausedAt: null, startedAt });
   }
 
   async createEvent(data: {

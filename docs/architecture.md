@@ -76,7 +76,7 @@ Les migrations vivent dans `supabase/migrations/` (24 migrations cumulées). RLS
 
 **`league_memberships`** (mig 022) — pivot league ↔ player avec stats ELO : `elo` (défaut 1000), `wins`, `losses`, `matches_played`, `streak`, `pseudo_override?`, `joined_at`, `archived_at?`.
 
-**`events`** (renommé depuis `tournaments` en mig 024) — `id`, `name`, `date`, `league_id?`, `is_finished`, `format_type` (`fixed` | `free`), `team1_size?`, `team2_size?`, `mode` (`elo` | `bracket`), `propagates_to_league_elo`, `anti_cheat_enabled`, `join_code?`.
+**`events`** (renommé depuis `tournaments` en mig 024) — `id`, `name`, `date`, `league_id?`, `is_finished`, `started_at?` / `paused_at?` (mig 027, lifecycle admin), `format_type` (`fixed` | `free`), `team1_size?`, `team2_size?`, `mode` (`elo` | `bracket`), `propagates_to_league_elo`, `anti_cheat_enabled`, `join_code?`.
 
 **`event_memberships`** (mig 022 — anciennement `tournament_memberships`) — pivot event ↔ player. Depuis mig 023, contient son propre `elo` indépendant de la ligue.
 
@@ -95,6 +95,27 @@ Les migrations vivent dans `supabase/migrations/` (24 migrations cumulées). RLS
 - Mig 022 a unifié `users` (anonymes et authentifiés) — l'identité de jeu vit dans `players`, distincte de l'identité de compte.
 - Pseudos uniques par league/event, pas globalement.
 - Types Supabase générés dans `apps/web/src/types/supabase.ts`. Tables introduites par mig 022 (`players`, `*_memberships`) sont accédées via un cast loose dans `services/repositories/_base.ts` jusqu'à régénération des types.
+
+### Cycle de vie d'un event (mig 027)
+
+Un event a quatre états dérivés depuis `is_finished` + les deux timestamps `started_at` / `paused_at` (helper `apps/web/src/utils/eventLifecycle.ts`) :
+
+| État          | Condition                                                                 | Match logging |
+|---------------|---------------------------------------------------------------------------|---------------|
+| `finished`    | `is_finished = TRUE`                                                      | bloqué         |
+| `paused`      | non-fini, `paused_at` non NULL                                            | bloqué         |
+| `in_progress` | non-fini, non en pause, et (`started_at` non NULL OU `date <= today`)     | autorisé       |
+| `not_started` | non-fini, non en pause, `started_at` NULL, et `date > today`              | bloqué         |
+
+Transitions admin :
+- **Démarrer** (early start, depuis `not_started`) → `started_at = NOW()`, `paused_at = NULL`.
+- **Mettre en pause** (depuis `in_progress`) → `paused_at = NOW()`.
+- **Reprendre** (depuis `paused`) → `paused_at = NULL`, `started_at = COALESCE(started_at, NOW())`.
+- **Clôturer / Réouvrir** (action distincte) → toggle `is_finished`.
+
+Auto-start : un event créé pour une date future reste `not_started` jusqu'au jour J ; arrivé à la date, le helper le bascule en `in_progress` sans toucher la DB. La migration 027 backfille `started_at` pour les events historiques non terminés dont la date est passée.
+
+Effet de la pause (choix produit) : bloque l'enregistrement de matchs uniquement. Le join, l'invitation, l'édition de pseudo restent autorisés.
 
 ### Modèle ELO (canonique)
 
