@@ -45,6 +45,10 @@ interface HomeData {
   lastLeague?: League;
   personalStats?: PersonalStats;
   recentMatches: RecentMatch[];
+  /** Last 5 results (true=victoire, false=défaite) du plus récent au plus ancien. */
+  recentResults: boolean[];
+  /** Série en cours, signée : positive = victoires consécutives, négative = défaites, 0 si aucun match. */
+  currentStreak: number;
   isLoading: boolean;
   error: Error | null;
 }
@@ -230,6 +234,8 @@ async function fetchHomeData(userId: string) {
 
     let personalStats: PersonalStats;
     let recentMatches: RecentMatch[] = [];
+    let recentResults: boolean[] = [];
+    let currentStreak = 0;
 
     if (eloHistory && eloHistory.length > 0) {
       // Mig 023 — un même match peut produire 2 lignes elo_history (event +
@@ -264,6 +270,23 @@ async function fetchHomeData(userId: string) {
       }
 
       personalStats = { totalMatches, winRate, bestStreak };
+
+      // 5 derniers résultats W/L, du plus récent au plus ancien — utilisé
+      // par la home card pour afficher les billes de forme récente.
+      recentResults = uniqueByMatch.slice(0, 5).map((h) => h.elo_change > 0);
+
+      // Série en cours signée : on parcourt depuis le plus récent et on
+      // compte tant que le signe du delta reste cohérent avec le premier.
+      if (uniqueByMatch.length > 0) {
+        const firstWon = uniqueByMatch[0].elo_change > 0;
+        let streak = 0;
+        for (const h of uniqueByMatch) {
+          const won = h.elo_change > 0;
+          if (won !== firstWon) break;
+          streak += 1;
+        }
+        currentStreak = firstWon ? streak : -streak;
+      }
 
       // Fetch match details for the 3 most recent entries
       const recentIds = eloHistory
@@ -308,6 +331,8 @@ async function fetchHomeData(userId: string) {
       lastLeague,
       personalStats,
       recentMatches,
+      recentResults,
+      currentStreak,
     };
   } catch (error) {
     console.error("Error fetching home data:", error);
@@ -326,6 +351,8 @@ async function fetchHomeData(userId: string) {
       lastLeague: undefined,
       personalStats: undefined,
       recentMatches: [],
+      recentResults: [],
+      currentStreak: 0,
     };
   }
 }
@@ -348,6 +375,8 @@ export function useHomeData(userId: string | null | undefined): HomeData {
     lastLeague: data?.lastLeague,
     personalStats: data?.personalStats,
     recentMatches: data?.recentMatches ?? [],
+    recentResults: data?.recentResults ?? [],
+    currentStreak: data?.currentStreak ?? 0,
     isLoading: isLoading && !!userId, // Only show loading if userId exists
     error: error as Error | null,
   };
