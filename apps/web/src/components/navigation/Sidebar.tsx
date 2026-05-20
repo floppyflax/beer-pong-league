@@ -15,7 +15,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Accueil', icon: Home, route: '/' },
   { id: 'play', label: 'Jouer', icon: Swords, route: '/competitions' },
-  { id: 'leaderboard', label: 'Stats', icon: BarChart2, route: '/leaderboard' },
+  { id: 'stats', label: 'Stats', icon: BarChart2, route: '/stats' },
   { id: 'profile', label: 'Profil', icon: User, route: '/user/profile' },
 ];
 
@@ -44,7 +44,7 @@ export const Sidebar = () => {
     ) {
       return 'play';
     }
-    if (pathname === '/leaderboard') return 'leaderboard';
+    if (pathname === '/stats') return 'stats';
     if (
       pathname === '/user/profile' ||
       pathname.startsWith('/user/profile') ||

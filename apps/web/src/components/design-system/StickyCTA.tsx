@@ -13,7 +13,7 @@
  * Modes de padding bas :
  * - `default` (par défaut) : `pb-6` + safe-area iOS (sous-pages sans tab bar)
  * - `bottomNav` : `pb-bottom-nav` (5rem) pour libérer le BottomTabMenu
- *   (uniquement sur routes core : `/`, `/competitions`, `/leaderboard`, etc.)
+ *   (uniquement sur routes core : `/`, `/competitions`, `/stats`, etc.)
  *
  * Convention parent : la page doit ajouter `pb-[160px]` (ou plus) au wrapper
  * scrollable pour que le contenu ne soit pas caché derrière la zone sticky.

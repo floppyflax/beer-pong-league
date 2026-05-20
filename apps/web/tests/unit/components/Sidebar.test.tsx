@@ -199,8 +199,8 @@ describe('Sidebar', () => {
       expect(playButton).toHaveClass('text-electric-blue');
     });
 
-    it('should highlight Classement when on /leaderboard route', () => {
-      vi.mocked(useLocation).mockReturnValue({ pathname: '/leaderboard' } as any);
+    it('should highlight Stats when on /stats route', () => {
+      vi.mocked(useLocation).mockReturnValue({ pathname: '/stats' } as any);
 
       render(
         <BrowserRouter>
@@ -208,9 +208,9 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const leaderboardButton = screen.getByText('Stats').closest('button');
-      expect(leaderboardButton).toHaveClass('bg-navy-deep');
-      expect(leaderboardButton).toHaveClass('text-electric-blue');
+      const statsButton = screen.getByText('Stats').closest('button');
+      expect(statsButton).toHaveClass('bg-navy-deep');
+      expect(statsButton).toHaveClass('text-electric-blue');
     });
 
     it('should highlight Profil when on /user/profile route', () => {
@@ -300,7 +300,7 @@ describe('Sidebar', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/competitions');
     });
 
-    it('should navigate to /leaderboard when clicking Classement', async () => {
+    it('should navigate to /stats when clicking Stats', async () => {
       const user = userEvent.setup();
 
       render(
@@ -309,10 +309,10 @@ describe('Sidebar', () => {
         </BrowserRouter>
       );
 
-      const leaderboardButton = screen.getByText('Stats');
-      await user.click(leaderboardButton);
+      const statsButton = screen.getByText('Stats');
+      await user.click(statsButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/leaderboard');
+      expect(mockNavigate).toHaveBeenCalledWith('/stats');
     });
 
     it('should navigate to /user/profile when clicking Profil', async () => {

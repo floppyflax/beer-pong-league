@@ -83,11 +83,11 @@ describe("BottomTabMenu", () => {
       expect(playButton).toHaveClass("text-white");
     });
 
-    it("should highlight leaderboard tab when on leaderboard route", () => {
-      mockLocation.pathname = "/leaderboard";
+    it("should highlight stats tab when on /stats route", () => {
+      mockLocation.pathname = "/stats";
       render(<BottomTabMenu />);
 
-      const leaderboardButton = screen.getByLabelText("Statistiques globales");
+      const leaderboardButton = screen.getByLabelText("Mes stats");
       expect(leaderboardButton).toHaveClass("bg-gradient-tab-active");
       expect(leaderboardButton).toHaveClass("text-white");
     });
@@ -196,13 +196,13 @@ describe("BottomTabMenu", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/competitions");
     });
 
-    it("should navigate to leaderboard when leaderboard tab clicked", () => {
+    it("should navigate to /stats when stats tab clicked", () => {
       render(<BottomTabMenu />);
 
-      const leaderboardButton = screen.getByLabelText("Statistiques globales");
+      const leaderboardButton = screen.getByLabelText("Mes stats");
       fireEvent.click(leaderboardButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith("/leaderboard");
+      expect(mockNavigate).toHaveBeenCalledWith("/stats");
     });
 
     it("should navigate to profile when profile tab clicked", () => {
@@ -243,7 +243,7 @@ describe("BottomTabMenu", () => {
 
       expect(screen.getByLabelText("Home")).toBeInTheDocument();
       expect(screen.getByLabelText("Jouer")).toBeInTheDocument();
-      expect(screen.getByLabelText("Statistiques globales")).toBeInTheDocument();
+      expect(screen.getByLabelText("Mes stats")).toBeInTheDocument();
       expect(screen.getByLabelText("Profile")).toBeInTheDocument();
     });
 
@@ -314,11 +314,11 @@ describe("BottomTabMenu", () => {
       const user = userEvent.setup();
       render(<BottomTabMenu />);
 
-      const leaderboardButton = screen.getByLabelText("Statistiques globales");
+      const leaderboardButton = screen.getByLabelText("Mes stats");
       leaderboardButton.focus();
       await user.keyboard(" ");
 
-      expect(mockNavigate).toHaveBeenCalledWith("/leaderboard");
+      expect(mockNavigate).toHaveBeenCalledWith("/stats");
     });
   });
 
@@ -375,11 +375,11 @@ describe("BottomTabMenu", () => {
       render(
         <BottomTabMenu
           previewMode
-          previewActiveRoute="/leaderboard"
+          previewActiveRoute="/stats"
           previewOnTabClick={() => {}}
         />,
       );
-      const leaderboardButton = screen.getByLabelText("Statistiques globales");
+      const leaderboardButton = screen.getByLabelText("Mes stats");
       expect(leaderboardButton).toHaveClass("bg-gradient-tab-active");
       expect(leaderboardButton).toHaveAttribute("aria-current", "page");
     });
@@ -393,9 +393,9 @@ describe("BottomTabMenu", () => {
           previewOnTabClick={mockPreviewOnTabClick}
         />,
       );
-      const leaderboardButton = screen.getByLabelText("Statistiques globales");
+      const leaderboardButton = screen.getByLabelText("Mes stats");
       fireEvent.click(leaderboardButton);
-      expect(mockPreviewOnTabClick).toHaveBeenCalledWith("/leaderboard");
+      expect(mockPreviewOnTabClick).toHaveBeenCalledWith("/stats");
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
@@ -403,7 +403,7 @@ describe("BottomTabMenu", () => {
       render(
         <BottomTabMenu previewMode previewActiveRoute="/" />,
       );
-      const leaderboardButton = screen.getByLabelText("Statistiques globales");
+      const leaderboardButton = screen.getByLabelText("Mes stats");
       fireEvent.click(leaderboardButton);
       expect(mockNavigate).not.toHaveBeenCalled();
     });

@@ -43,11 +43,11 @@ const tabs: Tab[] = [
     ariaLabel: "Jouer",
   },
   {
-    id: "leaderboard",
+    id: "stats",
     label: "STATS",
     icon: BarChart2,
-    route: "/leaderboard",
-    ariaLabel: "Statistiques globales",
+    route: "/stats",
+    ariaLabel: "Mes stats",
   },
   {
     id: "profile",
@@ -82,8 +82,8 @@ function isTabActive(pathname: string, tab: Tab): boolean {
         pathname === "/create-league" ||
         pathname === "/create-event"
       );
-    case "leaderboard":
-      return pathname === "/leaderboard";
+    case "stats":
+      return pathname === "/stats";
     case "profile":
       return (
         pathname === "/user/profile" ||
