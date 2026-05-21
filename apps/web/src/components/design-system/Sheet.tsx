@@ -32,6 +32,8 @@ export interface SheetProps {
   footer?: React.ReactNode;
   /** Width on desktop (mobile is always full-width). Default: "md". */
   maxWidth?: SheetMaxWidth;
+  /** Bumps the mobile max-height from 66dvh to 88dvh. Desktop unaffected. */
+  mobileExpanded?: boolean;
   /** Hide the X close button. Default: false. */
   hideCloseButton?: boolean;
   /** Disable Escape, backdrop click, and X. Use for blocking ops (loading). */
@@ -49,6 +51,7 @@ export function Sheet({
   children,
   footer,
   maxWidth = "md",
+  mobileExpanded = false,
   hideCloseButton = false,
   disableClose = false,
   layer = "default",
@@ -102,7 +105,7 @@ export function Sheet({
     >
       <div
         ref={sheetRef}
-        className={`w-full ${MAX_WIDTH_CLASS[maxWidth]} bg-navy-soft border-t border-card md:border md:border-card rounded-t-2xl md:rounded-2xl shadow-modal flex flex-col max-h-[66dvh] md:max-h-[92vh] animate-invite-sheet-up`}
+        className={`w-full ${MAX_WIDTH_CLASS[maxWidth]} bg-navy-soft border-t border-card md:border md:border-card rounded-t-2xl md:rounded-2xl shadow-modal flex flex-col ${mobileExpanded ? "max-h-[88dvh]" : "max-h-[66dvh]"} md:max-h-[92vh] animate-invite-sheet-up`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Grabber (mobile only) */}
