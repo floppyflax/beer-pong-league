@@ -24,6 +24,7 @@ import { matchesRepository } from '@/services/repositories/MatchesRepository';
 import { useAuthContext } from '@/context/AuthContext';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useLeague } from '@/context/LeagueContext';
+// `reloadData` is exposed via useLeague() — destructured below.
 
 export interface PendingMatchSummary {
   id: string;
@@ -82,7 +83,7 @@ async function loadPlayerIdsForUser(userId: string): Promise<Set<string>> {
 export function usePendingMatches(eventId: string | undefined): UsePendingMatchesResult {
   const { user, isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
-  const { events, leagues } = useLeague();
+  const { events, leagues, reloadData } = useLeague();
 
   const [pendingMatches, setPendingMatches] = useState<PendingMatchSummary[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(eventId));
@@ -215,12 +216,14 @@ export function usePendingMatches(eventId: string | undefined): UsePendingMatche
       try {
         await matchesRepository.confirmMatch(matchId, 'confirmed', callerUserId);
         toast.success('Match confirmé');
-        await refresh();
+        // Refresh both the local pending list AND the LeagueContext cache so
+        // the EventDashboard match cards reflect the new status + ELO deltas.
+        await Promise.all([refresh(), reloadData()]);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Validation impossible');
       }
     },
-    [callerUserId, refresh],
+    [callerUserId, refresh, reloadData],
   );
 
   const rejectMatch = useCallback(
@@ -232,12 +235,14 @@ export function usePendingMatches(eventId: string | undefined): UsePendingMatche
       try {
         await matchesRepository.confirmMatch(matchId, 'rejected', callerUserId);
         toast.success('Match rejeté');
-        await refresh();
+        // Same reasoning as confirmMatch — the rejected match disappears from
+        // the dashboard for non-admins (RLS) and gets the X badge for admins.
+        await Promise.all([refresh(), reloadData()]);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Refus impossible');
       }
     },
-    [callerUserId, refresh],
+    [callerUserId, refresh, reloadData],
   );
 
   const count = useMemo(
