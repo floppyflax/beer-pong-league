@@ -294,7 +294,9 @@ export const LeagueSettings = () => {
 
       <form
         onSubmit={handleSubmit}
-        className="p-4 md:p-6 max-w-2xl mx-auto space-y-5 pb-8"
+        className={`p-4 md:p-6 max-w-2xl mx-auto space-y-5 transition-[padding] duration-200 ${
+          isDirty ? "pb-36" : "pb-8"
+        }`}
         noValidate
       >
         {/* Nom */}
@@ -314,39 +316,6 @@ export const LeagueSettings = () => {
             className={inputClass}
           />
         </div>
-
-        {/* Save panel inline — visible uniquement si modifications en attente */}
-        {isDirty && (
-          <div
-            className="rounded-card border border-electric-blue/40 bg-electric-blue/5 p-3 space-y-3"
-            data-testid="settings-save-panel"
-          >
-            <div className="font-mono uppercase text-[10px] tracking-[2px] text-electric-blue">
-              Modifications non enregistrées
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <PButton
-                type="button"
-                variant="ghost"
-                size="md"
-                full
-                onClick={handleReset}
-                disabled={isSaving}
-              >
-                Annuler
-              </PButton>
-              <PButton
-                type="submit"
-                variant="primary"
-                size="md"
-                full
-                disabled={!name.trim() || isSaving}
-              >
-                {isSaving ? "Enregistrement…" : "Enregistrer"}
-              </PButton>
-            </div>
-          </div>
-        )}
 
         {/* Type (read-only) */}
         <div className="space-y-2">
@@ -714,6 +683,41 @@ export const LeagueSettings = () => {
             </PButton>
           </div>
         </div>
+
+        {/* Sticky save panel — visible uniquement si modifications en attente */}
+        {isDirty && (
+          <div
+            className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-electric-blue/40 px-4 py-3 md:py-4 z-10"
+            data-testid="settings-save-panel"
+          >
+            <div className="max-w-2xl mx-auto space-y-2">
+              <div className="font-mono uppercase text-[10px] tracking-[2px] text-electric-blue text-center">
+                Modifications non enregistrées
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <PButton
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  full
+                  onClick={handleReset}
+                  disabled={isSaving}
+                >
+                  Annuler
+                </PButton>
+                <PButton
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  full
+                  disabled={!name.trim() || isSaving}
+                >
+                  {isSaving ? "Enregistrement…" : "Enregistrer"}
+                </PButton>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
 
       <GhostManagementSheet
