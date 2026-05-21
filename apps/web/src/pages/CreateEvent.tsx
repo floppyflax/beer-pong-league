@@ -388,24 +388,44 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
                 Rattacher à une ligue (facultatif)
               </span>
             </span>
-            <select
-              value=""
-              onChange={(e) => {
-                if (e.target.value) {
-                  setAttachedLeagueId(e.target.value);
-                  setHasDetached(false);
-                }
-              }}
-              className="w-full bg-navy-soft border border-card rounded-md p-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-electric-blue"
+            <div
+              role="radiogroup"
               aria-label="Rattacher à une ligue (facultatif)"
+              className="flex flex-col gap-2 max-h-[280px] overflow-y-auto"
             >
-              <option value="">Aucune ligue</option>
-              {leagues.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+              {leagues.map((l) => {
+                const playerCount = l.players?.length ?? 0;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    role="radio"
+                    aria-checked="false"
+                    onClick={() => {
+                      setAttachedLeagueId(l.id);
+                      setHasDetached(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-card border border-card bg-navy-soft hover:border-electric-blue hover:bg-electric-blue/5 transition-colors text-left"
+                  >
+                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-electric-blue/15 flex items-center justify-center">
+                      <LinkIcon size={16} className="text-electric-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-extrabold uppercase tracking-tight text-sm truncate">
+                        {l.name}
+                      </div>
+                      <div className="text-cool-gray text-xs">
+                        {playerCount} joueur{playerCount > 1 ? "s" : ""}
+                      </div>
+                    </div>
+                    <ChevronRight
+                      size={18}
+                      className="text-cool-gray flex-shrink-0"
+                    />
+                  </button>
+                );
+              })}
+            </div>
             <p className="text-cool-gray text-xs">
               Les joueurs ajoutés à cet événement seront aussi ajoutés à la ligue.
             </p>
