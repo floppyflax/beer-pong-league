@@ -2,7 +2,6 @@ import { CheckCircle, AlertCircle, Crown, X, RotateCcw } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIdentity } from "../hooks/useIdentity";
 import { useAuthContext } from "../context/AuthContext";
-import { premiumService } from "../services/PremiumService";
 import { stripeService } from "../services/StripeService";
 import { supabase } from "../lib/supabase";
 import { Sheet } from "./design-system/Sheet";
@@ -37,7 +36,7 @@ const FEATURES: Array<{
 export const PaymentModal = ({
   isOpen,
   onClose,
-  onSuccess,
+  onSuccess: _onSuccess,
   subtitle,
 }: PaymentModalProps) => {
   const { user } = useAuthContext();
@@ -47,7 +46,6 @@ export const PaymentModal = ({
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const pollingAbortRef = useRef<AbortController | null>(null);
   const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
 
@@ -55,7 +53,6 @@ export const PaymentModal = ({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      pollingAbortRef.current?.abort();
       if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
     };
   }, []);
@@ -68,26 +65,9 @@ export const PaymentModal = ({
     };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, paymentState]);  
+  }, [isOpen, paymentState]);
 
   if (!isOpen) return null;
-
-  const pollForPremiumStatus = async (
-    userId: string | null,
-    anonymousUserId: string | null,
-    _transactionId: string,
-    abortSignal: AbortSignal,
-  ): Promise<boolean> => {
-    const maxAttempts = 10;
-    for (let i = 0; i < maxAttempts; i++) {
-      if (abortSignal.aborted) return false;
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (abortSignal.aborted) return false;
-      const isPremium = await premiumService.isPremium(userId, anonymousUserId);
-      if (isPremium) return true;
-    }
-    return false;
-  };
 
   const handlePayment = async () => {
     if (isProcessing) return;
@@ -108,73 +88,25 @@ export const PaymentModal = ({
 
       if (!supabase) throw new Error("Database connection not available");
 
-      if (stripeService.isStripeConfigured()) {
-        const session = await stripeService.createCheckoutSession(userId, anonymousUserId);
-        if (!session) {
-          setError("Impossible de créer la session de paiement. Veuillez réessayer.");
-          setPaymentState("error");
-          setIsProcessing(false);
-          return;
-        }
-        window.location.href = session.url;
-        return;
-      }
-
-      // Simulation mode
-      const transactionId = `sim_${Date.now()}_${userId || anonymousUserId}`;
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      let updateError;
-      if (userId) {
-        const { error } = await supabase
-          .from("users")
-          .upsert({ id: userId, is_premium: true, pseudo: user?.email?.split("@")[0] || "User" }, { onConflict: "id", ignoreDuplicates: false })
-          .select();
-        updateError = error;
-      } else if (anonymousUserId) {
-        // mig 022: anon users live in `users` table
-        const { error } = await supabase
-          .from("users")
-          .upsert(
-            {
-              id: anonymousUserId,
-              is_premium: true,
-              is_anonymous: true,
-              pseudo: localUser?.pseudo || "Anonymous",
-              device_fingerprint: localUser?.deviceFingerprint || null,
-            },
-            { onConflict: "id", ignoreDuplicates: false },
-          )
-          .select();
-        updateError = error;
-      }
-
-      if (updateError) {
-        setError("Erreur lors de la mise à jour du statut premium");
+      if (!stripeService.isStripeConfigured()) {
+        // Stripe must be configured — premium activation goes exclusively
+        // through verify-payment-session (mig 031 trigger blocks any
+        // client-side write to users.is_premium).
+        setError("Stripe n'est pas configuré. Le paiement Premium n'est pas disponible.");
         setPaymentState("error");
         setIsProcessing(false);
         return;
       }
 
-      pollingAbortRef.current = new AbortController();
-      const confirmed = await pollForPremiumStatus(userId, anonymousUserId, transactionId, pollingAbortRef.current.signal);
-
-      if (!isMountedRef.current) return;
-
-      if (!confirmed) {
-        setError("Le paiement n'a pas pu être confirmé. Contactez le support.");
+      const session = await stripeService.createCheckoutSession(userId, anonymousUserId);
+      if (!session) {
+        setError("Impossible de créer la session de paiement. Veuillez réessayer.");
         setPaymentState("error");
         setIsProcessing(false);
         return;
       }
-
-      premiumService.updatePremiumStatusInLocalStorage(true);
-      setPaymentState("success");
-      setIsProcessing(false);
-
-      successTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) { onSuccess?.(); handleClose(); }
-      }, 1500);
+      window.location.href = session.url;
+      return;
     } catch {
       if (!isMountedRef.current) return;
       setError("Une erreur est survenue lors du paiement. Veuillez réessayer.");

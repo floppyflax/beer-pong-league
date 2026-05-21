@@ -34,6 +34,32 @@ const allowedPriceIds = (Deno.env.get('STRIPE_ALLOWED_PRICE_IDS') || '')
 
 const defaultPriceId = Deno.env.get('STRIPE_PREMIUM_PRICE_ID') || '';
 
+// Whitelist of origins allowed to receive Stripe redirect URLs. Prevents
+// using this endpoint as an open redirect: an attacker passing
+// successUrl=https://evil.com would otherwise turn Stripe Checkout into a
+// trust-laundering vector. Default to safe origins; production sets
+// `ALLOWED_REDIRECT_ORIGINS` to the comma-separated app origins.
+const allowedRedirectOrigins = (
+  Deno.env.get('ALLOWED_REDIRECT_ORIGINS') || ''
+)
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const isAllowedRedirectUrl = (url: string, requestOrigin: string): boolean => {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+    if (allowedRedirectOrigins.length > 0) {
+      return allowedRedirectOrigins.includes(u.origin);
+    }
+    // Fallback: same-origin as the request (covers local dev + single-domain prod).
+    return requestOrigin !== '' && u.origin === requestOrigin;
+  } catch {
+    return false;
+  }
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -116,6 +142,22 @@ serve(async (req) => {
     payload.successUrl ||
     `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = payload.cancelUrl || `${origin}/payment-cancel`;
+
+  // Open-redirect mitigation: refuse client-supplied URLs that don't match the
+  // request origin (or the configured whitelist). Defaults (built from
+  // `origin`) are always allowed because we just built them above.
+  if (
+    payload.successUrl &&
+    !isAllowedRedirectUrl(payload.successUrl, origin)
+  ) {
+    return jsonResponse(400, { error: 'successUrl origin not allowed' });
+  }
+  if (
+    payload.cancelUrl &&
+    !isAllowedRedirectUrl(payload.cancelUrl, origin)
+  ) {
+    return jsonResponse(400, { error: 'cancelUrl origin not allowed' });
+  }
 
   try {
     const session = await stripe.checkout.sessions.create({
