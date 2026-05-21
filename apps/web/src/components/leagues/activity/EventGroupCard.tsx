@@ -1,8 +1,9 @@
 /**
  * EventGroupCard — card collapsible représentant un event dans le mode
  * "Par event" du tab Activité d'une ligue. Header avec status pill + titre +
- * metadata, body (si déplié) avec jusqu'à 3 MiniMatchCard, footer avec CTA
- * "Ouvrir l'événement →".
+ * metadata + icône flèche d'ouverture, body (si déplié) avec tous les
+ * matchs de l'event au format `LeagueMatchCard` (identique aux matchs hors
+ * événement et à la timeline).
  *
  * Variants :
  *   - `hero`  : event vedette (premier in_progress ou finished récent).
@@ -10,11 +11,11 @@
  *   - `muted` : autres events. Mêmes infos, moins d'emphase visuelle.
  */
 
-import { useId, useState, type KeyboardEvent } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { useId, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import type { Event, Match, Player } from "@/types";
 import { getEventLifecycle, type EventLifecycle } from "@/utils/eventLifecycle";
-import { MiniMatchCard } from "./MiniMatchCard";
+import { LeagueMatchCard } from "./LeagueMatchCard";
 
 export type EventGroupCardVariant = "hero" | "muted";
 
@@ -26,8 +27,6 @@ export interface EventGroupCardProps {
   defaultExpanded: boolean;
   onOpen: () => void;
 }
-
-const MAX_VISIBLE_MATCHES = 3;
 
 const dateFormatter = new Intl.DateTimeFormat("fr-FR", {
   day: "2-digit",
@@ -95,8 +94,6 @@ export const EventGroupCard = ({
   const sortedMatches = [...matches].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
-  const visibleMatches = sortedMatches.slice(0, MAX_VISIBLE_MATCHES);
-  const remainingCount = Math.max(0, sortedMatches.length - MAX_VISIBLE_MATCHES);
 
   // Container styles — hero = border lime renforcée, muted = atténuée.
   const containerClass =
@@ -115,6 +112,19 @@ export const EventGroupCard = ({
     }
   };
 
+  const handleOpen = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    onOpen();
+  };
+
+  const handleOpenKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onOpen();
+    }
+  };
+
   return (
     <div
       role="region"
@@ -122,15 +132,15 @@ export const EventGroupCard = ({
       className={containerClass}
       data-testid="event-group-card"
     >
-      <button
-        type="button"
-        onClick={toggle}
-        onKeyDown={handleHeaderKey}
-        aria-expanded={expanded}
-        aria-controls={bodyId}
-        className="w-full text-left px-3 py-3 flex items-center gap-3 hover:bg-navy-deep/40 transition-colors focus:outline-none focus:ring-2 focus:ring-electric-blue focus:ring-inset"
-      >
-        <div className="flex-1 min-w-0">
+      <div className="w-full px-3 py-3 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={toggle}
+          onKeyDown={handleHeaderKey}
+          aria-expanded={expanded}
+          aria-controls={bodyId}
+          className="flex-1 min-w-0 text-left hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-electric-blue rounded"
+        >
           <div className="flex items-center gap-2 mb-1">
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${status.pillClass}`}
@@ -158,15 +168,31 @@ export const EventGroupCard = ({
               </>
             )}
           </p>
-        </div>
-        <span className="text-cool-gray flex-shrink-0" aria-hidden="true">
+        </button>
+        <button
+          type="button"
+          onClick={handleOpen}
+          onKeyDown={handleOpenKey}
+          aria-label={`Ouvrir l'événement ${event.name}`}
+          className="flex-shrink-0 p-2 rounded-full text-electric-blue hover:bg-electric-blue/10 transition-colors focus:outline-none focus:ring-2 focus:ring-electric-blue"
+        >
+          <ArrowRight size={18} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={expanded ? "Réduire" : "Déplier"}
+          aria-expanded={expanded}
+          aria-controls={bodyId}
+          className="flex-shrink-0 p-1 text-cool-gray hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-electric-blue rounded"
+        >
           {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </span>
-      </button>
+        </button>
+      </div>
 
       {expanded && (
         <div id={bodyId} className="px-3 pb-3">
-          <div className="border-t border-card/30 pt-2">
+          <div className="border-t border-card/30 pt-3">
             {sortedMatches.length === 0 ? (
               <p className="text-xs text-cool-gray italic py-2">
                 {isInProgress
@@ -174,30 +200,18 @@ export const EventGroupCard = ({
                   : "Aucun match enregistré"}
               </p>
             ) : (
-              <div className="space-y-0.5">
-                {visibleMatches.map((m) => (
-                  <MiniMatchCard key={m.id} match={m} players={players} />
+              <div className="space-y-2">
+                {sortedMatches.map((m) => (
+                  <LeagueMatchCard
+                    key={m.id}
+                    match={m}
+                    players={players}
+                    antiCheatEnabled={event.anti_cheat_enabled ?? false}
+                  />
                 ))}
-                {remainingCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={onOpen}
-                    className="text-xs text-cool-gray hover:text-white transition-colors pt-1"
-                  >
-                    + {remainingCount}{" "}
-                    {remainingCount === 1 ? "autre match" : "autres matchs"}
-                  </button>
-                )}
               </div>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onOpen}
-            className="mt-3 text-electric-blue text-sm font-bold hover:text-electric-blue-deep transition-colors focus:outline-none focus:ring-2 focus:ring-electric-blue rounded"
-          >
-            Ouvrir l&apos;événement →
-          </button>
         </div>
       )}
     </div>

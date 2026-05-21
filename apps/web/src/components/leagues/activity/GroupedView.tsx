@@ -8,15 +8,19 @@
  *   1. in_progress  → par dernière activité (max match.date) desc
  *   2. not_started  → par event.date asc (le plus proche en premier)
  *   3. finished     → par event.date desc
+ *
+ * Les participants de chaque event sont passés via `participantsByEvent`
+ * pour que les match cards résolvent correctement les noms (les ids des
+ * teamA/teamB d'un match d'event sont des `event_memberships.id`, distincts
+ * de `league.players[].id`).
  */
 
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import type { Event, Match, Player } from "@/types";
 import { getEventLifecycle } from "@/utils/eventLifecycle";
 import { EmptyState } from "@/components/EmptyState";
-import { PButton } from "@/components/ponglo/PButton";
 import { EventGroupCard } from "./EventGroupCard";
 import { OrphanMatchesSection } from "./OrphanMatchesSection";
 
@@ -25,6 +29,7 @@ export interface GroupedViewProps {
   orphanMatches: Match[];
   players: Player[];
   leagueId: string;
+  participantsByEvent: Map<string, Player[]>;
   /** Mig 032 — propagated to OrphanMatchesSection for the "Validé" badge. */
   antiCheatEnabled?: boolean;
 }
@@ -91,7 +96,7 @@ export const GroupedView = ({
   events,
   orphanMatches,
   players,
-  leagueId,
+  participantsByEvent,
   antiCheatEnabled = false,
 }: GroupedViewProps) => {
   const navigate = useNavigate();
@@ -102,26 +107,13 @@ export const GroupedView = ({
     [sortedEvents],
   );
 
-  const goToCreateEvent = () =>
-    navigate(`/create-event?leagueId=${leagueId}`);
-
   // Empty state global : ni event, ni match libre.
   if (sortedEvents.length === 0 && orphanMatches.length === 0) {
     return (
       <EmptyState
         icon={Trophy}
         title="Aucune activité"
-        description="Crée un événement ou enregistre un match libre pour démarrer."
-        action={
-          <PButton
-            variant="primary"
-            size="md"
-            icon={<Plus size={16} />}
-            onClick={goToCreateEvent}
-          >
-            Créer un événement
-          </PButton>
-        }
+        description="Aucun événement ni match libre pour le moment."
       />
     );
   }
@@ -130,12 +122,13 @@ export const GroupedView = ({
     <div className="space-y-2">
       {sortedEvents.map((event) => {
         const isHero = event.id === heroEventId;
+        const eventPlayers = participantsByEvent.get(event.id) ?? [];
         return (
           <EventGroupCard
             key={event.id}
             event={event}
             matches={event.matches ?? []}
-            players={players}
+            players={eventPlayers}
             variant={isHero ? "hero" : "muted"}
             defaultExpanded={isHero}
             onOpen={() => navigate(`/event/${event.id}`)}
@@ -150,15 +143,6 @@ export const GroupedView = ({
           antiCheatEnabled={antiCheatEnabled}
         />
       )}
-
-      <button
-        type="button"
-        onClick={goToCreateEvent}
-        className="w-full bg-navy-soft hover:bg-navy-deep text-white font-bold py-3 rounded-lg mt-2 border border-card/50 focus:outline-none focus:ring-2 focus:ring-electric-blue transition-colors"
-      >
-        <Plus size={16} className="inline mr-2" />
-        Créer un événement
-      </button>
     </div>
   );
 };
