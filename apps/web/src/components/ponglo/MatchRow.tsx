@@ -6,7 +6,7 @@
  * - `match`: neutral score display, no border-left (used in event bracket view)
  */
 
-import { Hourglass, XCircle } from 'lucide-react';
+import { CheckCircle2, Hourglass, XCircle } from 'lucide-react';
 import type { Match } from '@/types';
 
 export interface MatchRowProps {
@@ -24,6 +24,12 @@ export interface MatchRowProps {
    * `match.status` (if present) or `'confirmed'`. Drives the inline badge.
    */
   status?: 'pending' | 'confirmed' | 'rejected';
+  /**
+   * Mig 030 — when the parent event/league has `anti_cheat_enabled = true`,
+   * confirmed matches get a "Validé" badge. Default `false` — no badge on
+   * confirmed for legacy/non-anti-cheat contexts.
+   */
+  antiCheatEnabled?: boolean;
 }
 
 function formatPlayerList(ids: string[], names?: Record<string, string>): string {
@@ -50,6 +56,7 @@ export function MatchRow({
   playerNames,
   className,
   status,
+  antiCheatEnabled = false,
 }: MatchRowProps) {
   const effectiveStatus = status ?? match.status ?? 'confirmed';
   // Derive perspective from currentPlayerId if not explicitly given
@@ -124,7 +131,7 @@ export function MatchRow({
           aria-label="Match en attente de validation"
         >
           <Hourglass size={10} aria-hidden="true" />
-          En attente
+          En attente de validation
         </span>
       )}
       {effectiveStatus === 'rejected' && (
@@ -135,6 +142,16 @@ export function MatchRow({
         >
           <XCircle size={10} aria-hidden="true" />
           Refusé
+        </span>
+      )}
+      {effectiveStatus === 'confirmed' && antiCheatEnabled && (
+        <span
+          className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-lime/15 text-lime text-[9px] font-bold uppercase tracking-wide"
+          data-testid="match-row-status-validated"
+          aria-label="Match validé"
+        >
+          <CheckCircle2 size={10} aria-hidden="true" />
+          Validé
         </span>
       )}
 

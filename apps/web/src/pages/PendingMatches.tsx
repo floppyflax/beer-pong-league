@@ -67,6 +67,11 @@ export const PendingMatches = () => {
         if (cancelled) return;
         const map: Record<string, string> = {};
         for (const p of participants) {
+          // Mig 022 — matches.team_*_player_ids contiennent des players.id,
+          // pas des event_memberships.id. On indexe sur p.playerId (avec
+          // p.id en fallback pour les cas localStorage où les deux
+          // coïncident).
+          if (p.playerId) map[p.playerId] = p.name;
           map[p.id] = p.name;
         }
         setPlayerNames(map);

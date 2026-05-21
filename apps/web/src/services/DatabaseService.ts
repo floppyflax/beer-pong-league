@@ -192,6 +192,12 @@ class DatabaseService {
   loadEventParticipants(eventId: string): Promise<
     {
       id: string;
+      /**
+       * Mig 022 — `players.id`. Callers matching against
+       * `matches.team_*_player_ids` MUST use this field (not `id`, which
+       * is the `event_memberships.id`).
+       */
+      playerId: string;
       leaguePlayerId?: string;
       name: string;
       elo: number;

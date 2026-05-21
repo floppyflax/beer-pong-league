@@ -14,6 +14,7 @@ import {
   Trash2,
   Play,
   Pause,
+  CheckCircle2,
   Hourglass,
   XCircle,
 } from "lucide-react";
@@ -829,7 +830,10 @@ export const EventDashboard = () => {
                     )}
                     {/* Phase D.4: Live badge */}
                     <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
-                    {/* Mig 030 — anti-cheat status badge */}
+                    {/* Mig 030 — anti-cheat status badge. The "Validé"
+                        badge on confirmed matches only shows up when the
+                        parent event/league is under anti-cheat — otherwise
+                        a check on every match would be visual noise. */}
                     {match.status === "pending" && (
                       <div
                         className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
@@ -837,7 +841,7 @@ export const EventDashboard = () => {
                         aria-label="Match en attente de validation"
                       >
                         <Hourglass size={11} aria-hidden="true" />
-                        En attente
+                        En attente de validation
                       </div>
                     )}
                     {match.status === "rejected" && (
@@ -848,6 +852,16 @@ export const EventDashboard = () => {
                       >
                         <XCircle size={11} aria-hidden="true" />
                         Refusé
+                      </div>
+                    )}
+                    {match.status === "confirmed" && event.anti_cheat_enabled && (
+                      <div
+                        className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime/15 text-lime text-[10px] font-bold uppercase tracking-wide"
+                        data-testid="match-status-validated"
+                        aria-label="Match validé"
+                      >
+                        <CheckCircle2 size={11} aria-hidden="true" />
+                        Validé
                       </div>
                     )}
                     {/* Match teams and winner - Task 4 AC4 */}
