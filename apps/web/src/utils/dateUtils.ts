@@ -10,7 +10,10 @@ export const formatJoinedSince = (dateString: string): string => {
 };
 
 /**
- * Format a date string as relative time in French (e.g. "Il y a 2h", "Hier")
+ * Format a date string as relative time in French
+ * (e.g. "Il y a 2 heures", "Il y a 4 jours", "Hier"). Unités écrites
+ * en toutes lettres pour la lisibilité (vs. abréviations « 2h / 4j »
+ * qui se confondent avec un score).
  */
 export const formatRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
@@ -23,8 +26,10 @@ export const formatRelativeTime = (dateString: string): string => {
 
   if (diffMins < 1) return "À l'instant";
   if (diffMins < 60) return `Il y a ${diffMins} min`;
-  if (diffHours < 24) return `Il y a ${diffHours}h`;
+  if (diffHours < 24) {
+    return diffHours === 1 ? "Il y a 1 heure" : `Il y a ${diffHours} heures`;
+  }
   if (diffDays === 1) return "Hier";
-  if (diffDays < 7) return `Il y a ${diffDays}j`;
+  if (diffDays < 7) return `Il y a ${diffDays} jours`;
   return date.toLocaleDateString("fr-FR");
 };

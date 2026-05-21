@@ -21,10 +21,36 @@ describe("formatJoinedSince", () => {
 });
 
 describe("formatRelativeTime", () => {
-  it("should format valid date", () => {
+  it("should format minutes as 'Il y a X min'", () => {
     const past = new Date();
     past.setMinutes(past.getMinutes() - 5);
     expect(formatRelativeTime(past.toISOString())).toMatch(/Il y a \d+ min/);
+  });
+
+  it("should format hours in full words (singular)", () => {
+    const past = new Date();
+    past.setHours(past.getHours() - 1);
+    past.setMinutes(past.getMinutes() - 1); // ensure >= 1h
+    expect(formatRelativeTime(past.toISOString())).toBe("Il y a 1 heure");
+  });
+
+  it("should format hours in full words (plural)", () => {
+    const past = new Date();
+    past.setHours(past.getHours() - 5);
+    expect(formatRelativeTime(past.toISOString())).toBe("Il y a 5 heures");
+  });
+
+  it("should format yesterday as 'Hier'", () => {
+    const past = new Date();
+    past.setDate(past.getDate() - 1);
+    past.setHours(past.getHours() - 1); // ensure rounding to 1 day, not just under 24h
+    expect(formatRelativeTime(past.toISOString())).toBe("Hier");
+  });
+
+  it("should format days in full words", () => {
+    const past = new Date();
+    past.setDate(past.getDate() - 4);
+    expect(formatRelativeTime(past.toISOString())).toBe("Il y a 4 jours");
   });
 
   it("should return fallback for invalid date string", () => {

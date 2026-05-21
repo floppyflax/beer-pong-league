@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   Archive,
-  Edit,
   Ghost,
   Lock,
   Play,
@@ -11,7 +10,6 @@ import {
   RotateCcw,
   Trash2,
   Trophy,
-  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -33,8 +31,6 @@ export const LeagueSettings = () => {
     leagues,
     events,
     updateLeague,
-    updatePlayer,
-    deletePlayer,
     deleteLeague,
     finishLeague,
     reopenLeague,
@@ -54,8 +50,6 @@ export const LeagueSettings = () => {
 
   const [name, setName] = useState(league?.name ?? "");
   const [isSaving, setIsSaving] = useState(false);
-  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
-  const [editingPlayerName, setEditingPlayerName] = useState("");
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
 
   useEffect(() => {
@@ -113,7 +107,6 @@ export const LeagueSettings = () => {
     );
   }
 
-  const sortedPlayers = [...league.players].sort((a, b) => b.elo - a.elo);
   const leagueEvents = events.filter((e) => league.events?.includes(e.id));
 
   const handleSubmit = async (e: FormEvent) => {
@@ -537,114 +530,6 @@ export const LeagueSettings = () => {
           >
             Créer un événement
           </PButton>
-        </div>
-
-        {/* Players */}
-        <div className="space-y-2">
-          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-            Joueurs ({sortedPlayers.length})
-          </span>
-          {sortedPlayers.length === 0 ? (
-            <p className="text-cool-gray text-xs">
-              Aucun joueur dans cette ligue.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {sortedPlayers.map((player) => (
-                <div key={player.id}>
-                  {editingPlayerId === player.id ? (
-                    <div className="bg-electric-blue/10 border border-electric-blue/30 p-3 rounded-card flex items-center gap-2">
-                      <input
-                        autoFocus
-                        value={editingPlayerName}
-                        onChange={(e) => setEditingPlayerName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const trimmed = editingPlayerName.trim();
-                            if (trimmed && trimmed !== player.name) {
-                              updatePlayer(league.id, player.id, trimmed);
-                            }
-                            setEditingPlayerId(null);
-                          }
-                          if (e.key === "Escape") setEditingPlayerId(null);
-                        }}
-                        className="flex-1 bg-navy-deep border border-card rounded-md px-3 py-1.5 text-sm text-white focus:outline-none focus:border-electric-blue"
-                        aria-label="Nouveau nom du joueur"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const trimmed = editingPlayerName.trim();
-                          if (trimmed && trimmed !== player.name) {
-                            updatePlayer(league.id, player.id, trimmed);
-                          }
-                          setEditingPlayerId(null);
-                        }}
-                        className="px-3 py-1.5 bg-electric-blue text-white text-sm font-bold rounded-md"
-                      >
-                        OK
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingPlayerId(null)}
-                        className="p-1.5 text-cool-gray hover:text-white"
-                        aria-label="Annuler"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="bg-navy-deep p-3 rounded-card flex items-center justify-between border border-card">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/player/${player.id}`)}
-                        className="flex-1 flex items-center gap-4 cursor-pointer text-left"
-                      >
-                        <div className="font-archivo font-semibold text-white text-sm">
-                          {player.name}
-                        </div>
-                        <div className="text-xs text-cool-gray">
-                          {player.elo} ELO • {player.wins}V - {player.losses}D
-                        </div>
-                      </button>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingPlayerId(player.id);
-                            setEditingPlayerName(player.name);
-                          }}
-                          className="p-2 hover:bg-navy-soft rounded-md text-cool-gray hover:text-white"
-                          aria-label="Modifier"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (
-                              confirm(
-                                `Supprimer ${player.name} ? Tous ses matchs seront également supprimés.`,
-                              )
-                            ) {
-                              deletePlayer(league.id, player.id);
-                            }
-                          }}
-                          className="p-2 hover:bg-signal-red/20 text-signal-red rounded-md"
-                          aria-label="Supprimer"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Zone de danger — Supprimer la ligue */}

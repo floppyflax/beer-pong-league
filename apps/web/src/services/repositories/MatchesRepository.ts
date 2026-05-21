@@ -237,6 +237,50 @@ class MatchesRepository extends BaseRepository {
       }
     }
   }
+
+  /**
+   * Update the photo_url of a match after a Photo Finish capture+upload.
+   * Mirrors the offline-first contract of recordMatch — falls back to the
+   * localStorage cache when Supabase is unavailable so the photo still
+   * shows in the UI for the current device.
+   */
+  async updateMatchPhotoUrl(matchId: string, photoUrl: string): Promise<boolean> {
+    const patchLocalCache = (): void => {
+      const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
+      for (const league of leagues) {
+        const match = league.matches.find((m) => m.id === matchId);
+        if (match) {
+          match.photo_url = photoUrl;
+          leaguesRepository.saveLeagueToLocalStorage(league);
+          break;
+        }
+      }
+      const events = eventsRepository.loadEventsFromLocalStorage();
+      for (const event of events) {
+        const match = event.matches.find((m) => m.id === matchId);
+        if (match) {
+          match.photo_url = photoUrl;
+          eventsRepository.saveEventToLocalStorage(event);
+          break;
+        }
+      }
+    };
+
+    if (!this.isSupabaseAvailable()) {
+      patchLocalCache();
+      return true;
+    }
+
+    try {
+      const { error } = await sb!.from('matches').update({ photo_url: photoUrl }).eq('id', matchId);
+      if (error) throw error;
+      patchLocalCache();
+      return true;
+    } catch (error) {
+      console.error('Error updating match photo_url in Supabase:', error);
+      return false;
+    }
+  }
 }
 
 export const matchesRepository = new MatchesRepository();

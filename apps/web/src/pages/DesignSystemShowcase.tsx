@@ -119,8 +119,8 @@ const EMPTY_STATE_VARIANTS = [
     id: "players",
     icon: "👥",
     title: "Aucun joueur",
-    description: "Invite les premiers joueurs pour démarrer le classement.",
-    cta: "Inviter",
+    description: "Ajoute les premiers joueurs pour démarrer le classement.",
+    cta: "Ajouter",
   },
   {
     id: "ranking",
