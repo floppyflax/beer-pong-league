@@ -21,7 +21,7 @@ export const EventDisplayView = () => {
   const [scrollPosition, setScrollPosition] = useState<"top" | "scrolling">("top");
   const [highlightedPlayers, setHighlightedPlayers] = useState<Set<string>>(new Set());
   const [eventParticipants, setEventParticipants] = useState<Player[]>([]);
-  const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
+  const autoScrollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!id) return;
