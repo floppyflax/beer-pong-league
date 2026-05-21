@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
+import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { databaseService } from "@/services/DatabaseService";
 import { useAuthContext } from "@/context/AuthContext";
@@ -55,9 +56,14 @@ import { PlayerCard } from "@/components/design-system/PlayerCard";
 import {
   getDeltaFromLastMatch,
   getLast5MatchResults,
+  getRankDeltasFromLastMatch,
 } from "@/utils/playerStats";
 
 // Task 4 - Utility function for relative timestamps (AC4)
+// Format français lisible : « Il y a 4 jours à 17:12 » (vs. l'ancien
+// « 4j à 17:12 » qui se confondait avec un score). Pour les matches
+// dans la même semaine on conserve l'heure pour différencier deux
+// matches du même jour ; au-delà on bascule sur la date courte.
 function getRelativeTimestamp(date: string): string {
   const now = new Date();
   const matchDate = new Date(date);
@@ -65,14 +71,18 @@ function getRelativeTimestamp(date: string): string {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
+  const time = matchDate.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (diffMins < 1) return "À l'instant";
   if (diffMins < 60) return `Il y a ${diffMins} min`;
-  if (diffHours < 24) return `Il y a ${diffHours}h`;
-  if (diffDays === 1)
-    return `Hier à ${matchDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
-  if (diffDays < 7)
-    return `${diffDays}j à ${matchDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+  if (diffHours < 24) {
+    return diffHours === 1 ? "Il y a 1 heure" : `Il y a ${diffHours} heures`;
+  }
+  if (diffDays === 1) return `Hier à ${time}`;
+  if (diffDays < 7) return `Il y a ${diffDays} jours à ${time}`;
   return matchDate.toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "short",
@@ -214,6 +224,11 @@ export const EventDashboard = () => {
     getEventLocalRanking,
     getLeagueGlobalRanking,
   ]);
+
+  const rankDeltas = useMemo(
+    () => getRankDeltasFromLastMatch(ranking, sortedMatches),
+    [ranking, sortedMatches],
+  );
 
   // Auto-add new players from League to Event - MUST be called unconditionally
   useEffect(() => {
@@ -398,8 +413,8 @@ export const EventDashboard = () => {
     year: "2-digit",
   });
 
-  // Hero actions — spec refonte :
-  //  • Admin : [Ajouter primary] [Paramètres secondary] [📺 Mode Diffusion iconOnly]
+  // Hero actions — spec uniforme event/league (mig 029) :
+  //  • Admin : [Ajouter primary] [Pause/Démarrer/Reprendre iconOnly] [Paramètres iconOnly] [Mode Diffusion iconOnly]
   //  • Non-admin : [Ajouter primary], avec Quitter accessible via menu (seul item
   //    conservé pour les participants).
   const detailHeroActions: DetailHeroAction[] = [];
@@ -442,9 +457,9 @@ export const EventDashboard = () => {
     }
     detailHeroActions.push({
       label: "Paramètres",
-      icon: <Settings size={16} />,
+      icon: <Settings size={18} />,
       onClick: () => navigate(`/event/${event.id}/settings`),
-      variant: "secondary",
+      variant: "iconOnly",
     });
     detailHeroActions.push({
       label: "Mode Diffusion",
@@ -707,6 +722,7 @@ export const EventDashboard = () => {
                       name: p.name,
                       elo: p.elo,
                       delta: getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
+                      rankDelta: rankDeltas.get(p.id),
                     }))}
                     scope={rankingMode === "global" ? league?.name : undefined}
                     className="mb-1"
@@ -738,6 +754,7 @@ export const EventDashboard = () => {
                           name={player.name}
                           elo={player.elo}
                           delta={delta ?? undefined}
+                          rankDelta={rankDeltas.get(player.id)}
                           rank={rank}
                           wins={player.wins}
                           losses={player.losses}
@@ -768,8 +785,6 @@ export const EventDashboard = () => {
                 const teamBPlayers = eventPlayers.filter((p) =>
                   match.teamB.includes(p.id),
                 );
-                const teamANames = teamAPlayers.map((p) => p.name).join(", ");
-                const teamBNames = teamBPlayers.map((p) => p.name).join(", ");
                 const winnerA = match.scoreA > match.scoreB;
 
                 return (
@@ -864,60 +879,27 @@ export const EventDashboard = () => {
                         Validé
                       </div>
                     )}
-                    {/* Match teams and winner - Task 4 AC4 */}
-                    <div className="flex justify-between items-center text-sm mb-2">
-                      <div
-                        className={`flex-1 text-right ${
-                          winnerA ? "text-white font-bold" : "text-cool-gray"
-                        }`}
-                      >
-                        {winnerA && "🏆 "}
-                        {teamANames}
-                      </div>
-                      <div className="px-4 font-bold text-cool-gray text-xs">
-                        VS
-                      </div>
-                      <div
-                        className={`flex-1 text-left ${
-                          !winnerA ? "text-white font-bold" : "text-cool-gray"
-                        }`}
-                      >
-                        {!winnerA && "🏆 "}
-                        {teamBNames}
-                      </div>
-                    </div>
-                    {/* Task 4 - AC4: Timestamp display */}
-                    <div className="text-xs text-cool-gray mb-2">
-                      {getRelativeTimestamp(match.date)}
-                    </div>
-                    {/* Task 4 - AC4: ELO changes for players */}
-                    {match.eloChanges &&
-                      Object.keys(match.eloChanges).length > 0 && (
-                        <div className="flex flex-wrap gap-2 text-xs">
-                          {[...teamAPlayers, ...teamBPlayers].map((player) => {
-                            const change = match.eloChanges?.[player.id];
-                            if (change === undefined) return null;
-                            return (
-                              <span
-                                key={player.id}
-                                className={`px-2 py-0.5 rounded ${
-                                  change > 0
-                                    ? "bg-lime/20 text-lime"
-                                    : "bg-signal-red/20 text-signal-red"
-                                }`}
-                              >
-                                {player.name}: {change > 0 ? "+" : ""}
-                                {change}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    {/* Story 14-28: Photo thumbnail and cups badge */}
-                    <MatchEnrichedDisplay
-                      photoUrl={match.photo_url}
-                      cupsRemaining={match.cups_remaining}
+                    {/* Teams + ELO inline (1 valeur par équipe).
+                        `pr-10` quand admin pour réserver la place du bouton
+                        menu absolute top-right (≈ 40 px), sinon le `-X` ELO
+                        de la team B chevauche le ⋮. */}
+                    <MatchTeamsRow
+                      teamAPlayers={teamAPlayers}
+                      teamBPlayers={teamBPlayers}
+                      winner={winnerA ? "A" : "B"}
+                      eloChanges={match.eloChanges}
+                      className={isAdmin ? "pr-10" : undefined}
                     />
+                    {/* Footer : timestamp à gauche, chips photo/cups à droite */}
+                    <div className="flex items-center justify-between gap-3 mt-3">
+                      <div className="text-xs text-cool-gray">
+                        {getRelativeTimestamp(match.date)}
+                      </div>
+                      <MatchEnrichedDisplay
+                        photoUrl={match.photo_url}
+                        cupsRemaining={match.cups_remaining}
+                      />
+                    </div>
                   </div>
                 );
               })

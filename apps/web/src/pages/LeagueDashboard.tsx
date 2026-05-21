@@ -6,24 +6,17 @@ import {
   Plus,
   History,
   Users,
-  Trash2,
   Monitor,
   UserPlus,
-  FileJson,
-  FileSpreadsheet,
   Settings,
-  Ghost,
   Pause,
   Play,
-  Archive,
-  RotateCcw,
 } from "lucide-react";
 import {
   getLeagueLifecycle,
   canRecordLeagueMatch,
   getLeagueReminders,
 } from "@/utils/leagueLifecycle";
-import toast from "react-hot-toast";
 import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
@@ -34,19 +27,18 @@ import {
   FAB,
   DetailHero,
   InviteSheet,
-  GhostManagementSheet,
   LifecycleStrip,
 } from "@/components/design-system";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
+import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
+import { formatRelativeTime } from "@/utils/dateUtils";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
-import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
-import { identityMergeService } from "@/services/IdentityMergeService";
 import {
   getDeltaFromLastMatch,
   getLast5MatchResults,
+  getRankDeltasFromLastMatch,
 } from "@/utils/playerStats";
-import { exportLeagueJSON, exportPlayersCSV, exportMatchesCSV } from "@/services/ExportService";
 import { Podium } from "@/components/ponglo/Podium";
 import { PButton } from "@/components/ponglo/PButton";
 import { PlayerCard } from "@/components/design-system/PlayerCard";
@@ -57,14 +49,9 @@ export const LeagueDashboard = () => {
     leagues,
     events,
     addPlayer,
-    deleteLeague,
     pauseLeague,
     resumeLeague,
-    finishLeague,
-    reopenLeague,
-    startNewLeagueSeason,
     isLoadingInitialData,
-    reloadData,
   } = useLeague();
   const navigate = useNavigate();
 
@@ -73,17 +60,8 @@ export const LeagueDashboard = () => {
     "classement" | "matchs" | "stats" | "events"
   >("classement");
   const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [showGhostMgmt, setShowGhostMgmt] = useState(false);
-
-  // Ghosts (anonymous players manually added by the admin) for this league.
-  const {
-    guests: leagueGhosts,
-    refresh: refreshLeagueGhosts,
-  } = useUnclaimedGuests("league", id, { mode: "any" });
-  const {
-    guests: archivedLeagueGhosts,
-    refresh: refreshArchivedLeagueGhosts,
-  } = useUnclaimedGuests("league", id, { mode: "any", archivedFilter: "archived" });
+  // Ghost management vit dans LeagueSettings (mig 029 — plus de menu overflow
+  // sur le hero). Si tu cherches `useUnclaimedGuests`, c'est là-bas.
 
   // Escape key closes add-player modal
   useEffect(() => {
@@ -142,6 +120,12 @@ export const LeagueDashboard = () => {
     [league.matches],
   );
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const rankDeltas = useMemo(
+    () => getRankDeltasFromLastMatch(sortedPlayers, sortedMatches),
+    [sortedPlayers, sortedMatches],
+  );
+
   // Story 9-5 - Get permissions for contextual actions
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { isAdmin, canInvite } = useDetailPagePermissions(id || "", "league");
@@ -153,146 +137,10 @@ export const LeagueDashboard = () => {
     setShowAddPlayer(false);
   };
 
-  const handleDeleteLeague = () => {
-    if (confirm("Es-tu sûr de vouloir supprimer cette ligue ?")) {
-      deleteLeague(league.id);
-      navigate("/");
-    }
-  };
-
-  const detailHeroMenuItems = [
-    {
-      label: "Historique des saisons",
-      icon: <History size={20} />,
-      onClick: () => navigate(`/league/${league.id}/seasons`),
-    },
-    {
-      label: "Paramètres",
-      icon: <Settings size={20} />,
-      onClick: () => navigate(`/league/${league.id}/settings`),
-    },
-    ...(isAdmin
-      ? [
-          {
-            label: "Mode Diffusion",
-            icon: <Monitor size={20} />,
-            onClick: () => navigate(`/league/${league.id}/display`),
-          },
-        ]
-      : []),
-    ...(isAdmin && leagueGhosts.length > 0
-      ? [
-          {
-            label: "Joueurs fantômes",
-            icon: <Ghost size={20} />,
-            onClick: () => setShowGhostMgmt(true),
-          },
-        ]
-      : []),
-    {
-      label: "Exporter JSON",
-      icon: <FileJson size={20} />,
-      onClick: () => exportLeagueJSON(league),
-    },
-    {
-      label: "Exporter joueurs CSV",
-      icon: <FileSpreadsheet size={20} />,
-      onClick: () => exportPlayersCSV(league),
-    },
-    {
-      label: "Exporter matchs CSV",
-      icon: <FileSpreadsheet size={20} />,
-      onClick: () => {
-        const map: Record<string, string> = {};
-        league.players.forEach((p) => {
-          map[p.id] = p.name;
-        });
-        exportMatchesCSV(league, map);
-      },
-    },
-    ...(isAdmin
-      ? [
-          {
-            label: "Supprimer",
-            icon: <Trash2 size={20} />,
-            onClick: handleDeleteLeague,
-            destructive: true,
-          },
-        ]
-      : []),
-  ];
-
-  // GhostManagementSheet handlers — admin-only.
-  const handleRenameGhost = async (playerId: string, newPseudo: string) => {
-    const result = await identityMergeService.renameAnonymousPlayer(
-      "league",
-      playerId,
-      newPseudo,
-    );
-    if (!result.success) {
-      toast.error(result.error || "Renommage impossible");
-      throw new Error(result.error);
-    }
-    toast.success("Joueur renommé");
-    await refreshLeagueGhosts();
-    reloadData();
-  };
-
-  const handleDeleteGhost = async (playerId: string) => {
-    const result = await identityMergeService.deleteAnonymousPlayer(
-      "league",
-      playerId,
-    );
-    if (!result.success) {
-      if (!result.error || !/match/i.test(result.error)) {
-        toast.error(result.error || "Suppression impossible");
-      }
-      throw new Error(result.error);
-    }
-    toast.success("Joueur supprimé");
-    await Promise.all([refreshLeagueGhosts(), refreshArchivedLeagueGhosts()]);
-    reloadData();
-  };
-
-  const handleArchiveGhost = async (playerId: string) => {
-    const result = await identityMergeService.archiveAnonymousPlayer(
-      "league",
-      playerId,
-    );
-    if (!result.success) {
-      toast.error(result.error || "Archivage impossible");
-      throw new Error(result.error);
-    }
-    toast.success("Joueur archivé");
-    await Promise.all([refreshLeagueGhosts(), refreshArchivedLeagueGhosts()]);
-    reloadData();
-  };
-
-  const handleUnarchiveGhost = async (playerId: string) => {
-    const result = await identityMergeService.unarchiveAnonymousPlayer(
-      "league",
-      playerId,
-    );
-    if (!result.success) {
-      toast.error(result.error || "Désarchivage impossible");
-      throw new Error(result.error);
-    }
-    toast.success("Joueur désarchivé");
-    await Promise.all([refreshLeagueGhosts(), refreshArchivedLeagueGhosts()]);
-    reloadData();
-  };
-
-  const handleGenerateGhostInvite = async (playerId: string) => {
-    const result = await identityMergeService.generateGhostInviteToken(
-      "league",
-      playerId,
-    );
-    if (!result.success || !result.token) {
-      toast.error(result.error || "Lien indisponible");
-      throw new Error(result.error);
-    }
-    return { token: result.token };
-  };
+  // Pas d'overflow menu sur le hero league (mig 029) : Paramètres + Mode
+  // Diffusion sont des iconOnly dédiés, et tout le reste (historique des
+  // saisons, exports CSV/JSON, gestion ghosts, suppression) est accessible
+  // depuis LeagueSettings.
 
   const shortDateFormatter: Intl.DateTimeFormatOptions = {
     day: "2-digit",
@@ -348,27 +196,19 @@ export const LeagueDashboard = () => {
           ? "Non démarrée"
           : "Active";
 
-  const handleStartNewSeason = async () => {
-    if (
-      !confirm(
-        `Démarrer la Saison ${seasonNumber + 1} ?\n\nLe classement actuel (Saison ${seasonNumber}) sera archivé et les ELO de tous les joueurs seront reset à 1000.\n\nCette action est irréversible.`,
-      )
-    )
-      return;
-    try {
-      await startNewLeagueSeason(league.id);
-    } catch {
-      // toast déjà affiché côté context
-    }
-  };
-
+  // Hero actions — spec uniforme event/league (mig 029) :
+  //  • Admin : [Ajouter primary] [Pause/Reprendre iconOnly] [Paramètres iconOnly] [Mode Diffusion iconOnly]
+  //  • Non-admin / invité : [Ajouter primary] uniquement.
+  //
+  // Les actions Clôturer/Réouvrir et le cycle de saison (forcer la fin →
+  // démarrer la suivante) ont migré dans la page Paramètres (mig 029).
   const detailHeroAdminActions: Parameters<typeof DetailHero>[0]["actions"] = [];
   if (isAdmin || canInvite) {
     detailHeroAdminActions.push({
-      label: "Inviter",
+      label: "Ajouter",
       icon: <UserPlus size={16} />,
       onClick: () => setShowAddPlayer(true),
-      variant: "secondary",
+      variant: "primary",
     });
   }
   if (isAdmin) {
@@ -394,45 +234,30 @@ export const LeagueDashboard = () => {
         },
         variant: "iconOnly",
       });
-      detailHeroAdminActions.push({
-        label: `Démarrer la Saison ${seasonNumber + 1}`,
-        icon: <RotateCcw size={18} />,
-        onClick: handleStartNewSeason,
-        variant: "iconOnly",
-      });
-    } else if (lifecycle === "finished") {
-      detailHeroAdminActions.push({
-        label: "Réouvrir la ligue",
-        icon: <Play size={18} />,
-        onClick: () => {
-          void reopenLeague(league.id);
-        },
-        variant: "iconOnly",
-      });
     }
-    // Clôturer : disponible uniquement quand active (sinon n'a pas de sens)
-    if (lifecycle === "active") {
-      detailHeroAdminActions.push({
-        label: "Clôturer la ligue",
-        icon: <Archive size={18} />,
-        onClick: () => {
-          if (
-            confirm(
-              "Clôturer cette ligue ? Plus aucun match ne pourra être enregistré (réversible via Réouvrir).",
-            )
-          ) {
-            void finishLeague(league.id);
-          }
-        },
-        variant: "iconOnly",
-      });
-    }
+    // États `between_seasons` et `finished` → pas de bouton lifecycle dans le
+    // hero. L'admin gère via Paramètres (cf. LifecycleStrip ci-dessous qui
+    // l'oriente).
+    detailHeroAdminActions.push({
+      label: "Paramètres",
+      icon: <Settings size={18} />,
+      onClick: () => navigate(`/league/${league.id}/settings`),
+      variant: "iconOnly",
+    });
+    detailHeroAdminActions.push({
+      label: "Mode Diffusion",
+      icon: <Monitor size={18} />,
+      onClick: () => navigate(`/league/${league.id}/display`),
+      variant: "iconOnly",
+    });
   }
 
   return (
     <div className="min-h-screen bg-navy text-white flex flex-col relative">
-      {/* DetailHero — bloc bleu pleine largeur (bleed sous padding ResponsiveLayout + App). */}
+      {/* DetailHero — bloc bleu profond pleine largeur (bleed sous padding ResponsiveLayout + App).
+          Ton `deep` pour distinguer visuellement les ligues des events (`electric`). */}
       <DetailHero
+        tone="deep"
         className="-mx-4 -mt-4 md:mx-0 md:mt-0"
         onBack={() => navigate("/competitions")}
         adminBadge={isAdmin}
@@ -458,10 +283,9 @@ export const LeagueDashboard = () => {
           { label: "Top ELO", value: topElo !== null ? String(topElo) : "—" },
         ]}
         actions={detailHeroAdminActions}
-        menuItems={detailHeroMenuItems}
       />
 
-      {/* Mig 028+029 — Lifecycle status strip (prio absolue) ou strip de
+      {/* Mig 028+029+030 — Lifecycle status strip (prio absolue) ou strip de
           rappel (saison/league overdue). Un seul strip à la fois pour ne pas
           surcharger l'admin. */}
       {lifecycle === "not_started" ? (
@@ -477,21 +301,37 @@ export const LeagueDashboard = () => {
               : "L'enregistrement de matchs sera autorisé une fois la ligue démarrée."
           }
         />
-      ) : lifecycle === "paused" || lifecycle === "finished" ? (
+      ) : lifecycle === "paused" ||
+        lifecycle === "between_seasons" ||
+        lifecycle === "finished" ? (
         <LifecycleStrip
-          tone={lifecycle === "paused" ? "paused" : "finished"}
+          tone={
+            lifecycle === "paused"
+              ? "paused"
+              : lifecycle === "between_seasons"
+                ? "between_seasons"
+                : "finished"
+          }
           testId="league-lifecycle-banner"
           title={
-            lifecycle === "paused" ? "Ligue en pause" : "Ligue terminée"
+            lifecycle === "paused"
+              ? "Ligue en pause"
+              : lifecycle === "between_seasons"
+                ? `Saison ${seasonNumber} close — en attente`
+                : "Ligue terminée"
           }
           description={
             lifecycle === "paused"
               ? isAdmin
                 ? "Reprends la ligue pour réautoriser l'enregistrement des matchs."
                 : "L'enregistrement de matchs est suspendu."
-              : isAdmin
-                ? "Plus aucun match ne peut être enregistré. Réouvre la ligue depuis le menu admin si besoin."
-                : "Cette ligue est clôturée. Le classement est figé."
+              : lifecycle === "between_seasons"
+                ? isAdmin
+                  ? `Démarre la Saison ${seasonNumber + 1} depuis Paramètres.`
+                  : "Aucun match ne peut être enregistré tant que la saison suivante n'a pas démarré."
+                : isAdmin
+                  ? "Plus aucun match ne peut être enregistré. Réouvre la ligue depuis Paramètres si besoin."
+                  : "Cette ligue est clôturée. Le classement est figé."
           }
         />
       ) : reminders.seasonOverdue ? (
@@ -574,6 +414,7 @@ export const LeagueDashboard = () => {
                       elo: p.elo,
                       delta:
                         getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
+                      rankDelta: rankDeltas.get(p.id),
                     }))}
                     className="mb-1"
                   />
@@ -597,6 +438,7 @@ export const LeagueDashboard = () => {
                         name={player.name}
                         elo={player.elo}
                         delta={delta ?? undefined}
+                        rankDelta={rankDeltas.get(player.id)}
                         rank={rank}
                         wins={player.wins}
                         losses={player.losses}
@@ -630,14 +472,12 @@ export const LeagueDashboard = () => {
               />
             ) : (
               league.matches.map((match) => {
-                const teamANames = league.players
-                  .filter((p) => match.teamA.includes(p.id))
-                  .map((p) => p.name)
-                  .join(", ");
-                const teamBNames = league.players
-                  .filter((p) => match.teamB.includes(p.id))
-                  .map((p) => p.name)
-                  .join(", ");
+                const teamAPlayers = league.players.filter((p) =>
+                  match.teamA.includes(p.id),
+                );
+                const teamBPlayers = league.players.filter((p) =>
+                  match.teamB.includes(p.id),
+                );
                 const winnerA = match.scoreA > match.scoreB;
 
                 return (
@@ -647,32 +487,22 @@ export const LeagueDashboard = () => {
                   >
                     {/* Phase D.4: Live badge */}
                     <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
-                    <div className="flex justify-between items-center text-sm">
-                      <div
-                        className={`flex-1 text-right ${
-                          winnerA ? "text-white font-bold" : "text-cool-gray"
-                        }`}
-                      >
-                        {winnerA && "🏆 "}
-                        {teamANames}
-                      </div>
-                      <div className="px-4 font-bold text-cool-gray text-xs">
-                        VS
-                      </div>
-                      <div
-                        className={`flex-1 text-left ${
-                          !winnerA ? "text-white font-bold" : "text-cool-gray"
-                        }`}
-                      >
-                        {!winnerA && "🏆 "}
-                        {teamBNames}
-                      </div>
-                    </div>
-                    {/* Story 14-28: Photo thumbnail and cups badge */}
-                    <MatchEnrichedDisplay
-                      photoUrl={match.photo_url}
-                      cupsRemaining={match.cups_remaining}
+                    <MatchTeamsRow
+                      teamAPlayers={teamAPlayers}
+                      teamBPlayers={teamBPlayers}
+                      winner={winnerA ? "A" : "B"}
+                      eloChanges={match.eloChanges}
                     />
+                    {/* Footer : timestamp à gauche, chips photo/cups à droite */}
+                    <div className="flex items-center justify-between gap-3 mt-3">
+                      <div className="text-xs text-cool-gray">
+                        {formatRelativeTime(match.date)}
+                      </div>
+                      <MatchEnrichedDisplay
+                        photoUrl={match.photo_url}
+                        cupsRemaining={match.cups_remaining}
+                      />
+                    </div>
                   </div>
                 );
               })
@@ -770,22 +600,6 @@ export const LeagueDashboard = () => {
         onClose={() => setShowAddPlayer(false)}
         onAddManual={handleInviteAddManual}
       />
-
-      {/* Ghost player management — admin only, only when ghosts exist */}
-      {isAdmin && (
-        <GhostManagementSheet
-          isOpen={showGhostMgmt}
-          onClose={() => setShowGhostMgmt(false)}
-          guests={leagueGhosts}
-          archivedGuests={archivedLeagueGhosts}
-          joinPath={`/league/${league.id}/join`}
-          onRename={handleRenameGhost}
-          onDelete={handleDeleteGhost}
-          onArchive={handleArchiveGhost}
-          onUnarchive={handleUnarchiveGhost}
-          onGenerateInvite={handleGenerateGhostInvite}
-        />
-      )}
 
       {/* ELO Changes Display */}
       {showEloChanges && (

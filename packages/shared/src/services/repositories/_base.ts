@@ -90,6 +90,8 @@ export interface LeagueRow {
   max_players?: number | null;
   is_private?: boolean;
   default_format?: string | null;
+  // Mig 030 — between_seasons marker (cycle de saison à 2 étapes)
+  current_season_ended_at?: string | null;
 }
 
 /** Mig 028 — snapshot d'une saison close, table league_season_archives. */

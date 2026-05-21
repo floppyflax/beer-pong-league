@@ -70,6 +70,9 @@ class DatabaseService {
   reopenLeague(leagueId: string): Promise<void> {
     return leaguesRepository.reopenLeague(leagueId);
   }
+  finishCurrentLeagueSeason(leagueId: string): Promise<void> {
+    return leaguesRepository.finishCurrentSeason(leagueId);
+  }
   startNewLeagueSeason(leagueId: string): Promise<number> {
     return leaguesRepository.startNewSeason(leagueId);
   }

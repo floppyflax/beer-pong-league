@@ -1,9 +1,21 @@
 /**
- * DetailHero — Everything ELO, bloc hero bleu pour les pages détail
+ * DetailHero — Everything ELO, bloc hero pour les pages détail
  *
  * Utilisé sur `LeagueDashboard` et `EventDashboard` : regroupe en un seul
  * bloc l'identité de la page (back + titre + admin), les infos clés (statut
- * + meta) et l'action principale (INVITER + overflow menu).
+ * + meta) et la barre d'actions principale.
+ *
+ * **Pattern unifié admin (Ligue ET Event)** :
+ *  - `Ajouter` (variant `primary`, lime pill) — CTA principal
+ *  - Action lifecycle (variant `iconOnly`) — Pause/Reprendre/Démarrer
+ *  - `Paramètres` (variant `iconOnly`) — entrée page Settings
+ *  - `Mode Diffusion` (variant `iconOnly`) — projection live
+ *  - Pas de kebab "..." côté admin : tout ce qui n'est pas dans la barre
+ *    (clôturer, supprimer, exports, ghosts, historique des saisons…) vit
+ *    dans la page Paramètres dédiée.
+ *
+ * Le kebab `menuItems` reste utile pour les non-admin (accès lecture aux
+ * exports / historique).
  *
  * Remplace l'ancien empilement `ContextualHeader` + `PageHero` + `InfoCard` +
  * 3×`StatCard` sur ces pages.
@@ -11,9 +23,13 @@
  * Le titre tient dans la ligne du back button (archivo extrabold 17px uppercase,
  * comme un eyebrow `Mes événements`). Pas de titre display géant.
  *
- * Palette : fond `bg-electric-blue` plein écran (pas de `rounded`), chips
- * intérieurs `bg-navy/25`, bouton secondaire outline blanc. Voir spec UI mockup
- * "07 — Détail événement".
+ * Palette : fond plein écran (pas de `rounded`), chips intérieurs `bg-navy/25`,
+ * bouton secondaire outline blanc. Deux tons disponibles via la prop `tone` :
+ *   • `electric` (default) — `bg-electric-blue` pour les events (énergie, ponctuel).
+ *   • `deep` — `bg-electric-blue-deepest` pour les ligues (plus sobre, institutionnel) ;
+ *     se distingue ainsi visuellement d'un event lors de la navigation.
+ * Le glow `shadow-glow-electric` reste partagé (même famille bleue).
+ * Voir spec UI mockup "07 — Détail événement".
  */
 
 import { ChevronLeft, MoreVertical } from "lucide-react";
@@ -95,6 +111,11 @@ export interface DetailHeroProps {
   actions?: DetailHeroAction[];
   /** Overflow menu (3-dots). Affiché à droite des actions. */
   menuItems?: DetailHeroMenuItem[];
+  /**
+   * Ton du hero. `electric` (default) pour events, `deep` pour ligues — permet
+   * de distinguer visuellement les deux contextes lors de la navigation.
+   */
+  tone?: "electric" | "deep";
   /** Classe additionnelle sur le wrapper. */
   className?: string;
 }
@@ -216,8 +237,11 @@ export const DetailHero = ({
   stats = [],
   actions = [],
   menuItems = [],
+  tone = "electric",
   className = "",
 }: DetailHeroProps) => {
+  const toneBg =
+    tone === "deep" ? "bg-electric-blue-deepest" : "bg-electric-blue";
   const statColsClass =
     stats.length === 1
       ? "grid-cols-1"
@@ -235,7 +259,7 @@ export const DetailHero = ({
 
   return (
     <section
-      className={`sticky top-0 z-20 bg-electric-blue px-5 ${
+      className={`sticky top-0 z-20 ${toneBg} px-5 ${
         collapsed ? "pt-3 pb-3 shadow-modal" : "pt-12 pb-5 shadow-glow-electric"
       } text-white transition-[padding,box-shadow] duration-200 ${className}`}
     >
@@ -307,8 +331,9 @@ export const DetailHero = ({
       </div>
 
       {/* Actions row — all variants align on the same baseline (h-11). Tight
-          horizontal padding so the trio Inviter + Paramètres + IconOnly fits
-          on a single mobile row (375px) without wrap. */}
+          horizontal padding so le combo Ajouter (primary) + lifecycle iconOnly
+          + Paramètres iconOnly + Mode Diffusion iconOnly tient sur une seule
+          ligne mobile (375px) sans wrap. Pattern unifié League/Event. */}
       {(actions.length > 0 || menuItems.length > 0) && (
         <div
           className={`flex items-center gap-1.5 flex-nowrap overflow-x-auto -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overflow-hidden transition-[max-height,opacity,margin] duration-200 ${

@@ -1,15 +1,15 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Edit,
-  FileJson,
-  FileSpreadsheet,
+  AlertTriangle,
+  Archive,
   Ghost,
   Lock,
+  Play,
   Plus,
+  RotateCcw,
   Trash2,
   Trophy,
-  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -17,11 +17,7 @@ import { useLeague } from "@/context/LeagueContext";
 import { useDetailPagePermissions } from "@/hooks/useDetailPagePermissions";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
-import {
-  exportLeagueJSON,
-  exportMatchesCSV,
-  exportPlayersCSV,
-} from "@/services/ExportService";
+import { getLeagueLifecycle } from "@/utils/leagueLifecycle";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
@@ -35,9 +31,11 @@ export const LeagueSettings = () => {
     leagues,
     events,
     updateLeague,
-    updatePlayer,
-    deletePlayer,
     deleteLeague,
+    finishLeague,
+    reopenLeague,
+    finishCurrentLeagueSeason,
+    startNewLeagueSeason,
     isLoadingInitialData,
     reloadData,
   } = useLeague();
@@ -52,13 +50,16 @@ export const LeagueSettings = () => {
 
   const [name, setName] = useState(league?.name ?? "");
   const [isSaving, setIsSaving] = useState(false);
-  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
-  const [editingPlayerName, setEditingPlayerName] = useState("");
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
 
   useEffect(() => {
     if (league) setName(league.name);
   }, [league?.id]);
+
+  const isDirty = useMemo(() => {
+    if (!league) return false;
+    return name.trim() !== league.name && name.trim().length > 0;
+  }, [league, name]);
 
   if (isLoadingInitialData) {
     return (
@@ -106,7 +107,6 @@ export const LeagueSettings = () => {
     );
   }
 
-  const sortedPlayers = [...league.players].sort((a, b) => b.elo - a.elo);
   const leagueEvents = events.filter((e) => league.events?.includes(e.id));
 
   const handleSubmit = async (e: FormEvent) => {
@@ -191,6 +191,84 @@ export const LeagueSettings = () => {
     return { token: result.token };
   };
 
+  // ── Lifecycle + cycle de saison (mig 029) ──────────────────────────────
+  const lifecycle = getLeagueLifecycle(league);
+  const seasonNumber = league.currentSeasonNumber ?? 1;
+  const seasonStartedAt = league.currentSeasonStartedAt ?? league.createdAt;
+  const seasonEndedAt = league.currentSeasonEndedAt ?? null;
+  const dateFmt: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  };
+  const seasonStartedLabel = new Date(seasonStartedAt).toLocaleDateString(
+    "fr-FR",
+    dateFmt,
+  );
+  const seasonEndedLabel = seasonEndedAt
+    ? new Date(seasonEndedAt).toLocaleDateString("fr-FR", dateFmt)
+    : null;
+  const plannedStartLabel = league.plannedStartAt
+    ? new Date(league.plannedStartAt).toLocaleDateString("fr-FR", dateFmt)
+    : null;
+
+  const handleFinishLeague = () => {
+    if (
+      !confirm(
+        "Clôturer cette ligue ?\n\nPlus aucun match ne pourra être enregistré. Réversible via Réouvrir.",
+      )
+    )
+      return;
+    void finishLeague(league.id);
+  };
+
+  const handleReopenLeague = () => {
+    void reopenLeague(league.id);
+  };
+
+  const handleFinishCurrentSeason = async () => {
+    if (
+      !confirm(
+        `Forcer la fin de la Saison ${seasonNumber} ?\n\nLe classement actuel sera archivé. Aucun match ne pourra être enregistré tant que tu n'auras pas démarré la Saison ${seasonNumber + 1}.`,
+      )
+    )
+      return;
+    try {
+      await finishCurrentLeagueSeason(league.id);
+    } catch {
+      // toast déjà émis côté context
+    }
+  };
+
+  const handleStartNewSeason = async () => {
+    if (
+      !confirm(
+        `Démarrer la Saison ${seasonNumber + 1} ?\n\nLes ELO de tous les joueurs seront reset à 1000. Action irréversible.`,
+      )
+    )
+      return;
+    try {
+      await startNewLeagueSeason(league.id);
+    } catch {
+      // toast déjà émis côté context
+    }
+  };
+
+  const lifecycleDotClass: Record<typeof lifecycle, string> = {
+    not_started: "bg-ping-yellow",
+    active: "bg-lime",
+    paused: "bg-ping-yellow",
+    between_seasons: "bg-ping-yellow",
+    finished: "bg-cool-gray",
+  };
+  const lifecycleLabel: Record<typeof lifecycle, string> = {
+    not_started: "Non démarrée",
+    active: "Active",
+    paused: "En pause",
+    between_seasons: "Inter-saison",
+    finished: "Terminée",
+  };
+
   const inputClass =
     "w-full bg-navy-deep border-[1.5px] border-card rounded-md p-3 text-white placeholder-cool-gray focus:outline-none focus:border-lime focus:ring-2 focus:ring-lime/20 transition-colors";
 
@@ -204,7 +282,9 @@ export const LeagueSettings = () => {
 
       <form
         onSubmit={handleSubmit}
-        className="p-4 md:p-6 max-w-2xl mx-auto space-y-5 pb-32"
+        className={`p-4 md:p-6 max-w-2xl mx-auto space-y-5 transition-[padding] duration-200 ${
+          isDirty ? "pb-36" : "pb-8"
+        }`}
         noValidate
       >
         {/* Nom */}
@@ -250,6 +330,134 @@ export const LeagueSettings = () => {
             </div>
           </div>
         </div>
+
+        {/* Lifecycle ligue (mig 029) — état + Clôturer/Réouvrir */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+            Lifecycle ligue
+          </span>
+          <div className="rounded-card border border-card bg-navy-deep p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2 h-2 rounded-full ${lifecycleDotClass[lifecycle]}`}
+                aria-hidden
+              />
+              <span className="font-archivo font-extrabold uppercase text-[12px] tracking-[1px] text-white">
+                {lifecycleLabel[lifecycle]}
+              </span>
+            </div>
+            {lifecycle === "active" && (
+              <PButton
+                type="button"
+                variant="ghost"
+                size="md"
+                full
+                onClick={handleFinishLeague}
+                data-testid="settings-finish-league"
+              >
+                <Archive size={16} className="inline mr-2" />
+                Clôturer la ligue
+              </PButton>
+            )}
+            {lifecycle === "finished" && (
+              <PButton
+                type="button"
+                variant="primary"
+                size="md"
+                full
+                onClick={handleReopenLeague}
+                data-testid="settings-reopen-league"
+              >
+                <Play size={16} className="inline mr-2" />
+                Réouvrir la ligue
+              </PButton>
+            )}
+            {lifecycle === "paused" && (
+              <p className="text-xs text-cool-gray">
+                La ligue est en pause. Reprends-la depuis le hero pour
+                réautoriser les matchs.
+              </p>
+            )}
+            {lifecycle === "between_seasons" && (
+              <p className="text-xs text-cool-gray">
+                Saison {seasonNumber} close. Démarre la suivante dans la
+                section ci-dessous.
+              </p>
+            )}
+            {lifecycle === "not_started" && (
+              <p className="text-xs text-cool-gray">
+                La ligue n'a pas encore démarré
+                {plannedStartLabel ? ` (prévue le ${plannedStartLabel})` : ""}.
+                Tu pourras la clôturer ici une fois active.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Cycle de saison (mig 029) — UNIQUEMENT pour les ligues saisonnières.
+            Une ligue Continue (one-shot) = une seule saison, pas de cycle. */}
+        {league.type === "season" && (
+          <div className="space-y-2">
+            <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+              Cycle de saison
+            </span>
+            <div className="rounded-card border border-card bg-navy-deep p-3 space-y-3">
+              <div>
+                <div className="font-archivo font-extrabold uppercase text-sm tracking-tight text-white">
+                  Saison {seasonNumber}
+                </div>
+                <div className="text-xs text-cool-gray">
+                  Démarrée le {seasonStartedLabel}
+                  {seasonEndedLabel ? ` · close le ${seasonEndedLabel}` : ""}
+                </div>
+              </div>
+              {lifecycle === "active" && (
+                <PButton
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  full
+                  onClick={handleFinishCurrentSeason}
+                  data-testid="settings-finish-season"
+                >
+                  <Archive size={16} className="inline mr-2" />
+                  Forcer la fin de la Saison {seasonNumber}
+                </PButton>
+              )}
+              {lifecycle === "between_seasons" && (
+                <PButton
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  full
+                  onClick={handleStartNewSeason}
+                  data-testid="settings-start-next-season"
+                >
+                  <RotateCcw size={16} className="inline mr-2" />
+                  Démarrer la Saison {seasonNumber + 1}
+                </PButton>
+              )}
+              {(lifecycle === "paused" ||
+                lifecycle === "finished" ||
+                lifecycle === "not_started") && (
+                <p className="text-xs text-cool-gray">
+                  {lifecycle === "paused"
+                    ? "Reprends la ligue pour gérer le cycle de saison."
+                    : lifecycle === "finished"
+                      ? "Réouvre la ligue pour gérer le cycle de saison."
+                      : "Le cycle de saison sera actif dès que la ligue aura démarré."}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate(`/league/${league.id}/seasons`)}
+                className="w-full text-left text-xs text-cool-gray underline-offset-2 hover:text-white hover:underline transition-colors"
+              >
+                Voir l&apos;historique des saisons →
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Ghost management entry */}
         {leagueGhosts.length > 0 && (
@@ -324,183 +532,57 @@ export const LeagueSettings = () => {
           </PButton>
         </div>
 
-        {/* Players */}
+        {/* Zone de danger — Supprimer la ligue */}
         <div className="space-y-2">
-          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-            Joueurs ({sortedPlayers.length})
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-signal-red block">
+            <span className="inline-flex items-center gap-1.5">
+              <AlertTriangle size={12} />
+              Zone de danger
+            </span>
           </span>
-          {sortedPlayers.length === 0 ? (
-            <p className="text-cool-gray text-xs">
-              Aucun joueur dans cette ligue.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {sortedPlayers.map((player) => (
-                <div key={player.id}>
-                  {editingPlayerId === player.id ? (
-                    <div className="bg-electric-blue/10 border border-electric-blue/30 p-3 rounded-card flex items-center gap-2">
-                      <input
-                        autoFocus
-                        value={editingPlayerName}
-                        onChange={(e) => setEditingPlayerName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const trimmed = editingPlayerName.trim();
-                            if (trimmed && trimmed !== player.name) {
-                              updatePlayer(league.id, player.id, trimmed);
-                            }
-                            setEditingPlayerId(null);
-                          }
-                          if (e.key === "Escape") setEditingPlayerId(null);
-                        }}
-                        className="flex-1 bg-navy-deep border border-card rounded-md px-3 py-1.5 text-sm text-white focus:outline-none focus:border-electric-blue"
-                        aria-label="Nouveau nom du joueur"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const trimmed = editingPlayerName.trim();
-                          if (trimmed && trimmed !== player.name) {
-                            updatePlayer(league.id, player.id, trimmed);
-                          }
-                          setEditingPlayerId(null);
-                        }}
-                        className="px-3 py-1.5 bg-electric-blue text-white text-sm font-bold rounded-md"
-                      >
-                        OK
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingPlayerId(null)}
-                        className="p-1.5 text-cool-gray hover:text-white"
-                        aria-label="Annuler"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="bg-navy-deep p-3 rounded-card flex items-center justify-between border border-card">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/player/${player.id}`)}
-                        className="flex-1 flex items-center gap-4 cursor-pointer text-left"
-                      >
-                        <div className="font-archivo font-semibold text-white text-sm">
-                          {player.name}
-                        </div>
-                        <div className="text-xs text-cool-gray">
-                          {player.elo} ELO • {player.wins}V - {player.losses}D
-                        </div>
-                      </button>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingPlayerId(player.id);
-                            setEditingPlayerName(player.name);
-                          }}
-                          className="p-2 hover:bg-navy-soft rounded-md text-cool-gray hover:text-white"
-                          aria-label="Modifier"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (
-                              confirm(
-                                `Supprimer ${player.name} ? Tous ses matchs seront également supprimés.`,
-                              )
-                            ) {
-                              deletePlayer(league.id, player.id);
-                            }
-                          }}
-                          className="p-2 hover:bg-signal-red/20 text-signal-red rounded-md"
-                          aria-label="Supprimer"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+          <div className="rounded-card border border-signal-red/30 bg-signal-red/5 p-3 space-y-3">
+            <div>
+              <div className="text-white font-archivo font-semibold text-sm">
+                Supprimer la ligue
+              </div>
+              <div className="text-cool-gray text-xs mt-0.5">
+                Suppression définitive. Tous les événements, matchs, joueurs et
+                ELO seront perdus.
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Export actions */}
-        <div className="space-y-2">
-          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-            Exporter
-          </span>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <PButton
               type="button"
               variant="ghost"
               size="md"
               full
-              icon={<FileJson size={16} />}
-              onClick={() => exportLeagueJSON(league)}
-            >
-              JSON
-            </PButton>
-            <PButton
-              type="button"
-              variant="ghost"
-              size="md"
-              full
-              icon={<FileSpreadsheet size={16} />}
-              onClick={() => exportPlayersCSV(league)}
-            >
-              Joueurs CSV
-            </PButton>
-            <PButton
-              type="button"
-              variant="ghost"
-              size="md"
-              full
-              icon={<FileSpreadsheet size={16} />}
-              onClick={() => {
-                const map: Record<string, string> = {};
-                league.players.forEach((p) => {
-                  map[p.id] = p.name;
-                });
-                exportMatchesCSV(league, map);
-              }}
-            >
-              Matchs CSV
-            </PButton>
-          </div>
-        </div>
-
-        {/* Sticky footer */}
-        <div className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10">
-          <div className="max-w-2xl mx-auto flex flex-col gap-3">
-            <PButton
-              type="button"
-              variant="ghost"
-              size="lg"
-              full
-              icon={<Trash2 size={18} />}
+              icon={<Trash2 size={16} />}
               onClick={handleDeleteLeague}
+              data-testid="settings-delete-league"
             >
               Supprimer la ligue
             </PButton>
-            <PButton
-              type="submit"
-              variant="primary"
-              size="lg"
-              full
-              disabled={!name.trim() || isSaving}
-            >
-              {isSaving ? "Enregistrement…" : "Enregistrer"}
-            </PButton>
           </div>
         </div>
+
+        {/* Sticky save CTA — visible uniquement si modifications en attente */}
+        {isDirty && (
+          <div
+            className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10"
+            data-testid="settings-save-panel"
+          >
+            <div className="max-w-2xl mx-auto">
+              <PButton
+                type="submit"
+                variant="primary"
+                size="lg"
+                full
+                disabled={!name.trim() || isSaving}
+              >
+                {isSaving ? "Enregistrement…" : "Enregistrer"}
+              </PButton>
+            </div>
+          </div>
+        )}
       </form>
 
       <GhostManagementSheet

@@ -63,6 +63,8 @@ export interface League {
   maxPlayers?: number | null;          // limite de membres (NULL = pas de limite)
   isPrivate?: boolean;                 // visibilité publique (défaut true)
   defaultFormat?: '1v1' | '2v2' | '3v3' | 'libre' | null; // format pré-rempli RecordMatch
+  // Mig 030 — cycle de saison à 2 étapes
+  currentSeasonEndedAt?: string | null; // ISO timestamp — saison close, en attente du démarrage de la suivante (état between_seasons)
 }
 
 /** League season archive (mig 028 — league_season_archives row). */

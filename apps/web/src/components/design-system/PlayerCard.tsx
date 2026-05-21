@@ -12,7 +12,7 @@
  * été retirée : `leaderRow` la remplace.
  */
 
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
 import { getInitials } from "@/utils/string";
 
 export interface PlayerCardCompactProps {
@@ -33,6 +33,8 @@ export interface PlayerCardLeaderRowProps {
   rank?: number;
   /** Delta ELO (positif vert, négatif rouge). */
   delta?: number;
+  /** Variation de rang vs dernier match (>0 monté, <0 descendu, 0/undefined masqué). */
+  rankDelta?: number;
   avatarUrl?: string;
   /** Stats jouées : optionnel. Si fourni, affiche W/L/winrate inline. */
   wins?: number;
@@ -126,12 +128,15 @@ function Avatar({
   avatarUrl,
   size = 10,
   rank,
+  rankDelta,
 }: {
   name: string;
   avatarUrl?: string;
   size?: 8 | 10 | 12 | 14;
   /** When set, renders a small medallion overlay on the bottom-right with the rank. */
   rank?: number;
+  /** When set & non-zero, renders a small ▲/▼ badge overlay on the top-left. */
+  rankDelta?: number;
 }) {
   const initials = getInitials(name);
   const cls =
@@ -153,20 +158,43 @@ function Avatar({
       )}
     </div>
   );
-  if (rank === undefined) {
+  const hasRankDelta = rankDelta !== undefined && rankDelta !== 0;
+  if (rank === undefined && !hasRankDelta) {
     return <div className="flex-shrink-0">{avatar}</div>;
   }
   return (
     <div className="relative flex-shrink-0">
       {avatar}
-      <div
-        className={`absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-mono font-bold ring-2 ring-navy-soft ${getRankBadgeClass(
-          rank,
-        )}`}
-        aria-label={`Rang ${rank}`}
-      >
-        {rank}
-      </div>
+      {rank !== undefined && (
+        <div
+          className={`absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-mono font-bold ring-2 ring-navy-soft ${getRankBadgeClass(
+            rank,
+          )}`}
+          aria-label={`Rang ${rank}`}
+        >
+          {rank}
+        </div>
+      )}
+      {hasRankDelta && (
+        <div
+          className={`absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center gap-0.5 justify-center text-[10px] font-mono font-extrabold tabular-nums ring-2 ring-navy-soft ${
+            rankDelta > 0
+              ? "bg-lime text-navy"
+              : "bg-signal-red text-white"
+          }`}
+          data-testid="playercard-rank-delta"
+          aria-label={`${rankDelta > 0 ? "Monté de" : "Descendu de"} ${Math.abs(
+            rankDelta,
+          )} ${Math.abs(rankDelta) > 1 ? "places" : "place"}`}
+        >
+          {rankDelta > 0 ? (
+            <TrendingUp size={10} aria-hidden />
+          ) : (
+            <TrendingDown size={10} aria-hidden />
+          )}
+          {Math.abs(rankDelta)}
+        </div>
+      )}
     </div>
   );
 }
@@ -287,44 +315,48 @@ export function PlayerCard(props: PlayerCardProps) {
         data-testid="playercard-leaderrow"
         {...wrapperProps}
       >
-        {/* Rank shown as medallion overlay on the avatar to save horizontal space. */}
+        {/* Rank shown as medallion (bottom-right) and rank-delta as ▲/▼ badge (top-left). */}
         <Avatar
           name={props.name}
           avatarUrl={props.avatarUrl}
           rank={props.rank}
+          rankDelta={props.rankDelta}
         />
 
         <div className="flex-1 min-w-0">
-          <div className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate">
-            {props.name}
+          <div className="flex items-baseline justify-between gap-2 min-w-0">
+            <span className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0">
+              {props.name}
+            </span>
+            <span className="flex-shrink-0 flex items-baseline gap-2">
+              {props.delta !== undefined && (
+                <span
+                  className={`text-sm font-mono font-semibold tabular-nums ${deltaClass}`}
+                  data-testid="playercard-delta"
+                >
+                  {props.delta >= 0 ? "+" : ""}
+                  {props.delta}
+                </span>
+              )}
+              <span className="text-base font-mono font-bold tabular-nums text-white">
+                {props.rightLabel ?? props.elo}
+              </span>
+            </span>
           </div>
-          <div className="flex items-center gap-2 mt-0.5 min-w-0">
-            {hasStats && (
-              <StatsInline
-                wins={props.wins ?? 0}
-                losses={props.losses ?? 0}
-                winRate={winRate}
-              />
-            )}
+          <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              {hasStats && (
+                <StatsInline
+                  wins={props.wins ?? 0}
+                  losses={props.losses ?? 0}
+                  winRate={winRate}
+                />
+              )}
+            </div>
             {props.recentResults !== undefined && (
               <ResultDots results={props.recentResults} />
             )}
           </div>
-        </div>
-
-        <div className="flex-shrink-0 flex items-center gap-2">
-          <span className="text-base font-mono font-bold tabular-nums text-lime">
-            {props.rightLabel ?? props.elo}
-          </span>
-          {props.delta !== undefined && (
-            <span
-              className={`text-sm font-mono font-semibold tabular-nums ${deltaClass}`}
-              data-testid="playercard-delta"
-            >
-              {props.delta >= 0 ? "+" : ""}
-              {props.delta}
-            </span>
-          )}
         </div>
 
         <ChevronRight

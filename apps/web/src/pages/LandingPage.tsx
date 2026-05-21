@@ -11,8 +11,10 @@ import { PButton } from "../components/ponglo/PButton";
 export const LandingPage = () => {
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"signup" | "signin">("signup");
 
   const handleCreateAccount = () => {
+    setAuthMode("signup");
     setShowAuthModal(true);
     sessionStorage.setItem("authReturnTo", "/");
   };
@@ -22,6 +24,7 @@ export const LandingPage = () => {
   };
 
   const handleSignIn = () => {
+    setAuthMode("signin");
     setShowAuthModal(true);
   };
 
@@ -96,6 +99,7 @@ export const LandingPage = () => {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+        mode={authMode}
       />
     </div>
   );

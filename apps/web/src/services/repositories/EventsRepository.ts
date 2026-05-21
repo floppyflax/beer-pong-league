@@ -105,6 +105,36 @@ class EventsRepository extends BaseRepository {
         playerToMembershipByEvent.set(m.event_id, ptm);
       });
 
+      // Mig 025 — `matches.eloChanges` isn't persisted on the match row; the
+      // canonical per-player delta lives in `elo_history` (one row per
+      // (match, player) and per context). We rehydrate the event-context
+      // deltas here so `MatchTeamsRow` can show ELO on past matches, not
+      // just the freshly recorded one.
+      const matchIds = ((allMatches ?? []) as MatchRow[]).map((m) => m.id);
+      const eloByMatch = new Map<string, Record<string, number>>();
+      if (matchIds.length > 0) {
+        const { data: eloRows } = await sb!
+          .from('elo_history')
+          .select('match_id, player_id, elo_change, event_id')
+          .in('match_id', matchIds)
+          .not('event_id', 'is', null);
+        ((eloRows ?? []) as Array<{
+          match_id: string;
+          player_id: string | null;
+          elo_change: number;
+          event_id: string | null;
+        }>).forEach((r) => {
+          if (!r.player_id || r.event_id == null) return;
+          // Translate players.id → event_memberships.id so the key namespace
+          // lines up with what we wrote into match.teamA / match.teamB above.
+          const ptm = playerToMembershipByEvent.get(r.event_id);
+          const membershipId = ptm?.get(r.player_id) ?? r.player_id;
+          const map = eloByMatch.get(r.match_id) ?? {};
+          map[membershipId] = r.elo_change;
+          eloByMatch.set(r.match_id, map);
+        });
+      }
+
       const matchesByEvent = new Map<string, Match[]>();
       ((allMatches ?? []) as MatchRow[]).forEach((m) => {
         if (!m.event_id) return;
@@ -127,6 +157,7 @@ class EventsRepository extends BaseRepository {
           confirmed_at: m.confirmed_at,
           cups_remaining: m.cups_remaining ?? undefined,
           photo_url: m.photo_url ?? undefined,
+          eloChanges: eloByMatch.get(m.id),
         });
         matchesByEvent.set(m.event_id, list);
       });

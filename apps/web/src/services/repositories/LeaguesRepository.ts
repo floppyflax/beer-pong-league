@@ -100,6 +100,32 @@ class LeaguesRepository extends BaseRepository {
         playerToMembershipByLeague.set(m.league_id, ptm);
       });
 
+      // Mig 025 — rehydrate per-player ELO deltas from `elo_history` so the
+      // league match list shows ELO on past matches, not just the freshly
+      // recorded one (mirrors EventsRepository).
+      const matchIds = ((allMatches ?? []) as MatchRow[]).map((m) => m.id);
+      const eloByMatch = new Map<string, Record<string, number>>();
+      if (matchIds.length > 0) {
+        const { data: eloRows } = await sb!
+          .from('elo_history')
+          .select('match_id, player_id, elo_change, league_id')
+          .in('match_id', matchIds)
+          .not('league_id', 'is', null);
+        ((eloRows ?? []) as Array<{
+          match_id: string;
+          player_id: string | null;
+          elo_change: number;
+          league_id: string | null;
+        }>).forEach((r) => {
+          if (!r.player_id || r.league_id == null) return;
+          const ptm = playerToMembershipByLeague.get(r.league_id);
+          const membershipId = ptm?.get(r.player_id) ?? r.player_id;
+          const map = eloByMatch.get(r.match_id) ?? {};
+          map[membershipId] = r.elo_change;
+          eloByMatch.set(r.match_id, map);
+        });
+      }
+
       const matchesByLeague = new Map<string, Match[]>();
       ((allMatches ?? []) as MatchRow[]).forEach((m) => {
         if (!m.league_id) return;
@@ -122,6 +148,7 @@ class LeaguesRepository extends BaseRepository {
           confirmed_at: m.confirmed_at,
           cups_remaining: m.cups_remaining ?? undefined,
           photo_url: m.photo_url ?? undefined,
+          eloChanges: eloByMatch.get(m.id),
         });
         matchesByLeague.set(m.league_id, list);
       });
@@ -164,6 +191,8 @@ class LeaguesRepository extends BaseRepository {
           | 'libre'
           | null
           | undefined) ?? null,
+        // Mig 030 — between_seasons marker
+        currentSeasonEndedAt: row.current_season_ended_at ?? null,
       }));
     } catch (error) {
       console.error('Error loading leagues from Supabase:', error);
@@ -270,7 +299,12 @@ class LeaguesRepository extends BaseRepository {
 
   private patchLocalLeague(
     leagueId: string,
-    patch: Partial<Pick<League, 'pausedAt' | 'endedAt' | 'currentSeasonNumber' | 'currentSeasonStartedAt'>>,
+    patch: Partial<
+      Pick<
+        League,
+        'pausedAt' | 'endedAt' | 'currentSeasonNumber' | 'currentSeasonStartedAt' | 'currentSeasonEndedAt'
+      >
+    >,
   ): void {
     const leagues = this.loadLeaguesFromLocalStorage();
     const league = leagues.find((l) => l.id === leagueId);
@@ -338,8 +372,29 @@ class LeaguesRepository extends BaseRepository {
   }
 
   /**
-   * Démarre une nouvelle saison via la RPC `start_new_league_season` :
-   * archive le classement, reset les ELO à 1000, bump le numéro de saison.
+   * Étape 1 du cycle de saison (mig 029) — `finish_current_league_season` :
+   * snapshot le classement dans `league_season_archives` et pose
+   * `current_season_ended_at`. La ligue entre en état `between_seasons` :
+   * plus aucun match enregistrable jusqu'à `startNewSeason`. Les ELO et le
+   * numéro de saison restent inchangés.
+   */
+  async finishCurrentSeason(leagueId: string): Promise<void> {
+    if (!this.isSupabaseAvailable()) {
+      throw new Error('Clore la saison nécessite une connexion serveur.');
+    }
+    const { error } = await sb!.rpc('finish_current_league_season', {
+      p_league_id: leagueId,
+    });
+    if (error) throw error;
+    const nowIso = new Date().toISOString();
+    this.patchLocalLeague(leagueId, { currentSeasonEndedAt: nowIso });
+  }
+
+  /**
+   * Étape 2 du cycle de saison (mig 029) — `start_new_league_season` :
+   * reset les ELO à 1000, bump le numéro de saison, clear le marker
+   * `current_season_ended_at`. Exige que `finishCurrentSeason` ait été
+   * appelé préalablement (sinon erreur SQL "season not closed yet").
    * Renvoie le numéro de la nouvelle saison.
    */
   async startNewSeason(leagueId: string): Promise<number> {
@@ -355,6 +410,7 @@ class LeaguesRepository extends BaseRepository {
     this.patchLocalLeague(leagueId, {
       currentSeasonNumber: newSeasonNumber,
       currentSeasonStartedAt: nowIso,
+      currentSeasonEndedAt: null,
     });
     return newSeasonNumber;
   }

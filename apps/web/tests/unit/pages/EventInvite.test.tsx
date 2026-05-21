@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { EventInvite } from "../../../src/pages/EventInvite";
 import * as LeagueContext from "../../../src/context/LeagueContext";
+import { AuthProvider } from "../../../src/context/AuthContext";
+import { IdentityProvider } from "../../../src/context/IdentityContext";
 import "@testing-library/jest-dom";
 
 const mockNavigate = vi.fn();
@@ -78,7 +80,11 @@ describe("EventInvite - Story 14-14", () => {
   const renderWithRouter = () =>
     render(
       <BrowserRouter>
-        <EventInvite />
+        <AuthProvider>
+          <IdentityProvider>
+            <EventInvite />
+          </IdentityProvider>
+        </AuthProvider>
       </BrowserRouter>
     );
 

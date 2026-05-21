@@ -59,7 +59,13 @@ export interface CreateLeagueInput {
  *                   confirmation n'est pas passée).
  */
 export interface RecordMatchOutcome {
+  /** ID of the inserted match row — needed by post-record flows (photo
+   *  finish wizard, contest review, etc.). */
+  matchId: string;
+  /** Mig 030 — `pending` when the parent event/league has anti-cheat on. */
   status: 'confirmed' | 'pending';
+  /** ELO deltas keyed by player id. Empty record for pending matches
+   *  (apply_match_elo is dispatched by confirm_match). */
   eloChanges: Record<string, number>;
 }
 
@@ -116,6 +122,8 @@ interface LeagueContextType {
   resumeLeague: (leagueId: string) => Promise<void>;
   finishLeague: (leagueId: string) => Promise<void>;
   reopenLeague: (leagueId: string) => Promise<void>;
+  // Cycle de saison à 2 étapes (mig 029)
+  finishCurrentLeagueSeason: (leagueId: string) => Promise<void>;
   startNewLeagueSeason: (leagueId: string) => Promise<number>;
   deleteEvent: (id: string) => Promise<void>;
   toggleEventStatus: (eventId: string) => Promise<void>;
@@ -765,10 +773,40 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const finishCurrentLeagueSeason = async (leagueId: string): Promise<void> => {
+    const league = leagues.find((l) => l.id === leagueId);
+    if (!league) return;
+    const now = new Date().toISOString();
+    setLeagues((prev) =>
+      prev.map((l) =>
+        l.id === leagueId ? { ...l, currentSeasonEndedAt: now } : l,
+      ),
+    );
+    try {
+      await databaseService.finishCurrentLeagueSeason(leagueId);
+      toast.success(
+        `Saison ${league.currentSeasonNumber ?? 1} close. Démarre la suivante depuis Paramètres.`,
+      );
+    } catch (error) {
+      console.error('Error finishing current league season:', error);
+      // Rollback optimistic update
+      setLeagues((prev) =>
+        prev.map((l) =>
+          l.id === leagueId ? { ...l, currentSeasonEndedAt: null } : l,
+        ),
+      );
+      toast.error(
+        error instanceof Error ? error.message : "Impossible de clore la saison",
+      );
+      throw error;
+    }
+  };
+
   const startNewLeagueSeason = async (leagueId: string): Promise<number> => {
     try {
       const newSeasonNumber = await databaseService.startNewLeagueSeason(leagueId);
-      // La RPC reset les memberships → on recharge pour refléter l'état serveur.
+      // La RPC reset les memberships + clear `current_season_ended_at` →
+      // on recharge pour refléter l'état serveur.
       await loadDataFromSupabase();
       toast.success(`Saison ${newSeasonNumber} démarrée 🏆`);
       return newSeasonNumber;
@@ -1003,6 +1041,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       // Toast is owned by the caller (RecordMatch) so the message can adapt
       // to the pending vs confirmed status.
       return {
+        matchId: newMatch.id,
         status: result.status,
         eloChanges: result.status === 'confirmed' ? eloChanges : {},
       };
@@ -1191,6 +1230,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         leagueEloChangesDB
       );
       return {
+        matchId: newMatch.id,
         status: result.status,
         eloChanges: result.status === 'confirmed' ? eloChanges : {},
       };
@@ -1424,6 +1464,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         resumeLeague,
         finishLeague,
         reopenLeague,
+        finishCurrentLeagueSeason,
         startNewLeagueSeason,
         deleteEvent,
         toggleEventStatus,

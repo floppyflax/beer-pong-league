@@ -20,12 +20,14 @@ import {
   Archive,
   Clock,
   Hourglass,
+  RotateCcw,
   type LucideIcon,
 } from 'lucide-react';
 
 export type LifecycleStripTone =
   | 'not_started'
   | 'paused'
+  | 'between_seasons'
   | 'finished'
   | 'reminder'
   | 'pending_validation';
@@ -48,6 +50,7 @@ export interface LifecycleStripProps {
 const TONE_ICON: Record<LifecycleStripTone, LucideIcon> = {
   not_started: Play,
   paused: Pause,
+  between_seasons: RotateCcw,
   finished: Archive,
   reminder: Clock,
   pending_validation: Hourglass,
@@ -60,6 +63,7 @@ const TONE_ICON: Record<LifecycleStripTone, LucideIcon> = {
 const TONE_CLASSES: Record<LifecycleStripTone, string> = {
   not_started: 'border-ping-yellow/30 bg-ping-yellow/10',
   paused: 'border-ping-yellow/30 bg-ping-yellow/10',
+  between_seasons: 'border-ping-yellow/30 bg-ping-yellow/10',
   finished: 'border-ping-yellow/30 bg-ping-yellow/10',
   reminder: 'border-ping-yellow/50 bg-ping-yellow/15',
   pending_validation: 'border-ping-yellow/50 bg-ping-yellow/15',
