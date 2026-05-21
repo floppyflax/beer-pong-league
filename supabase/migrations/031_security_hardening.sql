@@ -632,4 +632,280 @@ CREATE TRIGGER trg_matches_admin_delete
 -- + les triggers _guard_elo_history_writes (section 4) garantissent qu'aucun
 -- ELO frauduleux n'est appliqué depuis ces écritures.
 
+-- ════════════════════════════════════════════════════════════════════════
+-- 10. Création events/leagues réservée aux users authentifiés
+-- ════════════════════════════════════════════════════════════════════════
+-- Décision produit : un anonyme peut REJOINDRE une league/event via QR code
+-- mais ne peut pas en CRÉER. Empêche le spam (un anonyme peut générer une
+-- infinité d'anon identities et créer une infinité de leagues) et garantit
+-- qu'il y a un propriétaire identifiable derrière chaque ressource.
+
+CREATE OR REPLACE FUNCTION public._guard_authed_creator_only(p_creator_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql STABLE AS $$
+DECLARE
+  v_auth UUID := auth.uid();
+BEGIN
+  -- Pas d'auth → reject (l'anonyme ne crée pas).
+  IF v_auth IS NULL THEN RETURN FALSE; END IF;
+  -- Creator non fourni → reject (un creator est obligatoire).
+  IF p_creator_id IS NULL THEN RETURN FALSE; END IF;
+  -- Le creator doit être la `users` row de l'auth caller (pas de spoofing).
+  RETURN EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = p_creator_id AND auth_user_id = v_auth
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION public._guard_authed_creator_only(UUID) IS
+  'TRUE si le caller est authentifié ET creator_user_id pointe vers SA users row. Utilisé par les triggers INSERT events/leagues.';
+
+CREATE OR REPLACE FUNCTION public._guard_events_insert()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF public._is_postgrest_client() THEN
+    IF NOT public._guard_authed_creator_only(NEW.creator_user_id) THEN
+      RAISE EXCEPTION 'events: only authenticated users with a matching creator_user_id can create events'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_events_insert_auth ON public.events;
+CREATE TRIGGER trg_events_insert_auth
+  BEFORE INSERT ON public.events
+  FOR EACH ROW EXECUTE FUNCTION public._guard_events_insert();
+
+CREATE OR REPLACE FUNCTION public._guard_leagues_insert()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF public._is_postgrest_client() THEN
+    IF NOT public._guard_authed_creator_only(NEW.creator_user_id) THEN
+      RAISE EXCEPTION 'leagues: only authenticated users with a matching creator_user_id can create leagues'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_leagues_insert_auth ON public.leagues;
+CREATE TRIGGER trg_leagues_insert_auth
+  BEFORE INSERT ON public.leagues
+  FOR EACH ROW EXECUTE FUNCTION public._guard_leagues_insert();
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 11. Memberships : admin pour les ghosts, self pour les owned
+-- ════════════════════════════════════════════════════════════════════════
+-- Décision : ajouter un ghost-membership (player.user_id IS NULL) est une
+-- action d'admin (creator de la league/event). Les owned-players (auth ou
+-- anon) ne peuvent INSERT/DELETE leur propre membership que pour eux-mêmes.
+--
+-- Préserve le flow QR code anonyme : le client crée son anon user + son
+-- player (user_id = son anon id) AVANT d'insérer la membership. Le trigger
+-- voit player.user_id ≠ NULL et c'est un user `is_anonymous=TRUE` → autorise.
+--
+-- Ce qu'il bloque :
+--   * spam de ghost-memberships par non-admin (pollution leaderboard)
+--   * vandalisme par delete d'un membership qui n'est pas le sien
+
+CREATE OR REPLACE FUNCTION public._caller_is_league_admin(p_league_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql STABLE AS $$
+DECLARE
+  v_auth    UUID := auth.uid();
+  v_creator UUID;
+BEGIN
+  IF v_auth IS NULL THEN RETURN FALSE; END IF;
+  SELECT creator_user_id INTO v_creator FROM public.leagues WHERE id = p_league_id;
+  IF v_creator IS NULL THEN RETURN FALSE; END IF;
+  RETURN EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = v_creator AND auth_user_id = v_auth
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public._caller_is_event_admin(p_event_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql STABLE AS $$
+DECLARE
+  v_auth    UUID := auth.uid();
+  v_creator UUID;
+BEGIN
+  IF v_auth IS NULL THEN RETURN FALSE; END IF;
+  SELECT creator_user_id INTO v_creator FROM public.events WHERE id = p_event_id;
+  IF v_creator IS NULL THEN RETURN FALSE; END IF;
+  RETURN EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = v_creator AND auth_user_id = v_auth
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public._player_is_owned_by_caller(p_player_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql STABLE AS $$
+DECLARE
+  v_auth    UUID := auth.uid();
+  v_owner   UUID;
+BEGIN
+  IF v_auth IS NULL THEN RETURN FALSE; END IF;
+  SELECT user_id INTO v_owner FROM public.players WHERE id = p_player_id;
+  IF v_owner IS NULL THEN RETURN FALSE; END IF;
+  RETURN EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = v_owner AND auth_user_id = v_auth
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public._player_owner_is_authenticated(p_player_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql STABLE AS $$
+DECLARE
+  v_owner UUID;
+BEGIN
+  SELECT user_id INTO v_owner FROM public.players WHERE id = p_player_id;
+  IF v_owner IS NULL THEN RETURN FALSE; END IF;
+  RETURN EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = v_owner AND auth_user_id IS NOT NULL
+  );
+END;
+$$;
+
+-- ── league_memberships INSERT/DELETE ───────────────────────────────────
+CREATE OR REPLACE FUNCTION public._guard_league_membership_access()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_target_league UUID;
+  v_target_player UUID;
+  v_owner_is_auth BOOLEAN;
+BEGIN
+  IF NOT public._is_postgrest_client() THEN
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    v_target_league := NEW.league_id;
+    v_target_player := NEW.player_id;
+  ELSE
+    v_target_league := OLD.league_id;
+    v_target_player := OLD.player_id;
+  END IF;
+
+  -- Admin du contexte peut tout faire.
+  IF public._caller_is_league_admin(v_target_league) THEN
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+
+  v_owner_is_auth := public._player_owner_is_authenticated(v_target_player);
+
+  IF auth.uid() IS NOT NULL THEN
+    -- Caller authentifié : il doit être le owner du player concerné.
+    IF NOT public._player_is_owned_by_caller(v_target_player) THEN
+      RAISE EXCEPTION 'league_memberships: authenticated user can only manage their own membership'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  ELSE
+    -- Caller anonyme : le player concerné ne doit pas appartenir à un user
+    -- authentifié (pas de vandalisme contre un compte). Il peut s'agir d'un
+    -- ghost (user_id IS NULL) ou d'un player anon.
+    -- ⚠️ Ghost = NULL owner : seul l'admin (déjà géré au-dessus) peut le
+    -- gérer. Donc on rejette ici.
+    IF v_owner_is_auth THEN
+      RAISE EXCEPTION 'league_memberships: cannot touch a membership for an authenticated player'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    -- Ghost-INSERT depuis un anon = bloqué (admin only via la branche ci-dessus).
+    IF TG_OP = 'INSERT'
+       AND (SELECT user_id FROM public.players WHERE id = v_target_player) IS NULL THEN
+      RAISE EXCEPTION 'league_memberships: only the league admin can add a ghost player'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  END IF;
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_lm_access_insert ON public.league_memberships;
+CREATE TRIGGER trg_lm_access_insert
+  BEFORE INSERT ON public.league_memberships
+  FOR EACH ROW EXECUTE FUNCTION public._guard_league_membership_access();
+
+DROP TRIGGER IF EXISTS trg_lm_access_delete ON public.league_memberships;
+CREATE TRIGGER trg_lm_access_delete
+  BEFORE DELETE ON public.league_memberships
+  FOR EACH ROW EXECUTE FUNCTION public._guard_league_membership_access();
+
+-- ── event_memberships INSERT/DELETE ────────────────────────────────────
+CREATE OR REPLACE FUNCTION public._guard_event_membership_access()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_target_event  UUID;
+  v_target_player UUID;
+  v_owner_is_auth BOOLEAN;
+BEGIN
+  IF NOT public._is_postgrest_client() THEN
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    v_target_event  := NEW.event_id;
+    v_target_player := NEW.player_id;
+  ELSE
+    v_target_event  := OLD.event_id;
+    v_target_player := OLD.player_id;
+  END IF;
+
+  IF public._caller_is_event_admin(v_target_event) THEN
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+
+  v_owner_is_auth := public._player_owner_is_authenticated(v_target_player);
+
+  IF auth.uid() IS NOT NULL THEN
+    IF NOT public._player_is_owned_by_caller(v_target_player) THEN
+      RAISE EXCEPTION 'event_memberships: authenticated user can only manage their own membership'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  ELSE
+    IF v_owner_is_auth THEN
+      RAISE EXCEPTION 'event_memberships: cannot touch a membership for an authenticated player'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    IF TG_OP = 'INSERT'
+       AND (SELECT user_id FROM public.players WHERE id = v_target_player) IS NULL THEN
+      RAISE EXCEPTION 'event_memberships: only the event admin can add a ghost player'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  END IF;
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_em_access_insert ON public.event_memberships;
+CREATE TRIGGER trg_em_access_insert
+  BEFORE INSERT ON public.event_memberships
+  FOR EACH ROW EXECUTE FUNCTION public._guard_event_membership_access();
+
+DROP TRIGGER IF EXISTS trg_em_access_delete ON public.event_memberships;
+CREATE TRIGGER trg_em_access_delete
+  BEFORE DELETE ON public.event_memberships
+  FOR EACH ROW EXECUTE FUNCTION public._guard_event_membership_access();
+
 COMMIT;
