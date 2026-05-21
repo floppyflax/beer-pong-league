@@ -20,8 +20,9 @@ export default {
         "cool-gray": "#A8B0C0",      // secondary / muted text
 
         // ── Brand accents ────────────────────────────────────────────
-        "electric-blue": "#2F6BFF",      // primary CTA, ELO hero, focus
-        "electric-blue-deep": "#1E4CD9", // pressed state
+        "electric-blue": "#2F6BFF",         // primary CTA, ELO hero, focus
+        "electric-blue-deep": "#1E4CD9",    // pressed state
+        "electric-blue-deepest": "#15327A", // league hero (sober/institutional)
         "signal-red": "#FF3B3B",         // alert, live, delta-negative
         "signal-red-deep": "#D32828",    // pressed state
         "ping-yellow": "#FFD400",        // highlight, podium 1st, bracket

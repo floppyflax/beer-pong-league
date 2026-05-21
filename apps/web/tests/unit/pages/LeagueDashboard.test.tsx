@@ -125,7 +125,7 @@ describe("LeagueDashboard - Story 14-17", () => {
           <LeagueDashboard />
         </BrowserRouter>,
       );
-      // DetailHero renders mini stat cells (not the StatCard component) inside the blue hero
+      // DetailHero renders mini stat cells (not the StatCard component) inside the deep-blue hero
       expect(screen.getByText("Joueurs")).toBeInTheDocument();
       expect(screen.getAllByText("Matchs").length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("Top ELO")).toBeInTheDocument();
