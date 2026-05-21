@@ -778,10 +778,14 @@ export const PlayerProfile = () => {
                     winner={winnerSide}
                     eloChanges={match.eloChanges}
                   />
-                  <MatchEnrichedDisplay
-                    photoUrl={match.photo_url}
-                    cupsRemaining={match.cups_remaining}
-                  />
+                  {/* Footer aligné à droite (le timestamp est dans le
+                      header de la card pour PlayerProfile) */}
+                  <div className="flex justify-end mt-3">
+                    <MatchEnrichedDisplay
+                      photoUrl={match.photo_url}
+                      cupsRemaining={match.cups_remaining}
+                    />
+                  </div>
                 </div>
               );
             })}

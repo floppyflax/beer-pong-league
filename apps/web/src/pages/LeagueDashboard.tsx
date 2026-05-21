@@ -40,6 +40,7 @@ import {
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
+import { formatRelativeTime } from "@/utils/dateUtils";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
@@ -661,11 +662,16 @@ export const LeagueDashboard = () => {
                       winner={winnerA ? "A" : "B"}
                       eloChanges={match.eloChanges}
                     />
-                    {/* Story 14-28: Photo thumbnail and cups badge */}
-                    <MatchEnrichedDisplay
-                      photoUrl={match.photo_url}
-                      cupsRemaining={match.cups_remaining}
-                    />
+                    {/* Footer : timestamp à gauche, chips photo/cups à droite */}
+                    <div className="flex items-center justify-between gap-3 mt-3">
+                      <div className="text-xs text-cool-gray">
+                        {formatRelativeTime(match.date)}
+                      </div>
+                      <MatchEnrichedDisplay
+                        photoUrl={match.photo_url}
+                        cupsRemaining={match.cups_remaining}
+                      />
+                    </div>
                   </div>
                 );
               })

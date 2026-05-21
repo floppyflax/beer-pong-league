@@ -836,15 +836,16 @@ export const EventDashboard = () => {
                       eloChanges={match.eloChanges}
                       className={isAdmin ? "pr-10" : undefined}
                     />
-                    {/* Timestamp */}
-                    <div className="text-xs text-cool-gray mt-2">
-                      {getRelativeTimestamp(match.date)}
+                    {/* Footer : timestamp à gauche, chips photo/cups à droite */}
+                    <div className="flex items-center justify-between gap-3 mt-3">
+                      <div className="text-xs text-cool-gray">
+                        {getRelativeTimestamp(match.date)}
+                      </div>
+                      <MatchEnrichedDisplay
+                        photoUrl={match.photo_url}
+                        cupsRemaining={match.cups_remaining}
+                      />
                     </div>
-                    {/* Story 14-28: Photo thumbnail and cups badge */}
-                    <MatchEnrichedDisplay
-                      photoUrl={match.photo_url}
-                      cupsRemaining={match.cups_remaining}
-                    />
                   </div>
                 );
               })
