@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown, Hourglass, XCircle } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
@@ -21,6 +21,12 @@ export interface MatchHistoryCardProps {
   isLive?: boolean;
   cupsRemaining?: number | null;
   photoUrl?: string | null;
+  /**
+   * Mig 030 — anti-cheat status. `confirmed` (default, legacy) renders nothing
+   * extra. `pending` shows an hourglass badge. `rejected` shows an X badge
+   * (only ever rendered for admins, RLS hides rejected rows from others).
+   */
+  status?: "pending" | "confirmed" | "rejected";
 }
 
 function getRelativeTimestamp(date: string): string {
@@ -136,6 +142,7 @@ export function MatchHistoryCard({
   isLive,
   cupsRemaining,
   photoUrl,
+  status = "confirmed",
 }: MatchHistoryCardProps) {
   const userInA =
     currentPlayerIds?.some((id) => teamA.some((p) => p.id === id)) ?? false;
@@ -165,6 +172,27 @@ export function MatchHistoryCard({
 
       <div className="pl-4 pr-4 py-3">
         {isLive && <LiveMatchBadge isLive className="mb-2" />}
+
+        {status === "pending" && (
+          <div
+            className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
+            data-testid="match-status-pending"
+            aria-label="Match en attente de validation"
+          >
+            <Hourglass size={11} aria-hidden="true" />
+            En attente
+          </div>
+        )}
+        {status === "rejected" && (
+          <div
+            className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-signal-red/15 text-signal-red text-[10px] font-bold uppercase tracking-wide"
+            data-testid="match-status-rejected"
+            aria-label="Match refusé"
+          >
+            <XCircle size={11} aria-hidden="true" />
+            Refusé
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <TeamLine players={leftTeam} isWinner={leftWon} score={leftScore} />

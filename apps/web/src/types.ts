@@ -103,6 +103,14 @@ export interface Event {
   /** @deprecated since mig 022. Always null. Kept for legacy callers; use creator_user_id. */
   creator_anonymous_user_id?: string | null;
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
+  /**
+   * Mig 030 — Who validates scores when anti_cheat_enabled = TRUE.
+   *   - 'opponent' (default) : a player from the opposing team confirms.
+   *     Admin (event or league creator) can always bypass.
+   *   - 'admin' : only the admin can confirm.
+   * Ignored when anti_cheat_enabled = FALSE.
+   */
+  scoreValidator?: 'opponent' | 'admin';
   // Story 8.2 fields
   joinCode?: string; // Unique 6-character alphanumeric code for joining
   formatType?: 'fixed' | 'free'; // fixed = fixed team sizes (1v1, 2v2), free = flexible

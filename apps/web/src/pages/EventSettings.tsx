@@ -6,6 +6,7 @@ import {
   Ghost,
   Link as LinkIcon,
   Lock,
+  ShieldCheck,
   Target,
   Trophy,
 } from "lucide-react";
@@ -115,6 +116,13 @@ export const EventSettings = () => {
   const [propagatesToLeagueElo, setPropagatesToLeagueElo] = useState<boolean>(
     event?.propagatesToLeagueElo !== false,
   );
+  // Mig 030 — anti-cheat toggle + validator mode.
+  const [antiCheatEnabled, setAntiCheatEnabled] = useState<boolean>(
+    event?.anti_cheat_enabled === true,
+  );
+  const [scoreValidator, setScoreValidator] = useState<'opponent' | 'admin'>(
+    event?.scoreValidator ?? 'opponent',
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
 
@@ -129,6 +137,8 @@ export const EventSettings = () => {
     setPlayerLimit(String(event.maxPlayers ?? 16));
     setIsPrivate(event.isPrivate ?? true);
     setPropagatesToLeagueElo(event.propagatesToLeagueElo !== false);
+    setAntiCheatEnabled(event.anti_cheat_enabled === true);
+    setScoreValidator(event.scoreValidator ?? 'opponent');
   }, [event?.id]);
 
   const initialDateIso = toIsoDay(event?.date);
@@ -224,6 +234,19 @@ export const EventSettings = () => {
       const initialPropagation = event.propagatesToLeagueElo !== false;
       if (event.leagueId && propagatesToLeagueElo !== initialPropagation) {
         updates.propagatesToLeagueElo = propagatesToLeagueElo;
+      }
+
+      // Mig 030 — anti-cheat toggle + score validator. We send the
+      // validator even when anti-cheat is OFF so the admin's preference
+      // survives a toggle off / on cycle.
+      const initialAntiCheat = event.anti_cheat_enabled === true;
+      if (antiCheatEnabled !== initialAntiCheat) {
+        updates.antiCheatEnabled = antiCheatEnabled;
+      }
+      const initialValidator: 'opponent' | 'admin' =
+        event.scoreValidator ?? 'opponent';
+      if (scoreValidator !== initialValidator) {
+        updates.scoreValidator = scoreValidator;
       }
 
       if (Object.keys(updates).length === 0) {
@@ -415,6 +438,97 @@ export const EventSettings = () => {
               );
             })}
           </div>
+        </div>
+
+        {/* Anti-cheat — Mig 030. Toggle + conditional validator radio. */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck size={12} />
+              Anti-triche
+            </span>
+          </span>
+
+          <div
+            className="flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card"
+            data-testid="anti-cheat-toggle-row"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-archivo font-semibold text-sm">
+                Validation des scores
+              </div>
+              <div className="text-cool-gray text-xs mt-0.5">
+                Les matchs restent en attente jusqu&apos;à validation.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAntiCheatEnabled((v) => !v)}
+              className={toggleClass(antiCheatEnabled)}
+              aria-label="Validation des scores"
+              aria-pressed={antiCheatEnabled}
+              data-testid="anti-cheat-toggle"
+            >
+              <span className={toggleKnob(antiCheatEnabled)} />
+            </button>
+          </div>
+
+          {antiCheatEnabled && (
+            <div
+              className="space-y-1.5"
+              data-testid="score-validator-options"
+            >
+              <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+                Validateur
+              </span>
+              {[
+                {
+                  value: 'opponent' as const,
+                  label: "Par l'équipe adverse",
+                  description:
+                    "Un joueur de l'équipe adverse doit confirmer.",
+                },
+                {
+                  value: 'admin' as const,
+                  label: "Par l'admin",
+                  description:
+                    event?.leagueId
+                      ? "Seul l'admin de l'event ou de la ligue rattachée peut valider."
+                      : "Seul l'admin de l'event peut valider.",
+                },
+              ].map((option) => {
+                const active = scoreValidator === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex items-center gap-3 p-3 rounded-card border cursor-pointer transition-colors ${
+                      active
+                        ? 'border-electric-blue bg-electric-blue/10'
+                        : 'border-card bg-navy-deep hover:border-card-muted'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="score-validator"
+                      value={option.value}
+                      checked={active}
+                      onChange={() => setScoreValidator(option.value)}
+                      className="accent-electric-blue"
+                      data-testid={`score-validator-${option.value}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-semibold text-sm">
+                        {option.label}
+                      </div>
+                      <div className="text-cool-gray text-xs">
+                        {option.description}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Mode (read-only) */}

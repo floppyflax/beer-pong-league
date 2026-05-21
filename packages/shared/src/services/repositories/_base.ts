@@ -124,6 +124,8 @@ export interface EventRow {
   location?: string | null;
   creator_user_id: string | null;
   anti_cheat_enabled?: boolean;
+  // Mig 030 — score validator when anti_cheat_enabled = TRUE.
+  score_validator?: 'opponent' | 'admin';
   join_code?: string;
   format_type?: 'fixed' | 'free';
   team1_size?: number | null;

@@ -956,7 +956,7 @@ export const RecordMatch = () => {
         }
         await reloadData();
       } else if (contextType === "event" && event) {
-        const eloChanges = await recordEventMatch(
+        const outcome = await recordEventMatch(
           id,
           teamAIds,
           teamBIds,
@@ -964,16 +964,29 @@ export const RecordMatch = () => {
           { scoreA, scoreB },
           participants,
         );
-        if (eloChanges) {
-          sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(eloChanges));
+        // Mig 030 — when anti-cheat is on, the match is pending: skip the
+        // EloChangeDisplay payload (no preview while awaiting confirmation)
+        // and toast a dedicated message.
+        if (outcome?.status === 'pending') {
+          toast.success("Score envoyé en validation", { icon: "⏳" });
+        } else if (outcome) {
+          sessionStorage.setItem(
+            `eloChanges_${id}`,
+            JSON.stringify(outcome.eloChanges),
+          );
+          toast.success("Match enregistré !");
         }
-        toast.success("Match enregistré !");
       } else if (contextType === "league") {
-        const eloChanges = await recordMatch(id, teamAIds, teamBIds, winner);
-        if (eloChanges) {
-          sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(eloChanges));
+        const outcome = await recordMatch(id, teamAIds, teamBIds, winner);
+        if (outcome?.status === 'pending') {
+          toast.success("Score envoyé en validation", { icon: "⏳" });
+        } else if (outcome) {
+          sessionStorage.setItem(
+            `eloChanges_${id}`,
+            JSON.stringify(outcome.eloChanges),
+          );
+          toast.success("Match enregistré !");
         }
-        toast.success("Match enregistré !");
       }
       navigate(backPath);
     } catch (error) {

@@ -71,6 +71,11 @@ const EventSettings = lazy(() =>
     default: m.EventSettings,
   })),
 );
+const PendingMatches = lazy(() =>
+  import("./pages/PendingMatches").then((m) => ({
+    default: m.PendingMatches,
+  })),
+);
 const LeagueSettings = lazy(() =>
   import("./pages/LeagueSettings").then((m) => ({
     default: m.LeagueSettings,
@@ -281,6 +286,14 @@ function AppContent() {
                       element={
                         <ErrorBoundary>
                           <EventSettings />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/event/:eventId/validate"
+                      element={
+                        <ErrorBoundary>
+                          <PendingMatches />
                         </ErrorBoundary>
                       }
                     />

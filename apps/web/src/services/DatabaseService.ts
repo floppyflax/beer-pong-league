@@ -20,11 +20,15 @@ import {
   type EventUpdates,
 } from './repositories/EventsRepository';
 import { playersRepository } from './repositories/PlayersRepository';
-import { matchesRepository } from './repositories/MatchesRepository';
+import {
+  matchesRepository,
+  type RecordMatchResult,
+  type ConfirmMatchDecision,
+} from './repositories/MatchesRepository';
 
 // Re-export so external callers (LeagueContext, tests) can import the shape
 // of the updates object without digging into the repository module.
-export type { EventUpdates };
+export type { EventUpdates, RecordMatchResult, ConfirmMatchDecision };
 
 class DatabaseService {
   // ===== Leagues =====
@@ -248,7 +252,7 @@ class DatabaseService {
     eloChanges: Record<string, { before: number; after: number; change: number }>,
     userId?: string | null,
     anonymousUserId?: string | null
-  ): Promise<void> {
+  ): Promise<RecordMatchResult> {
     return matchesRepository.recordMatch(leagueId, match, eloChanges, userId, anonymousUserId);
   }
 
@@ -261,7 +265,7 @@ class DatabaseService {
     leagueEloChanges?: Record<string, { before: number; after: number; change: number }>,
     /** @deprecated since mig 022. */
     eventPlayerIdToLeaguePlayerId?: Record<string, string>
-  ): Promise<void> {
+  ): Promise<RecordMatchResult> {
     return matchesRepository.recordEventMatch(
       eventId,
       match,
@@ -271,6 +275,15 @@ class DatabaseService {
       leagueEloChanges,
       eventPlayerIdToLeaguePlayerId
     );
+  }
+
+  /** Mig 030 — confirm or reject a pending anti-cheat match (RPC `confirm_match`). */
+  confirmMatch(
+    matchId: string,
+    decision: ConfirmMatchDecision,
+    callerUserId: string,
+  ): Promise<void> {
+    return matchesRepository.confirmMatch(matchId, decision, callerUserId);
   }
 }
 

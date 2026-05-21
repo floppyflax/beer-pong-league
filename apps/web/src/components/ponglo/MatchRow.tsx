@@ -6,6 +6,7 @@
  * - `match`: neutral score display, no border-left (used in event bracket view)
  */
 
+import { Hourglass, XCircle } from 'lucide-react';
 import type { Match } from '@/types';
 
 export interface MatchRowProps {
@@ -18,6 +19,11 @@ export interface MatchRowProps {
   /** Player name lookup for displaying team names */
   playerNames?: Record<string, string>;
   className?: string;
+  /**
+   * Mig 030 — anti-cheat status. When omitted, defaults to the value on
+   * `match.status` (if present) or `'confirmed'`. Drives the inline badge.
+   */
+  status?: 'pending' | 'confirmed' | 'rejected';
 }
 
 function formatPlayerList(ids: string[], names?: Record<string, string>): string {
@@ -43,7 +49,9 @@ export function MatchRow({
   currentPlayerId,
   playerNames,
   className,
+  status,
 }: MatchRowProps) {
+  const effectiveStatus = status ?? match.status ?? 'confirmed';
   // Derive perspective from currentPlayerId if not explicitly given
   const effectivePerspective =
     userPerspective ??
@@ -107,6 +115,28 @@ export function MatchRow({
           <span className="text-white truncate font-medium">{teamBLabel}</span>
         </div>
       </div>
+
+      {/* Status badge (mig 030 — anti-cheat) */}
+      {effectiveStatus === 'pending' && (
+        <span
+          className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[9px] font-bold uppercase tracking-wide"
+          data-testid="match-row-status-pending"
+          aria-label="Match en attente de validation"
+        >
+          <Hourglass size={10} aria-hidden="true" />
+          En attente
+        </span>
+      )}
+      {effectiveStatus === 'rejected' && (
+        <span
+          className="flex-shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-signal-red/15 text-signal-red text-[9px] font-bold uppercase tracking-wide"
+          data-testid="match-row-status-rejected"
+          aria-label="Match refusé"
+        >
+          <XCircle size={10} aria-hidden="true" />
+          Refusé
+        </span>
+      )}
 
       {/* Outcome + delta (history variant) */}
       {variant === 'history' && (
