@@ -1,10 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
+import autoAnimate from "@formkit/auto-animate";
 import { PlayerCard } from "@/components/design-system/PlayerCard";
 import {
   useSelfPacedScroll,
   type SelfPacedScrollPhase,
 } from "../hooks/useSelfPacedScroll";
 import type { DisplaySource } from "../types";
+
+/** Couleur du glow d'un protagoniste selon le signe de son delta ELO. */
+function glowColor(eloDelta: number | undefined): string {
+  if (eloDelta === undefined || eloDelta === 0) return "rgba(47,107,255,0.75)"; // electric-blue
+  return eloDelta > 0 ? "rgba(183,255,59,0.8)" : "rgba(255,59,59,0.8)"; // lime / signal-red
+}
 
 interface Props {
   source: DisplaySource;
@@ -54,6 +61,19 @@ export function RankingScene({
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
 
+  // Réordonnancement animé : les lignes glissent vers leur nouvelle position
+  // quand le classement change. API core (impérative) pour éviter le souci de
+  // double copie de React de l'entrée /react en monorepo. auto-animate respecte
+  // prefers-reduced-motion nativement.
+  const topListRef = useRef<HTMLDivElement>(null);
+  const restListRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (topListRef.current) autoAnimate(topListRef.current);
+  }, []);
+  useEffect(() => {
+    if (restListRef.current) autoAnimate(restListRef.current);
+  }, []);
+
   const top10 = source.players.slice(0, 10);
   const rest = source.players.slice(10);
 
@@ -67,17 +87,30 @@ export function RankingScene({
         ref={scrollRef}
         className="flex-1 overflow-y-auto overflow-x-hidden relative min-h-0"
       >
-        <div className="space-y-2.5 md:space-y-3 mb-6">
+        <div ref={topListRef} className="space-y-2.5 md:space-y-3 mb-6">
           {top10.map((player) => {
             const isHighlighted = highlightedPlayerIds?.has(player.id);
             return (
               <div
                 key={player.id}
-                className={`transition-all duration-500 rounded-card ${
+                className={`rounded-card ${
                   isHighlighted
-                    ? "ring-2 ring-electric-blue shadow-[0_3px_0_#0052D4] scale-[1.01]"
+                    ? "ring-2 animate-glow-pulse scale-[1.02]"
+                    : ""
+                } ${
+                  isHighlighted
+                    ? player.eloDelta && player.eloDelta > 0
+                      ? "ring-lime"
+                      : player.eloDelta && player.eloDelta < 0
+                        ? "ring-signal-red"
+                        : "ring-electric-blue"
                     : ""
                 }`}
+                style={
+                  isHighlighted
+                    ? ({ ["--glow"]: glowColor(player.eloDelta) } as CSSProperties)
+                    : undefined
+                }
               >
                 <PlayerCard
                   variant="leaderRow"
@@ -99,7 +132,7 @@ export function RankingScene({
         </div>
 
         {rest.length > 0 && (
-          <div className="space-y-2">
+          <div ref={restListRef} className="space-y-2">
             {rest.map((player) => (
               <div
                 key={player.id}

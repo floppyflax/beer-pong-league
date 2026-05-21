@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLeague } from "../../context/LeagueContext";
 import { PersistentFrame } from "./components/PersistentFrame";
 import { PodiumStand } from "./components/PodiumStand";
 import { RecentMatchesPanel } from "./components/RecentMatchesPanel";
@@ -13,6 +14,7 @@ import {
   useDisplayScenes,
   type SceneConfig,
 } from "./hooks/useDisplayScenes";
+import { useDisplayAutoRefresh } from "./hooks/useDisplayAutoRefresh";
 import type { SelfPacedScrollPhase } from "./hooks/useSelfPacedScroll";
 import type { DisplaySource } from "./types";
 
@@ -37,6 +39,10 @@ const SCENES: SceneConfig[] = [
  */
 export function DisplayShell({ source }: Props) {
   const navigate = useNavigate();
+  const { reloadData } = useLeague();
+
+  // Auto-refresh : l'écran se met à jour seul quand un match tombe ailleurs.
+  useDisplayAutoRefresh(reloadData, { intervalMs: 10_000, enabled: !!source });
 
   // Highlight 5s les joueurs du dernier match dès qu'il change
   const lastMatchIdRef = useRef<string | null>(null);
@@ -145,8 +151,10 @@ export function DisplayShell({ source }: Props) {
       source={source}
       rightRail={
         <>
-          <PodiumStand players={top3} variant="compact" />
-          <RecentMatchesPanel source={source} max={5} />
+          <div className="flex-shrink-0">
+            <PodiumStand players={top3} variant="compact" />
+          </div>
+          <RecentMatchesPanel source={source} />
         </>
       }
     >

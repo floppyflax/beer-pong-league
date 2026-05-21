@@ -9,18 +9,18 @@ interface Props {
  * Liste des derniers matchs — réutilisée dans le rail droit du DisplayShell.
  * Affichage compact : équipes nommées + scores, dernier match mis en avant.
  */
-export function RecentMatchesPanel({ source, max = 5 }: Props) {
+export function RecentMatchesPanel({ source, max = 12 }: Props) {
   const matches = source.matches.slice(0, max);
 
   const playerName = (id: string) =>
     source.players.find((p) => p.id === id)?.name ?? "Joueur";
 
   return (
-    <div className="bg-navy-soft border border-card rounded-card p-4 md:p-5 flex-shrink-0">
-      <h3 className="font-archivo font-extrabold uppercase tracking-[-0.4px] text-lg md:text-xl mb-3">
+    <div className="bg-navy-soft border border-card rounded-card p-4 md:p-5 flex-1 min-h-0 flex flex-col">
+      <h3 className="font-archivo font-extrabold uppercase tracking-[-0.4px] text-lg md:text-xl mb-3 flex-shrink-0">
         Derniers matchs
       </h3>
-      <div className="space-y-2">
+      <div className="space-y-2 overflow-y-auto min-h-0 flex-1">
         {matches.length === 0 ? (
           <p className="font-mono text-[10px] uppercase tracking-[2px] text-cool-gray text-center py-4">
             En attente du premier match

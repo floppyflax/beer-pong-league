@@ -196,10 +196,18 @@ export default {
           "0%": { transform: "rotateY(0deg)" },
           "100%": { transform: "rotateY(360deg)" },
         },
+        // Brillance pulsée pilotée par la CSS var `--glow` (couleur adaptable
+        // lime/rouge/bleu selon le contexte). Utilisé en mode diffusion pour
+        // mettre en avant les protagonistes d'un nouveau match.
+        "glow-pulse": {
+          "0%, 100%": { boxShadow: "0 0 6px 0 var(--glow, rgba(47,107,255,0.5))" },
+          "50%": { boxShadow: "0 0 30px 4px var(--glow, rgba(47,107,255,0.75))" },
+        },
       },
       animation: {
         "invite-sheet-up": "sheet-up 220ms cubic-bezier(0.16, 1, 0.3, 1)",
         "cup-spin": "cup-spin 1.6s linear infinite",
+        "glow-pulse": "glow-pulse 1.4s ease-in-out infinite",
       },
     },
   },
