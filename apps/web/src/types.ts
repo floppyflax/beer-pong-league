@@ -56,6 +56,8 @@ export interface League {
   endedAt?: string | null;             // ISO timestamp — admin "Clôturer la league"
   currentSeasonNumber?: number;        // 1-indexed, bumped via startNewSeason()
   currentSeasonStartedAt?: string;     // ISO timestamp — début saison courante
+  // Mig 029 — cycle de saison à 2 étapes
+  currentSeasonEndedAt?: string | null; // ISO timestamp — saison close, en attente du démarrage de la suivante (état between_seasons)
 }
 
 /** League season archive (mig 028 — league_season_archives row). */

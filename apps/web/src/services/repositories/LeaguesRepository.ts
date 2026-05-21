@@ -151,6 +151,8 @@ class LeaguesRepository extends BaseRepository {
         endedAt: row.ended_at ?? null,
         currentSeasonNumber: row.current_season_number ?? 1,
         currentSeasonStartedAt: row.current_season_started_at ?? row.created_at,
+        // Mig 029 — between_seasons marker
+        currentSeasonEndedAt: row.current_season_ended_at ?? null,
       }));
     } catch (error) {
       console.error('Error loading leagues from Supabase:', error);
@@ -250,7 +252,12 @@ class LeaguesRepository extends BaseRepository {
 
   private patchLocalLeague(
     leagueId: string,
-    patch: Partial<Pick<League, 'pausedAt' | 'endedAt' | 'currentSeasonNumber' | 'currentSeasonStartedAt'>>,
+    patch: Partial<
+      Pick<
+        League,
+        'pausedAt' | 'endedAt' | 'currentSeasonNumber' | 'currentSeasonStartedAt' | 'currentSeasonEndedAt'
+      >
+    >,
   ): void {
     const leagues = this.loadLeaguesFromLocalStorage();
     const league = leagues.find((l) => l.id === leagueId);
@@ -318,8 +325,29 @@ class LeaguesRepository extends BaseRepository {
   }
 
   /**
-   * Démarre une nouvelle saison via la RPC `start_new_league_season` :
-   * archive le classement, reset les ELO à 1000, bump le numéro de saison.
+   * Étape 1 du cycle de saison (mig 029) — `finish_current_league_season` :
+   * snapshot le classement dans `league_season_archives` et pose
+   * `current_season_ended_at`. La ligue entre en état `between_seasons` :
+   * plus aucun match enregistrable jusqu'à `startNewSeason`. Les ELO et le
+   * numéro de saison restent inchangés.
+   */
+  async finishCurrentSeason(leagueId: string): Promise<void> {
+    if (!this.isSupabaseAvailable()) {
+      throw new Error('Clore la saison nécessite une connexion serveur.');
+    }
+    const { error } = await sb!.rpc('finish_current_league_season', {
+      p_league_id: leagueId,
+    });
+    if (error) throw error;
+    const nowIso = new Date().toISOString();
+    this.patchLocalLeague(leagueId, { currentSeasonEndedAt: nowIso });
+  }
+
+  /**
+   * Étape 2 du cycle de saison (mig 029) — `start_new_league_season` :
+   * reset les ELO à 1000, bump le numéro de saison, clear le marker
+   * `current_season_ended_at`. Exige que `finishCurrentSeason` ait été
+   * appelé préalablement (sinon erreur SQL "season not closed yet").
    * Renvoie le numéro de la nouvelle saison.
    */
   async startNewSeason(leagueId: string): Promise<number> {
@@ -335,6 +363,7 @@ class LeaguesRepository extends BaseRepository {
     this.patchLocalLeague(leagueId, {
       currentSeasonNumber: newSeasonNumber,
       currentSeasonStartedAt: nowIso,
+      currentSeasonEndedAt: null,
     });
     return newSeasonNumber;
   }

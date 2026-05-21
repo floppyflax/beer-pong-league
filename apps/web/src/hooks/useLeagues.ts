@@ -32,6 +32,7 @@ export const useLeagues = () => {
       resumeLeague: ctx.resumeLeague,
       finishLeague: ctx.finishLeague,
       reopenLeague: ctx.reopenLeague,
+      finishCurrentLeagueSeason: ctx.finishCurrentLeagueSeason,
       startNewLeagueSeason: ctx.startNewLeagueSeason,
     }),
     [
@@ -48,6 +49,7 @@ export const useLeagues = () => {
       ctx.resumeLeague,
       ctx.finishLeague,
       ctx.reopenLeague,
+      ctx.finishCurrentLeagueSeason,
       ctx.startNewLeagueSeason,
     ],
   );

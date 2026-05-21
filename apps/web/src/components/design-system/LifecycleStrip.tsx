@@ -10,9 +10,13 @@
  */
 
 import React from 'react';
-import { Pause, Play, Archive, type LucideIcon } from 'lucide-react';
+import { Pause, Play, Archive, RotateCcw, type LucideIcon } from 'lucide-react';
 
-export type LifecycleStripTone = 'not_started' | 'paused' | 'finished';
+export type LifecycleStripTone =
+  | 'not_started'
+  | 'paused'
+  | 'between_seasons'
+  | 'finished';
 
 export interface LifecycleStripProps {
   tone: LifecycleStripTone;
@@ -25,6 +29,7 @@ export interface LifecycleStripProps {
 const TONE_ICON: Record<LifecycleStripTone, LucideIcon> = {
   not_started: Play,
   paused: Pause,
+  between_seasons: RotateCcw,
   finished: Archive,
 };
 

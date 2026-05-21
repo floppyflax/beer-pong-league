@@ -83,6 +83,8 @@ export interface LeagueRow {
   ended_at?: string | null;
   current_season_number?: number;
   current_season_started_at?: string;
+  // Mig 029 — between_seasons marker
+  current_season_ended_at?: string | null;
 }
 
 /** Mig 028 — snapshot d'une saison close, table league_season_archives. */

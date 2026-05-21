@@ -15,8 +15,6 @@ import {
   Ghost,
   Pause,
   Play,
-  Archive,
-  RotateCcw,
 } from "lucide-react";
 import { getLeagueLifecycle, canRecordLeagueMatch } from "@/utils/leagueLifecycle";
 import toast from "react-hot-toast";
@@ -56,9 +54,6 @@ export const LeagueDashboard = () => {
     deleteLeague,
     pauseLeague,
     resumeLeague,
-    finishLeague,
-    reopenLeague,
-    startNewLeagueSeason,
     isLoadingInitialData,
     reloadData,
   } = useLeague();
@@ -156,26 +151,15 @@ export const LeagueDashboard = () => {
     }
   };
 
+  // Menu overflow — Paramètres + Mode Diffusion sont passés en iconOnly dans le
+  // hero (mig 029). Le menu garde l'historique, les ghosts admin, les exports
+  // et la suppression admin.
   const detailHeroMenuItems = [
     {
       label: "Historique des saisons",
       icon: <History size={20} />,
       onClick: () => navigate(`/league/${league.id}/seasons`),
     },
-    {
-      label: "Paramètres",
-      icon: <Settings size={20} />,
-      onClick: () => navigate(`/league/${league.id}/settings`),
-    },
-    ...(isAdmin
-      ? [
-          {
-            label: "Mode Diffusion",
-            icon: <Monitor size={20} />,
-            onClick: () => navigate(`/league/${league.id}/display`),
-          },
-        ]
-      : []),
     ...(isAdmin && leagueGhosts.length > 0
       ? [
           {
@@ -321,27 +305,19 @@ export const LeagueDashboard = () => {
         ? "En pause"
         : "Active";
 
-  const handleStartNewSeason = async () => {
-    if (
-      !confirm(
-        `Démarrer la Saison ${seasonNumber + 1} ?\n\nLe classement actuel (Saison ${seasonNumber}) sera archivé et les ELO de tous les joueurs seront reset à 1000.\n\nCette action est irréversible.`,
-      )
-    )
-      return;
-    try {
-      await startNewLeagueSeason(league.id);
-    } catch {
-      // toast déjà affiché côté context
-    }
-  };
-
+  // Hero actions — spec uniforme event/league (mig 029) :
+  //  • Admin : [Ajouter primary] [Pause/Reprendre iconOnly] [Paramètres iconOnly] [Mode Diffusion iconOnly]
+  //  • Non-admin / invité : [Ajouter primary] uniquement.
+  //
+  // Les actions Clôturer/Réouvrir et le cycle de saison (forcer la fin →
+  // démarrer la suivante) ont migré dans la page Paramètres (mig 029).
   const detailHeroAdminActions: Parameters<typeof DetailHero>[0]["actions"] = [];
   if (isAdmin || canInvite) {
     detailHeroAdminActions.push({
-      label: "Inviter",
+      label: "Ajouter",
       icon: <UserPlus size={16} />,
       onClick: () => setShowAddPlayer(true),
-      variant: "secondary",
+      variant: "primary",
     });
   }
   if (isAdmin) {
@@ -363,39 +339,22 @@ export const LeagueDashboard = () => {
         },
         variant: "iconOnly",
       });
-      detailHeroAdminActions.push({
-        label: `Démarrer la Saison ${seasonNumber + 1}`,
-        icon: <RotateCcw size={18} />,
-        onClick: handleStartNewSeason,
-        variant: "iconOnly",
-      });
-    } else if (lifecycle === "finished") {
-      detailHeroAdminActions.push({
-        label: "Réouvrir la ligue",
-        icon: <Play size={18} />,
-        onClick: () => {
-          void reopenLeague(league.id);
-        },
-        variant: "iconOnly",
-      });
     }
-    // Clôturer : disponible uniquement quand active (sinon n'a pas de sens)
-    if (lifecycle === "active") {
-      detailHeroAdminActions.push({
-        label: "Clôturer la ligue",
-        icon: <Archive size={18} />,
-        onClick: () => {
-          if (
-            confirm(
-              "Clôturer cette ligue ? Plus aucun match ne pourra être enregistré (réversible via Réouvrir).",
-            )
-          ) {
-            void finishLeague(league.id);
-          }
-        },
-        variant: "iconOnly",
-      });
-    }
+    // États `between_seasons` et `finished` → pas de bouton lifecycle dans le
+    // hero. L'admin gère via Paramètres (cf. LifecycleStrip ci-dessous qui
+    // l'oriente).
+    detailHeroAdminActions.push({
+      label: "Paramètres",
+      icon: <Settings size={18} />,
+      onClick: () => navigate(`/league/${league.id}/settings`),
+      variant: "iconOnly",
+    });
+    detailHeroAdminActions.push({
+      label: "Mode Diffusion",
+      icon: <Monitor size={18} />,
+      onClick: () => navigate(`/league/${league.id}/display`),
+      variant: "iconOnly",
+    });
   }
 
   return (
@@ -420,23 +379,35 @@ export const LeagueDashboard = () => {
       />
 
       {/* Lifecycle status strip — sticky, ping-yellow accent. Sit entre le hero et les tabs. */}
-      {(lifecycle === "paused" || lifecycle === "finished") && (
+      {lifecycle !== "active" && (
         <LifecycleStrip
-          tone={lifecycle === "paused" ? "paused" : "finished"}
+          tone={
+            lifecycle === "paused"
+              ? "paused"
+              : lifecycle === "between_seasons"
+                ? "between_seasons"
+                : "finished"
+          }
           testId="league-lifecycle-banner"
           title={
             lifecycle === "paused"
               ? "Ligue en pause"
-              : "Ligue terminée"
+              : lifecycle === "between_seasons"
+                ? `Saison ${seasonNumber} close — en attente`
+                : "Ligue terminée"
           }
           description={
             lifecycle === "paused"
               ? isAdmin
                 ? "Reprends la ligue pour réautoriser l'enregistrement des matchs."
                 : "L'enregistrement de matchs est suspendu."
-              : isAdmin
-                ? "Plus aucun match ne peut être enregistré. Réouvre la ligue depuis le menu admin si besoin."
-                : "Cette ligue est clôturée. Le classement est figé."
+              : lifecycle === "between_seasons"
+                ? isAdmin
+                  ? `Démarre la Saison ${seasonNumber + 1} depuis Paramètres.`
+                  : "Aucun match ne peut être enregistré tant que la saison suivante n'a pas démarré."
+                : isAdmin
+                  ? "Plus aucun match ne peut être enregistré. Réouvre la ligue depuis Paramètres si besoin."
+                  : "Cette ligue est clôturée. Le classement est figé."
           }
         />
       )}

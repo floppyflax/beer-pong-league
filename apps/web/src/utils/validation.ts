@@ -86,6 +86,8 @@ export const leagueSchema = z.object({
   endedAt: z.string().datetime().nullable().optional(),
   currentSeasonNumber: z.number().int().positive().optional(),
   currentSeasonStartedAt: z.string().datetime().optional(),
+  // Mig 029 — between_seasons marker
+  currentSeasonEndedAt: z.string().datetime().nullable().optional(),
 });
 
 export type League = z.infer<typeof leagueSchema>;
