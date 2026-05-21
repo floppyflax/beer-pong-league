@@ -14,14 +14,16 @@ export function getPlatform(): 'web' {
 }
 
 /**
- * Coarse user-agent sniff used to branch the image-capture flow between
- * `WebcamCaptureSheet` (desktop) and the native picker (`input[capture]`,
- * mobile). UA sniffing is intentional here — `pointer: coarse` would catch
- * touch-screen laptops where the native camera intent doesn't apply.
+ * Whether the live in-app camera (getUserMedia) is usable. Drives the
+ * "take a photo" flow: when true we open `WebcamCaptureSheet` (a real camera,
+ * which is the only way to capture on desktop where `input[capture]` is
+ * ignored, and also works on modern mobile); otherwise we fall back to the
+ * native `input[capture]` picker. Capability detection beats UA sniffing,
+ * which misfired on some desktop browsers and dropped them onto the picker.
  */
-export function isMobileDevice(): boolean {
+export function supportsGetUserMedia(): boolean {
   return (
     typeof navigator !== 'undefined' &&
-    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    typeof navigator.mediaDevices?.getUserMedia === 'function'
   );
 }
