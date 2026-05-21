@@ -14,6 +14,7 @@ import { WebcamCaptureSheet } from "@/components/WebcamCaptureSheet";
 import { premiumService } from "@/services/PremiumService";
 import { authService } from "@/services/AuthService";
 import { PhotoService } from "@/services/PhotoService";
+import { isMobileDevice } from "@/utils/platform";
 import { Trophy, Calendar, Mail, LogOut, Crown, ChevronRight, Camera, Image as ImageIcon, Pencil, Check, X } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import toast from "react-hot-toast";
@@ -107,10 +108,6 @@ export const UserProfile = () => {
   };
 
   // ── Avatar upload ──────────────────────────────────────────────────────────
-  const isMobileDevice = () =>
-    typeof navigator !== "undefined" &&
-    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
   const uploadAvatarFromBlob = async (blob: Blob) => {
     if (!user?.id) return;
     setIsUploadingAvatar(true);
