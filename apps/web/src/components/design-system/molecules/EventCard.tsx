@@ -78,12 +78,14 @@ export const EventCard: React.FC<EventCardProps> = ({
   const body = (
     <>
       {attachedLeague && (
-        <div className="mt-1.5 flex items-center gap-1.5 text-electric-blue text-[12px] font-archivo font-extrabold uppercase tracking-[0.5px]">
-          <LinkIcon size={12} className="flex-shrink-0" />
-          <span className="truncate">{attachedLeague.name}</span>
+        <div className="mt-2 flex">
+          <span className="inline-flex items-center gap-1.5 max-w-full px-2 py-0.5 rounded-full bg-electric-blue/10 border border-electric-blue/25 text-electric-blue text-[11px] font-archivo font-extrabold uppercase tracking-[0.5px]">
+            <LinkIcon size={11} className="flex-shrink-0 opacity-70" />
+            <span className="truncate">{attachedLeague.name}</span>
+          </span>
         </div>
       )}
-      <div className="text-[13px] text-cool-gray mt-0.5 flex items-center gap-1.5 flex-wrap">
+      <div className="text-[13px] text-cool-gray mt-1.5 flex items-center gap-1.5 flex-wrap">
         <span>
           {playerCount} {playerCount === 1 ? "joueur" : "joueurs"}
         </span>
