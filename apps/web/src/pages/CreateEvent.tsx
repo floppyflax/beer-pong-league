@@ -374,9 +374,44 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
           onBack={() => navigate("/competitions?tab=events")}
         />
 
-        {/* League attachment banner — visible when ?leagueId= matches an
-            existing league. Tells the user every player of the event will
-            also be added to the league. "Détacher" reverts to standalone. */}
+        {/* League attachment — three states:
+            1. user has no leagues at all → nothing shown (silent, no nag)
+            2. user has leagues, none selected → discreet picker
+               (facultatif) so they can opt in
+            3. league selected (either ?leagueId= or via picker) →
+               the blue banner with "Détacher" */}
+        {leagues.length > 0 && !attachedLeague && (
+          <div className="space-y-2 mb-6">
+            <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+              <span className="inline-flex items-center gap-1.5">
+                <LinkIcon size={12} />
+                Rattacher à une ligue (facultatif)
+              </span>
+            </span>
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  setAttachedLeagueId(e.target.value);
+                  setHasDetached(false);
+                }
+              }}
+              className="w-full bg-navy-soft border border-card rounded-md p-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-electric-blue/30 focus:border-electric-blue"
+              aria-label="Rattacher à une ligue (facultatif)"
+            >
+              <option value="">Aucune ligue</option>
+              {leagues.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-cool-gray text-xs">
+              Les joueurs ajoutés à cet événement seront aussi ajoutés à la ligue.
+            </p>
+          </div>
+        )}
+
         {attachedLeague && (
           <div
             className="w-full bg-electric-blue/10 border border-electric-blue/40 rounded-card p-4 mb-6 flex items-start gap-3"

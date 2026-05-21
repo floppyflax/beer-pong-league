@@ -9,11 +9,13 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { Link as LinkIcon } from "lucide-react";
 import type { Event } from "@/types";
 import { CardShell, type CardShellStatus } from "./CardShell";
 import { getEventLifecycle } from "@/utils/eventLifecycle";
 import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
+import { useLeague } from "@/context/LeagueContext";
 import { useMyEventRank } from "@/hooks/useMyContextRankings";
 import { MyRankBadge } from "../atoms/MyRankBadge";
 
@@ -30,6 +32,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
+  const { leagues } = useLeague();
   const myRank = useMyEventRank(event.id);
 
   const isOwner =
@@ -66,20 +69,34 @@ export const EventCard: React.FC<EventCardProps> = ({
     tone: lifecycle === "in_progress" ? "live" : "muted",
   };
 
+  // League-attached events get a discreet chip under the title. Standalone
+  // events render nothing extra — silence is the default state.
+  const attachedLeague = event.leagueId
+    ? leagues.find((l) => l.id === event.leagueId)
+    : null;
+
   const body = (
-    <div className="text-[13px] text-cool-gray mt-0.5 flex items-center gap-1.5 flex-wrap">
-      <span>
-        {playerCount} {playerCount === 1 ? "joueur" : "joueurs"}
-      </span>
-      <span className="opacity-40">·</span>
-      <span>
-        {matchCount} {matchCount === 1 ? "match" : "matchs"}
-      </span>
-      <span className="opacity-40">·</span>
-      <span>{formatLabel}</span>
-      <span className="opacity-40">·</span>
-      <span className="text-lime font-bold">ELO</span>
-    </div>
+    <>
+      {attachedLeague && (
+        <div className="mt-1.5 flex items-center gap-1.5 text-electric-blue text-[12px] font-archivo font-extrabold uppercase tracking-[0.5px]">
+          <LinkIcon size={12} className="flex-shrink-0" />
+          <span className="truncate">{attachedLeague.name}</span>
+        </div>
+      )}
+      <div className="text-[13px] text-cool-gray mt-0.5 flex items-center gap-1.5 flex-wrap">
+        <span>
+          {playerCount} {playerCount === 1 ? "joueur" : "joueurs"}
+        </span>
+        <span className="opacity-40">·</span>
+        <span>
+          {matchCount} {matchCount === 1 ? "match" : "matchs"}
+        </span>
+        <span className="opacity-40">·</span>
+        <span>{formatLabel}</span>
+        <span className="opacity-40">·</span>
+        <span className="text-lime font-bold">ELO</span>
+      </div>
+    </>
   );
 
   return (
