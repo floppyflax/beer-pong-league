@@ -1,10 +1,10 @@
--- Migration 029 — Cycle de saison à 2 étapes (forcer fin → démarrer suivante)
+-- Migration 030 — Cycle de saison à 2 étapes (forcer fin → démarrer suivante)
 --
 -- Aujourd'hui (mig 028), `start_new_league_season` est atomique :
 -- snapshot → reset ELO → bump season. L'admin n'a pas de "pause de
 -- réflexion" entre la fin d'une saison et le démarrage de la suivante.
 --
--- Mig 029 introduit un état intermédiaire `between_seasons` :
+-- Mig 030 introduit un état intermédiaire `between_seasons` :
 --   1. `finish_current_league_season` ferme la saison N (snapshot + pose
 --      `current_season_ended_at`). Plus aucun match enregistrable.
 --   2. `start_new_league_season` démarre la saison N+1 (reset ELO + bump
@@ -114,7 +114,7 @@ END;
 $fn$;
 
 COMMENT ON FUNCTION public.finish_current_league_season(UUID) IS
-  'Étape 1 du cycle de saison à 2 étapes (mig 029) : snapshot du classement dans league_season_archives et pose current_season_ended_at. La ligue entre en état between_seasons (read-only). Les ELO et current_season_number restent inchangés.';
+  'Étape 1 du cycle de saison à 2 étapes (mig 030) : snapshot du classement dans league_season_archives et pose current_season_ended_at. La ligue entre en état between_seasons (read-only). Les ELO et current_season_number restent inchangés.';
 
 GRANT EXECUTE ON FUNCTION public.finish_current_league_season(UUID) TO authenticated;
 
@@ -157,7 +157,7 @@ BEGIN
       USING ERRCODE = 'invalid_parameter_value';
   END IF;
 
-  -- Nouvelle exigence (mig 029) : la saison doit avoir été close préalablement
+  -- Nouvelle exigence (mig 030) : la saison doit avoir été close préalablement
   -- via finish_current_league_season.
   IF v_league.current_season_ended_at IS NULL THEN
     RAISE EXCEPTION 'start_new_league_season: season % not closed yet — call finish_current_league_season first', v_league.current_season_number
@@ -186,4 +186,4 @@ END;
 $fn$;
 
 COMMENT ON FUNCTION public.start_new_league_season(UUID) IS
-  'Étape 2 du cycle de saison à 2 étapes (mig 029) : reset ELO/stats memberships, wipe elo_history, bump current_season_number, reset current_season_started_at, clear current_season_ended_at. Exige que finish_current_league_season ait été appelé préalablement.';
+  'Étape 2 du cycle de saison à 2 étapes (mig 030) : reset ELO/stats memberships, wipe elo_history, bump current_season_number, reset current_season_started_at, clear current_season_ended_at. Exige que finish_current_league_season ait été appelé préalablement.';
