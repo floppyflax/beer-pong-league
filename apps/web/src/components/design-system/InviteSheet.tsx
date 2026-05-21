@@ -18,9 +18,10 @@
  */
 
 import { QRCodeSVG } from "qrcode.react";
-import { Share2, UserPlus, X, Copy } from "lucide-react";
+import { Share2, UserPlus, X, Copy, Check, Search } from "lucide-react";
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -43,6 +44,10 @@ export interface InviteSheetShareData {
 export interface InviteSheetLeaguePlayer {
   id: string;
   name: string;
+  /** ELO affiché à droite du chip (optionnel). */
+  elo?: number;
+  /** URL d'avatar (optionnel) — sinon initiale. */
+  avatarUrl?: string | null;
 }
 
 export interface InviteSheetProps {
@@ -52,12 +57,21 @@ export interface InviteSheetProps {
   title?: ReactNode;
   /** Données de partage (QR + code + bouton Partager). Omis si indispo. */
   shareData?: InviteSheetShareData;
-  /** Joueurs de la ligue (pour le dropdown). Omis si pas de ligue. */
+  /** Joueurs de la ligue (pour le picker multi-select). Omis si pas de ligue. */
   leaguePlayers?: InviteSheetLeaguePlayer[];
   /** Callback : ajouter un joueur manuellement (saisie d'un pseudo). */
   onAddManual?: (name: string) => void | Promise<void>;
-  /** Callback : ajouter un joueur de la ligue (dropdown). */
-  onAddFromLeague?: (playerId: string) => void | Promise<void>;
+  /**
+   * Callback : ajouter en bulk N joueurs de la ligue (multi-select).
+   * Reçoit la liste des `id` (= league_memberships.id) sélectionnés.
+   */
+  onAddFromLeagueBulk?: (playerIds: string[]) => void | Promise<void>;
+  /**
+   * Nombre maximum de joueurs supplémentaires que l'event peut accepter
+   * (ex: maxPlayers - currentParticipants). `undefined` = pas de limite.
+   * Si défini : on bloque l'ajout au-delà et on affiche un message.
+   */
+  remainingSlots?: number;
 }
 
 type InviteTab = "share" | "add";
@@ -69,17 +83,20 @@ export const InviteSheet = ({
   shareData,
   leaguePlayers = [],
   onAddManual,
-  onAddFromLeague,
+  onAddFromLeagueBulk,
+  remainingSlots,
 }: InviteSheetProps) => {
   const hasShare = Boolean(shareData);
-  const hasAdd = Boolean(onAddManual || onAddFromLeague);
+  const hasAdd = Boolean(onAddManual || onAddFromLeagueBulk);
   const hasBothTabs = hasShare && hasAdd;
 
   const [activeTab, setActiveTab] = useState<InviteTab>(
     hasShare ? "share" : "add",
   );
   const [manualName, setManualName] = useState("");
-  const [selectedLeaguePlayerId, setSelectedLeaguePlayerId] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSubmittingBulk, setIsSubmittingBulk] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   // Reset state each time the sheet opens
@@ -87,9 +104,24 @@ export const InviteSheet = ({
     if (isOpen) {
       setActiveTab(hasShare ? "share" : "add");
       setManualName("");
-      setSelectedLeaguePlayerId("");
+      setSelectedIds(new Set());
+      setSearchQuery("");
+      setIsSubmittingBulk(false);
     }
   }, [isOpen, hasShare]);
+
+  // Filter league players by search query.
+  const filteredLeaguePlayers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return leaguePlayers;
+    return leaguePlayers.filter((p) => p.name.toLowerCase().includes(q));
+  }, [leaguePlayers, searchQuery]);
+
+  const showSearch = leaguePlayers.length >= 8;
+  const canAddMore =
+    remainingSlots === undefined || remainingSlots > selectedIds.size;
+  const exceedsLimit =
+    remainingSlots !== undefined && selectedIds.size > remainingSlots;
 
   // Escape to close
   useEffect(() => {
@@ -157,13 +189,48 @@ export const InviteSheet = ({
     setManualName("");
   };
 
-  const handleSubmitLeague = async () => {
-    if (!selectedLeaguePlayerId || !onAddFromLeague) return;
-    await onAddFromLeague(selectedLeaguePlayerId);
-    setSelectedLeaguePlayerId("");
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
-  const availableLeaguePlayers = leaguePlayers;
+  // "Tout sélectionner" toggle. Respects:
+  //  - the active search filter (only selects visible/filtered rows)
+  //  - remainingSlots (caps to whatever the event still accepts)
+  // Re-clicking when everything visible is already selected clears the
+  // selection — same affordance as the iOS/macOS multi-select header.
+  const allFilteredSelected =
+    filteredLeaguePlayers.length > 0 &&
+    filteredLeaguePlayers.every((p) => selectedIds.has(p.id));
+
+  const handleToggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(new Set());
+      return;
+    }
+    const cap =
+      remainingSlots !== undefined
+        ? Math.max(0, remainingSlots)
+        : filteredLeaguePlayers.length;
+    const ids = filteredLeaguePlayers.slice(0, cap).map((p) => p.id);
+    setSelectedIds(new Set(ids));
+  };
+
+  const handleSubmitBulk = async () => {
+    if (selectedIds.size === 0 || !onAddFromLeagueBulk) return;
+    if (exceedsLimit) return;
+    setIsSubmittingBulk(true);
+    try {
+      await onAddFromLeagueBulk(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    } finally {
+      setIsSubmittingBulk(false);
+    }
+  };
 
   return (
     <div
@@ -307,42 +374,156 @@ export const InviteSheet = ({
                   : ""
               }`}
             >
-              {onAddFromLeague && availableLeaguePlayers.length > 0 && (
+              {onAddFromLeagueBulk && leaguePlayers.length > 0 && (
                 <div>
-                  <label
-                    htmlFor="invite-league-select"
-                    className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray"
-                  >
-                    Depuis la ligue
-                  </label>
-                  <div className="mt-2 flex gap-2">
-                    <select
-                      id="invite-league-select"
-                      value={selectedLeaguePlayerId}
-                      onChange={(e) => setSelectedLeaguePlayerId(e.target.value)}
-                      className="flex-1 h-12 bg-navy-deep border border-card rounded-xl px-3 text-white focus:outline-none focus:ring-2 focus:ring-electric-blue/40"
-                    >
-                      <option value="">Choisir un joueur…</option>
-                      {availableLeaguePlayers.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray">
+                      Depuis la ligue ({leaguePlayers.length})
+                    </span>
                     <button
                       type="button"
-                      onClick={handleSubmitLeague}
-                      disabled={!selectedLeaguePlayerId}
-                      className="h-12 px-5 rounded-full bg-lime text-navy font-archivo font-extrabold uppercase text-[11px] tracking-[1px] hover:bg-lime-deep transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={handleToggleSelectAll}
+                      disabled={filteredLeaguePlayers.length === 0}
+                      className="font-mono uppercase text-[10px] tracking-[1.5px] text-electric-blue hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      Ajouter
+                      {allFilteredSelected ? "Tout désélectionner" : "Tout sélectionner"}
                     </button>
                   </div>
+
+                  {showSearch && (
+                    <div className="mt-2 relative">
+                      <Search
+                        size={14}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-cool-gray"
+                      />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Chercher un joueur…"
+                        aria-label="Filtrer les joueurs de la ligue"
+                        className="w-full h-10 bg-navy-deep border border-card rounded-lg pl-9 pr-3 text-sm text-white placeholder:text-cool-gray/60 focus:outline-none focus:ring-2 focus:ring-electric-blue/40"
+                      />
+                    </div>
+                  )}
+
+                  <div
+                    role="listbox"
+                    aria-label="Joueurs de la ligue"
+                    aria-multiselectable="true"
+                    className="mt-2 flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1"
+                  >
+                    {filteredLeaguePlayers.length === 0 && (
+                      <p className="text-cool-gray text-xs text-center py-4">
+                        Aucun joueur ne correspond.
+                      </p>
+                    )}
+                    {filteredLeaguePlayers.map((p) => {
+                      const selected = selectedIds.has(p.id);
+                      const initial = p.name.charAt(0).toUpperCase() || "?";
+                      const disabled =
+                        !selected && !canAddMore;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          onClick={() => toggleSelected(p.id)}
+                          disabled={disabled}
+                          className={`flex items-center gap-3 p-2 rounded-lg border text-left transition-colors ${
+                            selected
+                              ? "border-electric-blue bg-electric-blue/15"
+                              : "border-card bg-navy-deep hover:border-card-muted"
+                          } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+                        >
+                          {p.avatarUrl ? (
+                            <img
+                              src={p.avatarUrl}
+                              alt=""
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-navy-soft border border-card flex items-center justify-center flex-shrink-0">
+                              <span className="font-archivo font-extrabold text-white text-xs">
+                                {initial}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-archivo font-extrabold uppercase text-white text-sm tracking-tight truncate">
+                              {p.name}
+                            </div>
+                            {p.elo !== undefined && (
+                              <div className="text-cool-gray text-[11px] font-mono">
+                                ELO {p.elo}
+                              </div>
+                            )}
+                          </div>
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                              selected
+                                ? "border-electric-blue bg-electric-blue"
+                                : "border-cool-gray/40"
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {selected && (
+                              <Check size={12} className="text-navy" strokeWidth={3} />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {remainingSlots !== undefined && remainingSlots <= 0 && (
+                    <p className="mt-2 text-signal-red text-xs">
+                      Limite de joueurs atteinte pour cet événement.
+                    </p>
+                  )}
+                  {remainingSlots !== undefined &&
+                    remainingSlots > 0 &&
+                    !canAddMore && (
+                      <p className="mt-2 text-cool-gray text-xs">
+                        Maximum {remainingSlots} ajout
+                        {remainingSlots > 1 ? "s" : ""} en une fois.
+                      </p>
+                    )}
+
+                  <button
+                    type="button"
+                    onClick={handleSubmitBulk}
+                    disabled={
+                      selectedIds.size === 0 ||
+                      exceedsLimit ||
+                      isSubmittingBulk
+                    }
+                    className="mt-3 w-full h-12 rounded-full bg-lime text-navy font-archivo font-extrabold uppercase text-[11px] tracking-[1px] hover:bg-lime-deep transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                  >
+                    <UserPlus size={14} />
+                    <span>
+                      {selectedIds.size === 0
+                        ? "Sélectionne des joueurs"
+                        : `Ajouter ${selectedIds.size} joueur${
+                            selectedIds.size > 1 ? "s" : ""
+                          }`}
+                    </span>
+                  </button>
                 </div>
               )}
 
-              {onAddFromLeague &&
-                availableLeaguePlayers.length > 0 &&
+              {onAddFromLeagueBulk &&
+                leaguePlayers.length === 0 &&
+                onAddManual && (
+                  <p className="text-cool-gray text-xs text-center">
+                    Tous les joueurs de la ligue sont déjà dans cet
+                    événement.
+                  </p>
+                )}
+
+              {onAddFromLeagueBulk &&
+                leaguePlayers.length > 0 &&
                 onAddManual && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-px bg-card" />

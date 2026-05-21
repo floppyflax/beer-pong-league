@@ -10,8 +10,8 @@
  * Règle freemium : 2 événements gratuits, puis Premium.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useLeague } from "@/context/LeagueContext";
@@ -23,7 +23,7 @@ import { PaymentModal } from "@/components/PaymentModal";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { PageHero, StickyCTA } from "@/components/design-system";
 import toast from "react-hot-toast";
-import { Crown, ChevronRight, Trophy, Target, X } from "lucide-react";
+import { Crown, ChevronRight, Trophy, Target, X, Link as LinkIcon } from "lucide-react";
 import { PButton } from "@/components/ponglo/PButton";
 import { FREE_MAX_PLAYERS_PER_EVENT } from "@/hooks/usePremiumLimits";
 
@@ -98,9 +98,39 @@ interface CreateEventProps {
 
 export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {}) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, userProfile, isAuthenticated, isLoading: isAuthLoading } = useAuthContext();
   const { localUser } = useIdentity();
-  const { reloadData, addAnonymousPlayerToEvent } = useLeague();
+  const {
+    reloadData,
+    addAnonymousPlayerToEvent,
+    associateEventToLeague,
+    leagues,
+  } = useLeague();
+
+  // Pre-fill league attachment from ?leagueId= (e.g. user clicked
+  // "Nouvel événement" from a league page). The state starts at null and
+  // the effect below resolves the match as soon as `leagues` are available
+  // (unless the user already clicked Détacher).
+  const queryLeagueId = searchParams.get("leagueId");
+  const [attachedLeagueId, setAttachedLeagueId] = useState<string | null>(null);
+  const [hasDetached, setHasDetached] = useState(false);
+
+  useEffect(() => {
+    if (hasDetached) return;
+    if (attachedLeagueId) return;
+    if (!queryLeagueId) return;
+    const found = leagues.find((l) => l.id === queryLeagueId);
+    if (found) setAttachedLeagueId(found.id);
+  }, [hasDetached, attachedLeagueId, queryLeagueId, leagues]);
+
+  const attachedLeague = useMemo(
+    () =>
+      attachedLeagueId
+        ? leagues.find((l) => l.id === attachedLeagueId) ?? null
+        : null,
+    [attachedLeagueId, leagues],
+  );
 
   // Auth gate (mig 031 — only authenticated users can create events; the DB
   // trigger _guard_events_insert rejects otherwise, this is just the UX
@@ -287,6 +317,21 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
         creatorAnonymousUserId: null,
       });
 
+      // Link to league BEFORE adding the creator, so that the creator's
+      // membership propagates into league_memberships via the league_id
+      // lookup in addAnonymousPlayerToEvent. If the link fails (most often:
+      // the chosen league no longer exists in DB, i.e. stale cache), the
+      // event stays standalone. The context already toasts the cause —
+      // don't duplicate it here, just keep going so the event is at least
+      // saved.
+      if (attachedLeagueId) {
+        try {
+          await associateEventToLeague(eventId, attachedLeagueId);
+        } catch (err) {
+          console.warn('Event created without league attachment:', err);
+        }
+      }
+
       const creatorPseudo =
         userProfile?.pseudo?.trim() ||
         localUser?.pseudo?.trim() ||
@@ -351,6 +396,94 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
           title={<>Crée ton<br />événement.</>}
           onBack={() => navigate("/competitions?tab=events")}
         />
+
+        {/* League attachment — three states:
+            1. user has no leagues at all → nothing shown (silent, no nag)
+            2. user has leagues, none selected → discreet picker
+               (facultatif) so they can opt in
+            3. league selected (either ?leagueId= or via picker) →
+               the blue banner with "Détacher" */}
+        {leagues.length > 0 && !attachedLeague && (
+          <div className="space-y-2 mb-6">
+            <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+              <span className="inline-flex items-center gap-1.5">
+                <LinkIcon size={12} />
+                Rattacher à une ligue (facultatif)
+              </span>
+            </span>
+            <div
+              role="radiogroup"
+              aria-label="Rattacher à une ligue (facultatif)"
+              className="flex flex-col gap-2 max-h-[280px] overflow-y-auto"
+            >
+              {leagues.map((l) => {
+                const playerCount = l.players?.length ?? 0;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    role="radio"
+                    aria-checked="false"
+                    onClick={() => {
+                      setAttachedLeagueId(l.id);
+                      setHasDetached(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-card border border-card bg-navy-soft hover:border-electric-blue hover:bg-electric-blue/5 transition-colors text-left"
+                  >
+                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-electric-blue/15 flex items-center justify-center">
+                      <LinkIcon size={16} className="text-electric-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-extrabold uppercase tracking-tight text-sm truncate">
+                        {l.name}
+                      </div>
+                      <div className="text-cool-gray text-xs">
+                        {playerCount} joueur{playerCount > 1 ? "s" : ""}
+                      </div>
+                    </div>
+                    <ChevronRight
+                      size={18}
+                      className="text-cool-gray flex-shrink-0"
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-cool-gray text-xs">
+              Les joueurs ajoutés à cet événement seront aussi ajoutés à la ligue.
+            </p>
+          </div>
+        )}
+
+        {attachedLeague && (
+          <div
+            className="w-full bg-electric-blue/10 border border-electric-blue/40 rounded-card p-4 mb-6 flex items-start gap-3"
+            role="region"
+            aria-label="Rattachement à une ligue"
+          >
+            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-electric-blue/20 flex items-center justify-center mt-0.5">
+              <LinkIcon size={18} className="text-electric-blue" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-archivo font-extrabold uppercase tracking-tight text-sm text-white">
+                Rattaché à la ligue « {attachedLeague.name} »
+              </div>
+              <p className="text-white/70 text-xs mt-0.5">
+                Les joueurs de l&apos;événement seront ajoutés à la ligue.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setAttachedLeagueId(null);
+                setHasDetached(true);
+              }}
+              className="flex-shrink-0 px-3 h-8 rounded-full border border-white/30 text-white hover:bg-white/10 font-archivo font-extrabold uppercase text-[10px] tracking-[1px] transition-colors"
+            >
+              Détacher
+            </button>
+          </div>
+        )}
 
         {/* Premium banner — "X restant sur N" + CTA secondaire flèche */}
         {!isPremium && (

@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Hourglass,
   XCircle,
+  Link2,
 } from "lucide-react";
 import { usePendingMatches } from "@/hooks/usePendingMatches";
 import { getEventLifecycle, canLogMatch } from "@/utils/eventLifecycle";
@@ -105,7 +106,6 @@ export const EventDashboard = () => {
     pauseEvent,
     resumeEvent,
     getEventLocalRanking,
-    getLeagueGlobalRanking,
     addPlayer,
     addPlayerToEvent,
     addGuestPlayerToEvent,
@@ -113,7 +113,6 @@ export const EventDashboard = () => {
     reloadData,
   } = useLeague();
 
-  const [rankingMode, setRankingMode] = useState<"local" | "global">("local");
   const [activeTab, setActiveTab] = useState<
     "classement" | "matchs" | "stats"
   >("classement");
@@ -205,25 +204,14 @@ export const EventDashboard = () => {
   // Mig 030 — anti-cheat: pending matches the current user can validate
   const { count: pendingValidationCount } = usePendingMatches(id);
 
-  // Get ranking based on mode - MUST be called unconditionally
+  // Ranking is always the event-local one. Direction taken since the
+  // event/league toggle was retired (mig: event ELO is contextual, the
+  // league context has its own dashboard with its own ranking).
   // Pass eventParticipants so ranking uses event_players.id (matches match.teamA/teamB)
   const ranking = useMemo(() => {
     if (!event) return [];
-    if (rankingMode === "local") {
-      return getEventLocalRanking(event.id, eventParticipants);
-    } else {
-      if (event.leagueId) {
-        return getLeagueGlobalRanking(event.leagueId);
-      }
-      return [];
-    }
-  }, [
-    rankingMode,
-    event,
-    eventParticipants,
-    getEventLocalRanking,
-    getLeagueGlobalRanking,
-  ]);
+    return getEventLocalRanking(event.id, eventParticipants);
+  }, [event, eventParticipants, getEventLocalRanking]);
 
   const rankDeltas = useMemo(
     () => getRankDeltasFromLastMatch(ranking, sortedMatches),
@@ -326,14 +314,23 @@ export const EventDashboard = () => {
     }
   };
 
-  const handleInviteAddFromLeague = async (leaguePlayerId: string) => {
-    if (!leaguePlayerId || !event.leagueId) return;
+  const handleInviteAddFromLeagueBulk = async (
+    leaguePlayerIds: string[],
+  ) => {
+    if (leaguePlayerIds.length === 0 || !event.leagueId) return;
     try {
-      const eventPlayerId = await databaseService.addLeaguePlayerToEvent(
-        event.id,
-        leaguePlayerId,
-      );
-      addPlayerToEvent(event.id, eventPlayerId);
+      // Sequential to avoid races on event_memberships and to keep the
+      // single re-fetch at the end consistent. addLeaguePlayerToEvent is
+      // idempotent so retries are safe.
+      const eventPlayerIds: string[] = [];
+      for (const lpId of leaguePlayerIds) {
+        const eventPlayerId = await databaseService.addLeaguePlayerToEvent(
+          event.id,
+          lpId,
+        );
+        eventPlayerIds.push(eventPlayerId);
+      }
+      eventPlayerIds.forEach((id) => addPlayerToEvent(event.id, id));
       await reloadData();
       databaseService
         .loadEventParticipants(event.id)
@@ -352,7 +349,11 @@ export const EventDashboard = () => {
           ),
         )
         .catch(() => {});
-      toast.success("Joueur ajouté à l'événement");
+      toast.success(
+        leaguePlayerIds.length === 1
+          ? "Joueur ajouté à l'événement"
+          : `${leaguePlayerIds.length} joueurs ajoutés à l'événement`,
+      );
       setShowAddPlayer(false);
     } catch (err: unknown) {
       toast.error(
@@ -604,6 +605,19 @@ export const EventDashboard = () => {
           variant: eventStatusVariant,
         }}
         meta={[formatLabel, modeLabel, dateLabel]}
+        subtitle={
+          league ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/league/${league.id}`)}
+              className="inline-flex items-center gap-1.5 max-w-full px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-white text-[11px] font-archivo font-extrabold uppercase tracking-[0.5px] transition-colors"
+              aria-label={`Voir la ligue ${league.name}`}
+            >
+              <Link2 size={12} className="flex-shrink-0 opacity-70" />
+              <span className="truncate">{league.name}</span>
+            </button>
+          ) : undefined
+        }
         stats={[
           {
             label: "Joueurs",
@@ -676,32 +690,6 @@ export const EventDashboard = () => {
         />
       </div>
 
-      {/* Ranking Mode Switch */}
-      {event.leagueId && activeTab === "classement" && (
-        <div className="px-4 py-2 bg-navy-soft/50 flex gap-2">
-          <button
-            onClick={() => setRankingMode("local")}
-            className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
-              rankingMode === "local"
-                ? "bg-electric-blue text-white"
-                : "bg-navy-deep text-cool-gray"
-            }`}
-          >
-            Classement Événement
-          </button>
-          <button
-            onClick={() => setRankingMode("global")}
-            className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
-              rankingMode === "global"
-                ? "bg-electric-blue text-white"
-                : "bg-navy-deep text-cool-gray"
-            }`}
-          >
-            Classement League
-          </button>
-        </div>
-      )}
-
       {/* Content */}
       <div className="flex-grow overflow-y-auto px-4 py-4 space-y-2 pb-bottom-nav lg:pb-bottom-nav-lg">
         {activeTab === "classement" && (
@@ -724,7 +712,7 @@ export const EventDashboard = () => {
                       delta: getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
                       rankDelta: rankDeltas.get(p.id),
                     }))}
-                    scope={rankingMode === "global" ? league?.name : undefined}
+                    scope={undefined}
                     className="mb-1"
                   />
                 )}
@@ -956,12 +944,20 @@ export const EventDashboard = () => {
                       (tp) => tp.leaguePlayerId === lp.id,
                     ),
                 )
-                .map((p) => ({ id: p.id, name: p.name }))
+                .map((p) => ({ id: p.id, name: p.name, elo: p.elo }))
             : []
         }
+        remainingSlots={
+          // 999 = unlimited sentinel (cf. CreateEvent UNLIMITED_PLAYERS).
+          event.maxPlayers != null &&
+          event.maxPlayers > 0 &&
+          event.maxPlayers < 999
+            ? Math.max(0, event.maxPlayers - eventParticipants.length)
+            : undefined
+        }
         onAddManual={handleInviteAddManual}
-        onAddFromLeague={
-          event.leagueId ? handleInviteAddFromLeague : undefined
+        onAddFromLeagueBulk={
+          event.leagueId ? handleInviteAddFromLeagueBulk : undefined
         }
       />
 

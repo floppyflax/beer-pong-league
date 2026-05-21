@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   Archive,
+  ChevronRight,
   Crown,
   Ghost,
   Link as LinkIcon,
@@ -755,12 +756,17 @@ export const EventSettings = () => {
             </span>
           </span>
           {event.leagueId ? (
-            <div className="p-3 rounded-card border border-card bg-navy-deep flex items-center gap-3">
+            <div className="w-full bg-electric-blue/10 border border-electric-blue/40 rounded-card p-4 flex items-start gap-3">
+              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-electric-blue/20 flex items-center justify-center mt-0.5">
+                <LinkIcon size={18} className="text-electric-blue" />
+              </div>
               <div className="flex-1 min-w-0">
-                <div className="text-white font-archivo font-semibold text-sm truncate">
+                <div className="font-archivo font-extrabold uppercase tracking-tight text-sm text-white truncate">
                   {league?.name || "Ligue introuvable"}
                 </div>
-                <div className="text-cool-gray text-xs">Associé</div>
+                <p className="text-white/70 text-xs mt-0.5">
+                  Les joueurs de l&apos;événement sont aussi dans la ligue.
+                </p>
               </div>
               <button
                 type="button"
@@ -771,28 +777,47 @@ export const EventSettings = () => {
                     associateEventToLeague(event.id, "");
                   }
                 }}
-                className="px-3 h-8 rounded-full border border-card text-cool-gray hover:text-white hover:border-white/60 font-archivo font-extrabold uppercase text-[10px] tracking-[1px] transition-colors"
+                className="flex-shrink-0 px-3 h-8 rounded-full border border-white/30 text-white hover:bg-white/10 font-archivo font-extrabold uppercase text-[10px] tracking-[1px] transition-colors"
               >
                 Dissocier
               </button>
             </div>
           ) : leagues.length > 0 ? (
-            <select
-              value=""
-              onChange={(e) => {
-                if (e.target.value) {
-                  associateEventToLeague(event.id, e.target.value);
-                }
-              }}
-              className="w-full bg-navy-deep border border-card rounded-md p-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime/20"
+            <div
+              role="radiogroup"
+              aria-label="Rattacher à une ligue"
+              className="flex flex-col gap-2 max-h-[280px] overflow-y-auto"
             >
-              <option value="">Sélectionner une ligue…</option>
-              {leagues.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+              {leagues.map((l) => {
+                const playerCount = l.players?.length ?? 0;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    role="radio"
+                    aria-checked="false"
+                    onClick={() => associateEventToLeague(event.id, l.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-card border border-card bg-navy-soft hover:border-electric-blue hover:bg-electric-blue/5 transition-colors text-left"
+                  >
+                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-electric-blue/15 flex items-center justify-center">
+                      <LinkIcon size={16} className="text-electric-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-extrabold uppercase tracking-tight text-sm truncate">
+                        {l.name}
+                      </div>
+                      <div className="text-cool-gray text-xs">
+                        {playerCount} joueur{playerCount > 1 ? "s" : ""}
+                      </div>
+                    </div>
+                    <ChevronRight
+                      size={18}
+                      className="text-cool-gray flex-shrink-0"
+                    />
+                  </button>
+                );
+              })}
+            </div>
           ) : (
             <p className="text-cool-gray text-xs">
               Aucune ligue disponible. Crée-en une pour pouvoir rattacher.
