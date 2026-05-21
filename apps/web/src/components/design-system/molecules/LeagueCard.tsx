@@ -3,7 +3,8 @@
  *
  * Construit sur `CardShell` (partagé avec `EventCard`).
  * Header : pill statut (Active / Terminée) + Propriétaire si owner.
- * Body : 3 colonnes de stats — membres, événements, dernière activité.
+ * Body : 3 colonnes de stats — membres, événements, dernière activité —
+ * + une 4ᵉ colonne « Ton rang » (#N/total) quand je participe à la ligue.
  */
 
 import React from "react";
@@ -12,6 +13,7 @@ import type { LeagueListItem } from "@/hooks/useLeaguesList";
 import { formatRelativeTime } from "@/utils/dateUtils";
 import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
+import { useMyLeagueRank } from "@/hooks/useMyContextRankings";
 import { CardShell } from "./CardShell";
 
 export interface LeagueCardProps {
@@ -22,6 +24,7 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
+  const myRank = useMyLeagueRank(league.id);
 
   const isOwner =
     (user && user.id === league.creator_user_id) ||
@@ -57,6 +60,16 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
           Activité
         </div>
       </div>
+      {myRank && (
+        <div>
+          <div className="font-archivo font-extrabold text-lg text-lime leading-none">
+            #{myRank.rank}/{myRank.total}
+          </div>
+          <div className="text-[11px] uppercase tracking-[1px] text-cool-gray mt-1">
+            Ton rang
+          </div>
+        </div>
+      )}
     </div>
   );
 

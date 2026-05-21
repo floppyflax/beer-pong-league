@@ -3,7 +3,7 @@
  *
  * Construit sur `CardShell` (partagé avec `LeagueCard`).
  * Header : pill statut (en cours / à venir / terminé). Body : meta inline
- * (joueurs · matchs · format · ELO).
+ * (joueurs · matchs · format · ELO · Toi #N/total quand je participe).
  */
 
 import React from "react";
@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import type { Event } from "@/types";
 import { CardShell, type CardShellStatus } from "./CardShell";
 import { getEventLifecycle } from "@/utils/eventLifecycle";
+import { useMyEventRank } from "@/hooks/useMyContextRankings";
 
 export interface EventCardProps {
   event: Event;
@@ -23,6 +24,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   interactive = true,
 }) => {
   const navigate = useNavigate();
+  const myRank = useMyEventRank(event.id);
 
   const playerCount = event.playerIds?.length ?? 0;
   const matchCount = event.matches?.length ?? 0;
@@ -66,6 +68,14 @@ export const EventCard: React.FC<EventCardProps> = ({
       <span>{formatLabel}</span>
       <span className="opacity-40">·</span>
       <span className="text-lime font-bold">ELO</span>
+      {myRank && (
+        <>
+          <span className="opacity-40">·</span>
+          <span className="text-lime font-bold">
+            Toi #{myRank.rank}/{myRank.total}
+          </span>
+        </>
+      )}
     </div>
   );
 
