@@ -3,8 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   Archive,
   Edit,
-  FileJson,
-  FileSpreadsheet,
   Ghost,
   Lock,
   Play,
@@ -20,11 +18,6 @@ import { useLeague } from "@/context/LeagueContext";
 import { useDetailPagePermissions } from "@/hooks/useDetailPagePermissions";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
-import {
-  exportLeagueJSON,
-  exportMatchesCSV,
-  exportPlayersCSV,
-} from "@/services/ExportService";
 import { getLeagueLifecycle } from "@/utils/leagueLifecycle";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -628,51 +621,6 @@ export const LeagueSettings = () => {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Export actions */}
-        <div className="space-y-2">
-          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-            Exporter
-          </span>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <PButton
-              type="button"
-              variant="ghost"
-              size="md"
-              full
-              icon={<FileJson size={16} />}
-              onClick={() => exportLeagueJSON(league)}
-            >
-              JSON
-            </PButton>
-            <PButton
-              type="button"
-              variant="ghost"
-              size="md"
-              full
-              icon={<FileSpreadsheet size={16} />}
-              onClick={() => exportPlayersCSV(league)}
-            >
-              Joueurs CSV
-            </PButton>
-            <PButton
-              type="button"
-              variant="ghost"
-              size="md"
-              full
-              icon={<FileSpreadsheet size={16} />}
-              onClick={() => {
-                const map: Record<string, string> = {};
-                league.players.forEach((p) => {
-                  map[p.id] = p.name;
-                });
-                exportMatchesCSV(league, map);
-              }}
-            >
-              Matchs CSV
-            </PButton>
-          </div>
         </div>
 
         {/* Sticky footer */}
