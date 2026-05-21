@@ -6,5 +6,7 @@ export type { TimelineMatchEntry } from "./TimelineView";
 export { EventGroupCard } from "./EventGroupCard";
 export type { EventGroupCardProps, EventGroupCardVariant } from "./EventGroupCard";
 export { OrphanMatchesSection } from "./OrphanMatchesSection";
+export { LeagueMatchCard } from "./LeagueMatchCard";
+export type { LeagueMatchCardProps } from "./LeagueMatchCard";
 export { TimelineMatchCard } from "./TimelineMatchCard";
 export { ViewModeSwitcher } from "./ViewModeSwitcher";

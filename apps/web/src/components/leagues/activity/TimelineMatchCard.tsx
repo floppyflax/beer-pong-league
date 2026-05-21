@@ -1,15 +1,16 @@
 /**
- * TimelineMatchCard — match riche en mode "Timeline" du tab Activité.
+ * TimelineMatchCard — match en mode "Timeline" du tab Activité.
  *
- * Réutilise `MatchHistoryCard` pour le corps (avatars + ELO + photo + cups)
- * et ajoute un footer indiquant la provenance : chip event cliquable (→
- * `/event/:id`) si rattaché, sinon label "— Hors événement".
+ * Réutilise `LeagueMatchCard` pour le corps (même format que les matchs
+ * d'event et hors événement) et ajoute un footer indiquant la provenance :
+ * chip event cliquable (→ `/event/:id`) si rattaché, sinon label
+ * "— Hors événement".
  */
 
 import { useNavigate } from "react-router-dom";
 import { FolderOpen } from "lucide-react";
 import type { Event, Match, Player } from "@/types";
-import { MatchHistoryCard } from "@/components/design-system/MatchHistoryCard";
+import { LeagueMatchCard } from "./LeagueMatchCard";
 
 export interface TimelineMatchCardProps {
   match: Match;
@@ -17,18 +18,10 @@ export interface TimelineMatchCardProps {
   players: Player[];
   /**
    * Mig 032 — true when the parent league has anti-cheat enabled. Propagates
-   * to MatchHistoryCard so the "Validé" badge surfaces on confirmed matches
+   * to LeagueMatchCard so the "Validé" badge surfaces on confirmed matches
    * (the pending/rejected badges show regardless — they aren't visual noise).
    */
   antiCheatEnabled?: boolean;
-}
-
-function resolveTeam(
-  ids: string[],
-  players: Player[],
-): Array<{ id: string; name: string }> {
-  const map = new Map(players.map((p) => [p.id, p.name]));
-  return ids.map((id) => ({ id, name: map.get(id) ?? "?" }));
 }
 
 export const TimelineMatchCard = ({
@@ -39,22 +32,11 @@ export const TimelineMatchCard = ({
 }: TimelineMatchCardProps) => {
   const navigate = useNavigate();
 
-  const teamA = resolveTeam(match.teamA, players);
-  const teamB = resolveTeam(match.teamB, players);
-
   return (
     <div className="space-y-1">
-      <MatchHistoryCard
-        teamA={teamA}
-        teamB={teamB}
-        scoreA={match.scoreA}
-        scoreB={match.scoreB}
-        date={match.date}
-        eloChanges={match.eloChanges}
-        isLive={match.is_live}
-        cupsRemaining={match.cups_remaining}
-        photoUrl={match.photo_url}
-        status={match.status}
+      <LeagueMatchCard
+        match={match}
+        players={players}
         antiCheatEnabled={antiCheatEnabled}
       />
       {event ? (

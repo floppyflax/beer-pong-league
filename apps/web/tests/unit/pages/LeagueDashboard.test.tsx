@@ -239,7 +239,7 @@ describe("LeagueDashboard - Story 14-17", () => {
       );
 
       // Tab "Activité" est actif par défaut. Sans event sur la ligue,
-      // le LeagueActivityFeed force le mode timeline (basé sur MatchHistoryCard
+      // le LeagueActivityFeed force le mode timeline (basé sur LeagueMatchCard
       // qui embarque photo + cups badge via MatchEnrichedDisplay).
       expect(screen.getByText(/3 gobelets restants/i)).toBeInTheDocument();
       expect(

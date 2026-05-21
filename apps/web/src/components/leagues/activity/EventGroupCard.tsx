@@ -2,7 +2,8 @@
  * EventGroupCard — card collapsible représentant un event dans le mode
  * "Par event" du tab Activité d'une ligue. Header avec status pill + titre +
  * metadata + icône flèche d'ouverture, body (si déplié) avec tous les
- * matchs de l'event au format MatchHistoryCard.
+ * matchs de l'event au format `LeagueMatchCard` (identique aux matchs hors
+ * événement et à la timeline).
  *
  * Variants :
  *   - `hero`  : event vedette (premier in_progress ou finished récent).
@@ -14,7 +15,7 @@ import { useId, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import type { Event, Match, Player } from "@/types";
 import { getEventLifecycle, type EventLifecycle } from "@/utils/eventLifecycle";
-import { MatchHistoryCard } from "@/components/design-system/MatchHistoryCard";
+import { LeagueMatchCard } from "./LeagueMatchCard";
 
 export type EventGroupCardVariant = "hero" | "muted";
 
@@ -72,14 +73,6 @@ function lifecycleStatus(lifecycle: EventLifecycle): {
     case "finished":
       return { label: "Terminé", pillClass: "bg-cool-gray/20 text-cool-gray" };
   }
-}
-
-function resolveTeam(
-  ids: string[],
-  players: Player[],
-): Array<{ id: string; name: string }> {
-  const map = new Map(players.map((p) => [p.id, p.name]));
-  return ids.map((id) => ({ id, name: map.get(id) ?? "?" }));
 }
 
 export const EventGroupCard = ({
@@ -209,18 +202,10 @@ export const EventGroupCard = ({
             ) : (
               <div className="space-y-2">
                 {sortedMatches.map((m) => (
-                  <MatchHistoryCard
+                  <LeagueMatchCard
                     key={m.id}
-                    teamA={resolveTeam(m.teamA, players)}
-                    teamB={resolveTeam(m.teamB, players)}
-                    scoreA={m.scoreA}
-                    scoreB={m.scoreB}
-                    date={m.date}
-                    eloChanges={m.eloChanges}
-                    isLive={m.is_live}
-                    cupsRemaining={m.cups_remaining}
-                    photoUrl={m.photo_url}
-                    status={m.status}
+                    match={m}
+                    players={players}
                     antiCheatEnabled={event.anti_cheat_enabled ?? false}
                   />
                 ))}

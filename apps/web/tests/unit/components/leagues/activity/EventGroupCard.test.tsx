@@ -133,7 +133,7 @@ describe("EventGroupCard", () => {
         onOpen={() => {}}
       />,
     );
-    expect(screen.getAllByTestId("match-history-card")).toHaveLength(5);
+    expect(screen.getAllByTestId("league-match-card")).toHaveLength(5);
   });
 
   it("shows an in_progress empty state when no matches", () => {
