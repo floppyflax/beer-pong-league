@@ -133,16 +133,29 @@ describe("LeagueDashboard - Story 14-17", () => {
   });
 
   describe("AC4 - SegmentedTabs", () => {
-    it("should display tabs Matchs, Classement, Events (Paramètres moved to overflow menu)", () => {
+    it("should display tabs Activité, Classement, Stats (Events tab merged into Activité)", () => {
       render(
         <BrowserRouter>
           <LeagueDashboard />
         </BrowserRouter>,
       );
-      expect(screen.getByRole("tab", { name: "Matchs" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Activité" })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: "Classement" })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "Events" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Stats" })).toBeInTheDocument();
+      expect(screen.queryByRole("tab", { name: "Events" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("tab", { name: "Matchs" })).not.toBeInTheDocument();
       expect(screen.queryByRole("tab", { name: "Paramètres" })).not.toBeInTheDocument();
+    });
+
+    it("should default to Activité tab on first render", () => {
+      render(
+        <BrowserRouter>
+          <LeagueDashboard />
+        </BrowserRouter>,
+      );
+      expect(
+        screen.getByRole("tab", { name: "Activité", selected: true }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -185,7 +198,7 @@ describe("LeagueDashboard - Story 14-17", () => {
   });
 
   describe("Story 14-28 - Match history with photo and cups", () => {
-    it("should display photo thumbnail and cups badge when match has enriched data", () => {
+    it("should display photo thumbnail and cups badge when match has enriched data (timeline mode)", () => {
       const leagueWithEnrichedMatch = {
         ...mockLeague,
         matches: [
@@ -212,10 +225,13 @@ describe("LeagueDashboard - Story 14-17", () => {
         </BrowserRouter>,
       );
 
-      fireEvent.click(screen.getByRole("tab", { name: "Matchs" }));
-
+      // Tab "Activité" est actif par défaut. Sans event sur la ligue,
+      // le LeagueActivityFeed force le mode timeline (basé sur MatchHistoryCard
+      // qui embarque photo + cups badge via MatchEnrichedDisplay).
       expect(screen.getByText(/3 gobelets restants/i)).toBeInTheDocument();
-      expect(screen.getByRole("img", { name: /photo de l'équipe gagnante/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("img", { name: /photo de l'équipe gagnante/i }),
+      ).toBeInTheDocument();
     });
   });
 

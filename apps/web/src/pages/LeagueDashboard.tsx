@@ -4,7 +4,6 @@ import { useLeague } from "@/context/LeagueContext";
 import {
   Trophy,
   Plus,
-  History,
   Users,
   Monitor,
   UserPlus,
@@ -30,10 +29,7 @@ import {
   LifecycleStrip,
 } from "@/components/design-system";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
-import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
-import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
-import { formatRelativeTime } from "@/utils/dateUtils";
-import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
+import { LeagueActivityFeed } from "@/components/leagues/activity";
 import {
   getDeltaFromLastMatch,
   getLast5MatchResults,
@@ -57,8 +53,8 @@ export const LeagueDashboard = () => {
 
   const league = leagues.find((l) => l.id === id);
   const [activeTab, setActiveTab] = useState<
-    "classement" | "matchs" | "stats" | "events"
-  >("classement");
+    "activite" | "classement" | "stats"
+  >("activite");
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   // Ghost management vit dans LeagueSettings (mig 029 — plus de menu overflow
   // sur le hero). Si tu cherches `useUnclaimedGuests`, c'est là-bas.
@@ -366,18 +362,18 @@ export const LeagueDashboard = () => {
         />
       ) : null}
 
-      {/* SegmentedTabs: Matchs / Classement / Events */}
+      {/* SegmentedTabs: Activité / Classement / Stats — le tab Events a fusionné
+          dans Activité (cf. LeagueActivityFeed). */}
       <div className="px-4 pt-4 pb-4">
         <SegmentedTabs
           tabs={[
-            { id: "matchs", label: "Matchs" },
+            { id: "activite", label: "Activité" },
             { id: "classement", label: "Classement" },
             { id: "stats", label: "Stats" },
-            { id: "events", label: "Events" },
           ]}
           activeId={activeTab}
           onChange={(id) =>
-            setActiveTab(id as "classement" | "matchs" | "stats" | "events")
+            setActiveTab(id as "activite" | "classement" | "stats")
           }
           variant="encapsulated"
         />
@@ -452,62 +448,8 @@ export const LeagueDashboard = () => {
             )}
           </>
         )}
-        {activeTab === "matchs" && (
-          <>
-            {league.matches.length === 0 ? (
-              <EmptyState
-                icon={History}
-                title="Aucun match"
-                description="Enregistre ton premier match pour voir l'évolution des classements."
-                action={
-                  <PButton
-                    variant="primary"
-                    size="md"
-                    icon={<Plus size={16} />}
-                    onClick={() => navigate(`/record-match/league/${league.id}`)}
-                  >
-                    Enregistrer un match
-                  </PButton>
-                }
-              />
-            ) : (
-              league.matches.map((match) => {
-                const teamAPlayers = league.players.filter((p) =>
-                  match.teamA.includes(p.id),
-                );
-                const teamBPlayers = league.players.filter((p) =>
-                  match.teamB.includes(p.id),
-                );
-                const winnerA = match.scoreA > match.scoreB;
-
-                return (
-                  <div
-                    key={match.id}
-                    className={`bg-navy-soft p-4 rounded-xl border ${match.is_live ? "border-lime/50" : "border-card/50"}`}
-                  >
-                    {/* Phase D.4: Live badge */}
-                    <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
-                    <MatchTeamsRow
-                      teamAPlayers={teamAPlayers}
-                      teamBPlayers={teamBPlayers}
-                      winner={winnerA ? "A" : "B"}
-                      eloChanges={match.eloChanges}
-                    />
-                    {/* Footer : timestamp à gauche, chips photo/cups à droite */}
-                    <div className="flex items-center justify-between gap-3 mt-3">
-                      <div className="text-xs text-cool-gray">
-                        {formatRelativeTime(match.date)}
-                      </div>
-                      <MatchEnrichedDisplay
-                        photoUrl={match.photo_url}
-                        cupsRemaining={match.cups_remaining}
-                      />
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </>
+        {activeTab === "activite" && (
+          <LeagueActivityFeed league={league} events={events} />
         )}
         {activeTab === "stats" && (
           <DetailedStatsPanel
@@ -516,70 +458,6 @@ export const LeagueDashboard = () => {
             contextLabel="league"
             onPlayerClick={(playerId) => navigate(`/player/${playerId}`)}
           />
-        )}
-        {activeTab === "events" && (
-          <div className="space-y-2">
-            {league.events && league.events.length > 0 ? (
-              events
-                .filter((t) => league.events?.includes(t.id))
-                .map((event) => (
-                  <div
-                    key={event.id}
-                    onClick={() => navigate(`/event/${event.id}`)}
-                    className="bg-navy-soft p-3 rounded-xl flex justify-between items-center hover:border-card cursor-pointer transition-colors border border-card/50"
-                  >
-                    <div className="flex-1">
-                      <div className="font-bold text-white flex items-center gap-2">
-                        {event.name}
-                        {event.isFinished && (
-                          <span className="text-xs bg-lime/20 text-lime px-2 py-0.5 rounded">
-                            Terminé
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-cool-gray font-mono">
-                        {new Date(event.date).toLocaleDateString(
-                          "fr-FR",
-                          shortDateFormatter,
-                        )}
-                        {" · "}
-                        {event.matches.length} matchs
-                      </div>
-                    </div>
-                    <div className="text-cool-gray">→</div>
-                  </div>
-                ))
-            ) : (
-              <EmptyState
-                icon={Trophy}
-                title="Aucun événement"
-                description="Cette ligue n'a pas encore d'événement associé."
-                action={
-                  <PButton
-                    variant="primary"
-                    size="md"
-                    icon={<Plus size={16} />}
-                    onClick={() =>
-                      navigate(`/create-event?leagueId=${league.id}`)
-                    }
-                  >
-                    Créer un événement
-                  </PButton>
-                }
-              />
-            )}
-            {league.events && league.events.length > 0 && (
-              <button
-                onClick={() =>
-                  navigate(`/create-event?leagueId=${league.id}`)
-                }
-                className="w-full bg-navy-soft hover:bg-navy-deep text-white font-bold py-3 rounded-lg mt-2 border border-card/50"
-              >
-                <Plus size={16} className="inline mr-2" />
-                Créer un événement
-              </button>
-            )}
-          </div>
         )}
       </div>
 
