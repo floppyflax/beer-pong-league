@@ -14,7 +14,7 @@
  * Palette : fond plein écran (pas de `rounded`), chips intérieurs `bg-navy/25`,
  * bouton secondaire outline blanc. Deux tons disponibles via la prop `tone` :
  *   • `electric` (default) — `bg-electric-blue` pour les events (énergie, ponctuel).
- *   • `deep` — `bg-electric-blue-deep` pour les ligues (plus sobre, institutionnel) ;
+ *   • `deep` — `bg-electric-blue-deepest` pour les ligues (plus sobre, institutionnel) ;
  *     se distingue ainsi visuellement d'un event lors de la navigation.
  * Le glow `shadow-glow-electric` reste partagé (même famille bleue).
  * Voir spec UI mockup "07 — Détail événement".
@@ -229,7 +229,7 @@ export const DetailHero = ({
   className = "",
 }: DetailHeroProps) => {
   const toneBg =
-    tone === "deep" ? "bg-electric-blue-deep" : "bg-electric-blue";
+    tone === "deep" ? "bg-electric-blue-deepest" : "bg-electric-blue";
   const statColsClass =
     stats.length === 1
       ? "grid-cols-1"
