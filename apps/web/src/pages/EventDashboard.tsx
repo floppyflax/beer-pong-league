@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Hourglass,
   XCircle,
+  Link2,
 } from "lucide-react";
 import { usePendingMatches } from "@/hooks/usePendingMatches";
 import { getEventLifecycle, canLogMatch } from "@/utils/eventLifecycle";
@@ -105,7 +106,6 @@ export const EventDashboard = () => {
     pauseEvent,
     resumeEvent,
     getEventLocalRanking,
-    getLeagueGlobalRanking,
     addPlayer,
     addPlayerToEvent,
     addGuestPlayerToEvent,
@@ -113,7 +113,6 @@ export const EventDashboard = () => {
     reloadData,
   } = useLeague();
 
-  const [rankingMode, setRankingMode] = useState<"local" | "global">("local");
   const [activeTab, setActiveTab] = useState<
     "classement" | "matchs" | "stats"
   >("classement");
@@ -205,25 +204,14 @@ export const EventDashboard = () => {
   // Mig 030 — anti-cheat: pending matches the current user can validate
   const { count: pendingValidationCount } = usePendingMatches(id);
 
-  // Get ranking based on mode - MUST be called unconditionally
+  // Ranking is always the event-local one. Direction taken since the
+  // event/league toggle was retired (mig: event ELO is contextual, the
+  // league context has its own dashboard with its own ranking).
   // Pass eventParticipants so ranking uses event_players.id (matches match.teamA/teamB)
   const ranking = useMemo(() => {
     if (!event) return [];
-    if (rankingMode === "local") {
-      return getEventLocalRanking(event.id, eventParticipants);
-    } else {
-      if (event.leagueId) {
-        return getLeagueGlobalRanking(event.leagueId);
-      }
-      return [];
-    }
-  }, [
-    rankingMode,
-    event,
-    eventParticipants,
-    getEventLocalRanking,
-    getLeagueGlobalRanking,
-  ]);
+    return getEventLocalRanking(event.id, eventParticipants);
+  }, [event, eventParticipants, getEventLocalRanking]);
 
   const rankDeltas = useMemo(
     () => getRankDeltasFromLastMatch(ranking, sortedMatches),
@@ -616,7 +604,25 @@ export const EventDashboard = () => {
           label: eventStatusLabel,
           variant: eventStatusVariant,
         }}
-        meta={[formatLabel, modeLabel, dateLabel]}
+        meta={[
+          formatLabel,
+          modeLabel,
+          dateLabel,
+          ...(league
+            ? [
+                <button
+                  key="league-link"
+                  type="button"
+                  onClick={() => navigate(`/league/${league.id}`)}
+                  className="inline-flex items-center gap-1 underline underline-offset-2 decoration-white/40 hover:decoration-white text-white/90 hover:text-white transition-colors"
+                  aria-label={`Voir la ligue ${league.name}`}
+                >
+                  <Link2 size={12} className="flex-shrink-0" />
+                  <span className="truncate max-w-[180px]">{league.name}</span>
+                </button>,
+              ]
+            : []),
+        ]}
         stats={[
           {
             label: "Joueurs",
@@ -689,32 +695,6 @@ export const EventDashboard = () => {
         />
       </div>
 
-      {/* Ranking Mode Switch */}
-      {event.leagueId && activeTab === "classement" && (
-        <div className="px-4 py-2 bg-navy-soft/50 flex gap-2">
-          <button
-            onClick={() => setRankingMode("local")}
-            className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
-              rankingMode === "local"
-                ? "bg-electric-blue text-white"
-                : "bg-navy-deep text-cool-gray"
-            }`}
-          >
-            Classement Événement
-          </button>
-          <button
-            onClick={() => setRankingMode("global")}
-            className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${
-              rankingMode === "global"
-                ? "bg-electric-blue text-white"
-                : "bg-navy-deep text-cool-gray"
-            }`}
-          >
-            Classement League
-          </button>
-        </div>
-      )}
-
       {/* Content */}
       <div className="flex-grow overflow-y-auto px-4 py-4 space-y-2 pb-bottom-nav lg:pb-bottom-nav-lg">
         {activeTab === "classement" && (
@@ -737,7 +717,7 @@ export const EventDashboard = () => {
                       delta: getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
                       rankDelta: rankDeltas.get(p.id),
                     }))}
-                    scope={rankingMode === "global" ? league?.name : undefined}
+                    scope={undefined}
                     className="mb-1"
                   />
                 )}
