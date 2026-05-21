@@ -13,6 +13,7 @@
 
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   ChevronRight,
@@ -30,6 +31,7 @@ import { useIsAnonymous } from "@/hooks/useIsAnonymous";
 import { useHomeData } from "@/hooks/useHomeData";
 import { useLeague } from "@/context/LeagueContext";
 import { useCurrentUserMemberships } from "@/hooks/useCurrentUserMemberships";
+import { supabase, isSupabaseAvailable } from "@/lib/supabase";
 import { AnonGatePlaceholder } from "@/components/AnonGatePlaceholder";
 import {
   EmptyState,
@@ -112,14 +114,59 @@ export function Stats() {
     return result;
   }, [leagues, events, memberships]);
 
-  // Map membership id (cross-league) → display name pour les allié/nemesis.
+  // Charge les noms des event_memberships pour tous les events où le user
+  // joue. Sans ça, allié/nemesis trouvés via des matchs d'event tombent
+  // dans le fallback `Joueur <id>` car le map league.players ne contient
+  // que les league_memberships.
+  const eventIds = useMemo(
+    () => Array.from(memberships.eventMembershipByEvent.keys()),
+    [memberships],
+  );
+  const { data: eventParticipantNames } = useQuery({
+    queryKey: ["statsEventParticipantNames", eventIds],
+    queryFn: async () => {
+      const map = new Map<string, string>();
+      if (!isSupabaseAvailable() || !supabase || eventIds.length === 0) {
+        return map;
+      }
+      const { data } = await supabase
+        .from("event_memberships")
+        .select("id, pseudo_override, player:players(pseudo)")
+        .in("event_id", eventIds);
+      for (const row of (data ?? []) as Array<{
+        id: string;
+        pseudo_override: string | null;
+        player: { pseudo: string } | { pseudo: string }[] | null;
+      }>) {
+        const pseudo = Array.isArray(row.player)
+          ? row.player[0]?.pseudo
+          : row.player?.pseudo;
+        const name = row.pseudo_override || pseudo || "Joueur";
+        map.set(row.id, name);
+      }
+      return map;
+    },
+    enabled: eventIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+
+  // Map membership id (cross-context) → display name pour les allié/nemesis.
+  // Fusionne league.players (league_memberships) + eventParticipantNames
+  // (event_memberships) puisque match.teamA[i] peut porter l'un ou l'autre.
   const playerNameById = useMemo(() => {
     const map = new Map<string, string>();
     for (const league of leagues) {
       for (const p of league.players) map.set(p.id, p.name);
     }
+    if (eventParticipantNames) {
+      for (const [id, name] of eventParticipantNames) {
+        if (!map.has(id)) map.set(id, name);
+      }
+    }
     return map;
-  }, [leagues]);
+  }, [leagues, eventParticipantNames]);
 
   const formatWinRates = useMemo(
     () => computeWinRateByFormat(ME_KEY, myMatches),
@@ -180,7 +227,7 @@ export function Stats() {
     <ScreenLayout>
       <PageHero
         eyebrow="Stats"
-        title="Mes stats"
+        title="Tes stats"
         subtitle="Tes performances cross-context, lifetime. Pas de classement ELO global — l'ELO se calibre par contexte."
       />
       <div className="space-y-6 pb-bottom-nav lg:pb-bottom-nav-lg">
