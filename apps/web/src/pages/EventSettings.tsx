@@ -187,19 +187,6 @@ export const EventSettings = () => {
     initialDateIso,
   ]);
 
-  const handleReset = () => {
-    if (!event) return;
-    setName(event.name);
-    setDate(toIsoDay(event.date));
-    setFormat(event.format);
-    setHasPlayerLimit(
-      (event.maxPlayers ?? 999) > 0 && (event.maxPlayers ?? 999) < 999,
-    );
-    setPlayerLimit(String(event.maxPlayers ?? 16));
-    setIsPrivate(event.isPrivate ?? true);
-    setPropagatesToLeagueElo(event.propagatesToLeagueElo !== false);
-  };
-
   if (isLoadingInitialData) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -770,37 +757,22 @@ export const EventSettings = () => {
           </div>
         </div>
 
-        {/* Sticky save panel — visible uniquement si modifications en attente */}
+        {/* Sticky save CTA — visible uniquement si modifications en attente */}
         {isDirty && (
           <div
-            className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-electric-blue/40 px-4 py-3 md:py-4 z-10"
+            className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10"
             data-testid="settings-save-panel"
           >
-            <div className="max-w-2xl mx-auto space-y-2">
-              <div className="font-mono uppercase text-[10px] tracking-[2px] text-electric-blue text-center">
-                Modifications non enregistrées
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <PButton
-                  type="button"
-                  variant="ghost"
-                  size="md"
-                  full
-                  onClick={handleReset}
-                  disabled={isSaving}
-                >
-                  Annuler
-                </PButton>
-                <PButton
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  full
-                  disabled={!name.trim() || isSaving}
-                >
-                  {isSaving ? "Enregistrement…" : "Enregistrer"}
-                </PButton>
-              </div>
+            <div className="max-w-2xl mx-auto">
+              <PButton
+                type="submit"
+                variant="primary"
+                size="lg"
+                full
+                disabled={!name.trim() || isSaving}
+              >
+                {isSaving ? "Enregistrement…" : "Enregistrer"}
+              </PButton>
             </div>
           </div>
         )}
