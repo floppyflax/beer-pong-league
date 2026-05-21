@@ -1,25 +1,20 @@
 /**
  * MatchTeamsRow — bloc équipes + ELO d'une card de match.
  *
- * Layout (stack vertical, 1 ligne par joueur, ELO unique par équipe) :
+ * Layout 2 colonnes côte à côte (gauche = gagnant, droite = perdant) :
  *
- *   🏆 ÉQUIPE GAGNANTE                  +16
- *   flo2SA
- *   WINNIE
- *
- *   ADVERSAIRES                         −16
- *   Amar
- *   Dudu
+ *   🏆 +17                |   −17
+ *   Niko                  |   Amar
+ *   Dudu                  |   WINNIE
  *
  * Décisions :
- * - 1 valeur ELO par équipe (les joueurs d'une même équipe partagent
- *   l'expected score, donc le delta est identique sauf K-factor d'écart).
- *   On lit le delta du premier joueur disposant d'une valeur.
- * - 1 ligne par joueur (pas de noms concaténés en virgules) → zéro
- *   cropping, scan vertical clair.
- * - Header de section : font-mono lime (winner) ou cool-gray (loser)
- *   avec l'ELO sur la même ligne, justify-between.
- * - Si `eloChanges` absent (match live), l'ELO est simplement omis.
+ * - Pas de labels textuels « ÉQUIPE GAGNANTE » / « ADVERSAIRES » — le
+ *   trophée 🏆 + couleur ELO suffisent à identifier le camp.
+ * - 1 valeur ELO par équipe sur la ligne du haut → scan rapide
+ *   « qui a pris combien » en priorité.
+ * - 1 joueur = 1 ligne, alignement haut (asymétrie 1v3 tolérée sans
+ *   désaligner les ELO entre colonnes).
+ * - Si `eloChanges` absent (match live), seuls les noms sont affichés.
  */
 
 import type { Player } from "@/types";
@@ -45,42 +40,47 @@ function pickTeamDelta(
   return null;
 }
 
-function TeamBlock({
-  label,
-  isWinner,
+function TeamColumn({
   players,
+  isWinner,
   delta,
+  align,
 }: {
-  label: string;
-  isWinner: boolean;
   players: Pick<Player, "id" | "name">[];
+  isWinner: boolean;
   delta: number | null;
+  align: "left" | "right";
 }) {
-  const labelColor = isWinner ? "text-lime" : "text-cool-gray";
-  const eloColor =
-    delta == null ? "" : delta >= 0 ? "text-lime" : "text-signal-red";
-  const eloSign = delta == null ? "" : delta > 0 ? "+" : "";
+  const eloColor = isWinner ? "text-lime" : "text-signal-red";
+  const eloSign = delta == null ? "" : delta > 0 ? "+" : delta < 0 ? "−" : "";
   const nameColor = isWinner ? "text-white" : "text-cool-gray";
+  const alignClass = align === "right" ? "text-right" : "text-left";
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-baseline justify-between gap-3">
-        <span
-          className={`font-mono text-[10px] font-bold uppercase tracking-widest ${labelColor}`}
-        >
-          {isWinner && <span aria-hidden>🏆 </span>}
-          {label}
-        </span>
+    <div className={`min-w-0 space-y-1 ${alignClass}`}>
+      {/* Header : trophée (winner only) + ELO */}
+      <div
+        className={`flex items-baseline gap-1.5 ${
+          align === "right" ? "justify-end" : "justify-start"
+        }`}
+      >
+        {isWinner && (
+          <span aria-hidden className="text-base leading-none">
+            🏆
+          </span>
+        )}
         {delta != null && (
           <span
-            className={`shrink-0 font-mono text-sm font-bold tabular-nums ${eloColor}`}
-            aria-label={`ELO ${eloSign}${delta}`}
+            className={`font-mono text-sm font-bold tabular-nums ${eloColor}`}
+            aria-label={`ELO ${eloSign}${Math.abs(delta)}`}
           >
             {eloSign}
-            {delta}
+            {Math.abs(delta)}
           </span>
         )}
       </div>
+
+      {/* Liste des joueurs, 1 par ligne */}
       <ul className="space-y-0.5">
         {players.map((p) => (
           <li
@@ -106,18 +106,18 @@ export function MatchTeamsRow({
   const loserPlayers = winner === "A" ? teamBPlayers : teamAPlayers;
 
   return (
-    <div className={`space-y-3 ${className ?? ""}`}>
-      <TeamBlock
-        label="Équipe gagnante"
-        isWinner
+    <div className={`grid grid-cols-2 gap-x-4 ${className ?? ""}`}>
+      <TeamColumn
         players={winnerPlayers}
+        isWinner
         delta={pickTeamDelta(winnerPlayers, eloChanges)}
+        align="left"
       />
-      <TeamBlock
-        label="Adversaires"
-        isWinner={false}
+      <TeamColumn
         players={loserPlayers}
+        isWinner={false}
         delta={pickTeamDelta(loserPlayers, eloChanges)}
+        align="right"
       />
     </div>
   );
