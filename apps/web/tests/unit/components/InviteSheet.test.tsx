@@ -135,6 +135,78 @@ describe("InviteSheet multi-select", () => {
     expect(screen.getByRole("option", { name: /Joueur 3/i })).toBeDisabled();
   });
 
+  it("Tout sélectionner ticks every visible row, then becomes Tout désélectionner", async () => {
+    const user = userEvent.setup();
+    const onAddBulk = vi.fn();
+    render(
+      <InviteSheet
+        isOpen
+        onClose={() => {}}
+        leaguePlayers={buildPlayers(4)}
+        onAddFromLeagueBulk={onAddBulk}
+      />,
+    );
+
+    const toggle = screen.getByRole("button", { name: /Tout sélectionner/i });
+    await user.click(toggle);
+
+    expect(
+      screen.getByRole("button", { name: /Ajouter 4 joueurs/i }),
+    ).toBeEnabled();
+
+    // The label flips to "Tout désélectionner" once everything is selected.
+    expect(
+      screen.getByRole("button", { name: /Tout désélectionner/i }),
+    ).toBeInTheDocument();
+
+    // Click again to clear.
+    await user.click(
+      screen.getByRole("button", { name: /Tout désélectionner/i }),
+    );
+    expect(
+      screen.getByRole("button", { name: /Sélectionne des joueurs/i }),
+    ).toBeDisabled();
+  });
+
+  it("Tout sélectionner caps at remainingSlots when set", async () => {
+    const user = userEvent.setup();
+    render(
+      <InviteSheet
+        isOpen
+        onClose={() => {}}
+        leaguePlayers={buildPlayers(5)}
+        remainingSlots={3}
+        onAddFromLeagueBulk={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Tout sélectionner/i }));
+    // Only 3 of the 5 should be picked (the cap).
+    expect(
+      screen.getByRole("button", { name: /Ajouter 3 joueurs/i }),
+    ).toBeEnabled();
+  });
+
+  it("Tout sélectionner respects the active search filter (≥ 8 players)", async () => {
+    const user = userEvent.setup();
+    render(
+      <InviteSheet
+        isOpen
+        onClose={() => {}}
+        leaguePlayers={buildPlayers(10)}
+        onAddFromLeagueBulk={vi.fn()}
+      />,
+    );
+
+    // Type "Joueur 1" → matches "Joueur 1" and "Joueur 10".
+    await user.type(screen.getByLabelText(/Filtrer les joueurs/i), "Joueur 1");
+    await user.click(screen.getByRole("button", { name: /Tout sélectionner/i }));
+
+    expect(
+      screen.getByRole("button", { name: /Ajouter 2 joueurs/i }),
+    ).toBeEnabled();
+  });
+
   it("shows the empty message when all league players are already in the event", () => {
     render(
       <InviteSheet

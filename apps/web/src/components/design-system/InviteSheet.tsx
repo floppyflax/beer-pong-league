@@ -198,6 +198,28 @@ export const InviteSheet = ({
     });
   };
 
+  // "Tout sélectionner" toggle. Respects:
+  //  - the active search filter (only selects visible/filtered rows)
+  //  - remainingSlots (caps to whatever the event still accepts)
+  // Re-clicking when everything visible is already selected clears the
+  // selection — same affordance as the iOS/macOS multi-select header.
+  const allFilteredSelected =
+    filteredLeaguePlayers.length > 0 &&
+    filteredLeaguePlayers.every((p) => selectedIds.has(p.id));
+
+  const handleToggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(new Set());
+      return;
+    }
+    const cap =
+      remainingSlots !== undefined
+        ? Math.max(0, remainingSlots)
+        : filteredLeaguePlayers.length;
+    const ids = filteredLeaguePlayers.slice(0, cap).map((p) => p.id);
+    setSelectedIds(new Set(ids));
+  };
+
   const handleSubmitBulk = async () => {
     if (selectedIds.size === 0 || !onAddFromLeagueBulk) return;
     if (exceedsLimit) return;
@@ -354,14 +376,18 @@ export const InviteSheet = ({
             >
               {onAddFromLeagueBulk && leaguePlayers.length > 0 && (
                 <div>
-                  <div className="flex items-baseline justify-between">
+                  <div className="flex items-baseline justify-between gap-2">
                     <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray">
-                      Depuis la ligue
+                      Depuis la ligue ({leaguePlayers.length})
                     </span>
-                    <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray">
-                      {leaguePlayers.length} dispo
-                      {leaguePlayers.length > 1 ? "s" : ""}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={handleToggleSelectAll}
+                      disabled={filteredLeaguePlayers.length === 0}
+                      className="font-mono uppercase text-[10px] tracking-[1.5px] text-electric-blue hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {allFilteredSelected ? "Tout désélectionner" : "Tout sélectionner"}
+                    </button>
                   </div>
 
                   {showSearch && (
