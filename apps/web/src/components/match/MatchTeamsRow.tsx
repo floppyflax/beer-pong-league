@@ -1,25 +1,25 @@
 /**
  * MatchTeamsRow — bloc équipes + ELO d'une card de match.
  *
- * Utilisé dans EventDashboard, LeagueDashboard, PlayerProfile (et tout
- * futur listing de matchs). Centralise la règle « 1 ELO par équipe » :
- * dans le calcul ELO actuel (cf. packages/shared/src/utils/elo.ts), les
- * joueurs d'une même équipe partagent l'expected score d'équipe, donc
- * leur delta est *identique* sauf si leurs K-factors diffèrent (un
- * joueur < 20 matchs joués = K 32, autres = K 16). En pratique la
- * grande majorité des matchs → même delta pour toute l'équipe. On
- * affiche donc la valeur du premier joueur comme représentative.
+ * Layout (stack vertical, 1 ligne par joueur, ELO unique par équipe) :
  *
- * Layout (vertical stack) :
- *   🏆 flo2SA, WINNIE                          +16
- *      Amar, Dudu                              −16
+ *   🏆 ÉQUIPE GAGNANTE                  +16
+ *   flo2SA
+ *   WINNIE
  *
- * - Pseudos jamais tronqués (wrap multi-ligne sur min-w-0 + break-words)
- * - ELO toujours visible à droite (`shrink-0`)
- * - Trophée préfixe sur la winning team uniquement
- * - Couleurs : winner blanc + ELO lime, loser cool-gray + ELO signal-red
- * - Si `eloChanges` est absent (match live en cours), on n'affiche pas
- *   la valeur — le layout s'adapte automatiquement.
+ *   ADVERSAIRES                         −16
+ *   Amar
+ *   Dudu
+ *
+ * Décisions :
+ * - 1 valeur ELO par équipe (les joueurs d'une même équipe partagent
+ *   l'expected score, donc le delta est identique sauf K-factor d'écart).
+ *   On lit le delta du premier joueur disposant d'une valeur.
+ * - 1 ligne par joueur (pas de noms concaténés en virgules) → zéro
+ *   cropping, scan vertical clair.
+ * - Header de section : font-mono lime (winner) ou cool-gray (loser)
+ *   avec l'ELO sur la même ligne, justify-between.
+ * - Si `eloChanges` absent (match live), l'ELO est simplement omis.
  */
 
 import type { Player } from "@/types";
@@ -33,11 +33,6 @@ export interface MatchTeamsRowProps {
   className?: string;
 }
 
-/**
- * Pick the canonical ELO delta for a team. Reads the first player's delta:
- * within a team the expected score is shared, so deltas only differ by
- * K-factor. Falls back to the first player whose delta exists.
- */
 function pickTeamDelta(
   players: Pick<Player, "id">[],
   eloChanges: Record<string, number> | null | undefined,
@@ -50,38 +45,52 @@ function pickTeamDelta(
   return null;
 }
 
-function TeamLine({
-  players,
+function TeamBlock({
+  label,
   isWinner,
+  players,
   delta,
 }: {
-  players: Pick<Player, "id" | "name">[];
+  label: string;
   isWinner: boolean;
+  players: Pick<Player, "id" | "name">[];
   delta: number | null;
 }) {
-  const names = players.map((p) => p.name).join(", ");
-  const eloColor = delta == null ? "" : delta >= 0 ? "text-lime" : "text-signal-red";
+  const labelColor = isWinner ? "text-lime" : "text-cool-gray";
+  const eloColor =
+    delta == null ? "" : delta >= 0 ? "text-lime" : "text-signal-red";
   const eloSign = delta == null ? "" : delta > 0 ? "+" : "";
+  const nameColor = isWinner ? "text-white" : "text-cool-gray";
 
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <div
-        className={`min-w-0 flex-1 text-sm break-words ${
-          isWinner ? "text-white font-bold" : "text-cool-gray"
-        }`}
-      >
-        {isWinner && <span className="mr-1.5" aria-hidden>🏆</span>}
-        {names}
-      </div>
-      {delta != null && (
-        <div
-          className={`shrink-0 font-mono text-sm font-bold tabular-nums ${eloColor}`}
-          aria-label={`ELO ${eloSign}${delta}`}
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <span
+          className={`font-mono text-[10px] font-bold uppercase tracking-widest ${labelColor}`}
         >
-          {eloSign}
-          {delta}
-        </div>
-      )}
+          {isWinner && <span aria-hidden>🏆 </span>}
+          {label}
+        </span>
+        {delta != null && (
+          <span
+            className={`shrink-0 font-mono text-sm font-bold tabular-nums ${eloColor}`}
+            aria-label={`ELO ${eloSign}${delta}`}
+          >
+            {eloSign}
+            {delta}
+          </span>
+        )}
+      </div>
+      <ul className="space-y-0.5">
+        {players.map((p) => (
+          <li
+            key={p.id}
+            className={`text-sm font-semibold break-words ${nameColor}`}
+          >
+            {p.name}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -95,13 +104,21 @@ export function MatchTeamsRow({
 }: MatchTeamsRowProps) {
   const winnerPlayers = winner === "A" ? teamAPlayers : teamBPlayers;
   const loserPlayers = winner === "A" ? teamBPlayers : teamAPlayers;
-  const winnerDelta = pickTeamDelta(winnerPlayers, eloChanges);
-  const loserDelta = pickTeamDelta(loserPlayers, eloChanges);
 
   return (
-    <div className={`space-y-1.5 ${className ?? ""}`}>
-      <TeamLine players={winnerPlayers} isWinner delta={winnerDelta} />
-      <TeamLine players={loserPlayers} isWinner={false} delta={loserDelta} />
+    <div className={`space-y-3 ${className ?? ""}`}>
+      <TeamBlock
+        label="Équipe gagnante"
+        isWinner
+        players={winnerPlayers}
+        delta={pickTeamDelta(winnerPlayers, eloChanges)}
+      />
+      <TeamBlock
+        label="Adversaires"
+        isWinner={false}
+        players={loserPlayers}
+        delta={pickTeamDelta(loserPlayers, eloChanges)}
+      />
     </div>
   );
 }

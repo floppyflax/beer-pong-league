@@ -2,12 +2,11 @@
  * Unit tests for MatchEnrichedDisplay component
  *
  * History
- * - Story 14-28 : initial implementation (thumbnail carrée 64×64 + lightbox)
- * - PR #31 (Photo Finish) : `photo_url` stocke maintenant un collage 9:16,
- *   la thumbnail passe en portrait 60×107 + label « Photo finish », labels
- *   ARIA mis à jour. Lors d'une erreur de chargement, la thumbnail entière
- *   est retirée plutôt qu'un placeholder « Erreur » (les utilisateurs ne
- *   gagnent rien à voir une vignette cassée).
+ * - Story 14-28 : thumbnail carrée 64×64 + cups badge.
+ * - PR #31 : thumbnail portrait 60×107 + label « Photo finish ».
+ * - PR #31 follow-up : retour à une icône camera lime cliquable
+ *   (la thumbnail prenait trop de place dans la liste). La photo
+ *   ne s'affiche plus que dans le lightbox au clic.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -33,30 +32,21 @@ describe("MatchEnrichedDisplay", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("should render photo thumbnail when photoUrl is provided", () => {
+  it("should render a clickable Photo button when photoUrl is provided", () => {
     render(
       <MatchEnrichedDisplay
         photoUrl="https://example.com/photo.jpg"
         cupsRemaining={null}
       />,
     );
-    const img = screen.getByRole("img", { name: /collage photo finish/i });
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute("src", "https://example.com/photo.jpg");
-    expect(img).toHaveAttribute("loading", "lazy");
-  });
-
-  it("should label the thumbnail with the 'Photo finish' affordance", () => {
-    render(
-      <MatchEnrichedDisplay
-        photoUrl="https://example.com/photo.jpg"
-        cupsRemaining={null}
-      />,
-    );
-    expect(screen.getByText(/photo finish/i)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /voir la photo finish/i }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/photo/i)).toBeInTheDocument();
+    // No visible image until the lightbox opens.
+    expect(
+      screen.queryByRole("img", { name: /collage photo finish/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("should render cups badge when cupsRemaining is provided", () => {
@@ -69,7 +59,7 @@ describe("MatchEnrichedDisplay", () => {
     expect(screen.getByText(/1 gobelet restant/i)).toBeInTheDocument();
   });
 
-  it("should render both photo and cups when both are provided", () => {
+  it("should render both photo button and cups when both are provided", () => {
     render(
       <MatchEnrichedDisplay
         photoUrl="https://example.com/photo.jpg"
@@ -77,26 +67,28 @@ describe("MatchEnrichedDisplay", () => {
       />,
     );
     expect(
-      screen.getByRole("img", { name: /collage photo finish/i }),
+      screen.getByRole("button", { name: /voir la photo finish/i }),
     ).toBeInTheDocument();
     expect(screen.getByText(/5 gobelets restants/i)).toBeInTheDocument();
   });
 
-  it("should open enlarged photo modal when thumbnail is clicked", () => {
+  it("should open enlarged photo modal when photo button is clicked", () => {
     render(
       <MatchEnrichedDisplay
         photoUrl="https://example.com/photo.jpg"
         cupsRemaining={null}
       />,
     );
-    const button = screen.getByRole("button", {
-      name: /voir la photo finish/i,
-    });
-    fireEvent.click(button);
-    const dialog = screen.getByRole("dialog", {
-      name: /photo finish agrandie/i,
-    });
-    expect(dialog).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: /voir la photo finish/i }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: /photo finish agrandie/i }),
+    ).toBeInTheDocument();
+    // The full-size image is now visible inside the dialog.
+    expect(
+      screen.getByRole("img", { name: /collage photo finish/i }),
+    ).toBeInTheDocument();
   });
 
   it("should close enlarged photo modal when close button is clicked", () => {
@@ -159,18 +151,18 @@ describe("MatchEnrichedDisplay", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("should remove the thumbnail when the image fails to load", () => {
+  it("should hide the photo button when the hidden preload image fails", () => {
     render(
       <MatchEnrichedDisplay
         photoUrl="https://example.com/invalid.jpg"
         cupsRemaining={5}
       />,
     );
-    const img = screen.getByRole("img", { name: /collage photo finish/i });
-    fireEvent.error(img);
-    expect(
-      screen.queryByRole("img", { name: /collage photo finish/i }),
-    ).not.toBeInTheDocument();
+    // Preload <img aria-hidden> is rendered with empty alt to trigger the
+    // onError handler without surfacing it to assistive tech.
+    const preload = document.querySelector('img[aria-hidden="true"]');
+    expect(preload).not.toBeNull();
+    fireEvent.error(preload!);
     expect(
       screen.queryByRole("button", { name: /voir la photo finish/i }),
     ).not.toBeInTheDocument();
@@ -178,15 +170,16 @@ describe("MatchEnrichedDisplay", () => {
     expect(screen.getByText(/5 gobelets restants/i)).toBeInTheDocument();
   });
 
-  it("should render nothing when image fails to load and no cups", () => {
+  it("should render nothing when preload image fails and no cups", () => {
     const { container } = render(
       <MatchEnrichedDisplay
         photoUrl="https://example.com/invalid.jpg"
         cupsRemaining={null}
       />,
     );
-    const img = screen.getByRole("img", { name: /collage photo finish/i });
-    fireEvent.error(img);
+    const preload = document.querySelector('img[aria-hidden="true"]');
+    expect(preload).not.toBeNull();
+    fireEvent.error(preload!);
     expect(container.firstChild).toBeNull();
   });
 });

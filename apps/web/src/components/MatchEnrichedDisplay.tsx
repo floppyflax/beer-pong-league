@@ -1,11 +1,17 @@
 /**
- * MatchEnrichedDisplay - Photo Finish thumbnail + cups badge for match history.
+ * MatchEnrichedDisplay — petite icône Photo Finish + badge gobelets restants
+ * pour les cards de matchs.
  *
- * Depuis la feature Photo Finish (PR #31), `photo_url` stocke un **collage
- * 9:16** (gagnant + perdant) plutôt qu'une simple photo solo. La thumbnail
- * adopte donc un ratio portrait + un label « Photo finish » pour identifier
- * clairement le contenu, et le lightbox utilise `object-contain` pour
- * respecter le ratio Story Instagram.
+ * Conçu pour rester discret : pas de thumbnail visible. Si `photoUrl` est
+ * présent, on rend une icône `Camera` lime cliquable ; le lightbox plein
+ * écran s'ouvre au clic (et reste responsive au ratio 9:16 du collage via
+ * `object-contain`).
+ *
+ * Historique
+ * - Story 14-28 : thumbnail carrée 64×64 + cups badge.
+ * - PR #31 (Photo Finish) : thumbnail portrait 60×107 + label.
+ * - PR #31 follow-up : retour à une simple icône cliquable (la photo
+ *   prend trop de place dans une liste dense).
  */
 
 import { useState, useRef, useEffect } from "react";
@@ -38,20 +44,15 @@ export function MatchEnrichedDisplay({
     triggerButtonRef.current?.focus();
   };
 
-  // Escape key, scroll lock, focus management
   useEffect(() => {
     if (!showEnlarged) return;
-
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     closeButtonRef.current?.focus();
-
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeModal();
     };
     document.addEventListener("keydown", handleEscape);
-
     return () => {
       document.body.style.overflow = prevOverflow;
       document.removeEventListener("keydown", handleEscape);
@@ -61,54 +62,41 @@ export function MatchEnrichedDisplay({
   if (!hasPhotoUrl && !hasCups) return null;
 
   return (
-    <div className="flex items-stretch gap-3 mt-3">
-      {hasPhotoUrl && (
-        <>
+    <>
+      <div className="flex items-center gap-2">
+        {hasPhotoUrl && (
           <button
             ref={triggerButtonRef}
             type="button"
             onClick={() => setShowEnlarged(true)}
-            className="group relative shrink-0 rounded-lg overflow-hidden border-2 border-lime/60 hover:border-lime shadow-[0_0_18px_rgba(183,255,59,0.25)] hover:shadow-[0_0_24px_rgba(183,255,59,0.45)] transition-all focus:outline-none focus:ring-2 focus:ring-lime"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-lime/50 bg-lime/10 text-lime hover:bg-lime/20 transition-colors focus:outline-none focus:ring-2 focus:ring-lime"
             aria-label="Voir la photo finish"
+            title="Voir la photo finish"
           >
-            <img
-              src={photoUrl!}
-              alt="Collage Photo Finish"
-              loading="lazy"
-              className="w-[60px] h-[107px] object-cover transition-transform group-hover:scale-105"
-              onError={() => setImageError(true)}
-            />
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-deep/90 to-transparent text-[9px] font-archivo font-extrabold uppercase tracking-widest text-lime text-center py-1">
+            <Camera size={12} />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-widest">
               Photo
             </span>
           </button>
-
-          <div className="flex flex-col justify-center min-w-0">
-            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-widest text-lime">
-              <Camera size={11} />
-              Photo finish
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowEnlarged(true)}
-              className="text-xs text-cool-gray hover:text-white text-left underline-offset-2 hover:underline transition-colors"
-            >
-              Voir le collage
-            </button>
-            {hasCups && (
-              <span className="mt-1 inline-flex items-center self-start px-2 py-0.5 rounded text-[10px] font-medium bg-ping-yellow/20 text-ping-yellow border border-ping-yellow/40">
-                {formatCupsBadge(cupsRemaining)}
-              </span>
-            )}
-          </div>
-        </>
-      )}
-
-      {!hasPhotoUrl && hasCups && (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ping-yellow/20 text-ping-yellow border border-ping-yellow/40">
-          {formatCupsBadge(cupsRemaining)}
-        </span>
-      )}
+        )}
+        {hasCups && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-ping-yellow/20 text-ping-yellow border border-ping-yellow/40">
+            {formatCupsBadge(cupsRemaining)}
+          </span>
+        )}
+        {/* Hidden img tag to detect broken photo_url early without showing the
+            thumbnail; gracefully hides the photo button if the file is gone. */}
+        {photoUrl && !imageError && (
+          <img
+            src={photoUrl}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            className="hidden"
+            onError={() => setImageError(true)}
+          />
+        )}
+      </div>
 
       {hasPhotoUrl && showEnlarged && (
         <div
@@ -138,6 +126,6 @@ export function MatchEnrichedDisplay({
           />
         </div>
       )}
-    </div>
+    </>
   );
 }
