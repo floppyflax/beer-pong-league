@@ -310,14 +310,23 @@ export const EventDashboard = () => {
     }
   };
 
-  const handleInviteAddFromLeague = async (leaguePlayerId: string) => {
-    if (!leaguePlayerId || !event.leagueId) return;
+  const handleInviteAddFromLeagueBulk = async (
+    leaguePlayerIds: string[],
+  ) => {
+    if (leaguePlayerIds.length === 0 || !event.leagueId) return;
     try {
-      const eventPlayerId = await databaseService.addLeaguePlayerToEvent(
-        event.id,
-        leaguePlayerId,
-      );
-      addPlayerToEvent(event.id, eventPlayerId);
+      // Sequential to avoid races on event_memberships and to keep the
+      // single re-fetch at the end consistent. addLeaguePlayerToEvent is
+      // idempotent so retries are safe.
+      const eventPlayerIds: string[] = [];
+      for (const lpId of leaguePlayerIds) {
+        const eventPlayerId = await databaseService.addLeaguePlayerToEvent(
+          event.id,
+          lpId,
+        );
+        eventPlayerIds.push(eventPlayerId);
+      }
+      eventPlayerIds.forEach((id) => addPlayerToEvent(event.id, id));
       await reloadData();
       databaseService
         .loadEventParticipants(event.id)
@@ -336,7 +345,11 @@ export const EventDashboard = () => {
           ),
         )
         .catch(() => {});
-      toast.success("Joueur ajouté à l'événement");
+      toast.success(
+        leaguePlayerIds.length === 1
+          ? "Joueur ajouté à l'événement"
+          : `${leaguePlayerIds.length} joueurs ajoutés à l'événement`,
+      );
       setShowAddPlayer(false);
     } catch (err: unknown) {
       toast.error(
@@ -928,12 +941,20 @@ export const EventDashboard = () => {
                       (tp) => tp.leaguePlayerId === lp.id,
                     ),
                 )
-                .map((p) => ({ id: p.id, name: p.name }))
+                .map((p) => ({ id: p.id, name: p.name, elo: p.elo }))
             : []
         }
+        remainingSlots={
+          // 999 = unlimited sentinel (cf. CreateEvent UNLIMITED_PLAYERS).
+          event.maxPlayers != null &&
+          event.maxPlayers > 0 &&
+          event.maxPlayers < 999
+            ? Math.max(0, event.maxPlayers - eventParticipants.length)
+            : undefined
+        }
         onAddManual={handleInviteAddManual}
-        onAddFromLeague={
-          event.leagueId ? handleInviteAddFromLeague : undefined
+        onAddFromLeagueBulk={
+          event.leagueId ? handleInviteAddFromLeagueBulk : undefined
         }
       />
 
