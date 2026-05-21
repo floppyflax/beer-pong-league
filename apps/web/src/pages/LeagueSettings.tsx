@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  AlertTriangle,
   Archive,
   Edit,
   Ghost,
@@ -60,6 +61,16 @@ export const LeagueSettings = () => {
   useEffect(() => {
     if (league) setName(league.name);
   }, [league?.id]);
+
+  const isDirty = useMemo(() => {
+    if (!league) return false;
+    return name.trim() !== league.name && name.trim().length > 0;
+  }, [league, name]);
+
+  const handleReset = () => {
+    if (!league) return;
+    setName(league.name);
+  };
 
   if (isLoadingInitialData) {
     return (
@@ -283,7 +294,7 @@ export const LeagueSettings = () => {
 
       <form
         onSubmit={handleSubmit}
-        className="p-4 md:p-6 max-w-2xl mx-auto space-y-5 pb-32"
+        className="p-4 md:p-6 max-w-2xl mx-auto space-y-5 pb-8"
         noValidate
       >
         {/* Nom */}
@@ -303,6 +314,39 @@ export const LeagueSettings = () => {
             className={inputClass}
           />
         </div>
+
+        {/* Save panel inline — visible uniquement si modifications en attente */}
+        {isDirty && (
+          <div
+            className="rounded-card border border-electric-blue/40 bg-electric-blue/5 p-3 space-y-3"
+            data-testid="settings-save-panel"
+          >
+            <div className="font-mono uppercase text-[10px] tracking-[2px] text-electric-blue">
+              Modifications non enregistrées
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <PButton
+                type="button"
+                variant="ghost"
+                size="md"
+                full
+                onClick={handleReset}
+                disabled={isSaving}
+              >
+                Annuler
+              </PButton>
+              <PButton
+                type="submit"
+                variant="primary"
+                size="md"
+                full
+                disabled={!name.trim() || isSaving}
+              >
+                {isSaving ? "Enregistrement…" : "Enregistrer"}
+              </PButton>
+            </div>
+          </div>
+        )}
 
         {/* Type (read-only) */}
         <div className="space-y-2">
@@ -639,27 +683,34 @@ export const LeagueSettings = () => {
           )}
         </div>
 
-        {/* Sticky footer */}
-        <div className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10">
-          <div className="max-w-2xl mx-auto flex flex-col gap-3">
+        {/* Zone de danger — Supprimer la ligue */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-signal-red block">
+            <span className="inline-flex items-center gap-1.5">
+              <AlertTriangle size={12} />
+              Zone de danger
+            </span>
+          </span>
+          <div className="rounded-card border border-signal-red/30 bg-signal-red/5 p-3 space-y-3">
+            <div>
+              <div className="text-white font-archivo font-semibold text-sm">
+                Supprimer la ligue
+              </div>
+              <div className="text-cool-gray text-xs mt-0.5">
+                Suppression définitive. Tous les événements, matchs, joueurs et
+                ELO seront perdus.
+              </div>
+            </div>
             <PButton
               type="button"
               variant="ghost"
-              size="lg"
+              size="md"
               full
-              icon={<Trash2 size={18} />}
+              icon={<Trash2 size={16} />}
               onClick={handleDeleteLeague}
+              data-testid="settings-delete-league"
             >
               Supprimer la ligue
-            </PButton>
-            <PButton
-              type="submit"
-              variant="primary"
-              size="lg"
-              full
-              disabled={!name.trim() || isSaving}
-            >
-              {isSaving ? "Enregistrement…" : "Enregistrer"}
             </PButton>
           </div>
         </div>
