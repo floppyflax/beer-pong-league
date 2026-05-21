@@ -1,10 +1,15 @@
 /**
- * MatchEnrichedDisplay - Photo thumbnail and cups badge for match history
- * Story 14-28: Display photo and cups in match history
+ * MatchEnrichedDisplay - Photo Finish thumbnail + cups badge for match history.
+ *
+ * Depuis la feature Photo Finish (PR #31), `photo_url` stocke un **collage
+ * 9:16** (gagnant + perdant) plutôt qu'une simple photo solo. La thumbnail
+ * adopte donc un ratio portrait + un label « Photo finish » pour identifier
+ * clairement le contenu, et le lightbox utilise `object-contain` pour
+ * respecter le ratio Story Instagram.
  */
 
 import { useState, useRef, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Camera } from "lucide-react";
 
 interface MatchEnrichedDisplayProps {
   photoUrl?: string | null;
@@ -24,7 +29,7 @@ export function MatchEnrichedDisplay({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
-  const hasPhotoUrl = Boolean(photoUrl?.trim());
+  const hasPhotoUrl = Boolean(photoUrl?.trim()) && !imageError;
   const hasCups =
     cupsRemaining != null && cupsRemaining >= 1 && cupsRemaining <= 10;
 
@@ -56,74 +61,82 @@ export function MatchEnrichedDisplay({
   if (!hasPhotoUrl && !hasCups) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mt-2">
-      {/* Task 1: Photo thumbnail - lazy loading, click to enlarge */}
+    <div className="flex items-stretch gap-3 mt-3">
       {hasPhotoUrl && (
         <>
           <button
             ref={triggerButtonRef}
             type="button"
-            onClick={() => {
-              if (imageError) return;
-              setImageError(false);
-              setShowEnlarged(true);
-            }}
-            className="block rounded-lg overflow-hidden border border-card hover:border-cool-gray/40 transition-colors focus:outline-none focus:ring-2 focus:ring-electric-blue disabled:opacity-60 disabled:cursor-not-allowed"
-            aria-label="Agrandir la photo"
-            disabled={imageError}
+            onClick={() => setShowEnlarged(true)}
+            className="group relative shrink-0 rounded-lg overflow-hidden border-2 border-lime/60 hover:border-lime shadow-[0_0_18px_rgba(183,255,59,0.25)] hover:shadow-[0_0_24px_rgba(183,255,59,0.45)] transition-all focus:outline-none focus:ring-2 focus:ring-lime"
+            aria-label="Voir la photo finish"
           >
-            {imageError ? (
-              <div className="w-16 h-16 flex items-center justify-center bg-navy-soft text-cool-gray text-xs">
-                Erreur
-              </div>
-            ) : (
-              <img
-                src={photoUrl!}
-                alt="Photo de l'équipe gagnante"
-                loading="lazy"
-                className="w-16 h-16 object-cover"
-                onError={() => setImageError(true)}
-              />
-            )}
+            <img
+              src={photoUrl!}
+              alt="Collage Photo Finish"
+              loading="lazy"
+              className="w-[60px] h-[107px] object-cover transition-transform group-hover:scale-105"
+              onError={() => setImageError(true)}
+            />
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-deep/90 to-transparent text-[9px] font-archivo font-extrabold uppercase tracking-widest text-lime text-center py-1">
+              Photo
+            </span>
           </button>
 
-          {/* Click to enlarge modal */}
-          {showEnlarged && (
-            <div
-              className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Photo agrandie"
-              onClick={closeModal}
+          <div className="flex flex-col justify-center min-w-0">
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-widest text-lime">
+              <Camera size={11} />
+              Photo finish
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowEnlarged(true)}
+              className="text-xs text-cool-gray hover:text-white text-left underline-offset-2 hover:underline transition-colors"
             >
-              <button
-                ref={closeButtonRef}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeModal();
-                }}
-                className="absolute top-4 right-4 p-2 rounded-lg bg-navy-soft hover:bg-navy text-white"
-                aria-label="Fermer"
-              >
-                <X size={24} />
-              </button>
-              <img
-                src={photoUrl!}
-                alt="Photo de l'équipe gagnante"
-                className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          )}
+              Voir le collage
+            </button>
+            {hasCups && (
+              <span className="mt-1 inline-flex items-center self-start px-2 py-0.5 rounded text-[10px] font-medium bg-ping-yellow/20 text-ping-yellow border border-ping-yellow/40">
+                {formatCupsBadge(cupsRemaining)}
+              </span>
+            )}
+          </div>
         </>
       )}
 
-      {/* Task 2: Cups badge - "X cups remaining" */}
-      {hasCups && (
+      {!hasPhotoUrl && hasCups && (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ping-yellow/20 text-ping-yellow border border-ping-yellow/40">
           {formatCupsBadge(cupsRemaining)}
         </span>
+      )}
+
+      {hasPhotoUrl && showEnlarged && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo finish agrandie"
+          onClick={closeModal}
+        >
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              closeModal();
+            }}
+            className="absolute top-4 right-4 p-2 rounded-lg bg-navy-soft hover:bg-navy text-white z-10"
+            aria-label="Fermer"
+          >
+            <X size={24} />
+          </button>
+          <img
+            src={photoUrl!}
+            alt="Collage Photo Finish agrandi"
+            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )}
     </div>
   );
