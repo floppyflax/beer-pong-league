@@ -120,6 +120,9 @@ export const UserProfile = () => {
       const ok = await authService.updateUserProfile(user.id, { avatar_url: url });
       if (!ok) throw new Error("db update failed");
       setAvatarUrl(url);
+      // Avatar is propagated to the user's players row server-side; reload so
+      // leagues / events / rankings reflect the new photo immediately.
+      await reloadData();
       toast.success("Photo de profil mise à jour");
     } catch {
       toast.error("Impossible d'uploader la photo");

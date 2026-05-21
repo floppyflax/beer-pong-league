@@ -408,6 +408,7 @@ export const LeagueDashboard = () => {
                       id: p.id,
                       name: p.name,
                       elo: p.elo,
+                      avatar: p.avatarUrl ?? undefined,
                       delta:
                         getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
                       rankDelta: rankDeltas.get(p.id),
@@ -432,6 +433,7 @@ export const LeagueDashboard = () => {
                         key={player.id}
                         variant="leaderRow"
                         name={player.name}
+                        avatarUrl={player.avatarUrl ?? undefined}
                         elo={player.elo}
                         delta={delta ?? undefined}
                         rankDelta={rankDeltas.get(player.id)}
