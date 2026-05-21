@@ -2,7 +2,8 @@
  * LeagueCard — listing pressed-card pour une ligue.
  *
  * Construit sur `CardShell` (partagé avec `EventCard`).
- * Header : pill statut (Active / Terminée) + Propriétaire si owner.
+ * Header : pill statut (Active / Terminée) + badge "Admin" si créateur + rang
+ * `1er / N` à droite du titre quand je participe.
  * Body : 3 colonnes de stats — membres, événements, dernière activité.
  */
 
@@ -12,7 +13,9 @@ import type { LeagueListItem } from "@/hooks/useLeaguesList";
 import { formatRelativeTime } from "@/utils/dateUtils";
 import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
+import { useMyLeagueRank } from "@/hooks/useMyContextRankings";
 import { CardShell } from "./CardShell";
+import { MyRankBadge } from "../atoms/MyRankBadge";
 
 export interface LeagueCardProps {
   league: LeagueListItem;
@@ -22,6 +25,7 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
+  const myRank = useMyLeagueRank(league.id);
 
   const isOwner =
     (user && user.id === league.creator_user_id) ||
@@ -69,10 +73,17 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
             ? "Terminée"
             : lifecycle === "paused"
               ? "En pause"
-              : `Saison ${league.currentSeasonNumber}`,
+              : lifecycle === "not_started"
+                ? league.plannedStartAt
+                  ? `Démarre le ${new Date(league.plannedStartAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" })}`
+                  : "Non démarrée"
+                : `Saison ${league.currentSeasonNumber}`,
         tone: lifecycle === "active" ? "live" : "muted",
       }}
-      ownerLabel={isOwner ? "Propriétaire" : undefined}
+      adminBadge={Boolean(isOwner)}
+      titleSuffix={
+        myRank ? <MyRankBadge rank={myRank.rank} total={myRank.total} /> : undefined
+      }
       body={body}
       testId="league-card"
       ariaLabel={`Voir la league ${league.name}`}

@@ -79,6 +79,18 @@ vi.mock("../../../src/context/LeagueContext", () => ({
   ),
 }));
 
+// Mock the rank hook used by EventCard — keeps the test free of
+// QueryClient / AuthProvider plumbing.
+vi.mock("../../../src/hooks/useMyContextRankings", () => ({
+  useMyEventRank: () => null,
+  useMyLeagueRank: () => null,
+  useMyContextRankings: () => ({
+    leagueRanks: new Map(),
+    eventRanks: new Map(),
+  }),
+  computeContextRank: () => null,
+}));
+
 // Wrapper component with all providers
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
   <BrowserRouter>

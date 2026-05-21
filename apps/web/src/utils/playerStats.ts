@@ -51,3 +51,49 @@ export function getLast5MatchResults(
   }
   return results;
 }
+
+/**
+ * Variation de rang vs dernier match — calcule, pour chaque joueur du
+ * classement courant (`playersSortedByElo`, déjà trié ELO desc), de combien
+ * de places il a monté (>0) ou descendu (<0) depuis l'avant-dernier match.
+ *
+ * Le calcul reconstruit l'ELO avant le dernier match en retirant
+ * `lastMatch.eloChanges[playerId]` à chaque joueur (0 par défaut pour les
+ * non-participants), puis re-trie pour obtenir le rang précédent.
+ *
+ * Retourne une Map vide si aucun match ou si le dernier match n'a pas
+ * d'`eloChanges` (match non-ranked / non-confirmé).
+ *
+ * Un delta de 0 reste présent dans la Map — laisser le consommateur décider
+ * de l'afficher ou non.
+ */
+export function getRankDeltasFromLastMatch(
+  playersSortedByElo: { id: string; elo: number }[],
+  matches: StatsMatch[],
+): Map<string, number> {
+  const result = new Map<string, number>();
+  if (playersSortedByElo.length === 0) return result;
+
+  const lastMatch = matches[0];
+  if (!lastMatch || !lastMatch.eloChanges) return result;
+  const eloChanges = lastMatch.eloChanges;
+
+  const snapshot = playersSortedByElo.map((p, i) => ({
+    id: p.id,
+    currentRank: i + 1,
+    prevElo: p.elo - (eloChanges[p.id] ?? 0),
+    currentIndex: i,
+  }));
+
+  const sortedByPrev = [...snapshot].sort((a, b) => {
+    if (b.prevElo !== a.prevElo) return b.prevElo - a.prevElo;
+    return a.currentIndex - b.currentIndex;
+  });
+
+  sortedByPrev.forEach((s, i) => {
+    const previousRank = i + 1;
+    result.set(s.id, previousRank - s.currentRank);
+  });
+
+  return result;
+}

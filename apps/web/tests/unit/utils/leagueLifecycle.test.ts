@@ -1,49 +1,81 @@
 /**
- * leagueLifecycle — derived state truth table (mig 028 + 029).
+ * leagueLifecycle — derived state truth table (mig 028 + 029 + 030).
  *
  * Rules (du plus terminal au plus actif) :
  *   finished        → endedAt
  *   paused          → !endedAt && pausedAt
  *   between_seasons → !endedAt && !pausedAt && currentSeasonEndedAt
+ *   not_started     → !endedAt && !pausedAt && !currentSeasonEndedAt && plannedStartAt > today
  *   active          → otherwise
  */
 
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import {
   canRecordLeagueMatch,
   getLeagueLifecycle,
+  getLeagueReminders,
   type LeagueLifecycleInput,
+  type LeagueRemindersInput,
 } from '@/utils/leagueLifecycle';
+
+const FROZEN_TODAY = '2026-05-20T12:00:00.000Z';
+const YESTERDAY_DAY = '2026-05-19';
+const TOMORROW_DAY = '2026-05-21';
+const ISO = '2026-05-20T10:00:00.000Z';
 
 const make = (overrides: Partial<LeagueLifecycleInput>): LeagueLifecycleInput => ({
   pausedAt: null,
   endedAt: null,
   currentSeasonEndedAt: null,
+  plannedStartAt: null,
   ...overrides,
 });
 
-const ISO = '2026-05-20T10:00:00.000Z';
-
 describe('leagueLifecycle', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(FROZEN_TODAY));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('getLeagueLifecycle', () => {
-    it('finished wins when ended_at is set', () => {
+    it('finished wins over any other field', () => {
       expect(
         getLeagueLifecycle(
           make({
             endedAt: ISO,
             pausedAt: '2026-05-19T09:00:00.000Z',
             currentSeasonEndedAt: '2026-05-18T08:00:00.000Z',
+            plannedStartAt: `${TOMORROW_DAY}T08:00:00.000Z`,
           }),
         ),
       ).toBe('finished');
     });
 
-    it('paused when not finished and paused_at is set (overrides between_seasons)', () => {
+    it('paused wins over between_seasons / not_started', () => {
       expect(
         getLeagueLifecycle(
-          make({ pausedAt: ISO, currentSeasonEndedAt: '2026-05-18T08:00:00.000Z' }),
+          make({
+            pausedAt: ISO,
+            currentSeasonEndedAt: '2026-05-18T08:00:00.000Z',
+            plannedStartAt: `${TOMORROW_DAY}T08:00:00.000Z`,
+          }),
         ),
       ).toBe('paused');
+    });
+
+    it('between_seasons wins over not_started', () => {
+      expect(
+        getLeagueLifecycle(
+          make({
+            currentSeasonEndedAt: ISO,
+            plannedStartAt: `${TOMORROW_DAY}T08:00:00.000Z`,
+          }),
+        ),
+      ).toBe('between_seasons');
     });
 
     it('between_seasons when only currentSeasonEndedAt is set', () => {
@@ -52,7 +84,23 @@ describe('leagueLifecycle', () => {
       ).toBe('between_seasons');
     });
 
-    it('active when no lifecycle timestamp is set', () => {
+    it('not_started when planned_start_at is in the future', () => {
+      expect(
+        getLeagueLifecycle(
+          make({ plannedStartAt: `${TOMORROW_DAY}T08:00:00.000Z` }),
+        ),
+      ).toBe('not_started');
+    });
+
+    it('active when planned_start_at is in the past', () => {
+      expect(
+        getLeagueLifecycle(
+          make({ plannedStartAt: `${YESTERDAY_DAY}T08:00:00.000Z` }),
+        ),
+      ).toBe('active');
+    });
+
+    it('active when no lifecycle timestamp is set (legacy row)', () => {
       expect(getLeagueLifecycle(make({}))).toBe('active');
     });
 
@@ -67,6 +115,86 @@ describe('leagueLifecycle', () => {
       expect(canRecordLeagueMatch(make({ pausedAt: ISO }))).toBe(false);
       expect(canRecordLeagueMatch(make({ endedAt: ISO }))).toBe(false);
       expect(canRecordLeagueMatch(make({ currentSeasonEndedAt: ISO }))).toBe(false);
+      expect(
+        canRecordLeagueMatch(
+          make({ plannedStartAt: `${TOMORROW_DAY}T08:00:00.000Z` }),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe('getLeagueReminders', () => {
+    const makeR = (
+      overrides: Partial<LeagueRemindersInput>,
+    ): LeagueRemindersInput => ({
+      currentSeasonStartedAt: undefined,
+      seasonDurationDays: null,
+      plannedEndAt: null,
+      endedAt: null,
+      pausedAt: null,
+      ...overrides,
+    });
+
+    it('no flags when nothing is configured', () => {
+      expect(getLeagueReminders(makeR({}))).toEqual({
+        seasonOverdue: false,
+        leagueOverdue: false,
+      });
+    });
+
+    it('seasonOverdue when current season has exceeded its duration', () => {
+      expect(
+        getLeagueReminders(
+          makeR({
+            currentSeasonStartedAt: '2026-01-01T00:00:00.000Z',
+            seasonDurationDays: 30, // expired since Feb
+          }),
+        ).seasonOverdue,
+      ).toBe(true);
+    });
+
+    it('no seasonOverdue when within duration window', () => {
+      expect(
+        getLeagueReminders(
+          makeR({
+            currentSeasonStartedAt: '2026-05-15T00:00:00.000Z',
+            seasonDurationDays: 30,
+          }),
+        ).seasonOverdue,
+      ).toBe(false);
+    });
+
+    it('no seasonOverdue when paused', () => {
+      expect(
+        getLeagueReminders(
+          makeR({
+            currentSeasonStartedAt: '2026-01-01T00:00:00.000Z',
+            seasonDurationDays: 30,
+            pausedAt: '2026-04-01T00:00:00.000Z',
+          }),
+        ).seasonOverdue,
+      ).toBe(false);
+    });
+
+    it('leagueOverdue when planned_end_at is in the past', () => {
+      expect(
+        getLeagueReminders(
+          makeR({ plannedEndAt: '2026-01-01T00:00:00.000Z' }),
+        ).leagueOverdue,
+      ).toBe(true);
+    });
+
+    it('no flags when the league is already finished', () => {
+      expect(
+        getLeagueReminders(
+          makeR({
+            currentSeasonStartedAt: '2026-01-01T00:00:00.000Z',
+            seasonDurationDays: 30,
+            plannedEndAt: '2026-01-01T00:00:00.000Z',
+            endedAt: '2026-05-01T00:00:00.000Z',
+          }),
+        ),
+      ).toEqual({ seasonOverdue: false, leagueOverdue: false });
     });
   });
 });

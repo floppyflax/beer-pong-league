@@ -9,6 +9,8 @@ export interface LeagueListItem {
   status: 'active' | 'finished';
   lifecycle: LeagueLifecycle;
   currentSeasonNumber: number;
+  /** Mig 029 — date prévue de démarrage (gate `not_started` si futur). */
+  plannedStartAt: string | null;
   creator_user_id: string | null;
   creator_anonymous_user_id: string | null;
   createdAt: string;
@@ -53,6 +55,7 @@ export const useLeaguesList = () => {
         status: lifecycle === 'finished' ? 'finished' : 'active',
         lifecycle,
         currentSeasonNumber: league.currentSeasonNumber ?? 1,
+        plannedStartAt: league.plannedStartAt ?? null,
         creator_user_id: league.creator_user_id || null,
         creator_anonymous_user_id: league.creator_anonymous_user_id || null,
         createdAt: league.createdAt,

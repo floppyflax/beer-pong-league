@@ -72,7 +72,7 @@ Les migrations vivent dans `supabase/migrations/` (24 migrations cumulées). RLS
 
 **`players`** (mig 022) — entité de jeu. Optionnellement claimée par un user via `user_id`. `null` = ghost.
 
-**`leagues`** — `id`, `name`, `type` (`one-shot` | `season` depuis mig 019, désormais cosmétique — voir cycle de vie), `creator_user_id`, `anti_cheat_enabled`, `join_code?`, `paused_at?` / `ended_at?` (mig 028, lifecycle admin), `current_season_number` + `current_season_started_at` (mig 028, cycle de saisons), timestamps.
+**`leagues`** — `id`, `name`, `type` (`one-shot` | `season` depuis mig 019 — conditionne la visibilité de `season_duration_days` dans le form de création), `creator_user_id`, `anti_cheat_enabled`, `join_code?`, `paused_at?` / `ended_at?` (mig 028, lifecycle admin), `current_season_number` + `current_season_started_at` (mig 028, cycle de saisons), `planned_start_at?` / `planned_end_at?` / `season_duration_days?` / `max_players?` / `is_private` / `default_format?` (mig 029, config à la création), timestamps.
 
 **`league_season_archives`** (mig 028) — snapshot d'une saison close : `id`, `league_id`, `season_number`, `started_at`, `ended_at`, `rankings` (JSONB), `match_count`, `created_at`. Lecture publique via RLS, écriture uniquement via RPC `start_new_league_season`.
 
@@ -119,15 +119,25 @@ Auto-start : un event créé pour une date future reste `not_started` jusqu'au j
 
 Effet de la pause (choix produit) : bloque l'enregistrement de matchs uniquement. Le join, l'invitation, l'édition de pseudo restent autorisés.
 
-### Cycle de vie d'une league + saisons (mig 028)
+### Cycle de vie d'une league + saisons (mig 028 + mig 029)
 
-Une league a trois états dérivés depuis `paused_at` + `ended_at` (helper `apps/web/src/utils/leagueLifecycle.ts`) :
+Une league a quatre états dérivés depuis `paused_at` + `ended_at` + `planned_start_at` (helper `apps/web/src/utils/leagueLifecycle.ts`) :
 
-| État       | Condition                  | Match logging |
-|------------|----------------------------|---------------|
-| `finished` | `ended_at` non NULL        | bloqué         |
-| `paused`   | non-fini, `paused_at` non NULL | bloqué     |
-| `active`   | non-fini, non en pause     | autorisé       |
+| État          | Condition                                                            | Match logging |
+|---------------|----------------------------------------------------------------------|---------------|
+| `finished`    | `ended_at` non NULL                                                  | bloqué         |
+| `paused`      | non-fini, `paused_at` non NULL                                       | bloqué         |
+| `not_started` | non-fini, non en pause, `planned_start_at > today` (mig 029)         | bloqué         |
+| `active`      | non-fini, non en pause, `planned_start_at` NULL ou passé             | autorisé       |
+
+À côté du lifecycle bloquant, mig 029 introduit des **rappels informationnels** (helper `getLeagueReminders`) qui n'affectent pas le gating mais déclenchent un strip `reminder` (icône Clock, jaune saturé) sur le LeagueDashboard quand applicable :
+
+| Rappel           | Condition                                                                                            |
+|------------------|------------------------------------------------------------------------------------------------------|
+| `seasonOverdue`  | `currentSeasonStartedAt + seasonDurationDays < now` ET la league n'est ni en pause ni clôturée       |
+| `leagueOverdue`  | `plannedEndAt < now` ET la league n'est pas clôturée                                                 |
+
+Le strip lifecycle a la priorité sur le strip reminder (un seul à la fois).
 
 Transitions admin :
 - **Mettre en pause** (depuis `active`) → `paused_at = NOW()`.

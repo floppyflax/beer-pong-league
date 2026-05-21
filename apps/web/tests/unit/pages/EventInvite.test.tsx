@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { EventInvite } from "../../../src/pages/EventInvite";
 import * as LeagueContext from "../../../src/context/LeagueContext";
+import { AuthProvider } from "../../../src/context/AuthContext";
+import { IdentityProvider } from "../../../src/context/IdentityContext";
 import "@testing-library/jest-dom";
 
 const mockNavigate = vi.fn();
@@ -29,6 +31,18 @@ vi.mock("qrcode.react", () => ({
       {value}
     </svg>
   ),
+}));
+
+// Mock the rank hook used by EventCard — keeps the test free of
+// QueryClient / AuthProvider plumbing.
+vi.mock("../../../src/hooks/useMyContextRankings", () => ({
+  useMyEventRank: () => null,
+  useMyLeagueRank: () => null,
+  useMyContextRankings: () => ({
+    leagueRanks: new Map(),
+    eventRanks: new Map(),
+  }),
+  computeContextRank: () => null,
 }));
 
 const mockEvent = {
@@ -66,7 +80,11 @@ describe("EventInvite - Story 14-14", () => {
   const renderWithRouter = () =>
     render(
       <BrowserRouter>
-        <EventInvite />
+        <AuthProvider>
+          <IdentityProvider>
+            <EventInvite />
+          </IdentityProvider>
+        </AuthProvider>
       </BrowserRouter>
     );
 

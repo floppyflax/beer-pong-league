@@ -209,6 +209,9 @@ export const LeagueSettings = () => {
   const seasonEndedLabel = seasonEndedAt
     ? new Date(seasonEndedAt).toLocaleDateString("fr-FR", dateFmt)
     : null;
+  const plannedStartLabel = league.plannedStartAt
+    ? new Date(league.plannedStartAt).toLocaleDateString("fr-FR", dateFmt)
+    : null;
 
   const handleFinishLeague = () => {
     if (
@@ -253,12 +256,14 @@ export const LeagueSettings = () => {
   };
 
   const lifecycleDotClass: Record<typeof lifecycle, string> = {
+    not_started: "bg-ping-yellow",
     active: "bg-lime",
     paused: "bg-ping-yellow",
     between_seasons: "bg-ping-yellow",
     finished: "bg-cool-gray",
   };
   const lifecycleLabel: Record<typeof lifecycle, string> = {
+    not_started: "Non démarrée",
     active: "Active",
     paused: "En pause",
     between_seasons: "Inter-saison",
@@ -378,6 +383,13 @@ export const LeagueSettings = () => {
                 section ci-dessous.
               </p>
             )}
+            {lifecycle === "not_started" && (
+              <p className="text-xs text-cool-gray">
+                La ligue n'a pas encore démarré
+                {plannedStartLabel ? ` (prévue le ${plannedStartLabel})` : ""}.
+                Tu pourras la clôturer ici une fois active.
+              </p>
+            )}
           </div>
         </div>
 
@@ -424,11 +436,15 @@ export const LeagueSettings = () => {
                   Démarrer la Saison {seasonNumber + 1}
                 </PButton>
               )}
-              {(lifecycle === "paused" || lifecycle === "finished") && (
+              {(lifecycle === "paused" ||
+                lifecycle === "finished" ||
+                lifecycle === "not_started") && (
                 <p className="text-xs text-cool-gray">
                   {lifecycle === "paused"
                     ? "Reprends la ligue pour gérer le cycle de saison."
-                    : "Réouvre la ligue pour gérer le cycle de saison."}
+                    : lifecycle === "finished"
+                      ? "Réouvre la ligue pour gérer le cycle de saison."
+                      : "Le cycle de saison sera actif dès que la ligue aura démarré."}
                 </p>
               )}
               <button

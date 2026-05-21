@@ -627,14 +627,25 @@ export const RecordMatch = () => {
     navigate(`/event/${event.id}`, { replace: true });
   }, [event, isEditMode, navigate]);
 
-  /* Mig 028 — same guard for leagues (paused / finished). */
+  /* Mig 028+029 — same guard for leagues (not_started / paused / finished). */
   useEffect(() => {
     if (!league || isEditMode) return;
     if (canRecordLeagueMatch(league)) return;
+    const startLabel = league.plannedStartAt
+      ? new Date(league.plannedStartAt).toLocaleDateString("fr-FR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+        })
+      : null;
     toast.error(
       league.endedAt
         ? "Cette ligue est terminée."
-        : "Cette ligue est en pause.",
+        : league.pausedAt
+          ? "Cette ligue est en pause."
+          : startLabel
+            ? `Cette ligue démarre le ${startLabel}.`
+            : "Cette ligue n'a pas encore démarré.",
     );
     navigate(`/league/${league.id}`, { replace: true });
   }, [league, isEditMode, navigate]);
@@ -1240,6 +1251,7 @@ function ContextPickerModal({
     status?: string;
     pausedAt?: string | null;
     endedAt?: string | null;
+    plannedStartAt?: string | null;
   }>;
   currentType: ContextType | null;
   currentId: string | null;
@@ -1254,11 +1266,13 @@ function ContextPickerModal({
       pausedAt: t.pausedAt ?? null,
     }),
   );
-  // Mig 028 — only league with lifecycle `active` can host a match.
+  // Mig 028+029 — only league with lifecycle `active` can host a match
+  // (exclut paused/finished/not_started).
   const activeLeagues = leagues.filter((l) =>
     canRecordLeagueMatch({
       pausedAt: l.pausedAt ?? null,
       endedAt: l.endedAt ?? null,
+      plannedStartAt: l.plannedStartAt ?? null,
     }),
   );
 

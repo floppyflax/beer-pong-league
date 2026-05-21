@@ -12,7 +12,11 @@ import {
   Pause,
   Play,
 } from "lucide-react";
-import { getLeagueLifecycle, canRecordLeagueMatch } from "@/utils/leagueLifecycle";
+import {
+  getLeagueLifecycle,
+  canRecordLeagueMatch,
+  getLeagueReminders,
+} from "@/utils/leagueLifecycle";
 import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
@@ -31,6 +35,7 @@ import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import {
   getDeltaFromLastMatch,
   getLast5MatchResults,
+  getRankDeltasFromLastMatch,
 } from "@/utils/playerStats";
 import { Podium } from "@/components/ponglo/Podium";
 import { PButton } from "@/components/ponglo/PButton";
@@ -113,6 +118,12 @@ export const LeagueDashboard = () => {
     [league.matches],
   );
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const rankDeltas = useMemo(
+    () => getRankDeltasFromLastMatch(sortedPlayers, sortedMatches),
+    [sortedPlayers, sortedMatches],
+  );
+
   // Story 9-5 - Get permissions for contextual actions
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { isAdmin, canInvite } = useDetailPagePermissions(id || "", "league");
@@ -137,9 +148,10 @@ export const LeagueDashboard = () => {
 
   const topElo = sortedPlayers.length > 0 ? sortedPlayers[0].elo : null;
 
-  // Mig 028 — Lifecycle league
+  // Mig 028+029 — Lifecycle league (4 états) + rappels informationnels
   const lifecycle = getLeagueLifecycle(league);
   const matchLoggingAllowed = canRecordLeagueMatch(league);
+  const reminders = getLeagueReminders(league);
   const seasonNumber = league.currentSeasonNumber ?? 1;
   const seasonStartedAt = league.currentSeasonStartedAt ?? league.createdAt;
   const seasonStartedLabel = new Date(seasonStartedAt).toLocaleDateString(
@@ -147,10 +159,30 @@ export const LeagueDashboard = () => {
     shortDateFormatter,
   );
 
+  // Mig 029 — date prévue de fin de saison (info, pas d'auto-clôture)
+  const seasonExpectedEndLabel = (() => {
+    if (!league.seasonDurationDays || !seasonStartedAt) return null;
+    const end = new Date(seasonStartedAt);
+    end.setUTCDate(end.getUTCDate() + league.seasonDurationDays);
+    return end.toLocaleDateString("fr-FR", shortDateFormatter);
+  })();
+  const plannedStartLabel = league.plannedStartAt
+    ? new Date(league.plannedStartAt).toLocaleDateString(
+        "fr-FR",
+        shortDateFormatter,
+      )
+    : null;
+  const plannedEndLabel = league.plannedEndAt
+    ? new Date(league.plannedEndAt).toLocaleDateString(
+        "fr-FR",
+        shortDateFormatter,
+      )
+    : null;
+
   const heroStatusVariant: "active" | "scheduled" | "finished" =
     lifecycle === "finished"
       ? "finished"
-      : lifecycle === "paused"
+      : lifecycle === "paused" || lifecycle === "not_started"
         ? "scheduled"
         : "active";
   const heroStatusLabel =
@@ -158,7 +190,9 @@ export const LeagueDashboard = () => {
       ? "Terminée"
       : lifecycle === "paused"
         ? "En pause"
-        : "Active";
+        : lifecycle === "not_started"
+          ? "Non démarrée"
+          : "Active";
 
   // Hero actions — spec uniforme event/league (mig 029) :
   //  • Admin : [Ajouter primary] [Pause/Reprendre iconOnly] [Paramètres iconOnly] [Mode Diffusion iconOnly]
@@ -176,7 +210,11 @@ export const LeagueDashboard = () => {
     });
   }
   if (isAdmin) {
-    if (lifecycle === "paused") {
+    if (lifecycle === "not_started") {
+      // Pas d'action lifecycle exposée — la league passera `active` toute
+      // seule à `planned_start_at`. L'admin peut quand même clôturer via
+      // les paramètres ou attendre.
+    } else if (lifecycle === "paused") {
       detailHeroAdminActions.push({
         label: "Reprendre la ligue",
         icon: <Play size={18} />,
@@ -222,7 +260,18 @@ export const LeagueDashboard = () => {
         title={league.name}
         status={{ label: heroStatusLabel, variant: heroStatusVariant }}
         meta={[
-          `Saison ${seasonNumber} · démarrée le ${seasonStartedLabel}`,
+          lifecycle === "not_started" && plannedStartLabel
+            ? `Démarre le ${plannedStartLabel}`
+            : `Saison ${seasonNumber} · démarrée le ${seasonStartedLabel}${
+                seasonExpectedEndLabel
+                  ? ` · prévue jusqu'au ${seasonExpectedEndLabel}`
+                  : ""
+              }`,
+          ...(plannedEndLabel && lifecycle !== "not_started"
+            ? [`League prévue jusqu'au ${plannedEndLabel}`]
+            : []),
+          ...(league.isPrivate === false ? ["Publique"] : []),
+          ...(league.anti_cheat_enabled ? ["Anti-cheat ON"] : []),
         ]}
         stats={[
           { label: "Joueurs", value: String(league.players.length) },
@@ -232,8 +281,25 @@ export const LeagueDashboard = () => {
         actions={detailHeroAdminActions}
       />
 
-      {/* Lifecycle status strip — sticky, ping-yellow accent. Sit entre le hero et les tabs. */}
-      {lifecycle !== "active" && (
+      {/* Mig 028+029+030 — Lifecycle status strip (prio absolue) ou strip de
+          rappel (saison/league overdue). Un seul strip à la fois pour ne pas
+          surcharger l'admin. */}
+      {lifecycle === "not_started" ? (
+        <LifecycleStrip
+          tone="not_started"
+          testId="league-lifecycle-banner"
+          title="Ligue non démarrée"
+          description={
+            plannedStartLabel
+              ? isAdmin
+                ? `La ligue est programmée pour démarrer le ${plannedStartLabel}. Les matchs seront autorisés à partir de cette date.`
+                : `La ligue démarre le ${plannedStartLabel}. L'enregistrement de matchs sera autorisé à partir de cette date.`
+              : "L'enregistrement de matchs sera autorisé une fois la ligue démarrée."
+          }
+        />
+      ) : lifecycle === "paused" ||
+        lifecycle === "between_seasons" ||
+        lifecycle === "finished" ? (
         <LifecycleStrip
           tone={
             lifecycle === "paused"
@@ -264,7 +330,37 @@ export const LeagueDashboard = () => {
                   : "Cette ligue est clôturée. Le classement est figé."
           }
         />
-      )}
+      ) : reminders.seasonOverdue ? (
+        <LifecycleStrip
+          tone="reminder"
+          testId="league-reminder-banner"
+          title={`Saison ${seasonNumber} échue`}
+          description={
+            seasonExpectedEndLabel
+              ? isAdmin
+                ? `Elle devait se terminer le ${seasonExpectedEndLabel}. Démarre la Saison ${seasonNumber + 1} depuis le bandeau ci-dessus.`
+                : `La saison ${seasonNumber} a dépassé sa durée prévue (${seasonExpectedEndLabel}).`
+              : isAdmin
+                ? `Démarre la Saison ${seasonNumber + 1} depuis le bandeau ci-dessus.`
+                : `La saison ${seasonNumber} a dépassé sa durée prévue.`
+          }
+        />
+      ) : reminders.leagueOverdue ? (
+        <LifecycleStrip
+          tone="reminder"
+          testId="league-reminder-banner"
+          title="Date de fin dépassée"
+          description={
+            plannedEndLabel
+              ? isAdmin
+                ? `La ligue devait se terminer le ${plannedEndLabel}. Clôture-la depuis le menu admin si besoin.`
+                : `La ligue devait se terminer le ${plannedEndLabel}.`
+              : isAdmin
+                ? "La date de fin est dépassée. Clôture la ligue depuis le menu admin si besoin."
+                : "La date de fin de la ligue est dépassée."
+          }
+        />
+      ) : null}
 
       {/* SegmentedTabs: Matchs / Classement / Events */}
       <div className="px-4 pt-4 pb-4">
@@ -314,6 +410,7 @@ export const LeagueDashboard = () => {
                       elo: p.elo,
                       delta:
                         getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
+                      rankDelta: rankDeltas.get(p.id),
                     }))}
                     className="mb-1"
                   />
@@ -337,6 +434,7 @@ export const LeagueDashboard = () => {
                         name={player.name}
                         elo={player.elo}
                         delta={delta ?? undefined}
+                        rankDelta={rankDeltas.get(player.id)}
                         rank={rank}
                         wins={player.wins}
                         losses={player.losses}

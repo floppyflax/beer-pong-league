@@ -210,7 +210,7 @@ describe("CreateLeague - Story 14.18", () => {
   });
 
   describe("Form submission", () => {
-    it("should call createLeague and navigate on valid submit", async () => {
+    it("should call createLeague and navigate on valid submit (mig 029 — payload object)", async () => {
       render(<CreateLeague />, { wrapper: Wrapper });
       const nameInput = screen.getByLabelText(/nom de la ligue/i);
       await userEvent.type(nameInput, "Ma Super League");
@@ -221,18 +221,32 @@ describe("CreateLeague - Story 14.18", () => {
 
       await waitFor(() => {
         expect(mockCreateLeague).toHaveBeenCalledWith(
-          "Ma Super League",
-          "one-shot",
+          expect.objectContaining({
+            name: "Ma Super League",
+            type: "one-shot",
+            // Mig 029 — défauts du form
+            isPrivate: true,
+            antiCheatEnabled: false,
+            defaultFormat: "libre",
+            maxPlayers: null,
+            seasonDurationDays: null,
+            plannedStartAt: expect.any(String),
+            plannedEndAt: null,
+          }),
         );
         expect(mockNavigate).toHaveBeenCalledWith("/league/league-123");
       });
     });
 
-    it("should allow selecting league type (season)", async () => {
+    it("should allow selecting league type (season) and surface seasonDurationDays", async () => {
       render(<CreateLeague />, { wrapper: Wrapper });
       const nameInput = screen.getByLabelText(/nom de la ligue/i);
       await userEvent.type(nameInput, "League Saison");
       await userEvent.click(screen.getByText(/league par saison/i));
+      // Le champ "Durée d'une saison" apparaît uniquement pour type=season.
+      const durationInput = screen.getByLabelText(/durée d'une saison/i);
+      expect(durationInput).toBeInTheDocument();
+
       const submitButton = screen.getByRole("button", {
         name: /c'est parti !/i,
       });
@@ -240,8 +254,11 @@ describe("CreateLeague - Story 14.18", () => {
 
       await waitFor(() => {
         expect(mockCreateLeague).toHaveBeenCalledWith(
-          "League Saison",
-          "season",
+          expect.objectContaining({
+            name: "League Saison",
+            type: "season",
+            seasonDurationDays: 90, // default
+          }),
         );
       });
     });

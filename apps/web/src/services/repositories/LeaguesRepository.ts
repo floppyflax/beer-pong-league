@@ -151,7 +151,20 @@ class LeaguesRepository extends BaseRepository {
         endedAt: row.ended_at ?? null,
         currentSeasonNumber: row.current_season_number ?? 1,
         currentSeasonStartedAt: row.current_season_started_at ?? row.created_at,
-        // Mig 029 — between_seasons marker
+        // Mig 029 — config à la création
+        plannedStartAt: row.planned_start_at ?? null,
+        plannedEndAt: row.planned_end_at ?? null,
+        seasonDurationDays: row.season_duration_days ?? null,
+        maxPlayers: row.max_players ?? null,
+        isPrivate: row.is_private ?? true,
+        defaultFormat: (row.default_format as
+          | '1v1'
+          | '2v2'
+          | '3v3'
+          | 'libre'
+          | null
+          | undefined) ?? null,
+        // Mig 030 — between_seasons marker
         currentSeasonEndedAt: row.current_season_ended_at ?? null,
       }));
     } catch (error) {
@@ -192,6 +205,13 @@ class LeaguesRepository extends BaseRepository {
             join_code: league.joinCode ?? null,
             creator_user_id: league.creator_user_id,
             anti_cheat_enabled: league.anti_cheat_enabled || false,
+            // Mig 029 — config à la création (NULL = laissé non configuré)
+            planned_start_at: league.plannedStartAt ?? null,
+            planned_end_at: league.plannedEndAt ?? null,
+            season_duration_days: league.seasonDurationDays ?? null,
+            max_players: league.maxPlayers ?? null,
+            is_private: league.isPrivate ?? true,
+            default_format: league.defaultFormat ?? null,
           },
           { onConflict: 'id' }
         );
