@@ -145,6 +145,8 @@ export const eventSchema = z.object({
   creator_user_id: z.string().uuid('User ID must be a valid UUID').nullable().optional(),
   creator_anonymous_user_id: z.string().uuid('Anonymous user ID must be a valid UUID').nullable().optional(),
   anti_cheat_enabled: z.boolean().default(false),
+  // Mig 030 — Who validates scores when anti_cheat_enabled = TRUE.
+  scoreValidator: z.enum(['opponent', 'admin']).default('opponent').optional(),
 });
 
 export type Event = z.infer<typeof eventSchema>;

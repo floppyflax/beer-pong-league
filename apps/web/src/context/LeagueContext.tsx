@@ -51,6 +51,25 @@ export interface CreateLeagueInput {
 }
 
 /**
+ * Mig 030 — résultat d'un `recordMatch` / `recordEventMatch`.
+ *   - `status`: 'confirmed' = ELO appliqué tout de suite.
+ *              'pending'   = anti-cheat ON, en attente de validation.
+ *   - `eloChanges`: preview client (calculée optimistiquement). Vide
+ *                   pour les matchs pending (rien à afficher tant que la
+ *                   confirmation n'est pas passée).
+ */
+export interface RecordMatchOutcome {
+  /** ID of the inserted match row — needed by post-record flows (photo
+   *  finish wizard, contest review, etc.). */
+  matchId: string;
+  /** Mig 030 — `pending` when the parent event/league has anti-cheat on. */
+  status: 'confirmed' | 'pending';
+  /** ELO deltas keyed by player id. Empty record for pending matches
+   *  (apply_match_elo is dispatched by confirm_match). */
+  eloChanges: Record<string, number>;
+}
+
+/**
  * Global context interface for managing leagues, events, players, and matches.
  *
  * Note: Despite being called "LeagueContext", this manages both leagues AND events.
@@ -72,7 +91,8 @@ interface LeagueContextType {
     location: string | undefined,
     leagueId: string | null,
     playerIds: string[],
-    antiCheatEnabled?: boolean
+    antiCheatEnabled?: boolean,
+    scoreValidator?: 'opponent' | 'admin'
   ) => Promise<string>;
   selectLeague: (id: string) => void;
   selectEvent: (id: string) => void;
@@ -87,7 +107,7 @@ interface LeagueContextType {
     teamBIds: string[],
     winner: "A" | "B",
     enrichment?: { cupsRemaining?: number }
-  ) => Promise<Record<string, number> | null>;
+  ) => Promise<RecordMatchOutcome | null>;
   recordEventMatch: (
     eventId: string,
     teamAIds: string[],
@@ -95,7 +115,7 @@ interface LeagueContextType {
     winner: "A" | "B",
     scores?: { scoreA: number; scoreB: number; cupsRemaining?: number },
     participantsOverride?: Player[]
-  ) => Promise<Record<string, number> | null>;
+  ) => Promise<RecordMatchOutcome | null>;
   deleteLeague: (id: string) => Promise<void>;
   // Lifecycle league (mig 028)
   pauseLeague: (leagueId: string) => Promise<void>;
@@ -422,7 +442,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     location: string | undefined,
     leagueId: string | null,
     playerIds: string[],
-    antiCheatEnabled: boolean = false
+    antiCheatEnabled: boolean = false,
+    scoreValidator: 'opponent' | 'admin' = 'opponent'
   ) => {
     const newEvent: Event = {
       id: crypto.randomUUID(),
@@ -439,6 +460,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       creator_user_id: isAuthenticated && user ? user.id : null,
       creator_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
       anti_cheat_enabled: antiCheatEnabled,
+      scoreValidator,
     };
     setEvents((prev) => [...prev, newEvent]);
 
@@ -903,9 +925,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     teamBIds: string[],
     winner: "A" | "B",
     enrichment?: { cupsRemaining?: number }
-  ): Promise<Record<string, number> | null> => {
+  ): Promise<RecordMatchOutcome | null> => {
     const league = leagues.find((l) => l.id === leagueId);
     if (!league) return null;
+    // Mig 030 — anti-cheat awareness for the optimistic client update.
+    const antiCheatOn = league.anti_cheat_enabled === true;
 
     const teamA = league.players.filter((p) => teamAIds.includes(p.id));
     const teamB = league.players.filter((p) => teamBIds.includes(p.id));
@@ -969,18 +993,24 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       teamB: teamBIds,
       scoreA: winner === "A" ? 10 : (cupsRem !== undefined ? 10 - cupsRem : 0),
       scoreB: winner === "B" ? 10 : (cupsRem !== undefined ? 10 - cupsRem : 0),
-      eloChanges: eloChanges,
+      // Pending matches don't expose preview deltas — they only land after
+      // confirmation.
+      eloChanges: antiCheatOn ? undefined : eloChanges,
       cups_remaining: cupsRem ?? null,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
+      status: antiCheatOn ? 'pending' : 'confirmed',
     };
 
+    // Optimistic local mutation: when anti-cheat is OFF we apply the stats
+    // immediately (legacy behaviour). When ON, the match is pending — keep
+    // player stats unchanged until the confirmation flow lands.
     setLeagues((prev) =>
       prev.map((league) => {
         if (league.id !== leagueId) return league;
         return {
           ...league,
-          players: updatedPlayers,
+          players: antiCheatOn ? league.players : updatedPlayers,
           matches: [newMatch, ...league.matches],
         };
       })
@@ -988,20 +1018,25 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
     // Save to Supabase
     try {
-      await databaseService.recordMatch(
+      const result = await databaseService.recordMatch(
         leagueId,
         newMatch,
         eloChangesForDB,
         isAuthenticated && user ? user.id : null,
         !isAuthenticated && localUser ? localUser.anonymousUserId : null
       );
-      toast.success('Match enregistré !');
+      // Toast is owned by the caller (RecordMatch) so the message can adapt
+      // to the pending vs confirmed status.
+      return {
+        matchId: newMatch.id,
+        status: result.status,
+        eloChanges: result.status === 'confirmed' ? eloChanges : {},
+      };
     } catch (error) {
       console.error('Error recording match:', error);
       toast.error('Erreur lors de l\'enregistrement du match');
+      return null;
     }
-
-    return eloChanges;
   };
 
   const recordEventMatch = async (
@@ -1011,9 +1046,19 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     winner: "A" | "B",
     scores?: { scoreA: number; scoreB: number; cupsRemaining?: number },
     participantsOverride?: Player[]
-  ): Promise<Record<string, number> | null> => {
+  ): Promise<RecordMatchOutcome | null> => {
     const event = events.find((t) => t.id === eventId);
     if (!event) return null;
+
+    // Mig 030 — pending vs confirmed decision. The repo will do a fresh
+    // server check, but we mirror it here so the optimistic state stays
+    // consistent and the UI doesn't flash an ELO delta for a pending match.
+    const parentLeague = event.leagueId
+      ? leagues.find((l) => l.id === event.leagueId)
+      : null;
+    const antiCheatOn =
+      event.anti_cheat_enabled === true ||
+      parentLeague?.anti_cheat_enabled === true;
 
     // Use participantsOverride (event_players) when provided, else fallback to league.players
     let eventPlayers: Player[] = [];
@@ -1106,10 +1151,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       teamB: teamBIds,
       scoreA: scoreA,
       scoreB: scoreB,
-      eloChanges: eloChanges,
+      eloChanges: antiCheatOn ? undefined : eloChanges,
       cups_remaining: scores?.cupsRemaining ?? null,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
+      status: antiCheatOn ? 'pending' : 'confirmed',
     };
 
     setEvents((prev) =>
@@ -1123,8 +1169,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // Update league cache with the LEAGUE delta (independent from event delta)
-    // when propagation is active.
-    if (event.leagueId && propagates && leagueEloChangesDB) {
+    // when propagation is active. Skipped under anti-cheat — stats only
+    // shift after confirmation.
+    if (!antiCheatOn && event.leagueId && propagates && leagueEloChangesDB) {
       setLeagues((prev) =>
         prev.map((league) => {
           if (league.id !== event.leagueId) return league;
@@ -1161,7 +1208,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      await databaseService.recordEventMatch(
+      const result = await databaseService.recordEventMatch(
         eventId,
         newMatch,
         eventEloChangesDB,
@@ -1169,13 +1216,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         !isAuthenticated && localUser ? localUser.anonymousUserId : null,
         leagueEloChangesDB
       );
-      toast.success('Match enregistré !');
+      return {
+        matchId: newMatch.id,
+        status: result.status,
+        eloChanges: result.status === 'confirmed' ? eloChanges : {},
+      };
     } catch (error) {
       console.error('Error recording event match:', error);
       toast.error('Erreur lors de l\'enregistrement du match');
+      return null;
     }
-
-    return eloChanges;
   };
 
   // Calculate local ranking for a Event (based only on Event matches, starting from base ELO)
@@ -1297,6 +1347,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         if (updates.date !== undefined) next.date = updates.date;
         if (updates.antiCheatEnabled !== undefined)
           next.anti_cheat_enabled = updates.antiCheatEnabled;
+        if (updates.scoreValidator !== undefined)
+          next.scoreValidator = updates.scoreValidator;
         if (updates.format !== undefined) next.format = updates.format;
         if (updates.maxPlayers !== undefined)
           next.maxPlayers = updates.maxPlayers;

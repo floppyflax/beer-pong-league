@@ -18,7 +18,7 @@ export const DisplayView = () => {
   const league = leagues.find((l) => l.id === id);
   const [scrollPosition, setScrollPosition] = useState<"top" | "scrolling">("top");
   const [highlightedPlayers, setHighlightedPlayers] = useState<Set<string>>(new Set());
-  const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
+  const autoScrollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sortedPlayers = useMemo(() => {
     if (!league) return [];

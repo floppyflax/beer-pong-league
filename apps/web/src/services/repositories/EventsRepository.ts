@@ -17,6 +17,13 @@ export interface EventUpdates {
   name?: string;
   date?: string;
   antiCheatEnabled?: boolean;
+  /**
+   * Mig 030 — Who validates scores when antiCheatEnabled = TRUE.
+   *   - 'opponent' (default) : a player from the opposing team confirms.
+   *   - 'admin'              : only the admin can confirm.
+   * Read only when antiCheatEnabled = TRUE.
+   */
+  scoreValidator?: 'opponent' | 'admin';
   format?: '1v1' | '2v2' | '3v3' | 'libre';
   maxPlayers?: number;
   isPrivate?: boolean;
@@ -98,6 +105,36 @@ class EventsRepository extends BaseRepository {
         playerToMembershipByEvent.set(m.event_id, ptm);
       });
 
+      // Mig 025 — `matches.eloChanges` isn't persisted on the match row; the
+      // canonical per-player delta lives in `elo_history` (one row per
+      // (match, player) and per context). We rehydrate the event-context
+      // deltas here so `MatchTeamsRow` can show ELO on past matches, not
+      // just the freshly recorded one.
+      const matchIds = ((allMatches ?? []) as MatchRow[]).map((m) => m.id);
+      const eloByMatch = new Map<string, Record<string, number>>();
+      if (matchIds.length > 0) {
+        const { data: eloRows } = await sb!
+          .from('elo_history')
+          .select('match_id, player_id, elo_change, event_id')
+          .in('match_id', matchIds)
+          .not('event_id', 'is', null);
+        ((eloRows ?? []) as Array<{
+          match_id: string;
+          player_id: string | null;
+          elo_change: number;
+          event_id: string | null;
+        }>).forEach((r) => {
+          if (!r.player_id || r.event_id == null) return;
+          // Translate players.id → event_memberships.id so the key namespace
+          // lines up with what we wrote into match.teamA / match.teamB above.
+          const ptm = playerToMembershipByEvent.get(r.event_id);
+          const membershipId = ptm?.get(r.player_id) ?? r.player_id;
+          const map = eloByMatch.get(r.match_id) ?? {};
+          map[membershipId] = r.elo_change;
+          eloByMatch.set(r.match_id, map);
+        });
+      }
+
       const matchesByEvent = new Map<string, Match[]>();
       ((allMatches ?? []) as MatchRow[]).forEach((m) => {
         if (!m.event_id) return;
@@ -120,6 +157,7 @@ class EventsRepository extends BaseRepository {
           confirmed_at: m.confirmed_at,
           cups_remaining: m.cups_remaining ?? undefined,
           photo_url: m.photo_url ?? undefined,
+          eloChanges: eloByMatch.get(m.id),
         });
         matchesByEvent.set(m.event_id, list);
       });
@@ -141,6 +179,7 @@ class EventsRepository extends BaseRepository {
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
+        scoreValidator: row.score_validator ?? 'opponent',
         joinCode: row.join_code,
         formatType: row.format_type,
         team1Size: row.team1_size,
@@ -195,6 +234,7 @@ class EventsRepository extends BaseRepository {
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
+        scoreValidator: row.score_validator ?? 'opponent',
         joinCode: row.join_code,
         formatType: row.format_type,
         team1Size: row.team1_size,
@@ -237,6 +277,7 @@ class EventsRepository extends BaseRepository {
           created_at: event.createdAt,
           creator_user_id: event.creator_user_id,
           anti_cheat_enabled: event.anti_cheat_enabled || false,
+          score_validator: event.scoreValidator ?? 'opponent',
         },
         { onConflict: 'id' }
       );
@@ -269,6 +310,7 @@ class EventsRepository extends BaseRepository {
       if (updates.name !== undefined) event.name = updates.name;
       if (updates.date !== undefined) event.date = updates.date;
       if (updates.antiCheatEnabled !== undefined) event.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.scoreValidator !== undefined) event.scoreValidator = updates.scoreValidator;
       if (updates.format !== undefined) event.format = updates.format;
       if (updates.maxPlayers !== undefined) event.maxPlayers = updates.maxPlayers;
       if (updates.isPrivate !== undefined) event.isPrivate = updates.isPrivate;
@@ -288,6 +330,7 @@ class EventsRepository extends BaseRepository {
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.date !== undefined) dbUpdates.date = updates.date;
       if (updates.antiCheatEnabled !== undefined) dbUpdates.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.scoreValidator !== undefined) dbUpdates.score_validator = updates.scoreValidator;
       if (updates.format !== undefined) dbUpdates.format = updates.format;
       if (updates.maxPlayers !== undefined) dbUpdates.max_players = updates.maxPlayers;
       if (updates.isPrivate !== undefined) dbUpdates.is_private = updates.isPrivate;
@@ -512,6 +555,8 @@ class EventsRepository extends BaseRepository {
     date?: string;
     creatorUserId: string | null;
     creatorAnonymousUserId: string | null;
+    /** Mig 030 — default 'opponent' when omitted. */
+    scoreValidator?: 'opponent' | 'admin';
   }): Promise<string> {
     const eventDate = data.date || new Date().toISOString().split('T')[0];
     if (!this.isSupabaseAvailable()) {
@@ -547,6 +592,9 @@ class EventsRepository extends BaseRepository {
           creator_user_id: data.creatorUserId || data.creatorAnonymousUserId,
           is_finished: false,
           ...(data.mode !== undefined ? { mode: data.mode } : {}),
+          ...(data.scoreValidator !== undefined
+            ? { score_validator: data.scoreValidator }
+            : {}),
         })
         .select('id')
         .single();

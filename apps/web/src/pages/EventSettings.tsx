@@ -2,11 +2,16 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
+  Archive,
+  ChevronRight,
   Crown,
   Ghost,
   Link as LinkIcon,
   Lock,
+  Play,
+  ShieldCheck,
   Target,
+  Trash2,
   Trophy,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -115,6 +120,13 @@ export const EventSettings = () => {
   const [propagatesToLeagueElo, setPropagatesToLeagueElo] = useState<boolean>(
     event?.propagatesToLeagueElo !== false,
   );
+  // Mig 030 — anti-cheat toggle + validator mode.
+  const [antiCheatEnabled, setAntiCheatEnabled] = useState<boolean>(
+    event?.anti_cheat_enabled === true,
+  );
+  const [scoreValidator, setScoreValidator] = useState<'opponent' | 'admin'>(
+    event?.scoreValidator ?? 'opponent',
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
 
@@ -129,6 +141,8 @@ export const EventSettings = () => {
     setPlayerLimit(String(event.maxPlayers ?? 16));
     setIsPrivate(event.isPrivate ?? true);
     setPropagatesToLeagueElo(event.propagatesToLeagueElo !== false);
+    setAntiCheatEnabled(event.anti_cheat_enabled === true);
+    setScoreValidator(event.scoreValidator ?? 'opponent');
   }, [event?.id]);
 
   const initialDateIso = toIsoDay(event?.date);
@@ -152,6 +166,37 @@ export const EventSettings = () => {
     }
     return null;
   }, [parsedLimit, hasPlayerLimit, currentPlayersCount]);
+
+  const isDirty = useMemo(() => {
+    if (!event) return false;
+    if (name.trim() !== event.name) return true;
+    if (!isDateLocked && date && date !== initialDateIso) return true;
+    if (format !== event.format) return true;
+    if (isPremium) {
+      const effectiveLimit = hasPlayerLimit
+        ? Math.max(2, Math.min(100, parsedLimit || (event.maxPlayers ?? 16)))
+        : 999;
+      if (effectiveLimit !== (event.maxPlayers ?? 999)) return true;
+    }
+    if (isPrivate !== (event.isPrivate ?? true)) return true;
+    if (event.leagueId) {
+      const initialPropagation = event.propagatesToLeagueElo !== false;
+      if (propagatesToLeagueElo !== initialPropagation) return true;
+    }
+    return false;
+  }, [
+    event,
+    name,
+    date,
+    format,
+    hasPlayerLimit,
+    parsedLimit,
+    isPrivate,
+    propagatesToLeagueElo,
+    isPremium,
+    isDateLocked,
+    initialDateIso,
+  ]);
 
   if (isLoadingInitialData) {
     return (
@@ -224,6 +269,19 @@ export const EventSettings = () => {
       const initialPropagation = event.propagatesToLeagueElo !== false;
       if (event.leagueId && propagatesToLeagueElo !== initialPropagation) {
         updates.propagatesToLeagueElo = propagatesToLeagueElo;
+      }
+
+      // Mig 030 — anti-cheat toggle + score validator. We send the
+      // validator even when anti-cheat is OFF so the admin's preference
+      // survives a toggle off / on cycle.
+      const initialAntiCheat = event.anti_cheat_enabled === true;
+      if (antiCheatEnabled !== initialAntiCheat) {
+        updates.antiCheatEnabled = antiCheatEnabled;
+      }
+      const initialValidator: 'opponent' | 'admin' =
+        event.scoreValidator ?? 'opponent';
+      if (scoreValidator !== initialValidator) {
+        updates.scoreValidator = scoreValidator;
       }
 
       if (Object.keys(updates).length === 0) {
@@ -330,7 +388,9 @@ export const EventSettings = () => {
 
       <form
         onSubmit={handleSubmit}
-        className="p-4 md:p-6 max-w-2xl mx-auto space-y-5 pb-32"
+        className={`p-4 md:p-6 max-w-2xl mx-auto space-y-5 transition-[padding] duration-200 ${
+          isDirty ? "pb-36" : "pb-8"
+        }`}
         noValidate
       >
         {/* Nom */}
@@ -415,6 +475,97 @@ export const EventSettings = () => {
               );
             })}
           </div>
+        </div>
+
+        {/* Anti-cheat — Mig 030. Toggle + conditional validator radio. */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck size={12} />
+              Anti-triche
+            </span>
+          </span>
+
+          <div
+            className="flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card"
+            data-testid="anti-cheat-toggle-row"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-archivo font-semibold text-sm">
+                Validation des scores
+              </div>
+              <div className="text-cool-gray text-xs mt-0.5">
+                Les matchs restent en attente jusqu&apos;à validation.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAntiCheatEnabled((v) => !v)}
+              className={toggleClass(antiCheatEnabled)}
+              aria-label="Validation des scores"
+              aria-pressed={antiCheatEnabled}
+              data-testid="anti-cheat-toggle"
+            >
+              <span className={toggleKnob(antiCheatEnabled)} />
+            </button>
+          </div>
+
+          {antiCheatEnabled && (
+            <div
+              className="space-y-1.5"
+              data-testid="score-validator-options"
+            >
+              <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+                Validateur
+              </span>
+              {[
+                {
+                  value: 'opponent' as const,
+                  label: "Par l'équipe adverse",
+                  description:
+                    "Un joueur de l'équipe adverse doit confirmer.",
+                },
+                {
+                  value: 'admin' as const,
+                  label: "Par l'admin",
+                  description:
+                    event?.leagueId
+                      ? "Seul l'admin de l'event ou de la ligue rattachée peut valider."
+                      : "Seul l'admin de l'event peut valider.",
+                },
+              ].map((option) => {
+                const active = scoreValidator === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex items-center gap-3 p-3 rounded-card border cursor-pointer transition-colors ${
+                      active
+                        ? 'border-electric-blue bg-electric-blue/10'
+                        : 'border-card bg-navy-deep hover:border-card-muted'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="score-validator"
+                      value={option.value}
+                      checked={active}
+                      onChange={() => setScoreValidator(option.value)}
+                      className="accent-electric-blue"
+                      data-testid={`score-validator-${option.value}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-semibold text-sm">
+                        {option.label}
+                      </div>
+                      <div className="text-cool-gray text-xs">
+                        {option.description}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Mode (read-only) */}
@@ -605,12 +756,17 @@ export const EventSettings = () => {
             </span>
           </span>
           {event.leagueId ? (
-            <div className="p-3 rounded-card border border-card bg-navy-deep flex items-center gap-3">
+            <div className="w-full bg-electric-blue/10 border border-electric-blue/40 rounded-card p-4 flex items-start gap-3">
+              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-electric-blue/20 flex items-center justify-center mt-0.5">
+                <LinkIcon size={18} className="text-electric-blue" />
+              </div>
               <div className="flex-1 min-w-0">
-                <div className="text-white font-archivo font-semibold text-sm truncate">
+                <div className="font-archivo font-extrabold uppercase tracking-tight text-sm text-white truncate">
                   {league?.name || "Ligue introuvable"}
                 </div>
-                <div className="text-cool-gray text-xs">Associé</div>
+                <p className="text-white/70 text-xs mt-0.5">
+                  Les joueurs de l&apos;événement sont aussi dans la ligue.
+                </p>
               </div>
               <button
                 type="button"
@@ -621,28 +777,47 @@ export const EventSettings = () => {
                     associateEventToLeague(event.id, "");
                   }
                 }}
-                className="px-3 h-8 rounded-full border border-card text-cool-gray hover:text-white hover:border-white/60 font-archivo font-extrabold uppercase text-[10px] tracking-[1px] transition-colors"
+                className="flex-shrink-0 px-3 h-8 rounded-full border border-white/30 text-white hover:bg-white/10 font-archivo font-extrabold uppercase text-[10px] tracking-[1px] transition-colors"
               >
                 Dissocier
               </button>
             </div>
           ) : leagues.length > 0 ? (
-            <select
-              value=""
-              onChange={(e) => {
-                if (e.target.value) {
-                  associateEventToLeague(event.id, e.target.value);
-                }
-              }}
-              className="w-full bg-navy-deep border border-card rounded-md p-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-lime/20"
+            <div
+              role="radiogroup"
+              aria-label="Rattacher à une ligue"
+              className="flex flex-col gap-2 max-h-[280px] overflow-y-auto"
             >
-              <option value="">Sélectionner une ligue…</option>
-              {leagues.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+              {leagues.map((l) => {
+                const playerCount = l.players?.length ?? 0;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    role="radio"
+                    aria-checked="false"
+                    onClick={() => associateEventToLeague(event.id, l.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-card border border-card bg-navy-soft hover:border-electric-blue hover:bg-electric-blue/5 transition-colors text-left"
+                  >
+                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-electric-blue/15 flex items-center justify-center">
+                      <LinkIcon size={16} className="text-electric-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-extrabold uppercase tracking-tight text-sm truncate">
+                        {l.name}
+                      </div>
+                      <div className="text-cool-gray text-xs">
+                        {playerCount} joueur{playerCount > 1 ? "s" : ""}
+                      </div>
+                    </div>
+                    <ChevronRight
+                      size={18}
+                      className="text-cool-gray flex-shrink-0"
+                    />
+                  </button>
+                );
+              })}
+            </div>
           ) : (
             <p className="text-cool-gray text-xs">
               Aucune ligue disponible. Crée-en une pour pouvoir rattacher.
@@ -650,40 +825,96 @@ export const EventSettings = () => {
           )}
         </div>
 
-        {/* Sticky footer */}
-        <div className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10">
-          <div className="max-w-2xl mx-auto flex flex-col gap-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <PButton
-                type="button"
-                variant="ghost"
-                size="lg"
-                full
-                onClick={handleFinish}
-              >
-                {event.isFinished ? "Réouvrir l'événement" : "Clôturer l'événement"}
-              </PButton>
-              <PButton
-                type="button"
-                variant="ghost"
-                size="lg"
-                full
-                onClick={handleDelete}
-              >
-                Supprimer
-              </PButton>
+        {/* Lifecycle — Clôturer / Réouvrir l'événement */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+            Cycle de vie
+          </span>
+          <div className="rounded-card border border-card bg-navy-deep p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  event.isFinished ? "bg-cool-gray" : "bg-lime"
+                }`}
+                aria-hidden
+              />
+              <span className="font-archivo font-extrabold uppercase text-[12px] tracking-[1px] text-white">
+                {event.isFinished ? "Terminé" : "En cours"}
+              </span>
+            </div>
+            <div className="text-cool-gray text-xs">
+              {event.isFinished
+                ? "L'événement est clôturé. Tu peux le rouvrir pour ajouter de nouveaux matchs."
+                : "Clôturer empêche l'ajout de nouveaux matchs. Action réversible."}
             </div>
             <PButton
-              type="submit"
-              variant="primary"
-              size="lg"
+              type="button"
+              variant={event.isFinished ? "primary" : "ghost"}
+              size="md"
               full
-              disabled={!name.trim() || isSaving}
+              onClick={handleFinish}
+              icon={
+                event.isFinished ? <Play size={16} /> : <Archive size={16} />
+              }
             >
-              {isSaving ? "Enregistrement…" : "Enregistrer"}
+              {event.isFinished
+                ? "Réouvrir l'événement"
+                : "Clôturer l'événement"}
             </PButton>
           </div>
         </div>
+
+        {/* Zone de danger — Supprimer */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-signal-red block">
+            <span className="inline-flex items-center gap-1.5">
+              <AlertTriangle size={12} />
+              Zone de danger
+            </span>
+          </span>
+          <div className="rounded-card border border-signal-red/30 bg-signal-red/5 p-3 space-y-3">
+            <div>
+              <div className="text-white font-archivo font-semibold text-sm">
+                Supprimer l&apos;événement
+              </div>
+              <div className="text-cool-gray text-xs mt-0.5">
+                Suppression définitive. Tous les matchs, scores et participations
+                seront perdus.
+              </div>
+            </div>
+            <PButton
+              type="button"
+              variant="ghost"
+              size="md"
+              full
+              onClick={handleDelete}
+              icon={<Trash2 size={16} />}
+              data-testid="settings-delete-event"
+            >
+              Supprimer l&apos;événement
+            </PButton>
+          </div>
+        </div>
+
+        {/* Sticky save CTA — visible uniquement si modifications en attente */}
+        {isDirty && (
+          <div
+            className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10"
+            data-testid="settings-save-panel"
+          >
+            <div className="max-w-2xl mx-auto">
+              <PButton
+                type="submit"
+                variant="primary"
+                size="lg"
+                full
+                disabled={!name.trim() || isSaving}
+              >
+                {isSaving ? "Enregistrement…" : "Enregistrer"}
+              </PButton>
+            </div>
+          </div>
+        )}
       </form>
 
       <GhostManagementSheet

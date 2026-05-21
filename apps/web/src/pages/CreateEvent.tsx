@@ -18,6 +18,7 @@ import { useLeague } from "@/context/LeagueContext";
 import { premiumService } from "@/services/PremiumService";
 import { databaseService } from "@/services/DatabaseService";
 import { generateEventCode } from "@/utils/eventCode";
+import { AuthModal } from "@/components/AuthModal";
 import { PaymentModal } from "@/components/PaymentModal";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { PageHero, StickyCTA } from "@/components/design-system";
@@ -98,7 +99,7 @@ interface CreateEventProps {
 export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {}) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, userProfile } = useAuthContext();
+  const { user, userProfile, isAuthenticated, isLoading: isAuthLoading } = useAuthContext();
   const { localUser } = useIdentity();
   const {
     reloadData,
@@ -130,6 +131,17 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
         : null,
     [attachedLeagueId, leagues],
   );
+
+  // Auth gate (mig 031 — only authenticated users can create events; the DB
+  // trigger _guard_events_insert rejects otherwise, this is just the UX
+  // shortcut that opens the auth modal before the user wastes time filling
+  // out the form).
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
+      setShowAuthModal(true);
+    }
+  }, [isAuthLoading, isAuthenticated]);
 
   // Premium status and limits
   const [isLoadingPremium, setIsLoadingPremium] = useState(true);
@@ -267,6 +279,11 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
       return;
     }
 
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
+
     if (!canCreate) {
       toast.error('Limite d\'événements atteinte. Passez Premium pour créer sans limite !');
       setShowPaymentModal(true);
@@ -293,8 +310,11 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
         isPrivate,
         mode,
         date,
+        // mig 031 — only authenticated creators are allowed. We no longer
+        // pass anonymousUserId as a fallback so the DB trigger has a clean
+        // signal to reject if anything slips through.
         creatorUserId: user?.id || null,
-        creatorAnonymousUserId: localUser?.anonymousUserId || null,
+        creatorAnonymousUserId: null,
       });
 
       // Link to league BEFORE adding the creator, so that the creator's
@@ -795,10 +815,28 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
             full
             disabled={!name.trim() || isSubmitting}
           >
-            {isSubmitting ? "Création…" : "Créer l'événement"}
+            {!isAuthenticated
+              ? "Connexion requise"
+              : isSubmitting
+                ? "Création…"
+                : "Créer l'événement"}
           </PButton>
         </StickyCTA>
       )}
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          if (isAuthenticated) {
+            setShowAuthModal(false);
+          } else {
+            navigate("/");
+          }
+        }}
+        onSuccess={() => {
+          setShowAuthModal(false);
+        }}
+      />
 
       {/* Limit reached modal */}
       {showLimitReachedModal && (
