@@ -397,8 +397,8 @@ export const EventDashboard = () => {
     year: "2-digit",
   });
 
-  // Hero actions — spec refonte :
-  //  • Admin : [Ajouter primary] [Paramètres secondary] [📺 Mode Diffusion iconOnly]
+  // Hero actions — spec uniforme event/league (mig 029) :
+  //  • Admin : [Ajouter primary] [Pause/Démarrer/Reprendre iconOnly] [Paramètres iconOnly] [Mode Diffusion iconOnly]
   //  • Non-admin : [Ajouter primary], avec Quitter accessible via menu (seul item
   //    conservé pour les participants).
   const detailHeroActions: DetailHeroAction[] = [];
@@ -441,9 +441,9 @@ export const EventDashboard = () => {
     }
     detailHeroActions.push({
       label: "Paramètres",
-      icon: <Settings size={16} />,
+      icon: <Settings size={18} />,
       onClick: () => navigate(`/event/${event.id}/settings`),
-      variant: "secondary",
+      variant: "iconOnly",
     });
     detailHeroActions.push({
       label: "Mode Diffusion",

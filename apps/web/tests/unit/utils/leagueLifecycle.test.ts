@@ -1,10 +1,12 @@
 /**
- * leagueLifecycle — derived state truth table.
+ * leagueLifecycle — derived state truth table (mig 028 + 029 + 030).
  *
- * Rules:
- *   finished → ended_at
- *   paused   → !ended_at && paused_at
- *   active   → otherwise
+ * Rules (du plus terminal au plus actif) :
+ *   finished        → endedAt
+ *   paused          → !endedAt && pausedAt
+ *   between_seasons → !endedAt && !pausedAt && currentSeasonEndedAt
+ *   not_started     → !endedAt && !pausedAt && !currentSeasonEndedAt && plannedStartAt > today
+ *   active          → otherwise
  */
 
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
@@ -17,13 +19,14 @@ import {
 } from '@/utils/leagueLifecycle';
 
 const FROZEN_TODAY = '2026-05-20T12:00:00.000Z';
-
 const YESTERDAY_DAY = '2026-05-19';
 const TOMORROW_DAY = '2026-05-21';
+const ISO = '2026-05-20T10:00:00.000Z';
 
 const make = (overrides: Partial<LeagueLifecycleInput>): LeagueLifecycleInput => ({
   pausedAt: null,
   endedAt: null,
+  currentSeasonEndedAt: null,
   plannedStartAt: null,
   ...overrides,
 });
@@ -43,23 +46,42 @@ describe('leagueLifecycle', () => {
       expect(
         getLeagueLifecycle(
           make({
-            endedAt: '2026-05-20T10:00:00.000Z',
+            endedAt: ISO,
             pausedAt: '2026-05-19T09:00:00.000Z',
+            currentSeasonEndedAt: '2026-05-18T08:00:00.000Z',
             plannedStartAt: `${TOMORROW_DAY}T08:00:00.000Z`,
           }),
         ),
       ).toBe('finished');
     });
 
-    it('paused wins over not_started', () => {
+    it('paused wins over between_seasons / not_started', () => {
       expect(
         getLeagueLifecycle(
           make({
-            pausedAt: '2026-05-20T10:00:00.000Z',
+            pausedAt: ISO,
+            currentSeasonEndedAt: '2026-05-18T08:00:00.000Z',
             plannedStartAt: `${TOMORROW_DAY}T08:00:00.000Z`,
           }),
         ),
       ).toBe('paused');
+    });
+
+    it('between_seasons wins over not_started', () => {
+      expect(
+        getLeagueLifecycle(
+          make({
+            currentSeasonEndedAt: ISO,
+            plannedStartAt: `${TOMORROW_DAY}T08:00:00.000Z`,
+          }),
+        ),
+      ).toBe('between_seasons');
+    });
+
+    it('between_seasons when only currentSeasonEndedAt is set', () => {
+      expect(
+        getLeagueLifecycle(make({ currentSeasonEndedAt: ISO })),
+      ).toBe('between_seasons');
     });
 
     it('not_started when planned_start_at is in the future', () => {
@@ -81,17 +103,18 @@ describe('leagueLifecycle', () => {
     it('active when no lifecycle timestamp is set (legacy row)', () => {
       expect(getLeagueLifecycle(make({}))).toBe('active');
     });
+
+    it('active when fields are undefined (legacy row)', () => {
+      expect(getLeagueLifecycle({} as LeagueLifecycleInput)).toBe('active');
+    });
   });
 
   describe('canRecordLeagueMatch', () => {
     it('allows only active leagues', () => {
       expect(canRecordLeagueMatch(make({}))).toBe(true);
-      expect(
-        canRecordLeagueMatch(make({ pausedAt: '2026-05-20T10:00:00.000Z' })),
-      ).toBe(false);
-      expect(
-        canRecordLeagueMatch(make({ endedAt: '2026-05-20T10:00:00.000Z' })),
-      ).toBe(false);
+      expect(canRecordLeagueMatch(make({ pausedAt: ISO }))).toBe(false);
+      expect(canRecordLeagueMatch(make({ endedAt: ISO }))).toBe(false);
+      expect(canRecordLeagueMatch(make({ currentSeasonEndedAt: ISO }))).toBe(false);
       expect(
         canRecordLeagueMatch(
           make({ plannedStartAt: `${TOMORROW_DAY}T08:00:00.000Z` }),

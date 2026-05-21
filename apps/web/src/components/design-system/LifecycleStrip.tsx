@@ -10,11 +10,12 @@
  */
 
 import React from 'react';
-import { Pause, Play, Archive, Clock, type LucideIcon } from 'lucide-react';
+import { Pause, Play, Archive, RotateCcw, Clock, type LucideIcon } from 'lucide-react';
 
 export type LifecycleStripTone =
   | 'not_started'
   | 'paused'
+  | 'between_seasons'
   | 'finished'
   | 'reminder';
 
@@ -29,6 +30,7 @@ export interface LifecycleStripProps {
 const TONE_ICON: Record<LifecycleStripTone, LucideIcon> = {
   not_started: Play,
   paused: Pause,
+  between_seasons: RotateCcw,
   finished: Archive,
   reminder: Clock,
 };
@@ -38,6 +40,7 @@ const TONE_ICON: Record<LifecycleStripTone, LucideIcon> = {
 const TONE_CLASSES: Record<LifecycleStripTone, string> = {
   not_started: 'border-ping-yellow/30 bg-ping-yellow/10',
   paused: 'border-ping-yellow/30 bg-ping-yellow/10',
+  between_seasons: 'border-ping-yellow/30 bg-ping-yellow/10',
   finished: 'border-ping-yellow/30 bg-ping-yellow/10',
   reminder: 'border-ping-yellow/50 bg-ping-yellow/15',
 };
