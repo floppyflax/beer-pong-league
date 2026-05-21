@@ -74,7 +74,7 @@ export function Podium({
               className="flex flex-col items-center gap-1"
               data-testid={`podium-rank-${rank}`}
             >
-              {/* Avatar (couronne sur le 1er, rank-delta en haut à gauche) */}
+              {/* Avatar (rank-delta en haut à gauche, couronne en haut à droite pour le 1er) */}
               <div className="relative">
                 <PAvatar
                   name={player.name}
@@ -84,8 +84,8 @@ export function Podium({
                 />
                 {rank === 1 && (
                   <span
-                    className="absolute -top-3 -left-2 text-[20px] leading-none select-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)] z-10"
-                    style={{ transform: "rotate(-45deg)" }}
+                    className="absolute -top-3 -right-2 text-[20px] leading-none select-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)] z-10"
+                    style={{ transform: "rotate(35deg)" }}
                     aria-hidden
                   >
                     👑
@@ -93,7 +93,7 @@ export function Podium({
                 )}
                 {typeof player.rankDelta === "number" && player.rankDelta !== 0 && (
                   <div
-                    className={`absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full flex items-center gap-0.5 justify-center text-[10px] font-mono font-extrabold tabular-nums ring-2 ring-electric-blue z-10 ${
+                    className={`absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center gap-0.5 justify-center text-[10px] font-mono font-extrabold tabular-nums ring-2 ring-electric-blue z-10 ${
                       player.rankDelta > 0
                         ? "bg-lime text-navy"
                         : "bg-signal-red text-white"

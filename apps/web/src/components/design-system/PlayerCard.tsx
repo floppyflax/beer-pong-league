@@ -324,8 +324,24 @@ export function PlayerCard(props: PlayerCardProps) {
         />
 
         <div className="flex-1 min-w-0">
-          <div className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate">
-            {props.name}
+          <div className="flex items-baseline justify-between gap-2 min-w-0">
+            <span className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0">
+              {props.name}
+            </span>
+            <span className="flex-shrink-0 flex items-baseline gap-2">
+              {props.delta !== undefined && (
+                <span
+                  className={`text-sm font-mono font-semibold tabular-nums ${deltaClass}`}
+                  data-testid="playercard-delta"
+                >
+                  {props.delta >= 0 ? "+" : ""}
+                  {props.delta}
+                </span>
+              )}
+              <span className="text-base font-mono font-bold tabular-nums text-lime">
+                {props.rightLabel ?? props.elo}
+              </span>
+            </span>
           </div>
           <div className="flex items-center gap-2 mt-0.5 min-w-0">
             {hasStats && (
@@ -339,21 +355,6 @@ export function PlayerCard(props: PlayerCardProps) {
               <ResultDots results={props.recentResults} />
             )}
           </div>
-        </div>
-
-        <div className="flex-shrink-0 flex items-center gap-2">
-          {props.delta !== undefined && (
-            <span
-              className={`text-sm font-mono font-semibold tabular-nums ${deltaClass}`}
-              data-testid="playercard-delta"
-            >
-              {props.delta >= 0 ? "+" : ""}
-              {props.delta}
-            </span>
-          )}
-          <span className="text-base font-mono font-bold tabular-nums text-lime">
-            {props.rightLabel ?? props.elo}
-          </span>
         </div>
 
         <ChevronRight
