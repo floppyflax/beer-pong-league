@@ -8,9 +8,16 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  /** "signup" (default) titles "Créer un compte", "signin" titles "Se connecter". */
+  mode?: "signup" | "signin";
 }
 
-export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
+export const AuthModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  mode = "signup",
+}: AuthModalProps) => {
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<"email" | "sent">("email");
   const [isLoading, setIsLoading] = useState(false);
@@ -84,8 +91,15 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     <Sheet
       isOpen={isOpen}
       onClose={handleClose}
-      title={step === "email" ? "Créer un compte" : "Email envoyé !"}
+      title={
+        step === "email"
+          ? mode === "signin"
+            ? "Se connecter"
+            : "Créer un compte"
+          : "Email envoyé !"
+      }
       maxWidth="sm"
+      mobileExpanded
     >
       {step === "email" ? (
         <form onSubmit={handleSubmit} className="space-y-4">
