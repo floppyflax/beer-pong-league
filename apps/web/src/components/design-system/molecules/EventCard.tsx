@@ -2,7 +2,8 @@
  * EventCard — listing pressed-card pour un événement.
  *
  * Construit sur `CardShell` (partagé avec `LeagueCard`).
- * Header : pill statut (en cours / à venir / terminé). Body : meta inline
+ * Header : pill statut (en cours / à venir / terminé) + rang `1er / N` à
+ * droite du titre quand je participe. Body : meta inline
  * (joueurs · matchs · format · ELO).
  */
 
@@ -11,6 +12,8 @@ import { useNavigate } from "react-router-dom";
 import type { Event } from "@/types";
 import { CardShell, type CardShellStatus } from "./CardShell";
 import { getEventLifecycle } from "@/utils/eventLifecycle";
+import { useMyEventRank } from "@/hooks/useMyContextRankings";
+import { MyRankBadge } from "../atoms/MyRankBadge";
 
 export interface EventCardProps {
   event: Event;
@@ -23,6 +26,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   interactive = true,
 }) => {
   const navigate = useNavigate();
+  const myRank = useMyEventRank(event.id);
 
   const playerCount = event.playerIds?.length ?? 0;
   const matchCount = event.matches?.length ?? 0;
@@ -73,6 +77,9 @@ export const EventCard: React.FC<EventCardProps> = ({
     <CardShell
       title={event.name}
       status={status}
+      titleSuffix={
+        myRank ? <MyRankBadge rank={myRank.rank} total={myRank.total} /> : undefined
+      }
       body={body}
       testId="event-card"
       ariaLabel={`Voir l'événement ${event.name}`}
