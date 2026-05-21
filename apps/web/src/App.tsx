@@ -4,7 +4,7 @@ import {
   Route,
   useLocation,
 } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { Toaster } from "react-hot-toast";
 import { LeagueProvider } from "./context/LeagueContext";
 import { IdentityProvider } from "./context/IdentityContext";
@@ -25,110 +25,112 @@ import {
   PAGES_WITH_SPECIFIC_MENU,
 } from "./utils/navigationHelpers";
 import { useNativeInit } from "./hooks/useNativeInit";
+import { lazyWithRetry } from "./utils/lazyWithRetry";
 
-// Lazy-loaded page components for code splitting
-// Note: Using named imports with .then() to convert to default exports for React.lazy()
-const LandingPage = lazy(() =>
+// Lazy-loaded page components for code splitting.
+// Named imports are converted to default exports via .then() for the lazy loader.
+// lazyWithRetry recovers from stale-deploy chunk errors (retry then reload).
+const LandingPage = lazyWithRetry(() =>
   import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })),
 );
-const Home = lazy(() =>
+const Home = lazyWithRetry(() =>
   import("./pages/Home").then((m) => ({ default: m.Home })),
 );
-const Join = lazy(() =>
+const Join = lazyWithRetry(() =>
   import("./pages/Join").then((m) => ({ default: m.Join })),
 );
-const Events = lazy(() =>
+const Events = lazyWithRetry(() =>
   import("./pages/Events").then((m) => ({ default: m.Events })),
 );
-const Leagues = lazy(() =>
+const Leagues = lazyWithRetry(() =>
   import("./pages/Leagues").then((m) => ({ default: m.Leagues })),
 );
-const CreateLeague = lazy(() =>
+const CreateLeague = lazyWithRetry(() =>
   import("./pages/CreateLeague").then((m) => ({ default: m.CreateLeague })),
 );
-const LeagueDashboard = lazy(() =>
+const LeagueDashboard = lazyWithRetry(() =>
   import("./pages/LeagueDashboard").then((m) => ({
     default: m.LeagueDashboard,
   })),
 );
-const LeagueSeasons = lazy(() =>
+const LeagueSeasons = lazyWithRetry(() =>
   import("./pages/LeagueSeasons").then((m) => ({
     default: m.LeagueSeasons,
   })),
 );
-const CreateEvent = lazy(() =>
+const CreateEvent = lazyWithRetry(() =>
   import("./pages/CreateEvent").then((m) => ({
     default: m.CreateEvent,
   })),
 );
-const EventDashboard = lazy(() =>
+const EventDashboard = lazyWithRetry(() =>
   import("./pages/EventDashboard").then((m) => ({
     default: m.EventDashboard,
   })),
 );
-const EventSettings = lazy(() =>
+const EventSettings = lazyWithRetry(() =>
   import("./pages/EventSettings").then((m) => ({
     default: m.EventSettings,
   })),
 );
-const PendingMatches = lazy(() =>
+const PendingMatches = lazyWithRetry(() =>
   import("./pages/PendingMatches").then((m) => ({
     default: m.PendingMatches,
   })),
 );
-const LeagueSettings = lazy(() =>
+const LeagueSettings = lazyWithRetry(() =>
   import("./pages/LeagueSettings").then((m) => ({
     default: m.LeagueSettings,
   })),
 );
-const PlayerProfile = lazy(() =>
+const PlayerProfile = lazyWithRetry(() =>
   import("./pages/PlayerProfile").then((m) => ({ default: m.PlayerProfile })),
 );
-const UserProfile = lazy(() =>
+const UserProfile = lazyWithRetry(() =>
   import("./pages/UserProfile").then((m) => ({ default: m.UserProfile })),
 );
-const DisplayView = lazy(() =>
+const DisplayView = lazyWithRetry(() =>
   import("./pages/DisplayView").then((m) => ({ default: m.DisplayView })),
 );
-const EventDisplayView = lazy(() =>
+const EventDisplayView = lazyWithRetry(() =>
   import("./pages/EventDisplayView").then((m) => ({
     default: m.EventDisplayView,
   })),
 );
-const EventInvite = lazy(() =>
+const EventInvite = lazyWithRetry(() =>
   import("./pages/EventInvite").then((m) => ({
     default: m.EventInvite,
   })),
 );
-const EventJoin = lazy(() =>
+const EventJoin = lazyWithRetry(() =>
   import("./pages/EventJoin").then((m) => ({ default: m.EventJoin })),
 );
-const LeagueJoin = lazy(() =>
+const LeagueJoin = lazyWithRetry(() =>
   import("./pages/LeagueJoin").then((m) => ({ default: m.LeagueJoin })),
 );
-const AuthCallback = lazy(() =>
+const AuthCallback = lazyWithRetry(() =>
   import("./pages/AuthCallback").then((m) => ({ default: m.AuthCallback })),
 );
-const PaymentSuccess = lazy(() =>
+const PaymentSuccess = lazyWithRetry(() =>
   import("./pages/PaymentSuccess").then((m) => ({ default: m.PaymentSuccess })),
 );
-const PaymentCancel = lazy(() =>
+const PaymentCancel = lazyWithRetry(() =>
   import("./pages/PaymentCancel").then((m) => ({ default: m.PaymentCancel })),
 );
-const DesignSystemShowcase = lazy(() =>
+const DesignSystemShowcase = lazyWithRetry(() =>
   import("./pages/DesignSystemShowcase").then((m) => ({
     default: m.DesignSystemShowcase,
   })),
 );
-const RecordMatch = lazy(() =>
+const RecordMatch = lazyWithRetry(() =>
   import("./pages/RecordMatch").then((m) => ({ default: m.RecordMatch })),
 );
-const Stats = lazy(() =>
+const Stats = lazyWithRetry(() =>
   import("./pages/Stats").then((m) => ({
     default: m.Stats,
   })),
 );
-const Competitions = lazy(() =>
+const Competitions = lazyWithRetry(() =>
   import("./pages/Competitions").then((m) => ({
     default: m.Competitions,
   })),
