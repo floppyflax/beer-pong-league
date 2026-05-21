@@ -964,6 +964,10 @@ export const RecordMatch = () => {
         return;
       }
 
+      // Mig 030 — when anti-cheat is on, the match is pending: skip the
+      // EloChangeDisplay payload (no preview while awaiting confirmation),
+      // skip the photo-finish wizard (no meaningful winner state yet), and
+      // toast a dedicated message. Otherwise proceed with the legacy flow.
       let createdMatchId: string | null = null;
       if (contextType === "event" && event) {
         const result = await recordEventMatch(
@@ -974,15 +978,21 @@ export const RecordMatch = () => {
           { scoreA, scoreB },
           participants,
         );
-        if (result) {
+        if (result?.status === 'pending') {
+          toast.success("Score envoyé en validation", { icon: "⏳" });
+        } else if (result) {
           sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(result.eloChanges));
           createdMatchId = result.matchId;
+          toast.success("Match enregistré !");
         }
       } else if (contextType === "league") {
         const result = await recordMatch(id, teamAIds, teamBIds, winner);
-        if (result) {
+        if (result?.status === 'pending') {
+          toast.success("Score envoyé en validation", { icon: "⏳" });
+        } else if (result) {
           sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(result.eloChanges));
           createdMatchId = result.matchId;
+          toast.success("Match enregistré !");
         }
       }
 

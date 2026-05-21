@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown, CheckCircle2, Hourglass, XCircle } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
@@ -21,6 +21,21 @@ export interface MatchHistoryCardProps {
   isLive?: boolean;
   cupsRemaining?: number | null;
   photoUrl?: string | null;
+  /**
+   * Mig 030 — anti-cheat status. `pending` shows an hourglass badge.
+   * `rejected` shows an X badge (only ever rendered for admins, RLS hides
+   * rejected rows from others). `confirmed` only renders a check badge
+   * when `antiCheatEnabled` is true (badge is meaningless outside the
+   * anti-cheat flow).
+   */
+  status?: "pending" | "confirmed" | "rejected";
+  /**
+   * Mig 030 — when the parent event/league has `anti_cheat_enabled = true`,
+   * confirmed matches get a "Validé" badge (visual confirmation that the
+   * score was validated by the opponent / admin). Default `false` — no
+   * badge on confirmed for legacy/non-anti-cheat contexts.
+   */
+  antiCheatEnabled?: boolean;
 }
 
 function getRelativeTimestamp(date: string): string {
@@ -140,6 +155,8 @@ export function MatchHistoryCard({
   isLive,
   cupsRemaining,
   photoUrl,
+  status = "confirmed",
+  antiCheatEnabled = false,
 }: MatchHistoryCardProps) {
   const userInA =
     currentPlayerIds?.some((id) => teamA.some((p) => p.id === id)) ?? false;
@@ -169,6 +186,37 @@ export function MatchHistoryCard({
 
       <div className="pl-4 pr-4 py-3">
         {isLive && <LiveMatchBadge isLive className="mb-2" />}
+
+        {status === "pending" && (
+          <div
+            className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
+            data-testid="match-status-pending"
+            aria-label="Match en attente de validation"
+          >
+            <Hourglass size={11} aria-hidden="true" />
+            En attente de validation
+          </div>
+        )}
+        {status === "rejected" && (
+          <div
+            className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-signal-red/15 text-signal-red text-[10px] font-bold uppercase tracking-wide"
+            data-testid="match-status-rejected"
+            aria-label="Match refusé"
+          >
+            <XCircle size={11} aria-hidden="true" />
+            Refusé
+          </div>
+        )}
+        {status === "confirmed" && antiCheatEnabled && (
+          <div
+            className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime/15 text-lime text-[10px] font-bold uppercase tracking-wide"
+            data-testid="match-status-validated"
+            aria-label="Match validé"
+          >
+            <CheckCircle2 size={11} aria-hidden="true" />
+            Validé
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <TeamLine players={leftTeam} isWinner={leftWon} score={leftScore} />

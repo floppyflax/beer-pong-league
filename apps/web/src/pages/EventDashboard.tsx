@@ -14,7 +14,11 @@ import {
   Trash2,
   Play,
   Pause,
+  CheckCircle2,
+  Hourglass,
+  XCircle,
 } from "lucide-react";
+import { usePendingMatches } from "@/hooks/usePendingMatches";
 import { getEventLifecycle, canLogMatch } from "@/utils/eventLifecycle";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "@/components/EloChangeDisplay";
@@ -197,6 +201,9 @@ export const EventDashboard = () => {
     id || "",
     "event",
   );
+
+  // Mig 030 — anti-cheat: pending matches the current user can validate
+  const { count: pendingValidationCount } = usePendingMatches(id);
 
   // Get ranking based on mode - MUST be called unconditionally
   // Pass eventParticipants so ranking uses event_players.id (matches match.teamA/teamB)
@@ -640,6 +647,19 @@ export const EventDashboard = () => {
         />
       )}
 
+      {/* Mig 030 — anti-cheat: pending validation banner. Same visual tone as
+          LifecycleStrip but informational (not blocking), with an inline CTA. */}
+      {pendingValidationCount > 0 && (
+        <LifecycleStrip
+          tone="pending_validation"
+          testId="pending-validation-banner"
+          title={`${pendingValidationCount} match${pendingValidationCount > 1 ? "s" : ""} à valider`}
+          description="Confirme ou refuse les scores en attente avant la mise à jour de l'ELO."
+          actionLabel="Valider"
+          onAction={() => navigate(`/event/${event.id}/validate`)}
+        />
+      )}
+
       {/* SegmentedTabs: Matchs / Classement */}
       <div className="px-4 pt-4 pb-4">
         <SegmentedTabs
@@ -825,6 +845,40 @@ export const EventDashboard = () => {
                     )}
                     {/* Phase D.4: Live badge */}
                     <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
+                    {/* Mig 030 — anti-cheat status badge. The "Validé"
+                        badge on confirmed matches only shows up when the
+                        parent event/league is under anti-cheat — otherwise
+                        a check on every match would be visual noise. */}
+                    {match.status === "pending" && (
+                      <div
+                        className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
+                        data-testid="match-status-pending"
+                        aria-label="Match en attente de validation"
+                      >
+                        <Hourglass size={11} aria-hidden="true" />
+                        En attente de validation
+                      </div>
+                    )}
+                    {match.status === "rejected" && (
+                      <div
+                        className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-signal-red/15 text-signal-red text-[10px] font-bold uppercase tracking-wide"
+                        data-testid="match-status-rejected"
+                        aria-label="Match refusé"
+                      >
+                        <XCircle size={11} aria-hidden="true" />
+                        Refusé
+                      </div>
+                    )}
+                    {match.status === "confirmed" && event.anti_cheat_enabled && (
+                      <div
+                        className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime/15 text-lime text-[10px] font-bold uppercase tracking-wide"
+                        data-testid="match-status-validated"
+                        aria-label="Match validé"
+                      >
+                        <CheckCircle2 size={11} aria-hidden="true" />
+                        Validé
+                      </div>
+                    )}
                     {/* Teams + ELO inline (1 valeur par équipe).
                         `pr-10` quand admin pour réserver la place du bouton
                         menu absolute top-right (≈ 40 px), sinon le `-X` ELO

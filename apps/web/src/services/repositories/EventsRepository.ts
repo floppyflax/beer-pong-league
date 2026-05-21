@@ -17,6 +17,13 @@ export interface EventUpdates {
   name?: string;
   date?: string;
   antiCheatEnabled?: boolean;
+  /**
+   * Mig 030 — Who validates scores when antiCheatEnabled = TRUE.
+   *   - 'opponent' (default) : a player from the opposing team confirms.
+   *   - 'admin'              : only the admin can confirm.
+   * Read only when antiCheatEnabled = TRUE.
+   */
+  scoreValidator?: 'opponent' | 'admin';
   format?: '1v1' | '2v2' | '3v3' | 'libre';
   maxPlayers?: number;
   isPrivate?: boolean;
@@ -172,6 +179,7 @@ class EventsRepository extends BaseRepository {
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
+        scoreValidator: row.score_validator ?? 'opponent',
         joinCode: row.join_code,
         formatType: row.format_type,
         team1Size: row.team1_size,
@@ -226,6 +234,7 @@ class EventsRepository extends BaseRepository {
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
+        scoreValidator: row.score_validator ?? 'opponent',
         joinCode: row.join_code,
         formatType: row.format_type,
         team1Size: row.team1_size,
@@ -268,6 +277,7 @@ class EventsRepository extends BaseRepository {
           created_at: event.createdAt,
           creator_user_id: event.creator_user_id,
           anti_cheat_enabled: event.anti_cheat_enabled || false,
+          score_validator: event.scoreValidator ?? 'opponent',
         },
         { onConflict: 'id' }
       );
@@ -300,6 +310,7 @@ class EventsRepository extends BaseRepository {
       if (updates.name !== undefined) event.name = updates.name;
       if (updates.date !== undefined) event.date = updates.date;
       if (updates.antiCheatEnabled !== undefined) event.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.scoreValidator !== undefined) event.scoreValidator = updates.scoreValidator;
       if (updates.format !== undefined) event.format = updates.format;
       if (updates.maxPlayers !== undefined) event.maxPlayers = updates.maxPlayers;
       if (updates.isPrivate !== undefined) event.isPrivate = updates.isPrivate;
@@ -319,6 +330,7 @@ class EventsRepository extends BaseRepository {
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.date !== undefined) dbUpdates.date = updates.date;
       if (updates.antiCheatEnabled !== undefined) dbUpdates.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.scoreValidator !== undefined) dbUpdates.score_validator = updates.scoreValidator;
       if (updates.format !== undefined) dbUpdates.format = updates.format;
       if (updates.maxPlayers !== undefined) dbUpdates.max_players = updates.maxPlayers;
       if (updates.isPrivate !== undefined) dbUpdates.is_private = updates.isPrivate;
@@ -543,6 +555,8 @@ class EventsRepository extends BaseRepository {
     date?: string;
     creatorUserId: string | null;
     creatorAnonymousUserId: string | null;
+    /** Mig 030 — default 'opponent' when omitted. */
+    scoreValidator?: 'opponent' | 'admin';
   }): Promise<string> {
     const eventDate = data.date || new Date().toISOString().split('T')[0];
     if (!this.isSupabaseAvailable()) {
@@ -578,6 +592,9 @@ class EventsRepository extends BaseRepository {
           creator_user_id: data.creatorUserId || data.creatorAnonymousUserId,
           is_finished: false,
           ...(data.mode !== undefined ? { mode: data.mode } : {}),
+          ...(data.scoreValidator !== undefined
+            ? { score_validator: data.scoreValidator }
+            : {}),
         })
         .select('id')
         .single();
