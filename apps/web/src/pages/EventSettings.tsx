@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
+  Archive,
   Crown,
   Ghost,
   Link as LinkIcon,
   Lock,
+  Play,
   Target,
+  Trash2,
   Trophy,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -152,6 +155,37 @@ export const EventSettings = () => {
     }
     return null;
   }, [parsedLimit, hasPlayerLimit, currentPlayersCount]);
+
+  const isDirty = useMemo(() => {
+    if (!event) return false;
+    if (name.trim() !== event.name) return true;
+    if (!isDateLocked && date && date !== initialDateIso) return true;
+    if (format !== event.format) return true;
+    if (isPremium) {
+      const effectiveLimit = hasPlayerLimit
+        ? Math.max(2, Math.min(100, parsedLimit || (event.maxPlayers ?? 16)))
+        : 999;
+      if (effectiveLimit !== (event.maxPlayers ?? 999)) return true;
+    }
+    if (isPrivate !== (event.isPrivate ?? true)) return true;
+    if (event.leagueId) {
+      const initialPropagation = event.propagatesToLeagueElo !== false;
+      if (propagatesToLeagueElo !== initialPropagation) return true;
+    }
+    return false;
+  }, [
+    event,
+    name,
+    date,
+    format,
+    hasPlayerLimit,
+    parsedLimit,
+    isPrivate,
+    propagatesToLeagueElo,
+    isPremium,
+    isDateLocked,
+    initialDateIso,
+  ]);
 
   if (isLoadingInitialData) {
     return (
@@ -330,7 +364,9 @@ export const EventSettings = () => {
 
       <form
         onSubmit={handleSubmit}
-        className="p-4 md:p-6 max-w-2xl mx-auto space-y-5 pb-32"
+        className={`p-4 md:p-6 max-w-2xl mx-auto space-y-5 transition-[padding] duration-200 ${
+          isDirty ? "pb-36" : "pb-8"
+        }`}
         noValidate
       >
         {/* Nom */}
@@ -650,40 +686,96 @@ export const EventSettings = () => {
           )}
         </div>
 
-        {/* Sticky footer */}
-        <div className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10">
-          <div className="max-w-2xl mx-auto flex flex-col gap-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <PButton
-                type="button"
-                variant="ghost"
-                size="lg"
-                full
-                onClick={handleFinish}
-              >
-                {event.isFinished ? "Réouvrir l'événement" : "Clôturer l'événement"}
-              </PButton>
-              <PButton
-                type="button"
-                variant="ghost"
-                size="lg"
-                full
-                onClick={handleDelete}
-              >
-                Supprimer
-              </PButton>
+        {/* Lifecycle — Clôturer / Réouvrir l'événement */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+            Cycle de vie
+          </span>
+          <div className="rounded-card border border-card bg-navy-deep p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  event.isFinished ? "bg-cool-gray" : "bg-lime"
+                }`}
+                aria-hidden
+              />
+              <span className="font-archivo font-extrabold uppercase text-[12px] tracking-[1px] text-white">
+                {event.isFinished ? "Terminé" : "En cours"}
+              </span>
+            </div>
+            <div className="text-cool-gray text-xs">
+              {event.isFinished
+                ? "L'événement est clôturé. Tu peux le rouvrir pour ajouter de nouveaux matchs."
+                : "Clôturer empêche l'ajout de nouveaux matchs. Action réversible."}
             </div>
             <PButton
-              type="submit"
-              variant="primary"
-              size="lg"
+              type="button"
+              variant={event.isFinished ? "primary" : "ghost"}
+              size="md"
               full
-              disabled={!name.trim() || isSaving}
+              onClick={handleFinish}
+              icon={
+                event.isFinished ? <Play size={16} /> : <Archive size={16} />
+              }
             >
-              {isSaving ? "Enregistrement…" : "Enregistrer"}
+              {event.isFinished
+                ? "Réouvrir l'événement"
+                : "Clôturer l'événement"}
             </PButton>
           </div>
         </div>
+
+        {/* Zone de danger — Supprimer */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-signal-red block">
+            <span className="inline-flex items-center gap-1.5">
+              <AlertTriangle size={12} />
+              Zone de danger
+            </span>
+          </span>
+          <div className="rounded-card border border-signal-red/30 bg-signal-red/5 p-3 space-y-3">
+            <div>
+              <div className="text-white font-archivo font-semibold text-sm">
+                Supprimer l&apos;événement
+              </div>
+              <div className="text-cool-gray text-xs mt-0.5">
+                Suppression définitive. Tous les matchs, scores et participations
+                seront perdus.
+              </div>
+            </div>
+            <PButton
+              type="button"
+              variant="ghost"
+              size="md"
+              full
+              onClick={handleDelete}
+              icon={<Trash2 size={16} />}
+              data-testid="settings-delete-event"
+            >
+              Supprimer l&apos;événement
+            </PButton>
+          </div>
+        </div>
+
+        {/* Sticky save CTA — visible uniquement si modifications en attente */}
+        {isDirty && (
+          <div
+            className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10"
+            data-testid="settings-save-panel"
+          >
+            <div className="max-w-2xl mx-auto">
+              <PButton
+                type="submit"
+                variant="primary"
+                size="lg"
+                full
+                disabled={!name.trim() || isSaving}
+              >
+                {isSaving ? "Enregistrement…" : "Enregistrer"}
+              </PButton>
+            </div>
+          </div>
+        )}
       </form>
 
       <GhostManagementSheet
