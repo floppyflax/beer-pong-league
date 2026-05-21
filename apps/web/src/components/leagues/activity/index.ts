@@ -5,7 +5,6 @@ export { TimelineView } from "./TimelineView";
 export type { TimelineMatchEntry } from "./TimelineView";
 export { EventGroupCard } from "./EventGroupCard";
 export type { EventGroupCardProps, EventGroupCardVariant } from "./EventGroupCard";
-export { MiniMatchCard } from "./MiniMatchCard";
 export { OrphanMatchesSection } from "./OrphanMatchesSection";
 export { TimelineMatchCard } from "./TimelineMatchCard";
 export { ViewModeSwitcher } from "./ViewModeSwitcher";

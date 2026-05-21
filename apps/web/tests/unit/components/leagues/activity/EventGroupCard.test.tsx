@@ -46,17 +46,18 @@ describe("EventGroupCard", () => {
         onOpen={() => {}}
       />,
     );
-    // Header tappable avec aria-expanded
+    // Le header expanded a aria-expanded=true et contient le nom de l'event.
+    const header = screen.getAllByRole("button", { expanded: true })[0];
+    expect(header).toHaveTextContent("Soirée Toulouse");
+    // L'icône d'ouverture est présente même quand on est déplié
     expect(
-      screen.getByRole("button", { expanded: true, name: /Soirée Toulouse/i }),
-    ).toBeInTheDocument();
-    // CTA d'ouverture présent
-    expect(
-      screen.getByRole("button", { name: /Ouvrir l'événement/i }),
+      screen.getByRole("button", {
+        name: /Ouvrir l'événement Soirée Toulouse/i,
+      }),
     ).toBeInTheDocument();
   });
 
-  it("does not render body when defaultExpanded=false", () => {
+  it("renders the open icon even when collapsed", () => {
     const event = makeEvent({ matches: makeMatches(1) });
     render(
       <EventGroupCard
@@ -69,8 +70,10 @@ describe("EventGroupCard", () => {
       />,
     );
     expect(
-      screen.queryByRole("button", { name: /Ouvrir l'événement/i }),
-    ).toBeNull();
+      screen.getByRole("button", {
+        name: /Ouvrir l'événement Soirée Toulouse/i,
+      }),
+    ).toBeInTheDocument();
   });
 
   it("toggles aria-expanded when the header is clicked", () => {
@@ -85,13 +88,19 @@ describe("EventGroupCard", () => {
         onOpen={() => {}}
       />,
     );
-    const header = screen.getByRole("button", { name: /Soirée Toulouse/i });
+    // Cible le bouton header (celui qui contient le titre, donc le textContent
+    // matche le nom de l'event).
+    const headers = screen
+      .getAllByRole("button")
+      .filter((b) => b.textContent?.includes("Soirée Toulouse"));
+    expect(headers).toHaveLength(1);
+    const header = headers[0];
     expect(header).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(header);
     expect(header).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("invokes onOpen when the CTA is clicked", () => {
+  it("invokes onOpen when the open icon is clicked", () => {
     const onOpen = vi.fn();
     const event = makeEvent({ matches: makeMatches(1) });
     render(
@@ -104,12 +113,15 @@ describe("EventGroupCard", () => {
         onOpen={onOpen}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /Ouvrir l'événement/i }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Ouvrir l'événement Soirée Toulouse/i,
+      }),
+    );
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
-  it("shows '+ N autres matchs' when more than 3 matches and triggers onOpen", () => {
-    const onOpen = vi.fn();
+  it("renders all matches (no truncation) when expanded", () => {
     const event = makeEvent({ matches: makeMatches(5) });
     render(
       <EventGroupCard
@@ -118,12 +130,10 @@ describe("EventGroupCard", () => {
         players={players}
         variant="hero"
         defaultExpanded
-        onOpen={onOpen}
+        onOpen={() => {}}
       />,
     );
-    const more = screen.getByRole("button", { name: /2 autres matchs/ });
-    fireEvent.click(more);
-    expect(onOpen).toHaveBeenCalled();
+    expect(screen.getAllByTestId("match-history-card")).toHaveLength(5);
   });
 
   it("shows an in_progress empty state when no matches", () => {
