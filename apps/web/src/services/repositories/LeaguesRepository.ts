@@ -100,6 +100,32 @@ class LeaguesRepository extends BaseRepository {
         playerToMembershipByLeague.set(m.league_id, ptm);
       });
 
+      // Mig 025 — rehydrate per-player ELO deltas from `elo_history` so the
+      // league match list shows ELO on past matches, not just the freshly
+      // recorded one (mirrors EventsRepository).
+      const matchIds = ((allMatches ?? []) as MatchRow[]).map((m) => m.id);
+      const eloByMatch = new Map<string, Record<string, number>>();
+      if (matchIds.length > 0) {
+        const { data: eloRows } = await sb!
+          .from('elo_history')
+          .select('match_id, player_id, elo_change, league_id')
+          .in('match_id', matchIds)
+          .not('league_id', 'is', null);
+        ((eloRows ?? []) as Array<{
+          match_id: string;
+          player_id: string | null;
+          elo_change: number;
+          league_id: string | null;
+        }>).forEach((r) => {
+          if (!r.player_id || r.league_id == null) return;
+          const ptm = playerToMembershipByLeague.get(r.league_id);
+          const membershipId = ptm?.get(r.player_id) ?? r.player_id;
+          const map = eloByMatch.get(r.match_id) ?? {};
+          map[membershipId] = r.elo_change;
+          eloByMatch.set(r.match_id, map);
+        });
+      }
+
       const matchesByLeague = new Map<string, Match[]>();
       ((allMatches ?? []) as MatchRow[]).forEach((m) => {
         if (!m.league_id) return;
@@ -122,6 +148,7 @@ class LeaguesRepository extends BaseRepository {
           confirmed_at: m.confirmed_at,
           cups_remaining: m.cups_remaining ?? undefined,
           photo_url: m.photo_url ?? undefined,
+          eloChanges: eloByMatch.get(m.id),
         });
         matchesByLeague.set(m.league_id, list);
       });

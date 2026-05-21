@@ -21,6 +21,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Sheet } from "@/components/design-system/Sheet";
 import { PButton } from "@/components/ponglo/PButton";
 import { SearchBar, ScreenLayout, StickyCTA } from "@/components/design-system";
+import { PhotoFinishWizard } from "@/components/match/PhotoFinishWizard";
 import { X, UserPlus, Check, ChevronDown, ChevronLeft, Trophy, Calendar, Minus, Plus, Lock } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Player } from "@/types";
@@ -599,6 +600,10 @@ export const RecordMatch = () => {
   const [winnerTeam, setWinnerTeam] = useState<Team | null>(null);
   const [winnerDroppedCups, setWinnerDroppedCups] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Photo Finish — populated after a successful match creation so the wizard
+  // can attach the collage to the right match row. Editing an existing match
+  // doesn't trigger the wizard (we only run it in the post-recording flow).
+  const [photoFinishMatchId, setPhotoFinishMatchId] = useState<string | null>(null);
 
   /* Context resolution */
   const event =
@@ -955,8 +960,13 @@ export const RecordMatch = () => {
           toast.success("Match modifié");
         }
         await reloadData();
-      } else if (contextType === "event" && event) {
-        const eloChanges = await recordEventMatch(
+        navigate(backPath);
+        return;
+      }
+
+      let createdMatchId: string | null = null;
+      if (contextType === "event" && event) {
+        const result = await recordEventMatch(
           id,
           teamAIds,
           teamBIds,
@@ -964,18 +974,23 @@ export const RecordMatch = () => {
           { scoreA, scoreB },
           participants,
         );
-        if (eloChanges) {
-          sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(eloChanges));
+        if (result) {
+          sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(result.eloChanges));
+          createdMatchId = result.matchId;
         }
-        toast.success("Match enregistré !");
       } else if (contextType === "league") {
-        const eloChanges = await recordMatch(id, teamAIds, teamBIds, winner);
-        if (eloChanges) {
-          sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(eloChanges));
+        const result = await recordMatch(id, teamAIds, teamBIds, winner);
+        if (result) {
+          sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(result.eloChanges));
+          createdMatchId = result.matchId;
         }
-        toast.success("Match enregistré !");
       }
-      navigate(backPath);
+
+      if (createdMatchId) {
+        setPhotoFinishMatchId(createdMatchId);
+      } else {
+        navigate(backPath);
+      }
     } catch (error) {
       console.error("Error recording match:", error);
       toast.error(
@@ -986,6 +1001,11 @@ export const RecordMatch = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePhotoFinishClose = () => {
+    setPhotoFinishMatchId(null);
+    navigate(backPath);
   };
 
   /* Loading */
@@ -1218,6 +1238,34 @@ export const RecordMatch = () => {
         currentId={contextId}
         onPick={handlePickContext}
       />
+
+      {photoFinishMatchId && winnerTeam && (
+        <PhotoFinishWizard
+          isOpen
+          matchId={photoFinishMatchId}
+          winnerTeam={{
+            label: winnerTeam === "A" ? "Équipe A" : "Équipe B",
+            players: (winnerTeam === "A" ? teamAPlayers : teamBPlayers).map((p) => ({
+              name: p.name,
+              avatarUrl: p.avatarUrl ?? null,
+            })),
+          }}
+          loserTeam={{
+            label: winnerTeam === "A" ? "Équipe B" : "Équipe A",
+            players: (winnerTeam === "A" ? teamBPlayers : teamAPlayers).map((p) => ({
+              name: p.name,
+              avatarUrl: p.avatarUrl ?? null,
+            })),
+          }}
+          score={{
+            winner: TOTAL_CUPS,
+            loser: TOTAL_CUPS - winnerCupsRemaining,
+          }}
+          cupsRemaining={winnerCupsRemaining}
+          contextLabel={event?.name ?? league?.name}
+          onClose={handlePhotoFinishClose}
+        />
+      )}
     </ScreenLayout>
   );
 };
