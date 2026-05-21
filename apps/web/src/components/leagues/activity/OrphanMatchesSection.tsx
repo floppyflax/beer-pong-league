@@ -2,22 +2,20 @@
  * OrphanMatchesSection — section "Matchs hors événement" du mode "Par event".
  * Affiche les matchs de la ligue qui ne sont rattachés à aucun event.
  *
- * Le rendu match est repris à l'identique de l'ancien tab Matchs du
- * LeagueDashboard pour ne pas régresser sur l'affichage photo + cups badge.
+ * Le rendu reprend le pattern adopté par main (#31 / #32) :
+ * `MatchTeamsRow` pour le bloc équipes + ELO, footer timestamp +
+ * photo/cups via `MatchEnrichedDisplay`.
  */
 
 import type { Match, Player } from "@/types";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
+import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
+import { formatRelativeTime } from "@/utils/dateUtils";
 
 export interface OrphanMatchesSectionProps {
   matches: Match[];
   players: Player[];
-}
-
-function resolveNames(ids: string[], players: Player[]): string {
-  const map = new Map(players.map((p) => [p.id, p.name]));
-  return ids.map((id) => map.get(id) ?? "?").join(", ");
 }
 
 export const OrphanMatchesSection = ({
@@ -38,8 +36,8 @@ export const OrphanMatchesSection = ({
       </div>
 
       {sorted.map((match) => {
-        const teamAName = resolveNames(match.teamA, players);
-        const teamBName = resolveNames(match.teamB, players);
+        const teamAPlayers = players.filter((p) => match.teamA.includes(p.id));
+        const teamBPlayers = players.filter((p) => match.teamB.includes(p.id));
         const winnerA = match.scoreA > match.scoreB;
 
         return (
@@ -52,29 +50,21 @@ export const OrphanMatchesSection = ({
               isLive={Boolean(match.is_live)}
               className="mb-2"
             />
-            <div className="flex justify-between items-center text-sm">
-              <div
-                className={`flex-1 text-right ${
-                  winnerA ? "text-white font-bold" : "text-cool-gray"
-                }`}
-              >
-                {winnerA && "🏆 "}
-                {teamAName}
-              </div>
-              <div className="px-4 font-bold text-cool-gray text-xs">VS</div>
-              <div
-                className={`flex-1 text-left ${
-                  !winnerA ? "text-white font-bold" : "text-cool-gray"
-                }`}
-              >
-                {!winnerA && "🏆 "}
-                {teamBName}
-              </div>
-            </div>
-            <MatchEnrichedDisplay
-              photoUrl={match.photo_url}
-              cupsRemaining={match.cups_remaining}
+            <MatchTeamsRow
+              teamAPlayers={teamAPlayers}
+              teamBPlayers={teamBPlayers}
+              winner={winnerA ? "A" : "B"}
+              eloChanges={match.eloChanges}
             />
+            <div className="flex items-center justify-between gap-3 mt-3">
+              <div className="text-xs text-cool-gray">
+                {formatRelativeTime(match.date)}
+              </div>
+              <MatchEnrichedDisplay
+                photoUrl={match.photo_url}
+                cupsRemaining={match.cups_remaining}
+              />
+            </div>
           </div>
         );
       })}

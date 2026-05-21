@@ -51,16 +51,25 @@ const SHORT_MONTHS = [
 ];
 
 function dateKey(iso: string): string {
-  return iso.slice(0, 10);
+  // Clé locale (fuseau utilisateur) au format "YYYY-MM-DD" — utiliser l'ISO
+  // UTC briserait le regroupement quand la date locale et UTC diffèrent
+  // (ex. minuit en Europe ↔ veille en UTC).
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function dateHeaderLabel(isoDay: string): string {
-  const date = new Date(`${isoDay}T00:00:00`);
+  const [y, m, d] = isoDay.split("-").map(Number);
+  if (!y || !m || !d) return "—";
+  const date = new Date(y, m - 1, d);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.round(
-    (today.getTime() - target.getTime()) / (24 * 60 * 60 * 1000),
+    (today.getTime() - date.getTime()) / (24 * 60 * 60 * 1000),
   );
 
   if (diffDays === 0) return "Aujourd'hui";
