@@ -56,6 +56,13 @@ export interface League {
   endedAt?: string | null;             // ISO timestamp — admin "Clôturer la league"
   currentSeasonNumber?: number;        // 1-indexed, bumped via startNewSeason()
   currentSeasonStartedAt?: string;     // ISO timestamp — début saison courante
+  // Mig 029 — config à la création
+  plannedStartAt?: string | null;      // ISO datetime — gate `not_started` si futur
+  plannedEndAt?: string | null;        // ISO datetime — rappel admin si dépassé
+  seasonDurationDays?: number | null;  // durée prévue d'une saison (type=season only)
+  maxPlayers?: number | null;          // limite de membres (NULL = pas de limite)
+  isPrivate?: boolean;                 // visibilité publique (défaut true)
+  defaultFormat?: '1v1' | '2v2' | '3v3' | 'libre' | null; // format pré-rempli RecordMatch
 }
 
 /** League season archive (mig 028 — league_season_archives row). */

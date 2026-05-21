@@ -69,7 +69,11 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
             ? "Terminée"
             : lifecycle === "paused"
               ? "En pause"
-              : `Saison ${league.currentSeasonNumber}`,
+              : lifecycle === "not_started"
+                ? league.plannedStartAt
+                  ? `Démarre le ${new Date(league.plannedStartAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" })}`
+                  : "Non démarrée"
+                : `Saison ${league.currentSeasonNumber}`,
         tone: lifecycle === "active" ? "live" : "muted",
       }}
       ownerLabel={isOwner ? "Propriétaire" : undefined}

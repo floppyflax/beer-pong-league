@@ -34,8 +34,25 @@ import { getDeviceFingerprint } from "../utils/deviceFingerprint";
 import { generateEventCode } from "../utils/eventCode";
 
 /**
+ * Mig 029 — payload de création d'une league.
+ * Tous les champs hors `name` et `type` sont optionnels et `null` = "non
+ * configuré" (la league reste active dès création, sans limite, etc.).
+ */
+export interface CreateLeagueInput {
+  name: string;
+  type: 'one-shot' | 'season';
+  plannedStartAt: string | null;
+  plannedEndAt: string | null;
+  seasonDurationDays: number | null;
+  maxPlayers: number | null;
+  isPrivate: boolean;
+  antiCheatEnabled: boolean;
+  defaultFormat: '1v1' | '2v2' | '3v3' | 'libre' | null;
+}
+
+/**
  * Global context interface for managing leagues, events, players, and matches.
- * 
+ *
  * Note: Despite being called "LeagueContext", this manages both leagues AND events.
  */
 interface LeagueContextType {
@@ -47,7 +64,7 @@ interface LeagueContextType {
   /** Error message when initial data load fails (e.g. network). Null when load succeeded. */
   loadError: string | null;
   reloadData: () => Promise<void>;
-  createLeague: (name: string, type: "one-shot" | "season") => Promise<string>;
+  createLeague: (input: CreateLeagueInput) => Promise<string>;
   createEvent: (
     name: string,
     date: string,
@@ -318,7 +335,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   const currentEvent =
     events.find((t) => t.id === currentEventId) || null;
 
-  const createLeague = async (name: string, type: "one-shot" | "season") => {
+  const createLeague = async (input: CreateLeagueInput) => {
+    const { name, type } = input;
     // Migration 016 — generate a 6-char join_code with collision retry
     // (mirrors CreateEvent.generateUniqueCode logic).
     let joinCode: string | undefined;
@@ -338,11 +356,17 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       console.warn('Failed to generate league join_code:', error);
     }
 
+    // Mig 029 — la saison courante démarre au planned_start_at si fourni,
+    // sinon maintenant. Permet à une league "future" d'avoir une borne ELO
+    // cohérente même avant son activation.
+    const nowIso = new Date().toISOString();
+    const seasonStartIso = input.plannedStartAt ?? nowIso;
+
     const newLeague: League = {
       id: crypto.randomUUID(),
       name,
       type,
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso,
       players: [],
       matches: [],
       events: [],
@@ -350,6 +374,17 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       // Associate creator based on auth state
       creator_user_id: isAuthenticated && user ? user.id : null,
       creator_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
+      anti_cheat_enabled: input.antiCheatEnabled,
+      // Mig 028 — saison initiale
+      currentSeasonNumber: 1,
+      currentSeasonStartedAt: seasonStartIso,
+      // Mig 029 — config à la création
+      plannedStartAt: input.plannedStartAt,
+      plannedEndAt: input.plannedEndAt,
+      seasonDurationDays: input.seasonDurationDays,
+      maxPlayers: input.maxPlayers,
+      isPrivate: input.isPrivate,
+      defaultFormat: input.defaultFormat,
     };
     setLeagues((prev) => [...prev, newLeague]);
     setCurrentLeagueId(newLeague.id);

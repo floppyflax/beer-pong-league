@@ -47,6 +47,15 @@ class PlayersRepository extends BaseRepository {
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
       const league = leagues.find((l) => l.id === leagueId);
       if (league) {
+        // Mig 029 — garde max_players côté localStorage fallback.
+        if (
+          league.maxPlayers != null &&
+          league.players.length >= league.maxPlayers
+        ) {
+          throw new Error(
+            `Cette league a atteint sa limite de ${league.maxPlayers} joueurs.`,
+          );
+        }
         league.players.push(player);
         leaguesRepository.saveLeagueToLocalStorage(league);
       }
@@ -54,6 +63,29 @@ class PlayersRepository extends BaseRepository {
     }
 
     try {
+      // Mig 029 — garde max_players côté Supabase : on lit la limite + le
+      // nombre de memberships actifs avant l'insert.
+      const { data: leagueRow } = await sb!
+        .from('leagues')
+        .select('max_players')
+        .eq('id', leagueId)
+        .maybeSingle();
+      const maxPlayers = (leagueRow as { max_players: number | null } | null)
+        ?.max_players;
+      if (maxPlayers != null) {
+        const { data: members } = await sb!
+          .from('league_memberships')
+          .select('id')
+          .eq('league_id', leagueId)
+          .is('archived_at', null);
+        const memberCount = members?.length ?? 0;
+        if (memberCount >= maxPlayers) {
+          throw new Error(
+            `Cette league a atteint sa limite de ${maxPlayers} joueurs.`,
+          );
+        }
+      }
+
       // 1. Resolve or create the players row
       let playerId = player.id;
       if (userId) {

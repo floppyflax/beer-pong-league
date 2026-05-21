@@ -44,4 +44,19 @@ describe('LifecycleStrip', () => {
     );
     expect(screen.getByTestId('strip-test')).toHaveTextContent('Ligue terminée');
   });
+
+  it('supports the reminder tone (mig 029) with a slightly more saturated background', () => {
+    render(
+      <LifecycleStrip
+        tone="reminder"
+        title="Saison 1 échue"
+        description="Démarre la Saison 2."
+        testId="strip-test"
+      />,
+    );
+    const strip = screen.getByTestId('strip-test');
+    expect(strip).toHaveTextContent('Saison 1 échue');
+    // Reminder utilise un bg légèrement plus saturé pour se différencier
+    expect(strip.className).toContain('bg-ping-yellow/15');
+  });
 });
