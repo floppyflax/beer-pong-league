@@ -56,6 +56,10 @@ import {
 } from "@/utils/playerStats";
 
 // Task 4 - Utility function for relative timestamps (AC4)
+// Format français lisible : « Il y a 4 jours à 17:12 » (vs. l'ancien
+// « 4j à 17:12 » qui se confondait avec un score). Pour les matches
+// dans la même semaine on conserve l'heure pour différencier deux
+// matches du même jour ; au-delà on bascule sur la date courte.
 function getRelativeTimestamp(date: string): string {
   const now = new Date();
   const matchDate = new Date(date);
@@ -63,14 +67,18 @@ function getRelativeTimestamp(date: string): string {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
+  const time = matchDate.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (diffMins < 1) return "À l'instant";
   if (diffMins < 60) return `Il y a ${diffMins} min`;
-  if (diffHours < 24) return `Il y a ${diffHours}h`;
-  if (diffDays === 1)
-    return `Hier à ${matchDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
-  if (diffDays < 7)
-    return `${diffDays}j à ${matchDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+  if (diffHours < 24) {
+    return diffHours === 1 ? "Il y a 1 heure" : `Il y a ${diffHours} heures`;
+  }
+  if (diffDays === 1) return `Hier à ${time}`;
+  if (diffDays < 7) return `Il y a ${diffDays} jours à ${time}`;
   return matchDate.toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "short",
@@ -817,12 +825,16 @@ export const EventDashboard = () => {
                     )}
                     {/* Phase D.4: Live badge */}
                     <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
-                    {/* Teams + ELO inline (1 valeur par équipe) */}
+                    {/* Teams + ELO inline (1 valeur par équipe).
+                        `pr-10` quand admin pour réserver la place du bouton
+                        menu absolute top-right (≈ 40 px), sinon le `-X` ELO
+                        de la team B chevauche le ⋮. */}
                     <MatchTeamsRow
                       teamAPlayers={teamAPlayers}
                       teamBPlayers={teamBPlayers}
                       winner={winnerA ? "A" : "B"}
                       eloChanges={match.eloChanges}
+                      className={isAdmin ? "pr-10" : undefined}
                     />
                     {/* Timestamp */}
                     <div className="text-xs text-cool-gray mt-2">

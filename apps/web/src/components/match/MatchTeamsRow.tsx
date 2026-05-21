@@ -1,19 +1,22 @@
 /**
  * MatchTeamsRow — bloc équipes + ELO d'une card de match.
  *
- * Layout 2 colonnes côte à côte (gauche = gagnant, droite = perdant) :
+ * Layout 2 colonnes + séparateur VS au centre :
  *
- *   🏆 +17                |   −17
- *   Niko                  |   Amar
- *   Dudu                  |   WINNIE
+ *   🏆 +16     |  VS  |       −16
+ *   flo2SA     |      |       Amar
+ *   WINNIE     |      |       Dudu
  *
  * Décisions :
- * - Pas de labels textuels « ÉQUIPE GAGNANTE » / « ADVERSAIRES » — le
- *   trophée 🏆 + couleur ELO suffisent à identifier le camp.
- * - 1 valeur ELO par équipe sur la ligne du haut → scan rapide
- *   « qui a pris combien » en priorité.
- * - 1 joueur = 1 ligne, alignement haut (asymétrie 1v3 tolérée sans
- *   désaligner les ELO entre colonnes).
+ * - L'ordre des équipes est *préservé* : team A toujours à gauche,
+ *   team B toujours à droite, indépendamment du gagnant. Le trophée 🏆
+ *   et la couleur ELO (lime / signal-red) identifient qui a gagné.
+ * - 1 valeur ELO par équipe (les joueurs d'une même équipe partagent
+ *   l'expected score, donc le delta est identique sauf K-factor d'écart).
+ * - 1 joueur = 1 ligne (font-semibold blanc pour le gagnant, cool-gray
+ *   pour le perdant).
+ * - VS au centre : `font-mono uppercase tracking-widest text-cool-gray`,
+ *   self-center vertical par rapport à la grid.
  * - Si `eloChanges` absent (match live), seuls les noms sont affichés.
  */
 
@@ -55,15 +58,11 @@ function TeamColumn({
   const eloSign = delta == null ? "" : delta > 0 ? "+" : delta < 0 ? "−" : "";
   const nameColor = isWinner ? "text-white" : "text-cool-gray";
   const alignClass = align === "right" ? "text-right" : "text-left";
+  const headerJustify = align === "right" ? "justify-end" : "justify-start";
 
   return (
     <div className={`min-w-0 space-y-1 ${alignClass}`}>
-      {/* Header : trophée (winner only) + ELO */}
-      <div
-        className={`flex items-baseline gap-1.5 ${
-          align === "right" ? "justify-end" : "justify-start"
-        }`}
-      >
+      <div className={`flex items-baseline gap-1.5 ${headerJustify}`}>
         {isWinner && (
           <span aria-hidden className="text-base leading-none">
             🏆
@@ -80,7 +79,6 @@ function TeamColumn({
         )}
       </div>
 
-      {/* Liste des joueurs, 1 par ligne */}
       <ul className="space-y-0.5">
         {players.map((p) => (
           <li
@@ -102,21 +100,26 @@ export function MatchTeamsRow({
   eloChanges,
   className,
 }: MatchTeamsRowProps) {
-  const winnerPlayers = winner === "A" ? teamAPlayers : teamBPlayers;
-  const loserPlayers = winner === "A" ? teamBPlayers : teamAPlayers;
-
   return (
-    <div className={`grid grid-cols-2 gap-x-4 ${className ?? ""}`}>
+    <div
+      className={`grid grid-cols-[1fr_auto_1fr] gap-x-3 items-start ${className ?? ""}`}
+    >
       <TeamColumn
-        players={winnerPlayers}
-        isWinner
-        delta={pickTeamDelta(winnerPlayers, eloChanges)}
+        players={teamAPlayers}
+        isWinner={winner === "A"}
+        delta={pickTeamDelta(teamAPlayers, eloChanges)}
         align="left"
       />
+      <div
+        className="self-center font-mono text-[10px] font-bold uppercase tracking-widest text-cool-gray"
+        aria-hidden
+      >
+        VS
+      </div>
       <TeamColumn
-        players={loserPlayers}
-        isWinner={false}
-        delta={pickTeamDelta(loserPlayers, eloChanges)}
+        players={teamBPlayers}
+        isWinner={winner === "B"}
+        delta={pickTeamDelta(teamBPlayers, eloChanges)}
         align="right"
       />
     </div>

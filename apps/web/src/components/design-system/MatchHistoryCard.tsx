@@ -30,14 +30,18 @@ function getRelativeTimestamp(date: string): string {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
+  const time = matchDate.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (diffMins < 1) return "À l'instant";
   if (diffMins < 60) return `Il y a ${diffMins} min`;
-  if (diffHours < 24) return `Il y a ${diffHours}h`;
-  if (diffDays === 1)
-    return `Hier à ${matchDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
-  if (diffDays < 7)
-    return `${diffDays}j à ${matchDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+  if (diffHours < 24) {
+    return diffHours === 1 ? "Il y a 1 heure" : `Il y a ${diffHours} heures`;
+  }
+  if (diffDays === 1) return `Hier à ${time}`;
+  if (diffDays < 7) return `Il y a ${diffDays} jours à ${time}`;
   return matchDate.toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "short",
