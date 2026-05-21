@@ -1,5 +1,5 @@
 /**
- * DetailHero — Everything ELO, bloc hero bleu pour les pages détail
+ * DetailHero — Everything ELO, bloc hero pour les pages détail
  *
  * Utilisé sur `LeagueDashboard` et `EventDashboard` : regroupe en un seul
  * bloc l'identité de la page (back + titre + admin), les infos clés (statut
@@ -11,9 +11,12 @@
  * Le titre tient dans la ligne du back button (archivo extrabold 17px uppercase,
  * comme un eyebrow `Mes événements`). Pas de titre display géant.
  *
- * Palette : fond `bg-electric-blue` plein écran (pas de `rounded`), chips
- * intérieurs `bg-navy/25`, bouton secondaire outline blanc. Voir spec UI mockup
- * "07 — Détail événement".
+ * Palette : fond plein écran (pas de `rounded`), chips intérieurs `bg-navy/25`,
+ * bouton secondaire outline blanc. Deux tons disponibles via la prop `tone` :
+ *   • `electric` (default) — `bg-electric-blue` + `shadow-glow-electric` pour les events.
+ *   • `red` — `bg-signal-red` + `shadow-glow-red` pour les ligues, qui se
+ *     distinguent ainsi visuellement d'un event lors de la navigation.
+ * Voir spec UI mockup "07 — Détail événement".
  */
 
 import { ChevronLeft, MoreVertical } from "lucide-react";
@@ -95,6 +98,11 @@ export interface DetailHeroProps {
   actions?: DetailHeroAction[];
   /** Overflow menu (3-dots). Affiché à droite des actions. */
   menuItems?: DetailHeroMenuItem[];
+  /**
+   * Ton du hero. `electric` (default) pour events, `red` pour ligues — permet
+   * de distinguer visuellement les deux contextes lors de la navigation.
+   */
+  tone?: "electric" | "red";
   /** Classe additionnelle sur le wrapper. */
   className?: string;
 }
@@ -216,8 +224,12 @@ export const DetailHero = ({
   stats = [],
   actions = [],
   menuItems = [],
+  tone = "electric",
   className = "",
 }: DetailHeroProps) => {
+  const toneBg = tone === "red" ? "bg-signal-red" : "bg-electric-blue";
+  const toneGlow =
+    tone === "red" ? "shadow-glow-red" : "shadow-glow-electric";
   const statColsClass =
     stats.length === 1
       ? "grid-cols-1"
@@ -235,8 +247,8 @@ export const DetailHero = ({
 
   return (
     <section
-      className={`sticky top-0 z-20 bg-electric-blue px-5 ${
-        collapsed ? "pt-3 pb-3 shadow-modal" : "pt-12 pb-5 shadow-glow-electric"
+      className={`sticky top-0 z-20 ${toneBg} px-5 ${
+        collapsed ? "pt-3 pb-3 shadow-modal" : `pt-12 pb-5 ${toneGlow}`
       } text-white transition-[padding,box-shadow] duration-200 ${className}`}
     >
       {/* Top row: back + title + admin badge */}

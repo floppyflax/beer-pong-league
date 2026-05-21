@@ -252,8 +252,10 @@ export const LeagueDashboard = () => {
 
   return (
     <div className="min-h-screen bg-navy text-white flex flex-col relative">
-      {/* DetailHero — bloc bleu pleine largeur (bleed sous padding ResponsiveLayout + App). */}
+      {/* DetailHero — bloc rouge pleine largeur (bleed sous padding ResponsiveLayout + App).
+          Ton `red` pour distinguer visuellement les ligues des events (`electric`). */}
       <DetailHero
+        tone="red"
         className="-mx-4 -mt-4 md:mx-0 md:mt-0"
         onBack={() => navigate("/competitions")}
         adminBadge={isAdmin}
