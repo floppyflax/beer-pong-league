@@ -13,9 +13,10 @@
  *
  * Palette : fond plein écran (pas de `rounded`), chips intérieurs `bg-navy/25`,
  * bouton secondaire outline blanc. Deux tons disponibles via la prop `tone` :
- *   • `electric` (default) — `bg-electric-blue` + `shadow-glow-electric` pour les events.
- *   • `red` — `bg-signal-red` + `shadow-glow-red` pour les ligues, qui se
- *     distinguent ainsi visuellement d'un event lors de la navigation.
+ *   • `electric` (default) — `bg-electric-blue` pour les events (énergie, ponctuel).
+ *   • `deep` — `bg-electric-blue-deep` pour les ligues (plus sobre, institutionnel) ;
+ *     se distingue ainsi visuellement d'un event lors de la navigation.
+ * Le glow `shadow-glow-electric` reste partagé (même famille bleue).
  * Voir spec UI mockup "07 — Détail événement".
  */
 
@@ -99,10 +100,10 @@ export interface DetailHeroProps {
   /** Overflow menu (3-dots). Affiché à droite des actions. */
   menuItems?: DetailHeroMenuItem[];
   /**
-   * Ton du hero. `electric` (default) pour events, `red` pour ligues — permet
+   * Ton du hero. `electric` (default) pour events, `deep` pour ligues — permet
    * de distinguer visuellement les deux contextes lors de la navigation.
    */
-  tone?: "electric" | "red";
+  tone?: "electric" | "deep";
   /** Classe additionnelle sur le wrapper. */
   className?: string;
 }
@@ -227,9 +228,8 @@ export const DetailHero = ({
   tone = "electric",
   className = "",
 }: DetailHeroProps) => {
-  const toneBg = tone === "red" ? "bg-signal-red" : "bg-electric-blue";
-  const toneGlow =
-    tone === "red" ? "shadow-glow-red" : "shadow-glow-electric";
+  const toneBg =
+    tone === "deep" ? "bg-electric-blue-deep" : "bg-electric-blue";
   const statColsClass =
     stats.length === 1
       ? "grid-cols-1"
@@ -248,7 +248,7 @@ export const DetailHero = ({
   return (
     <section
       className={`sticky top-0 z-20 ${toneBg} px-5 ${
-        collapsed ? "pt-3 pb-3 shadow-modal" : `pt-12 pb-5 ${toneGlow}`
+        collapsed ? "pt-3 pb-3 shadow-modal" : "pt-12 pb-5 shadow-glow-electric"
       } text-white transition-[padding,box-shadow] duration-200 ${className}`}
     >
       {/* Top row: back + title + admin badge */}
