@@ -87,7 +87,7 @@ interface LeagueContextType {
     teamBIds: string[],
     winner: "A" | "B",
     enrichment?: { cupsRemaining?: number }
-  ) => Promise<Record<string, number> | null>;
+  ) => Promise<{ matchId: string; eloChanges: Record<string, number> } | null>;
   recordEventMatch: (
     eventId: string,
     teamAIds: string[],
@@ -95,7 +95,7 @@ interface LeagueContextType {
     winner: "A" | "B",
     scores?: { scoreA: number; scoreB: number; cupsRemaining?: number },
     participantsOverride?: Player[]
-  ) => Promise<Record<string, number> | null>;
+  ) => Promise<{ matchId: string; eloChanges: Record<string, number> } | null>;
   deleteLeague: (id: string) => Promise<void>;
   // Lifecycle league (mig 028)
   pauseLeague: (leagueId: string) => Promise<void>;
@@ -916,7 +916,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     teamBIds: string[],
     winner: "A" | "B",
     enrichment?: { cupsRemaining?: number }
-  ): Promise<Record<string, number> | null> => {
+  ): Promise<{ matchId: string; eloChanges: Record<string, number> } | null> => {
     const league = leagues.find((l) => l.id === leagueId);
     if (!league) return null;
 
@@ -1014,7 +1014,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       toast.error('Erreur lors de l\'enregistrement du match');
     }
 
-    return eloChanges;
+    return { matchId: newMatch.id, eloChanges };
   };
 
   const recordEventMatch = async (
@@ -1024,7 +1024,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     winner: "A" | "B",
     scores?: { scoreA: number; scoreB: number; cupsRemaining?: number },
     participantsOverride?: Player[]
-  ): Promise<Record<string, number> | null> => {
+  ): Promise<{ matchId: string; eloChanges: Record<string, number> } | null> => {
     const event = events.find((t) => t.id === eventId);
     if (!event) return null;
 
@@ -1188,7 +1188,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       toast.error('Erreur lors de l\'enregistrement du match');
     }
 
-    return eloChanges;
+    return { matchId: newMatch.id, eloChanges };
   };
 
   // Calculate local ranking for a Event (based only on Event matches, starting from base ELO)

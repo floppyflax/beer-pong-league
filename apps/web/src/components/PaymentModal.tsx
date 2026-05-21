@@ -46,7 +46,7 @@ export const PaymentModal = ({
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {

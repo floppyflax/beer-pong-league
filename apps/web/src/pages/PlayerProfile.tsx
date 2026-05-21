@@ -24,6 +24,7 @@ import {
 import { useState, useMemo, useEffect } from "react";
 import { formatRelativeTime, formatJoinedSince } from "@/utils/dateUtils";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
+import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
 import { EloChart } from "@/components/ponglo/EloChart";
 import { PAvatar } from "@/components/ponglo/PAvatar";
 import { AchievementCard } from "@/components/achievements/AchievementCard";
@@ -731,17 +732,19 @@ export const PlayerProfile = () => {
               const isWinner =
                 (isTeamA && match.scoreA > match.scoreB) ||
                 (!isTeamA && match.scoreB > match.scoreA);
-              const deltaElo =
-                match.eloChanges?.[currentPlayerId] ?? undefined;
               const contextName =
                 eventName ?? leagueName ?? null;
 
-              const teamA = match.teamA
-                .map((id) => playersMap[id] || `Joueur ${id.slice(0, 8)}`)
-                .join(", ");
-              const teamB = match.teamB
-                .map((id) => playersMap[id] || `Joueur ${id.slice(0, 8)}`)
-                .join(", ");
+              const teamAPlayers = match.teamA.map((id) => ({
+                id,
+                name: playersMap[id] || `Joueur ${id.slice(0, 8)}`,
+              }));
+              const teamBPlayers = match.teamB.map((id) => ({
+                id,
+                name: playersMap[id] || `Joueur ${id.slice(0, 8)}`,
+              }));
+              const winnerSide: "A" | "B" =
+                match.scoreA > match.scoreB ? "A" : "B";
 
               return (
                 <div
@@ -769,37 +772,20 @@ export const PlayerProfile = () => {
                       {isWinner ? "Victoire" : "Défaite"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <div
-                      className={`flex-1 truncate ${
-                        isTeamA && isWinner ? "text-white font-bold" : "text-cool-gray"
-                      }`}
-                    >
-                      {teamA}
-                    </div>
-                    <div className="px-3 text-cool-gray flex-shrink-0">VS</div>
-                    <div
-                      className={`flex-1 text-right truncate ${
-                        !isTeamA && isWinner ? "text-white font-bold" : "text-cool-gray"
-                      }`}
-                    >
-                      {teamB}
-                    </div>
-                  </div>
-                  {deltaElo !== undefined && (
-                    <div
-                      className={`text-xs mt-1 text-center font-medium ${
-                        deltaElo > 0 ? "text-lime" : "text-signal-red"
-                      }`}
-                    >
-                      {deltaElo > 0 ? "+" : ""}
-                      {deltaElo} ELO
-                    </div>
-                  )}
-                  <MatchEnrichedDisplay
-                    photoUrl={match.photo_url}
-                    cupsRemaining={match.cups_remaining}
+                  <MatchTeamsRow
+                    teamAPlayers={teamAPlayers}
+                    teamBPlayers={teamBPlayers}
+                    winner={winnerSide}
+                    eloChanges={match.eloChanges}
                   />
+                  {/* Footer aligné à droite (le timestamp est dans le
+                      header de la card pour PlayerProfile) */}
+                  <div className="flex justify-end mt-3">
+                    <MatchEnrichedDisplay
+                      photoUrl={match.photo_url}
+                      cupsRemaining={match.cups_remaining}
+                    />
+                  </div>
                 </div>
               );
             })}
