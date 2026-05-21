@@ -74,7 +74,7 @@ export function Podium({
               className="flex flex-col items-center gap-1"
               data-testid={`podium-rank-${rank}`}
             >
-              {/* Avatar (couronne sur le 1er) */}
+              {/* Avatar (couronne sur le 1er, rank-delta en haut à gauche) */}
               <div className="relative">
                 <PAvatar
                   name={player.name}
@@ -84,12 +84,34 @@ export function Podium({
                 />
                 {rank === 1 && (
                   <span
-                    className="absolute -top-3 -left-2 text-[20px] leading-none select-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)]"
+                    className="absolute -top-3 -left-2 text-[20px] leading-none select-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)] z-10"
                     style={{ transform: "rotate(-45deg)" }}
                     aria-hidden
                   >
                     👑
                   </span>
+                )}
+                {typeof player.rankDelta === "number" && player.rankDelta !== 0 && (
+                  <div
+                    className={`absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full flex items-center gap-0.5 justify-center text-[10px] font-mono font-extrabold tabular-nums ring-2 ring-electric-blue z-10 ${
+                      player.rankDelta > 0
+                        ? "bg-lime text-navy"
+                        : "bg-signal-red text-white"
+                    }`}
+                    data-testid={`podium-rank-delta-${rank}`}
+                    aria-label={`${
+                      player.rankDelta > 0 ? "Monté de" : "Descendu de"
+                    } ${Math.abs(player.rankDelta)} ${
+                      Math.abs(player.rankDelta) > 1 ? "places" : "place"
+                    }`}
+                  >
+                    {player.rankDelta > 0 ? (
+                      <TrendingUp size={10} aria-hidden />
+                    ) : (
+                      <TrendingDown size={10} aria-hidden />
+                    )}
+                    {Math.abs(player.rankDelta)}
+                  </div>
                 )}
               </div>
 
@@ -101,11 +123,8 @@ export function Podium({
                 {player.name}
               </span>
 
-              {/* ELO + delta */}
+              {/* ELO + delta (delta à gauche pour aligner l'ELO à droite) */}
               <div className="flex items-baseline gap-1">
-                <span className="text-[11px] font-mono font-bold text-lime tabular-nums">
-                  {player.elo}
-                </span>
                 {typeof player.delta === "number" && player.delta !== 0 && (
                   <span
                     className={`text-[9px] font-mono font-bold tabular-nums ${
@@ -116,29 +135,10 @@ export function Podium({
                     {player.delta}
                   </span>
                 )}
-              </div>
-
-              {/* Rank delta (▲/▼ + places) */}
-              {typeof player.rankDelta === "number" && player.rankDelta !== 0 && (
-                <span
-                  className={`flex items-center gap-0.5 text-[9px] font-mono font-bold tabular-nums ${
-                    player.rankDelta > 0 ? "text-lime" : "text-signal-red"
-                  }`}
-                  data-testid={`podium-rank-delta-${rank}`}
-                  aria-label={`${
-                    player.rankDelta > 0 ? "Monté de" : "Descendu de"
-                  } ${Math.abs(player.rankDelta)} ${
-                    Math.abs(player.rankDelta) > 1 ? "places" : "place"
-                  }`}
-                >
-                  {player.rankDelta > 0 ? (
-                    <TrendingUp size={10} aria-hidden />
-                  ) : (
-                    <TrendingDown size={10} aria-hidden />
-                  )}
-                  {Math.abs(player.rankDelta)}
+                <span className="text-[11px] font-mono font-bold text-lime tabular-nums">
+                  {player.elo}
                 </span>
-              )}
+              </div>
 
               {/* Pedestal bar */}
               <div

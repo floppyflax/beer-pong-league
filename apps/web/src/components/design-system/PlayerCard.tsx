@@ -128,12 +128,15 @@ function Avatar({
   avatarUrl,
   size = 10,
   rank,
+  rankDelta,
 }: {
   name: string;
   avatarUrl?: string;
   size?: 8 | 10 | 12 | 14;
   /** When set, renders a small medallion overlay on the bottom-right with the rank. */
   rank?: number;
+  /** When set & non-zero, renders a small ▲/▼ badge overlay on the top-left. */
+  rankDelta?: number;
 }) {
   const initials = getInitials(name);
   const cls =
@@ -155,20 +158,43 @@ function Avatar({
       )}
     </div>
   );
-  if (rank === undefined) {
+  const hasRankDelta = rankDelta !== undefined && rankDelta !== 0;
+  if (rank === undefined && !hasRankDelta) {
     return <div className="flex-shrink-0">{avatar}</div>;
   }
   return (
     <div className="relative flex-shrink-0">
       {avatar}
-      <div
-        className={`absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-mono font-bold ring-2 ring-navy-soft ${getRankBadgeClass(
-          rank,
-        )}`}
-        aria-label={`Rang ${rank}`}
-      >
-        {rank}
-      </div>
+      {rank !== undefined && (
+        <div
+          className={`absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-mono font-bold ring-2 ring-navy-soft ${getRankBadgeClass(
+            rank,
+          )}`}
+          aria-label={`Rang ${rank}`}
+        >
+          {rank}
+        </div>
+      )}
+      {hasRankDelta && (
+        <div
+          className={`absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center gap-0.5 justify-center text-[10px] font-mono font-extrabold tabular-nums ring-2 ring-navy-soft ${
+            rankDelta > 0
+              ? "bg-lime text-navy"
+              : "bg-signal-red text-white"
+          }`}
+          data-testid="playercard-rank-delta"
+          aria-label={`${rankDelta > 0 ? "Monté de" : "Descendu de"} ${Math.abs(
+            rankDelta,
+          )} ${Math.abs(rankDelta) > 1 ? "places" : "place"}`}
+        >
+          {rankDelta > 0 ? (
+            <TrendingUp size={10} aria-hidden />
+          ) : (
+            <TrendingDown size={10} aria-hidden />
+          )}
+          {Math.abs(rankDelta)}
+        </div>
+      )}
     </div>
   );
 }
@@ -289,11 +315,12 @@ export function PlayerCard(props: PlayerCardProps) {
         data-testid="playercard-leaderrow"
         {...wrapperProps}
       >
-        {/* Rank shown as medallion overlay on the avatar to save horizontal space. */}
+        {/* Rank shown as medallion (bottom-right) and rank-delta as ▲/▼ badge (top-left). */}
         <Avatar
           name={props.name}
           avatarUrl={props.avatarUrl}
           rank={props.rank}
+          rankDelta={props.rankDelta}
         />
 
         <div className="flex-1 min-w-0">
@@ -314,41 +341,19 @@ export function PlayerCard(props: PlayerCardProps) {
           </div>
         </div>
 
-        <div className="flex-shrink-0 flex flex-col items-end gap-0.5">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-mono font-bold tabular-nums text-lime">
-              {props.rightLabel ?? props.elo}
-            </span>
-            {props.delta !== undefined && (
-              <span
-                className={`text-sm font-mono font-semibold tabular-nums ${deltaClass}`}
-                data-testid="playercard-delta"
-              >
-                {props.delta >= 0 ? "+" : ""}
-                {props.delta}
-              </span>
-            )}
-          </div>
-          {props.rankDelta !== undefined && props.rankDelta !== 0 && (
+        <div className="flex-shrink-0 flex items-center gap-2">
+          {props.delta !== undefined && (
             <span
-              className={`flex items-center gap-0.5 text-[10px] font-mono font-bold tabular-nums ${
-                props.rankDelta > 0 ? "text-lime" : "text-signal-red"
-              }`}
-              data-testid="playercard-rank-delta"
-              aria-label={`${
-                props.rankDelta > 0 ? "Monté de" : "Descendu de"
-              } ${Math.abs(props.rankDelta)} ${
-                Math.abs(props.rankDelta) > 1 ? "places" : "place"
-              }`}
+              className={`text-sm font-mono font-semibold tabular-nums ${deltaClass}`}
+              data-testid="playercard-delta"
             >
-              {props.rankDelta > 0 ? (
-                <TrendingUp size={12} aria-hidden />
-              ) : (
-                <TrendingDown size={12} aria-hidden />
-              )}
-              {Math.abs(props.rankDelta)}
+              {props.delta >= 0 ? "+" : ""}
+              {props.delta}
             </span>
           )}
+          <span className="text-base font-mono font-bold tabular-nums text-lime">
+            {props.rightLabel ?? props.elo}
+          </span>
         </div>
 
         <ChevronRight

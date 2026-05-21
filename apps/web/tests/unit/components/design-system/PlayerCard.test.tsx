@@ -38,7 +38,7 @@ describe("PlayerCard", () => {
   // page-level tests.
 
   describe("variant leaderRow — rankDelta", () => {
-    it("renders a positive rank delta with lime styling", () => {
+    it("renders a positive rank delta as a lime badge on the avatar", () => {
       render(
         <PlayerCard
           variant="leaderRow"
@@ -50,11 +50,11 @@ describe("PlayerCard", () => {
       );
       const badge = screen.getByTestId("playercard-rank-delta");
       expect(badge).toHaveTextContent("2");
-      expect(badge).toHaveClass("text-lime");
+      expect(badge).toHaveClass("bg-lime");
       expect(badge).toHaveAttribute("aria-label", "Monté de 2 places");
     });
 
-    it("renders a negative rank delta with signal-red styling", () => {
+    it("renders a negative rank delta as a signal-red badge on the avatar", () => {
       render(
         <PlayerCard
           variant="leaderRow"
@@ -66,7 +66,7 @@ describe("PlayerCard", () => {
       );
       const badge = screen.getByTestId("playercard-rank-delta");
       expect(badge).toHaveTextContent("1");
-      expect(badge).toHaveClass("text-signal-red");
+      expect(badge).toHaveClass("bg-signal-red");
       expect(badge).toHaveAttribute("aria-label", "Descendu de 1 place");
     });
 
