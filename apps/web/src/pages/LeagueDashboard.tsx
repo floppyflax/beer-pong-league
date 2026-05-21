@@ -166,11 +166,6 @@ export const LeagueDashboard = () => {
       icon: <History size={20} />,
       onClick: () => navigate(`/league/${league.id}/seasons`),
     },
-    {
-      label: "Paramètres",
-      icon: <Settings size={20} />,
-      onClick: () => navigate(`/league/${league.id}/settings`),
-    },
     ...(isAdmin
       ? [
           {
@@ -427,6 +422,12 @@ export const LeagueDashboard = () => {
         variant: "iconOnly",
       });
     }
+    detailHeroAdminActions.push({
+      label: "Paramètres",
+      icon: <Settings size={18} />,
+      onClick: () => navigate(`/league/${league.id}/settings`),
+      variant: "iconOnly",
+    });
   }
 
   return (

@@ -435,9 +435,9 @@ export const EventDashboard = () => {
     }
     detailHeroActions.push({
       label: "Paramètres",
-      icon: <Settings size={16} />,
+      icon: <Settings size={18} />,
       onClick: () => navigate(`/event/${event.id}/settings`),
-      variant: "secondary",
+      variant: "iconOnly",
     });
     detailHeroActions.push({
       label: "Mode Diffusion",
