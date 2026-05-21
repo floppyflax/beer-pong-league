@@ -2,8 +2,9 @@
  * EventCard — listing pressed-card pour un événement.
  *
  * Construit sur `CardShell` (partagé avec `LeagueCard`).
- * Header : pill statut (en cours / à venir / terminé). Body : meta inline
- * (joueurs · matchs · format · ELO · Toi #N/total quand je participe).
+ * Header : pill statut (en cours / à venir / terminé) + rang `1er / N` à
+ * droite du titre quand je participe. Body : meta inline
+ * (joueurs · matchs · format · ELO).
  */
 
 import React from "react";
@@ -12,6 +13,7 @@ import type { Event } from "@/types";
 import { CardShell, type CardShellStatus } from "./CardShell";
 import { getEventLifecycle } from "@/utils/eventLifecycle";
 import { useMyEventRank } from "@/hooks/useMyContextRankings";
+import { MyRankBadge } from "../atoms/MyRankBadge";
 
 export interface EventCardProps {
   event: Event;
@@ -68,14 +70,6 @@ export const EventCard: React.FC<EventCardProps> = ({
       <span>{formatLabel}</span>
       <span className="opacity-40">·</span>
       <span className="text-lime font-bold">ELO</span>
-      {myRank && (
-        <>
-          <span className="opacity-40">·</span>
-          <span className="text-lime font-bold">
-            Toi #{myRank.rank}/{myRank.total}
-          </span>
-        </>
-      )}
     </div>
   );
 
@@ -83,6 +77,9 @@ export const EventCard: React.FC<EventCardProps> = ({
     <CardShell
       title={event.name}
       status={status}
+      titleSuffix={
+        myRank ? <MyRankBadge rank={myRank.rank} total={myRank.total} /> : undefined
+      }
       body={body}
       testId="event-card"
       ariaLabel={`Voir l'événement ${event.name}`}

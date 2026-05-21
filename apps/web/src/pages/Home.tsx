@@ -6,6 +6,8 @@ import { useAuthContext } from "../context/AuthContext";
 import { useIdentity } from "../hooks/useIdentity";
 import { useIsAnonymous } from "../hooks/useIsAnonymous";
 import { useHomeData } from "../hooks/useHomeData";
+import { useMyEventRank } from "../hooks/useMyContextRankings";
+import { MyRankBadge } from "../components/design-system/atoms/MyRankBadge";
 import { AnonGatePlaceholder } from "../components/AnonGatePlaceholder";
 import { usePremium } from "../hooks/usePremium";
 import { usePremiumLimits } from "../hooks/usePremiumLimits";
@@ -59,6 +61,10 @@ export const Home = () => {
 
   const activeEvent =
     lastEvent && !lastEvent.isFinished ? lastEvent : null;
+  // Read user's rank for the active event. `useMyEventRank` returns null when
+  // no auth/league providers, when I'm not a member, or when the ranking isn't
+  // significant (ties at the same ELO) — no display in those cases.
+  const activeEventRank = useMyEventRank(activeEvent?.id ?? "");
 
   const handleNewMatch = () => {
     if (activeEvent) {
@@ -249,8 +255,16 @@ export const Home = () => {
                   En ce moment
                 </span>
               </div>
-              <div className="font-archivo font-extrabold text-xl tracking-[-0.4px] truncate">
-                {activeEvent.name}
+              <div className="flex items-baseline gap-2 min-w-0">
+                <div className="font-archivo font-extrabold text-xl tracking-[-0.4px] truncate min-w-0">
+                  {activeEvent.name}
+                </div>
+                {activeEventRank && (
+                  <MyRankBadge
+                    rank={activeEventRank.rank}
+                    total={activeEventRank.total}
+                  />
+                )}
               </div>
               <div className="text-[13px] text-cool-gray mt-0.5 flex items-center gap-1.5">
                 <span>{activeEvent.playerCount} {activeEvent.playerCount === 1 ? "joueur" : "joueurs"}</span>

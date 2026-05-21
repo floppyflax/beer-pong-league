@@ -2,9 +2,9 @@
  * LeagueCard — listing pressed-card pour une ligue.
  *
  * Construit sur `CardShell` (partagé avec `EventCard`).
- * Header : pill statut (Active / Terminée) + Propriétaire si owner.
- * Body : 3 colonnes de stats — membres, événements, dernière activité —
- * + une 4ᵉ colonne « Ton rang » (#N/total) quand je participe à la ligue.
+ * Header : pill statut (Active / Terminée) + Propriétaire si owner + rang
+ * `1er / N` à droite du titre quand je participe.
+ * Body : 3 colonnes de stats — membres, événements, dernière activité.
  */
 
 import React from "react";
@@ -15,6 +15,7 @@ import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useMyLeagueRank } from "@/hooks/useMyContextRankings";
 import { CardShell } from "./CardShell";
+import { MyRankBadge } from "../atoms/MyRankBadge";
 
 export interface LeagueCardProps {
   league: LeagueListItem;
@@ -60,16 +61,6 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
           Activité
         </div>
       </div>
-      {myRank && (
-        <div>
-          <div className="font-archivo font-extrabold text-lg text-lime leading-none">
-            #{myRank.rank}/{myRank.total}
-          </div>
-          <div className="text-[11px] uppercase tracking-[1px] text-cool-gray mt-1">
-            Ton rang
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -86,6 +77,9 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
         tone: lifecycle === "active" ? "live" : "muted",
       }}
       ownerLabel={isOwner ? "Propriétaire" : undefined}
+      titleSuffix={
+        myRank ? <MyRankBadge rank={myRank.rank} total={myRank.total} /> : undefined
+      }
       body={body}
       testId="league-card"
       ariaLabel={`Voir la league ${league.name}`}
