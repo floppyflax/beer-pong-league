@@ -25,6 +25,8 @@ export interface GroupedViewProps {
   orphanMatches: Match[];
   players: Player[];
   leagueId: string;
+  /** Mig 032 — propagated to OrphanMatchesSection for the "Validé" badge. */
+  antiCheatEnabled?: boolean;
 }
 
 const FINISHED_RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -90,6 +92,7 @@ export const GroupedView = ({
   orphanMatches,
   players,
   leagueId,
+  antiCheatEnabled = false,
 }: GroupedViewProps) => {
   const navigate = useNavigate();
 
@@ -141,7 +144,11 @@ export const GroupedView = ({
       })}
 
       {orphanMatches.length > 0 && (
-        <OrphanMatchesSection matches={orphanMatches} players={players} />
+        <OrphanMatchesSection
+          matches={orphanMatches}
+          players={players}
+          antiCheatEnabled={antiCheatEnabled}
+        />
       )}
 
       <button

@@ -77,6 +77,8 @@ export interface LeagueRow {
   created_at: string;
   creator_user_id: string | null;
   anti_cheat_enabled?: boolean;
+  // Mig 032 — score validator for league-only matches when anti_cheat_enabled = TRUE.
+  score_validator?: 'opponent' | 'admin';
   join_code?: string | null;
   // Mig 028 — lifecycle + saisons
   paused_at?: string | null;

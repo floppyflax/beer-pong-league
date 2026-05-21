@@ -23,6 +23,8 @@ export interface TimelineViewProps {
   entries: TimelineMatchEntry[];
   players: Player[];
   leagueId: string;
+  /** Mig 032 — propagated to TimelineMatchCard for the "Validé" badge. */
+  antiCheatEnabled?: boolean;
 }
 
 const WEEKDAY_NAMES = [
@@ -87,6 +89,7 @@ export const TimelineView = ({
   entries,
   players,
   leagueId,
+  antiCheatEnabled = false,
 }: TimelineViewProps) => {
   const navigate = useNavigate();
 
@@ -146,6 +149,7 @@ export const TimelineView = ({
                 match={entry.match}
                 event={entry.event}
                 players={players}
+                antiCheatEnabled={antiCheatEnabled}
               />
             ))}
           </div>

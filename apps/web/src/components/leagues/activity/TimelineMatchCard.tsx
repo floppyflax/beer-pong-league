@@ -15,6 +15,12 @@ export interface TimelineMatchCardProps {
   match: Match;
   event: Event | null;
   players: Player[];
+  /**
+   * Mig 032 — true when the parent league has anti-cheat enabled. Propagates
+   * to MatchHistoryCard so the "Validé" badge surfaces on confirmed matches
+   * (the pending/rejected badges show regardless — they aren't visual noise).
+   */
+  antiCheatEnabled?: boolean;
 }
 
 function resolveTeam(
@@ -29,6 +35,7 @@ export const TimelineMatchCard = ({
   match,
   event,
   players,
+  antiCheatEnabled = false,
 }: TimelineMatchCardProps) => {
   const navigate = useNavigate();
 
@@ -47,6 +54,8 @@ export const TimelineMatchCard = ({
         isLive={match.is_live}
         cupsRemaining={match.cups_remaining}
         photoUrl={match.photo_url}
+        status={match.status}
+        antiCheatEnabled={antiCheatEnabled}
       />
       {event ? (
         <button

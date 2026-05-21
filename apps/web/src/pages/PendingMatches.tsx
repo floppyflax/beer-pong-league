@@ -11,11 +11,13 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { PButton } from "@/components/ponglo/PButton";
 
 /**
- * PendingMatches — Mig 030
+ * PendingMatches — Mig 030 + Mig 032
  *
- * Route: `/event/:eventId/validate`
+ * Routes:
+ *   - `/event/:eventId/validate`   → event context
+ *   - `/league/:leagueId/validate` → league-only matches context (event_id IS NULL)
  *
- * Lists every match in the event with `status = 'pending'` that the current
+ * Lists every match in the parent with `status = 'pending'` that the current
  * user is authorized to validate (opponent in opponent-mode, admin in
  * admin-mode, or admin bypass). Each row exposes Confirmer / Refuser actions
  * that wrap the `confirm_match` RPC via the `usePendingMatches` hook.
@@ -40,12 +42,20 @@ function formatRelative(date: string): string {
 }
 
 export const PendingMatches = () => {
-  const { eventId } = useParams<{ eventId: string }>();
+  const { eventId, leagueId } = useParams<{
+    eventId?: string;
+    leagueId?: string;
+  }>();
   const navigate = useNavigate();
-  const { events, isLoadingInitialData } = useLeague();
+  const { events, leagues, isLoadingInitialData } = useLeague();
+
   const event = useMemo(
-    () => events.find((e) => e.id === eventId),
+    () => (eventId ? events.find((e) => e.id === eventId) : null),
     [events, eventId],
+  );
+  const league = useMemo(
+    () => (leagueId ? leagues.find((l) => l.id === leagueId) : null),
+    [leagues, leagueId],
   );
 
   const {
@@ -54,35 +64,51 @@ export const PendingMatches = () => {
     isLoading,
     confirmMatch,
     rejectMatch,
-  } = usePendingMatches(eventId);
+  } = usePendingMatches(eventId ? { eventId } : { leagueId });
 
-  // Resolve player_id → name once for the whole list.
+  // Resolve player_id → name once for the whole list. Source depends on the
+  // parent context.
   const [playerNames, setPlayerNames] = useState<Record<string, string>>({});
   useEffect(() => {
-    if (!eventId) return;
     let cancelled = false;
-    databaseService
-      .loadEventParticipants(eventId)
-      .then((participants) => {
-        if (cancelled) return;
-        const map: Record<string, string> = {};
-        for (const p of participants) {
-          // Mig 022 — matches.team_*_player_ids contiennent des players.id,
-          // pas des event_memberships.id. On indexe sur p.playerId (avec
-          // p.id en fallback pour les cas localStorage où les deux
-          // coïncident).
-          if (p.playerId) map[p.playerId] = p.name;
-          map[p.id] = p.name;
-        }
-        setPlayerNames(map);
-      })
-      .catch(() => {
-        if (!cancelled) setPlayerNames({});
-      });
+    if (eventId) {
+      databaseService
+        .loadEventParticipants(eventId)
+        .then((participants) => {
+          if (cancelled) return;
+          const map: Record<string, string> = {};
+          for (const p of participants) {
+            // Mig 022 — matches.team_*_player_ids contiennent des players.id,
+            // pas des event_memberships.id. On indexe sur p.playerId (avec
+            // p.id en fallback pour les cas localStorage où les deux
+            // coïncident).
+            if (p.playerId) map[p.playerId] = p.name;
+            map[p.id] = p.name;
+          }
+          setPlayerNames(map);
+        })
+        .catch(() => {
+          if (!cancelled) setPlayerNames({});
+        });
+    } else if (leagueId) {
+      databaseService
+        .loadLeagueMatchPlayerNames(leagueId)
+        .then((m) => {
+          if (cancelled) return;
+          const map: Record<string, string> = {};
+          m.forEach((name, pid) => {
+            map[pid] = name;
+          });
+          setPlayerNames(map);
+        })
+        .catch(() => {
+          if (!cancelled) setPlayerNames({});
+        });
+    }
     return () => {
       cancelled = true;
     };
-  }, [eventId]);
+  }, [eventId, leagueId]);
 
   const [busyMatchId, setBusyMatchId] = useState<string | null>(null);
   const handleAction = async (
@@ -109,7 +135,8 @@ export const PendingMatches = () => {
     );
   }
 
-  if (!event) {
+  // Either parent missing → 404-like state.
+  if ((eventId && !event) || (leagueId && !league) || (!eventId && !leagueId)) {
     return (
       <div className="min-h-screen bg-navy text-white">
         <ContextualHeader
@@ -120,8 +147,12 @@ export const PendingMatches = () => {
         <div className="p-4">
           <EmptyState
             icon={Trophy}
-            title="Événement introuvable"
-            description="Cet événement n'existe pas ou a été supprimé."
+            title={eventId ? "Événement introuvable" : "Ligue introuvable"}
+            description={
+              eventId
+                ? "Cet événement n'existe pas ou a été supprimé."
+                : "Cette ligue n'existe pas ou a été supprimée."
+            }
             action={
               <PButton variant="primary" size="md" onClick={() => navigate("/")}>
                 Retour à l&apos;accueil
@@ -133,6 +164,12 @@ export const PendingMatches = () => {
     );
   }
 
+  const backUrl = event
+    ? `/event/${event.id}`
+    : league
+      ? `/league/${league.id}`
+      : "/";
+
   const validatableMatches = pendingMatches.filter((m) => m.canValidate);
   const lockedMatches = pendingMatches.filter((m) => !m.canValidate);
 
@@ -141,7 +178,7 @@ export const PendingMatches = () => {
       <ContextualHeader
         title="Matchs à valider"
         showBackButton
-        onBack={() => navigate(`/event/${event.id}`)}
+        onBack={() => navigate(backUrl)}
       />
 
       <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-6">
