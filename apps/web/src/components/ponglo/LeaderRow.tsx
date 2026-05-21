@@ -138,7 +138,7 @@ export function LeaderRow({ rank, player, isMe = false, onClick }: LeaderRowProp
             {deltaPositive ? '+' : ''}{player.delta}
           </span>
         )}
-        <span className="text-sm font-mono font-bold tabular-nums text-lime">
+        <span className="text-sm font-mono font-bold tabular-nums text-white">
           {player.elo}
         </span>
       </div>
