@@ -3,7 +3,19 @@
  *
  * Utilisé sur `LeagueDashboard` et `EventDashboard` : regroupe en un seul
  * bloc l'identité de la page (back + titre + admin), les infos clés (statut
- * + meta) et l'action principale (INVITER + overflow menu).
+ * + meta) et la barre d'actions principale.
+ *
+ * **Pattern unifié admin (Ligue ET Event)** :
+ *  - `Ajouter` (variant `primary`, lime pill) — CTA principal
+ *  - Action lifecycle (variant `iconOnly`) — Pause/Reprendre/Démarrer
+ *  - `Paramètres` (variant `iconOnly`) — entrée page Settings
+ *  - `Mode Diffusion` (variant `iconOnly`) — projection live
+ *  - Pas de kebab "..." côté admin : tout ce qui n'est pas dans la barre
+ *    (clôturer, supprimer, exports, ghosts, historique des saisons…) vit
+ *    dans la page Paramètres dédiée.
+ *
+ * Le kebab `menuItems` reste utile pour les non-admin (accès lecture aux
+ * exports / historique).
  *
  * Remplace l'ancien empilement `ContextualHeader` + `PageHero` + `InfoCard` +
  * 3×`StatCard` sur ces pages.
@@ -307,8 +319,9 @@ export const DetailHero = ({
       </div>
 
       {/* Actions row — all variants align on the same baseline (h-11). Tight
-          horizontal padding so the trio Inviter + Paramètres + IconOnly fits
-          on a single mobile row (375px) without wrap. */}
+          horizontal padding so le combo Ajouter (primary) + lifecycle iconOnly
+          + Paramètres iconOnly + Mode Diffusion iconOnly tient sur une seule
+          ligne mobile (375px) sans wrap. Pattern unifié League/Event. */}
       {(actions.length > 0 || menuItems.length > 0) && (
         <div
           className={`flex items-center gap-1.5 flex-nowrap overflow-x-auto -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overflow-hidden transition-[max-height,opacity,margin] duration-200 ${
