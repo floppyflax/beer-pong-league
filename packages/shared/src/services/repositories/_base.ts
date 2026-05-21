@@ -83,6 +83,13 @@ export interface LeagueRow {
   ended_at?: string | null;
   current_season_number?: number;
   current_season_started_at?: string;
+  // Mig 029 — config à la création
+  planned_start_at?: string | null;
+  planned_end_at?: string | null;
+  season_duration_days?: number | null;
+  max_players?: number | null;
+  is_private?: boolean;
+  default_format?: string | null;
 }
 
 /** Mig 028 — snapshot d'une saison close, table league_season_archives. */

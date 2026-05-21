@@ -116,6 +116,11 @@ export const LeagueSeasons = () => {
           <div className="text-sm text-cool-gray mt-1">
             Le classement et les ELO actuels sont visibles sur la page de la ligue.
           </div>
+          {league.seasonDurationDays != null && (
+            <div className="text-xs text-cool-gray mt-2">
+              Durée prévue : {league.seasonDurationDays} jours
+            </div>
+          )}
         </section>
 
         {/* Archives */}

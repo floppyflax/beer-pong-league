@@ -86,6 +86,13 @@ export const leagueSchema = z.object({
   endedAt: z.string().datetime().nullable().optional(),
   currentSeasonNumber: z.number().int().positive().optional(),
   currentSeasonStartedAt: z.string().datetime().optional(),
+  // Mig 029 — config à la création
+  plannedStartAt: z.string().datetime().nullable().optional(),
+  plannedEndAt: z.string().datetime().nullable().optional(),
+  seasonDurationDays: z.number().int().positive().nullable().optional(),
+  maxPlayers: z.number().int().positive().nullable().optional(),
+  isPrivate: z.boolean().optional(),
+  defaultFormat: z.enum(['1v1', '2v2', '3v3', 'libre']).nullable().optional(),
 });
 
 export type League = z.infer<typeof leagueSchema>;

@@ -2,7 +2,8 @@
  * EventCard — listing pressed-card pour un événement.
  *
  * Construit sur `CardShell` (partagé avec `LeagueCard`).
- * Header : pill statut (en cours / à venir / terminé) + badge "Admin" si créateur.
+ * Header : pill statut (en cours / à venir / terminé) + badge "Admin" si
+ * créateur + rang `1er / N` à droite du titre quand je participe.
  * Body : meta inline (joueurs · matchs · format · ELO).
  */
 
@@ -13,6 +14,8 @@ import { CardShell, type CardShellStatus } from "./CardShell";
 import { getEventLifecycle } from "@/utils/eventLifecycle";
 import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
+import { useMyEventRank } from "@/hooks/useMyContextRankings";
+import { MyRankBadge } from "../atoms/MyRankBadge";
 
 export interface EventCardProps {
   event: Event;
@@ -27,6 +30,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { localUser } = useIdentity();
+  const myRank = useMyEventRank(event.id);
 
   const isOwner =
     (user && user.id === event.creator_user_id) ||
@@ -83,6 +87,9 @@ export const EventCard: React.FC<EventCardProps> = ({
       title={event.name}
       status={status}
       adminBadge={Boolean(isOwner)}
+      titleSuffix={
+        myRank ? <MyRankBadge rank={myRank.rank} total={myRank.total} /> : undefined
+      }
       body={body}
       testId="event-card"
       ariaLabel={`Voir l'événement ${event.name}`}

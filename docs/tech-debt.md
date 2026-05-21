@@ -161,6 +161,31 @@ Severity, scope and the trigger skill that holds the pattern.
   call, run on simulator.
 - **Effort**: ~1 week of mobile-only work.
 
+#### G-quater. Auto-rotation des saisons via pg_cron (alternative au rappel manuel)
+
+- Aujourd'hui (mig 029), la `season_duration_days` est purement
+  informationnelle : quand la saison est échue, on affiche un strip de
+  rappel dans le LeagueDashboard mais l'admin doit cliquer "Démarrer la
+  Saison N+1" lui-même. Pareil pour `planned_end_at` côté league.
+- Alternative server-side : activer l'extension `pg_cron` sur Supabase
+  + créer une fonction `rotate_overdue_league_seasons()` qui appelle
+  `start_new_league_season()` à minuit pour toutes les leagues en
+  `seasonOverdue`. Idem `auto_finish_overdue_leagues()` pour
+  `leagueOverdue`.
+- **Trigger** : quand un utilisateur signale "j'ai oublié de cycler ma
+  saison" plusieurs fois OU si on observe que <30% des leagues à durée
+  configurée cyclent à temps. Tant que les rappels manuels suffisent,
+  pas besoin.
+- **Effort** : ~½ jour (activation extension + RPC + tests).
+
+#### G-quinquies. Cap freemium sur `max_players` de league
+
+- Mig 029 expose le champ `max_players` mais sans limite freemium.
+  N'importe quel admin peut fixer librement le max. La création de
+  league est déjà gatée Premium, donc l'impact est faible.
+- À reconsidérer si on voit des leagues "free trial" abusives ou si on
+  veut différencier les plans plus finement.
+
 #### G-ter. Retirer `leagues.type` (devenu cosmétique avec le système de saisons)
 
 - Avant mig 028, `leagues.type` (`one-shot` | `season`) servait à afficher

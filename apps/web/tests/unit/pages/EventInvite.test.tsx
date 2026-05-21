@@ -33,6 +33,18 @@ vi.mock("qrcode.react", () => ({
   ),
 }));
 
+// Mock the rank hook used by EventCard — keeps the test free of
+// QueryClient / AuthProvider plumbing.
+vi.mock("../../../src/hooks/useMyContextRankings", () => ({
+  useMyEventRank: () => null,
+  useMyLeagueRank: () => null,
+  useMyContextRankings: () => ({
+    leagueRanks: new Map(),
+    eventRanks: new Map(),
+  }),
+  computeContextRank: () => null,
+}));
+
 const mockEvent = {
   id: "test-event-id",
   name: "Soirée Beer Pong 2024",

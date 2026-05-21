@@ -23,6 +23,9 @@ export interface CardShellProps {
   status?: CardShellStatus;
   /** Pill "ADMIN" — identique au DetailHero, affiché si l'utilisateur courant est créateur. */
   adminBadge?: boolean;
+  /** Élément optionnel rendu à droite du titre sur la même ligne
+   *  (ex: `<MyRankBadge>`). Reste visible quand le titre est tronqué. */
+  titleSuffix?: React.ReactNode;
   /** Bloc principal sous le header (meta inline ou colonnes de stats). */
   body?: React.ReactNode;
   /** Quand fourni, le shell devient un bouton et navigue. */
@@ -35,6 +38,7 @@ export const CardShell: React.FC<CardShellProps> = ({
   title,
   status,
   adminBadge = false,
+  titleSuffix,
   body,
   onClick,
   ariaLabel,
@@ -73,8 +77,11 @@ export const CardShell: React.FC<CardShellProps> = ({
             )}
           </div>
         )}
-        <div className="font-archivo font-extrabold text-xl tracking-[-0.4px] truncate text-white">
-          {title}
+        <div className="flex items-baseline gap-2 min-w-0">
+          <div className="font-archivo font-extrabold text-xl tracking-[-0.4px] truncate text-white min-w-0">
+            {title}
+          </div>
+          {titleSuffix}
         </div>
         {body}
       </div>

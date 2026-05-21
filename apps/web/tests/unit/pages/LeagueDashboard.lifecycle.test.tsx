@@ -43,6 +43,13 @@ const baseLeague = {
   endedAt: null as string | null,
   currentSeasonNumber: 1,
   currentSeasonStartedAt: '2026-05-01T10:00:00.000Z',
+  // Mig 029 — config champs
+  plannedStartAt: null as string | null,
+  plannedEndAt: null as string | null,
+  seasonDurationDays: null as number | null,
+  maxPlayers: null as number | null,
+  isPrivate: true,
+  defaultFormat: null as '1v1' | '2v2' | '3v3' | 'libre' | null,
 };
 
 const pauseLeague = vi.fn();
@@ -180,5 +187,88 @@ describe('LeagueDashboard — lifecycle (mig 028)', () => {
     expect(
       screen.queryByRole('button', { name: /Reprendre/i }),
     ).not.toBeInTheDocument();
+  });
+
+  describe('mig 029 — not_started + reminders', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00.000Z'));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('not_started: hides FAB, shows lifecycle banner, no admin lifecycle action', () => {
+      mockCtx.leagues = [
+        {
+          ...baseLeague,
+          plannedStartAt: '2026-06-01T00:00:00.000Z',
+          currentSeasonStartedAt: '2026-06-01T00:00:00.000Z',
+        },
+      ];
+      renderDashboard();
+
+      expect(
+        screen.queryByRole('button', { name: 'Nouveau match' }),
+      ).not.toBeInTheDocument();
+      const banner = screen.getByTestId('league-lifecycle-banner');
+      expect(banner).toHaveTextContent(/Ligue non démarrée/i);
+      // Pas d'action "Mettre en pause" ni "Nouvelle saison" en not_started.
+      expect(
+        screen.queryByRole('button', { name: /Mettre en pause/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Démarrer la Saison/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('active + season overdue: shows reminder banner pointing to nouvelle saison', () => {
+      mockCtx.leagues = [
+        {
+          ...baseLeague,
+          currentSeasonStartedAt: '2026-01-01T00:00:00.000Z',
+          seasonDurationDays: 30, // expired since Feb
+        },
+      ];
+      renderDashboard();
+
+      // FAB toujours visible (lifecycle = active)
+      expect(
+        screen.getByRole('button', { name: 'Nouveau match' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('league-lifecycle-banner')).not.toBeInTheDocument();
+      const reminder = screen.getByTestId('league-reminder-banner');
+      expect(reminder).toHaveTextContent(/Saison 1 échue/i);
+    });
+
+    it('active + league overdue: shows reminder banner for end_date', () => {
+      mockCtx.leagues = [
+        {
+          ...baseLeague,
+          plannedEndAt: '2026-01-01T00:00:00.000Z',
+        },
+      ];
+      renderDashboard();
+
+      const reminder = screen.getByTestId('league-reminder-banner');
+      expect(reminder).toHaveTextContent(/Date de fin dépassée/i);
+    });
+
+    it('lifecycle banner has priority over reminder banner', () => {
+      mockCtx.leagues = [
+        {
+          ...baseLeague,
+          pausedAt: '2026-05-20T10:00:00.000Z',
+          currentSeasonStartedAt: '2026-01-01T00:00:00.000Z',
+          seasonDurationDays: 30, // overdue, mais on est en pause
+        },
+      ];
+      renderDashboard();
+
+      expect(screen.getByTestId('league-lifecycle-banner')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('league-reminder-banner'),
+      ).not.toBeInTheDocument();
+    });
   });
 });
