@@ -14,6 +14,19 @@ vi.mock("../../../src/hooks/useDetailPagePermissions", () => ({
   useDetailPagePermissions: vi.fn(),
 }));
 
+// Mig 032 — usePendingMatches reads auth context + queries Supabase; mock it
+// so the dashboard tests don't need an AuthProvider wrapper.
+vi.mock("../../../src/hooks/usePendingMatches", () => ({
+  usePendingMatches: () => ({
+    pendingMatches: [],
+    count: 0,
+    isLoading: false,
+    refresh: vi.fn(),
+    confirmMatch: vi.fn(),
+    rejectMatch: vi.fn(),
+  }),
+}));
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {

@@ -14,6 +14,25 @@ import {
   type MatchRow,
 } from './_base';
 
+/**
+ * Mig 032 — partial updates applied to an existing league row.
+ * Mirror of `EventUpdates` (EventsRepository) — additive so tomorrow's
+ * fields land here without breaking call sites.
+ */
+export interface LeagueUpdates {
+  name?: string;
+  type?: 'one-shot' | 'season';
+  antiCheatEnabled?: boolean;
+  /**
+   * Mig 032 — Who validates scores when antiCheatEnabled = TRUE on a
+   * league-only match.
+   *   - 'opponent' (default) : a player from the opposing team confirms.
+   *   - 'admin'              : only the league admin can confirm.
+   * Read only when antiCheatEnabled = TRUE.
+   */
+  scoreValidator?: 'opponent' | 'admin';
+}
+
 class LeaguesRepository extends BaseRepository {
   /**
    * Charge toutes les leagues où l'utilisateur est creator OU membre (via player owned).
@@ -173,6 +192,7 @@ class LeaguesRepository extends BaseRepository {
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
+        scoreValidator: row.score_validator ?? 'opponent',
         // Mig 028 — lifecycle + saisons
         pausedAt: row.paused_at ?? null,
         endedAt: row.ended_at ?? null,
@@ -232,6 +252,7 @@ class LeaguesRepository extends BaseRepository {
             join_code: league.joinCode ?? null,
             creator_user_id: league.creator_user_id,
             anti_cheat_enabled: league.anti_cheat_enabled || false,
+            score_validator: league.scoreValidator ?? 'opponent',
             // Mig 029 — config à la création (NULL = laissé non configuré)
             planned_start_at: league.plannedStartAt ?? null,
             planned_end_at: league.plannedEndAt ?? null,
@@ -269,25 +290,42 @@ class LeaguesRepository extends BaseRepository {
     }
   }
 
-  async updateLeague(leagueId: string, name: string, type: 'one-shot' | 'season'): Promise<void> {
+  /**
+   * Mig 032 — `updateLeague(leagueId, updates)` accepte un patch partiel
+   * (name, type, antiCheatEnabled, scoreValidator). Mirror du pattern
+   * `updateEvent(eventId, updates: EventUpdates)`.
+   */
+  async updateLeague(leagueId: string, updates: LeagueUpdates): Promise<void> {
     if (!this.isSupabaseAvailable()) {
       const leagues = this.loadLeaguesFromLocalStorage();
       const league = leagues.find((l) => l.id === leagueId);
       if (league) {
-        league.name = name;
-        league.type = type;
+        if (updates.name !== undefined) league.name = updates.name;
+        if (updates.type !== undefined) league.type = updates.type;
+        if (updates.antiCheatEnabled !== undefined) league.anti_cheat_enabled = updates.antiCheatEnabled;
+        if (updates.scoreValidator !== undefined) league.scoreValidator = updates.scoreValidator;
         this.saveLeagueToLocalStorage(league);
       }
       return;
     }
     try {
-      const { error } = await sb!.from('leagues').update({ name, type }).eq('id', leagueId);
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.type !== undefined) dbUpdates.type = updates.type;
+      if (updates.antiCheatEnabled !== undefined) dbUpdates.anti_cheat_enabled = updates.antiCheatEnabled;
+      if (updates.scoreValidator !== undefined) dbUpdates.score_validator = updates.scoreValidator;
+
+      if (Object.keys(dbUpdates).length === 0) return;
+
+      const { error } = await sb!.from('leagues').update(dbUpdates).eq('id', leagueId);
       if (error) throw error;
       const leagues = this.loadLeaguesFromLocalStorage();
       const league = leagues.find((l) => l.id === leagueId);
       if (league) {
-        league.name = name;
-        league.type = type;
+        if (updates.name !== undefined) league.name = updates.name;
+        if (updates.type !== undefined) league.type = updates.type;
+        if (updates.antiCheatEnabled !== undefined) league.anti_cheat_enabled = updates.antiCheatEnabled;
+        if (updates.scoreValidator !== undefined) league.scoreValidator = updates.scoreValidator;
         this.saveLeagueToLocalStorage(league);
       }
     } catch (error) {

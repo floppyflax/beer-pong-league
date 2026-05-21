@@ -202,7 +202,7 @@ export const EventDashboard = () => {
   );
 
   // Mig 030 — anti-cheat: pending matches the current user can validate
-  const { count: pendingValidationCount } = usePendingMatches(id);
+  const { count: pendingValidationCount } = usePendingMatches({ eventId: id });
 
   // Ranking is always the event-local one. Direction taken since the
   // event/league toggle was retired (mig: event ELO is contextual, the

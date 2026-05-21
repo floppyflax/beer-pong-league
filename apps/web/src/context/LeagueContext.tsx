@@ -27,6 +27,7 @@ import { useIdentity } from "../hooks/useIdentity";
 import {
   databaseService,
   type EventUpdates,
+  type LeagueUpdates,
 } from "../services/DatabaseService";
 import { migrationService } from "../services/MigrationService";
 import { localUserService } from "../services/LocalUserService";
@@ -47,6 +48,11 @@ export interface CreateLeagueInput {
   maxPlayers: number | null;
   isPrivate: boolean;
   antiCheatEnabled: boolean;
+  /**
+   * Mig 032 — Who validates scores when antiCheatEnabled = TRUE on a
+   * league-only match. Default 'opponent' if omitted.
+   */
+  scoreValidator?: 'opponent' | 'admin';
   defaultFormat: '1v1' | '2v2' | '3v3' | 'libre' | null;
 }
 
@@ -132,8 +138,7 @@ interface LeagueContextType {
   resumeEvent: (eventId: string) => Promise<void>;
   updateLeague: (
     leagueId: string,
-    name: string,
-    type: "one-shot" | "season"
+    updates: LeagueUpdates
   ) => Promise<void>;
   updateEvent: (
     eventId: string,
@@ -374,6 +379,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       creator_user_id: isAuthenticated && user ? user.id : null,
       creator_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
       anti_cheat_enabled: input.antiCheatEnabled,
+      scoreValidator: input.scoreValidator ?? 'opponent',
       // Mig 028 — saison initiale
       currentSeasonNumber: 1,
       currentSeasonStartedAt: seasonStartIso,
@@ -1311,19 +1317,28 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
   const updateLeague = async (
     leagueId: string,
-    name: string,
-    type: "one-shot" | "season"
+    updates: LeagueUpdates
   ) => {
+    // Optimistic local update — keep field mapping explicit to dodge the
+    // snake_case/camelCase quirks on `anti_cheat_enabled` / `score_validator`
+    // (mirror of the updateEvent pattern below).
     setLeagues((prev) =>
       prev.map((league) => {
         if (league.id !== leagueId) return league;
-        return { ...league, name, type };
+        const next: Partial<League> = {};
+        if (updates.name !== undefined) next.name = updates.name;
+        if (updates.type !== undefined) next.type = updates.type;
+        if (updates.antiCheatEnabled !== undefined)
+          next.anti_cheat_enabled = updates.antiCheatEnabled;
+        if (updates.scoreValidator !== undefined)
+          next.scoreValidator = updates.scoreValidator;
+        return { ...league, ...next };
       })
     );
 
     // Update in Supabase
     try {
-      await databaseService.updateLeague(leagueId, name, type);
+      await databaseService.updateLeague(leagueId, updates);
       toast.success('Ligue mise à jour');
     } catch (error) {
       console.error('Error updating league:', error);

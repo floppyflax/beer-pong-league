@@ -7,6 +7,7 @@
  * photo/cups via `MatchEnrichedDisplay`.
  */
 
+import { CheckCircle2, Hourglass, XCircle } from "lucide-react";
 import type { Match, Player } from "@/types";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
@@ -16,11 +17,18 @@ import { formatRelativeTime } from "@/utils/dateUtils";
 export interface OrphanMatchesSectionProps {
   matches: Match[];
   players: Player[];
+  /**
+   * Mig 032 — drives the visibility of the "Validé" badge on confirmed
+   * matches. Pending and rejected badges show regardless (they aren't
+   * visual noise — they ARE actionable / soft-deleted state).
+   */
+  antiCheatEnabled?: boolean;
 }
 
 export const OrphanMatchesSection = ({
   matches,
   players,
+  antiCheatEnabled = false,
 }: OrphanMatchesSectionProps) => {
   const sorted = [...matches].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
@@ -50,6 +58,39 @@ export const OrphanMatchesSection = ({
               isLive={Boolean(match.is_live)}
               className="mb-2"
             />
+            {/* Mig 032 — anti-cheat status badges (mirror EventDashboard /
+                MatchHistoryCard). "Validé" only when league anti-cheat ON
+                — otherwise visual noise on every match. */}
+            {match.status === "pending" && (
+              <div
+                className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
+                data-testid="match-status-pending"
+                aria-label="Match en attente de validation"
+              >
+                <Hourglass size={11} aria-hidden="true" />
+                En attente de validation
+              </div>
+            )}
+            {match.status === "rejected" && (
+              <div
+                className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-signal-red/15 text-signal-red text-[10px] font-bold uppercase tracking-wide"
+                data-testid="match-status-rejected"
+                aria-label="Match refusé"
+              >
+                <XCircle size={11} aria-hidden="true" />
+                Refusé
+              </div>
+            )}
+            {match.status === "confirmed" && antiCheatEnabled && (
+              <div
+                className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime/15 text-lime text-[10px] font-bold uppercase tracking-wide"
+                data-testid="match-status-validated"
+                aria-label="Match validé"
+              >
+                <CheckCircle2 size={11} aria-hidden="true" />
+                Validé
+              </div>
+            )}
             <MatchTeamsRow
               teamAPlayers={teamAPlayers}
               teamBPlayers={teamBPlayers}

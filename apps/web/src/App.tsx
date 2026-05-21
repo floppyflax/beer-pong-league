@@ -306,6 +306,14 @@ function AppContent() {
                       }
                     />
                     <Route
+                      path="/league/:leagueId/validate"
+                      element={
+                        <ErrorBoundary>
+                          <PendingMatches />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
                       path="/league/:id/seasons"
                       element={
                         <ErrorBoundary>

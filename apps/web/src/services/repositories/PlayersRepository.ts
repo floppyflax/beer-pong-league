@@ -567,6 +567,27 @@ class PlayersRepository extends BaseRepository {
     return m;
   }
 
+  /**
+   * Mig 032 — Mirror de `loadMatchPlayerNames` pour les ligues. Retourne
+   * la map players.id → display name à partir de `league_memberships`.
+   * Utilisé par PendingMatches en contexte ligue.
+   */
+  async loadLeagueMatchPlayerNames(leagueId: string): Promise<Map<string, string>> {
+    if (!this.isSupabaseAvailable()) return new Map();
+    const { data } = await sb!
+      .from('league_memberships')
+      .select('player_id, pseudo_override, player:players(pseudo)')
+      .eq('league_id', leagueId);
+    const rows = (data ?? []) as unknown as Array<{
+      player_id: string;
+      pseudo_override: string | null;
+      player: { pseudo: string } | null;
+    }>;
+    const m = new Map<string, string>();
+    for (const r of rows) m.set(r.player_id, r.pseudo_override || r.player?.pseudo || 'Joueur');
+    return m;
+  }
+
   // ───────────────────────────────────────────────────────────────────────
   // UPDATE
   // ───────────────────────────────────────────────────────────────────────

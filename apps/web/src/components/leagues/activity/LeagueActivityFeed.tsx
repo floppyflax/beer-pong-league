@@ -62,12 +62,14 @@ export const LeagueActivityFeed = ({
           orphanMatches={league.matches}
           players={league.players}
           leagueId={league.id}
+          antiCheatEnabled={league.anti_cheat_enabled === true}
         />
       ) : (
         <TimelineView
           entries={timelineEntries}
           players={league.players}
           leagueId={league.id}
+          antiCheatEnabled={league.anti_cheat_enabled === true}
         />
       )}
     </div>

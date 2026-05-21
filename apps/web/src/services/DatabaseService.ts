@@ -14,7 +14,7 @@
  */
 
 import type { League, LeagueSeasonArchive, Event, Player, Match } from '../types';
-import { leaguesRepository } from './repositories/LeaguesRepository';
+import { leaguesRepository, type LeagueUpdates } from './repositories/LeaguesRepository';
 import {
   eventsRepository,
   type EventUpdates,
@@ -28,7 +28,7 @@ import {
 
 // Re-export so external callers (LeagueContext, tests) can import the shape
 // of the updates object without digging into the repository module.
-export type { EventUpdates, RecordMatchResult, ConfirmMatchDecision };
+export type { EventUpdates, RecordMatchResult, ConfirmMatchDecision, LeagueUpdates };
 
 class DatabaseService {
   // ===== Leagues =====
@@ -45,8 +45,8 @@ class DatabaseService {
     return leaguesRepository.deleteLeague(leagueId);
   }
 
-  updateLeague(leagueId: string, name: string, type: 'one-shot' | 'season'): Promise<void> {
-    return leaguesRepository.updateLeague(leagueId, name, type);
+  updateLeague(leagueId: string, updates: LeagueUpdates): Promise<void> {
+    return leaguesRepository.updateLeague(leagueId, updates);
   }
 
   getLeagueById(leagueId: string): Promise<{ name: string } | null> {
@@ -190,6 +190,14 @@ class DatabaseService {
     userId: string | null;
   } | null> {
     return playersRepository.loadPlayerEnrichment(playerId);
+  }
+
+  /**
+   * Mig 032 — Map `players.id` → display name pour les matchs d'une ligue.
+   * Utilisé par PendingMatches en contexte ligue.
+   */
+  loadLeagueMatchPlayerNames(leagueId: string): Promise<Map<string, string>> {
+    return playersRepository.loadLeagueMatchPlayerNames(leagueId);
   }
 
   loadEventParticipants(eventId: string): Promise<
