@@ -67,7 +67,7 @@ export function FAB({
       data-testid="fab"
     >
       <span data-testid="fab-icon">
-        <Icon size={24} className={isPrimary ? 'text-navy' : 'text-white'} />
+        <Icon size={30} className={isPrimary ? 'text-navy' : 'text-white'} />
       </span>
     </button>
   );
