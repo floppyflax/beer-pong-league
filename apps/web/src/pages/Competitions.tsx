@@ -216,7 +216,7 @@ export const Competitions: React.FC = () => {
           aria-label="Enregistrer un score"
           className="pointer-events-auto w-14 h-14 md:w-16 md:h-16 shrink-0 flex items-center justify-center rounded-full bg-ping-yellow border-[1.5px] border-ping-yellow-deep shadow-fab hover:brightness-110 active:translate-y-[2px] transition-[transform,filter] duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ping-yellow"
         >
-          <BeerPongMatchIcon size={24} className="text-navy" />
+          <BeerPongMatchIcon size={30} className="text-navy" />
         </button>
       </div>
 
