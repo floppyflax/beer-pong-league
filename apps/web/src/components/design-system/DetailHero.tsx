@@ -101,6 +101,12 @@ export interface DetailHeroProps {
   adminBadge?: boolean;
   /** Titre de page (archivo extrabold 17px uppercase, à droite du back). */
   title: ReactNode;
+  /**
+   * Élément rendu juste sous le top row (back + titre), avant la meta-row.
+   * Pensé pour les pastilles contextuelles (ex: chip de la ligue parente sur
+   * un event détail). Reste visible même quand la meta-row est collapsée.
+   */
+  subtitle?: ReactNode;
   /** Statut principal (chip coloré dans la meta row). */
   status?: DetailHeroStatus;
   /** Infos secondaires (ex: ["Ce soir · 20:30", "Bar Le Spot · Caen"]). */
@@ -232,6 +238,7 @@ export const DetailHero = ({
   onBack,
   adminBadge = false,
   title,
+  subtitle,
   status,
   meta = [],
   stats = [],
@@ -284,6 +291,11 @@ export const DetailHero = ({
           </span>
         )}
       </div>
+
+      {/* Subtitle: contextual pill (ex: parent league on an event page).
+          Sits between the title row and the meta row. Stays visible even
+          when the hero collapses on scroll. */}
+      {subtitle && <div className="mt-2">{subtitle}</div>}
 
       {/* Meta row: status + infos — fades out when collapsed */}
       <div

@@ -604,25 +604,20 @@ export const EventDashboard = () => {
           label: eventStatusLabel,
           variant: eventStatusVariant,
         }}
-        meta={[
-          formatLabel,
-          modeLabel,
-          dateLabel,
-          ...(league
-            ? [
-                <button
-                  key="league-link"
-                  type="button"
-                  onClick={() => navigate(`/league/${league.id}`)}
-                  className="inline-flex items-center gap-1 underline underline-offset-2 decoration-white/40 hover:decoration-white text-white/90 hover:text-white transition-colors"
-                  aria-label={`Voir la ligue ${league.name}`}
-                >
-                  <Link2 size={12} className="flex-shrink-0" />
-                  <span className="truncate max-w-[180px]">{league.name}</span>
-                </button>,
-              ]
-            : []),
-        ]}
+        meta={[formatLabel, modeLabel, dateLabel]}
+        subtitle={
+          league ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/league/${league.id}`)}
+              className="inline-flex items-center gap-1.5 max-w-full px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-white text-[11px] font-archivo font-extrabold uppercase tracking-[0.5px] transition-colors"
+              aria-label={`Voir la ligue ${league.name}`}
+            >
+              <Link2 size={12} className="flex-shrink-0 opacity-70" />
+              <span className="truncate">{league.name}</span>
+            </button>
+          ) : undefined
+        }
         stats={[
           {
             label: "Joueurs",
