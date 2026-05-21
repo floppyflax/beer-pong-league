@@ -1,54 +1,61 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { PlayerCard } from "@/components/design-system/PlayerCard";
+import {
+  useSelfPacedScroll,
+  type SelfPacedScrollPhase,
+} from "../hooks/useSelfPacedScroll";
 import type { DisplaySource } from "../types";
 
 interface Props {
   source: DisplaySource;
   /** Ids des joueurs à highlighter (animation d'arrivée d'un match récent). */
   highlightedPlayerIds?: Set<string>;
+  /** Active le self-paced scroll (la scène est-elle visible). */
+  enabled?: boolean;
+  /** Freeze le scroll (pause clavier). */
+  paused?: boolean;
+  /** Appelée quand la séquence hold→scroll→hold-bottom est finie. */
+  onComplete?: () => void;
+  /** Reporte la phase au DisplayShell pour les indicators. */
+  onPhaseChange?: (phase: SelfPacedScrollPhase) => void;
 }
 
 /**
  * Scène classement : top 10 affichés en `PlayerCard size="display"`, le reste
  * (rang 11+) affiché en cards plus compactes en dessous.
  *
- * PR1 : auto-scroll conservé sur le mode actuel (top ↔ scrolling toutes les
- * 15s). PR2 le remplacera par `useSelfPacedScroll`.
+ * Self-paced : utilise `useSelfPacedScroll` quand `enabled = true` :
+ * hold-top → scroll lent → hold-bottom → notifyComplete().
  */
-export function RankingScene({ source, highlightedPlayerIds }: Props) {
+export function RankingScene({
+  source,
+  highlightedPlayerIds,
+  enabled = true,
+  paused = false,
+  onComplete,
+  onPhaseChange,
+}: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const autoScrollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [scrollPosition, setScrollPosition] =
-    useState<"top" | "scrolling">("top");
+
+  const phase = useSelfPacedScroll(scrollRef, {
+    enabled,
+    paused,
+    holdTopMs: 8_000,
+    scrollSpeedPxPerSec: 30,
+    holdBottomMs: 3_000,
+    onComplete: () => {
+      onComplete?.();
+    },
+  });
+
+  // Report la phase au parent (dans un effet pour ne pas update pendant le
+  // render du child).
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
 
   const top10 = source.players.slice(0, 10);
   const rest = source.players.slice(10);
-
-  // Auto-scroll basique (conservé depuis l'existant — remplacé en PR2)
-  useEffect(() => {
-    if (source.players.length <= 10) return;
-    if (scrollPosition === "top") {
-      autoScrollRef.current = setTimeout(
-        () => setScrollPosition("scrolling"),
-        15000,
-      );
-    } else {
-      autoScrollRef.current = setTimeout(
-        () => setScrollPosition("top"),
-        12000,
-      );
-    }
-    return () => {
-      if (autoScrollRef.current) clearTimeout(autoScrollRef.current);
-    };
-  }, [scrollPosition, source.players.length]);
-
-  // Reset scroll en haut quand un nouveau match arrive (highlightedPlayerIds change)
-  useEffect(() => {
-    if (highlightedPlayerIds && highlightedPlayerIds.size > 0) {
-      setScrollPosition("top");
-    }
-  }, [highlightedPlayerIds]);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -92,13 +99,7 @@ export function RankingScene({ source, highlightedPlayerIds }: Props) {
         </div>
 
         {rest.length > 0 && (
-          <div
-            className={`space-y-2 transition-all duration-1000 ${
-              scrollPosition === "scrolling"
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 -translate-y-4 pointer-events-none"
-            }`}
-          >
+          <div className="space-y-2">
             {rest.map((player) => (
               <div
                 key={player.id}

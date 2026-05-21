@@ -1,31 +1,85 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PersistentFrame } from "./components/PersistentFrame";
 import { PodiumStand } from "./components/PodiumStand";
 import { RecentMatchesPanel } from "./components/RecentMatchesPanel";
+import { SceneIndicators } from "./components/SceneIndicators";
 import { RankingScene } from "./scenes/RankingScene";
+import { PodiumScene } from "./scenes/PodiumScene";
+import { LiveMatchScene } from "./scenes/LiveMatchScene";
+import { HighlightScene } from "./scenes/HighlightScene";
+import { StatsScene } from "./scenes/StatsScene";
+import {
+  useDisplayScenes,
+  type SceneConfig,
+} from "./hooks/useDisplayScenes";
+import type { SelfPacedScrollPhase } from "./hooks/useSelfPacedScroll";
 import type { DisplaySource } from "./types";
 
 interface Props {
   source: DisplaySource | null;
 }
 
+const SCENES: SceneConfig[] = [
+  { id: "ranking", mode: "self-paced", pinned: true },
+  { id: "podium", mode: "timed", durationMs: 12_000 },
+  { id: "live-match", mode: "timed", durationMs: 10_000 },
+  { id: "highlight", mode: "timed", durationMs: 12_000 },
+  { id: "stats", mode: "timed", durationMs: 10_000 },
+];
+
 /**
- * Shell de la vue diffusion. PR1 : monte `PersistentFrame` avec :
- * - Col gauche : `RankingScene` (seule scène en PR1).
- * - Col droite : `PodiumStand compact` + `RecentMatchesPanel` + QR fixe.
- *
- * Gère ESC pour quitter, et l'effet "highlight 5s sur les joueurs du dernier
- * match" quand un nouveau match arrive.
- *
- * PR2 ajoutera `useDisplayScenes` + plusieurs scènes alternables ici.
+ * Shell de la vue diffusion. Orchestre :
+ * - `PersistentFrame` (header + QR + rail droit garanti) en dehors du slideshow.
+ * - `useDisplayScenes` qui cycle entre 5 scènes (ranking pinned interleaved).
+ * - Interruption automatique vers `live-match` quand un nouveau match arrive.
+ * - Sortie clavier ESC.
  */
 export function DisplayShell({ source }: Props) {
   const navigate = useNavigate();
+
+  // Highlight 5s les joueurs du dernier match dès qu'il change
   const lastMatchIdRef = useRef<string | null>(null);
   const [highlightedPlayerIds, setHighlightedPlayerIds] = useState<Set<string>>(
     new Set(),
   );
+  const lastMatchId = source?.matches[0]?.id ?? null;
+
+  useEffect(() => {
+    if (!source || !lastMatchId) return;
+    if (lastMatchId === lastMatchIdRef.current) return;
+    // Premier mount : on capture l'id sans déclencher l'effet visuel
+    if (lastMatchIdRef.current === null) {
+      lastMatchIdRef.current = lastMatchId;
+      return;
+    }
+    lastMatchIdRef.current = lastMatchId;
+    const last = source.matches[0];
+    if (!last) return;
+    setHighlightedPlayerIds(new Set([...last.teamA, ...last.teamB]));
+    const timeout = setTimeout(() => setHighlightedPlayerIds(new Set()), 5000);
+    return () => clearTimeout(timeout);
+  }, [source, lastMatchId]);
+
+  // Slideshow
+  const {
+    activeSceneId,
+    activeMode,
+    progress,
+    isPaused,
+    uniqueScenes,
+    notifyComplete,
+  } = useDisplayScenes({
+    scenes: SCENES,
+    pauseOnNewMatch: true,
+    newMatchSceneId: "live-match",
+    newMatchHoldMs: 8_000,
+    newMatchSignal: lastMatchId,
+  });
+
+  // Phase rapportée par la scène self-paced active (pour les indicators)
+  const [selfPacedPhase, setSelfPacedPhase] =
+    useState<SelfPacedScrollPhase>("idle");
 
   // ESC = retour à la page parente
   useEffect(() => {
@@ -37,16 +91,32 @@ export function DisplayShell({ source }: Props) {
     return () => window.removeEventListener("keydown", handler);
   }, [source, navigate]);
 
-  // Highlight 5s les joueurs du dernier match dès qu'il change
-  useEffect(() => {
-    if (!source || source.matches.length === 0) return;
-    const lastMatch = source.matches[0];
-    if (lastMatch.id === lastMatchIdRef.current) return;
-    lastMatchIdRef.current = lastMatch.id;
-    setHighlightedPlayerIds(new Set([...lastMatch.teamA, ...lastMatch.teamB]));
-    const timeout = setTimeout(() => setHighlightedPlayerIds(new Set()), 5000);
-    return () => clearTimeout(timeout);
-  }, [source]);
+  const scene = useMemo(() => {
+    if (!source) return null;
+    switch (activeSceneId) {
+      case "ranking":
+        return (
+          <RankingScene
+            source={source}
+            highlightedPlayerIds={highlightedPlayerIds}
+            enabled
+            paused={isPaused}
+            onComplete={notifyComplete}
+            onPhaseChange={setSelfPacedPhase}
+          />
+        );
+      case "podium":
+        return <PodiumScene source={source} />;
+      case "live-match":
+        return <LiveMatchScene source={source} />;
+      case "highlight":
+        return <HighlightScene source={source} />;
+      case "stats":
+        return <StatsScene source={source} />;
+      default:
+        return null;
+    }
+  }, [activeSceneId, source, highlightedPlayerIds, isPaused, notifyComplete]);
 
   if (!source) {
     return (
@@ -80,10 +150,20 @@ export function DisplayShell({ source }: Props) {
         </>
       }
     >
-      <RankingScene
-        source={source}
-        highlightedPlayerIds={highlightedPlayerIds}
-      />
+      <div className="flex flex-col h-full min-h-0">
+        <div className="flex-1 min-h-0 overflow-hidden">{scene}</div>
+        <div className="flex-shrink-0 mt-2">
+          <SceneIndicators
+            scenes={uniqueScenes}
+            activeId={activeSceneId}
+            progress={activeMode === "timed" ? progress : -1}
+            selfPacedPhase={
+              activeMode === "self-paced" ? selfPacedPhase : undefined
+            }
+            isPaused={isPaused}
+          />
+        </div>
+      </div>
     </PersistentFrame>
   );
 }
