@@ -135,7 +135,7 @@ export function Podium({
                     {player.delta}
                   </span>
                 )}
-                <span className="text-[11px] font-mono font-bold text-lime tabular-nums">
+                <span className="text-[11px] font-mono font-bold text-white tabular-nums">
                   {player.elo}
                 </span>
               </div>

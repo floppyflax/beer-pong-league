@@ -338,19 +338,21 @@ export function PlayerCard(props: PlayerCardProps) {
                   {props.delta}
                 </span>
               )}
-              <span className="text-base font-mono font-bold tabular-nums text-lime">
+              <span className="text-base font-mono font-bold tabular-nums text-white">
                 {props.rightLabel ?? props.elo}
               </span>
             </span>
           </div>
-          <div className="flex items-center gap-2 mt-0.5 min-w-0">
-            {hasStats && (
-              <StatsInline
-                wins={props.wins ?? 0}
-                losses={props.losses ?? 0}
-                winRate={winRate}
-              />
-            )}
+          <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              {hasStats && (
+                <StatsInline
+                  wins={props.wins ?? 0}
+                  losses={props.losses ?? 0}
+                  winRate={winRate}
+                />
+              )}
+            </div>
             {props.recentResults !== undefined && (
               <ResultDots results={props.recentResults} />
             )}
