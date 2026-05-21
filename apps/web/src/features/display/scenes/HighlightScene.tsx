@@ -1,34 +1,17 @@
-import { useEffect, useState } from "react";
 import { HighlightCard } from "../components/HighlightCard";
 import { useDisplayHighlights } from "../hooks/useDisplayHighlights";
 import type { DisplaySource } from "../types";
 
 interface Props {
   source: DisplaySource;
-  /** Vitesse de rotation entre highlights internes, en ms. Défaut 4s. */
-  rotateMs?: number;
 }
 
 /**
- * Scène "moment marquant" : cycle entre les highlights disponibles.
- * Si aucun highlight, fallback "Pas encore de moment marquant".
+ * Scène "moments marquants" : affiche jusqu'à 3 highlights **côte à côte** en
+ * colonnes. Si < 3 dispo, affiche ceux qu'on a. Fallback si 0.
  */
-export function HighlightScene({ source, rotateMs = 4000 }: Props) {
-  const highlights = useDisplayHighlights(source);
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (highlights.length <= 1) return;
-    const interval = setInterval(() => {
-      setIndex((i) => (i + 1) % highlights.length);
-    }, rotateMs);
-    return () => clearInterval(interval);
-  }, [highlights.length, rotateMs]);
-
-  // Reset à 0 si la liste change
-  useEffect(() => {
-    setIndex(0);
-  }, [highlights.length]);
+export function HighlightScene({ source }: Props) {
+  const highlights = useDisplayHighlights(source).slice(0, 3);
 
   if (highlights.length === 0) {
     return (
@@ -43,19 +26,29 @@ export function HighlightScene({ source, rotateMs = 4000 }: Props) {
     );
   }
 
-  const current = highlights[index];
-
   return (
     <div className="flex flex-col h-full min-h-0">
-      <h2 className="font-archivo font-black uppercase tracking-[-0.6px] text-xl md:text-3xl mb-4 flex-shrink-0 flex items-center justify-between">
-        <span>Moment marquant</span>
-        <span className="font-mono text-xs uppercase tracking-[2px] text-cool-gray font-bold">
-          {index + 1} / {highlights.length}
-        </span>
+      <h2 className="font-archivo font-black uppercase tracking-[-0.6px] text-xl md:text-3xl mb-4 flex-shrink-0">
+        Moments marquants
       </h2>
 
-      <div className="flex-1 min-h-0">
-        <HighlightCard highlight={current} />
+      <div
+        className={`flex-1 min-h-0 grid gap-3 md:gap-4 ${
+          highlights.length === 1
+            ? "grid-cols-1"
+            : highlights.length === 2
+              ? "grid-cols-2"
+              : "grid-cols-3"
+        }`}
+      >
+        {highlights.map((h) => (
+          <div
+            key={h.type}
+            className="bg-navy-soft border-[1.5px] border-card rounded-card min-h-0 overflow-hidden"
+          >
+            <HighlightCard highlight={h} variant="column" />
+          </div>
+        ))}
       </div>
     </div>
   );

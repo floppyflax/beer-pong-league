@@ -20,22 +20,27 @@ export interface UseSelfPacedScrollOptions {
   /** Appelé une fois la séquence terminée (avant de passer à la scène suivante). */
   onComplete: () => void;
   /**
-   * Quand `true`, freeze sur la phase courante (timer stop, rAF cancel).
-   * Reprend là où on était au prochain `false`.
+   * Quand `true`, freeze : les timers sont stoppés. À la reprise (`false`),
+   * la séquence redémarre depuis hold-top (cas rare, on ne mémorise pas la
+   * progression intermédiaire).
    */
   paused?: boolean;
 }
 
 /**
- * Pilote un container scrollable en 3 phases : hold-top → scrolling lent
- * (requestAnimationFrame) → hold-bottom → onComplete.
+ * Pilote un container scrollable en 3 phases : hold-top → scrolling lent →
+ * hold-bottom → onComplete.
  *
- * Skip "scrolling" et "hold-bottom" si le contenu ne dépasse pas le viewport
- * (la scène fait juste hold-top pendant `holdTopMs + holdBottomMs` puis
- * notify).
+ * IMPORTANT — robustesse arrière-plan : la complétion (`onComplete`) est
+ * garantie par un **timer maître `setTimeout`** dont la durée est calculée une
+ * fois au démarrage (`holdTop + overflowPx/speed + holdBottom`). On n'utilise
+ * PAS `requestAnimationFrame` : il est suspendu quand l'onglet n'est pas
+ * visible / focus (cas typique d'un écran de diffusion sur un second moniteur
+ * ou en arrière-plan), ce qui bloquait la rotation. Le défilement visuel est
+ * appliqué par un `setInterval` purement cosmétique : même throttlé en
+ * arrière-plan, le timer maître fait avancer la scène.
  *
- * Conçu pour la scène Ranking en mode diffusion, mais réutilisable pour toute
- * scène self-paced avec une longue liste.
+ * Skip "scrolling" + "hold-bottom" si le contenu tient dans le viewport.
  */
 export function useSelfPacedScroll(
   ref: RefObject<HTMLElement | null>,
@@ -49,115 +54,63 @@ export function useSelfPacedScroll(
   }: UseSelfPacedScrollOptions,
 ): SelfPacedScrollPhase {
   const [phase, setPhase] = useState<SelfPacedScrollPhase>("idle");
-  const phaseRef = useRef<SelfPacedScrollPhase>("idle");
-  const rafRef = useRef<number | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  const updatePhase = (next: SelfPacedScrollPhase) => {
-    phaseRef.current = next;
-    setPhase(next);
-  };
-
   useEffect(() => {
-    // Reset à chaque (re-)mount avec enabled true
-    if (!enabled) {
-      updatePhase("idle");
+    if (!enabled || paused) {
+      setPhase("idle");
       const el = ref.current;
       if (el) el.scrollTop = 0;
       return;
     }
 
-    // Setup
     const el = ref.current;
     if (el) el.scrollTop = 0;
-    updatePhase("hold-top");
 
-    const cleanup = () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      if (timeoutRef.current !== null) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
+    // Mesure de l'overflow une seule fois (le layout est settle après paint).
+    const overflow = el ? Math.max(0, el.scrollHeight - el.clientHeight) : 0;
+    const hasOverflow = overflow > 4;
+    const scrollMs = hasOverflow
+      ? (overflow / scrollSpeedPxPerSec) * 1000
+      : 0;
+    const totalMs = holdTopMs + scrollMs + holdBottomMs;
 
-    const startHoldTop = () => {
-      timeoutRef.current = setTimeout(() => {
-        const target = ref.current;
-        if (!target) {
-          updatePhase("done");
-          onCompleteRef.current();
-          return;
-        }
-        // Si la liste tient dans le viewport → skip scrolling
-        if (target.scrollHeight <= target.clientHeight + 4) {
-          startHoldBottom();
-        } else {
-          startScrolling();
-        }
-      }, holdTopMs);
-    };
+    setPhase("hold-top");
+    const t0 = Date.now();
 
-    const startScrolling = () => {
-      updatePhase("scrolling");
+    // Stepping cosmétique du scroll + libellé de phase.
+    const stepIv = setInterval(() => {
+      const elapsed = Date.now() - t0;
       const target = ref.current;
-      if (!target) {
-        updatePhase("done");
-        onCompleteRef.current();
-        return;
-      }
-      let lastTs: number | null = null;
-      const tick = (ts: number) => {
-        if (lastTs === null) lastTs = ts;
-        const dt = (ts - lastTs) / 1000;
-        lastTs = ts;
-        const next = target.scrollTop + dt * scrollSpeedPxPerSec;
-        const max = target.scrollHeight - target.clientHeight;
-        if (next >= max) {
-          target.scrollTop = max;
-          startHoldBottom();
-          return;
+      if (elapsed < holdTopMs) {
+        setPhase("hold-top");
+        if (target) target.scrollTop = 0;
+      } else if (hasOverflow && elapsed < holdTopMs + scrollMs) {
+        setPhase("scrolling");
+        if (target) {
+          const p = (elapsed - holdTopMs) / scrollMs;
+          target.scrollTop = overflow * p;
         }
-        target.scrollTop = next;
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
+      } else {
+        setPhase("hold-bottom");
+        if (target) target.scrollTop = overflow;
+      }
+    }, 50);
+
+    // Timer maître : garantit l'advance même si setInterval est throttlé.
+    // Clear l'interval cosmétique pour qu'il n'écrase pas la phase "done".
+    const completeTimer = setTimeout(() => {
+      clearInterval(stepIv);
+      setPhase("done");
+      onCompleteRef.current();
+    }, totalMs);
+
+    return () => {
+      clearTimeout(completeTimer);
+      clearInterval(stepIv);
     };
-
-    const startHoldBottom = () => {
-      updatePhase("hold-bottom");
-      timeoutRef.current = setTimeout(() => {
-        updatePhase("done");
-        onCompleteRef.current();
-      }, holdBottomMs);
-    };
-
-    if (!paused) startHoldTop();
-
-    return cleanup;
   }, [enabled, holdTopMs, scrollSpeedPxPerSec, holdBottomMs, ref, paused]);
-
-  // Gestion du pause/resume : on freeze les timers/rAF, mais on garde la
-  // phase courante. La reprise se fait au prochain enabled=true ou paused=false.
-  useEffect(() => {
-    if (!enabled) return;
-    if (paused) {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      if (timeoutRef.current !== null) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    }
-    // (la reprise depuis un pause n'est pas supportée mid-phase pour
-    // simplifier — l'usage principal est : pause/resume rare entre scènes.)
-  }, [paused, enabled]);
 
   return phase;
 }

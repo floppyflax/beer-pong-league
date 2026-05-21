@@ -130,10 +130,11 @@ export function useDisplayScenes({
     [sequence],
   );
 
-  // Timer pour les scènes timed
-  const timedStartRef = useRef<number>(0);
-  const rafRef = useRef<number | null>(null);
-
+  // Timer pour les scènes timed.
+  // IMPORTANT : advance piloté par `setTimeout` (robuste même en arrière-plan,
+  // contrairement à requestAnimationFrame qui est suspendu quand l'onglet
+  // n'est pas visible/focus — cas d'un écran de diffusion). La progression est
+  // un `setInterval` cosmétique (peut être throttlé sans casser l'advance).
   useEffect(() => {
     if (isPaused) return;
     if (activeMode !== "timed") {
@@ -141,25 +142,17 @@ export function useDisplayScenes({
       return;
     }
     const duration = activeScene?.durationMs ?? 10_000;
-    timedStartRef.current = performance.now();
+    const t0 = Date.now();
+    setProgress(0);
 
-    const tick = (now: number) => {
-      const elapsed = now - timedStartRef.current;
-      const p = Math.min(elapsed / duration, 1);
-      setProgress(p);
-      if (p >= 1) {
-        advance();
-      } else {
-        rafRef.current = requestAnimationFrame(tick);
-      }
-    };
-    rafRef.current = requestAnimationFrame(tick);
+    const advanceTimer = setTimeout(() => advance(), duration);
+    const progressIv = setInterval(() => {
+      setProgress(Math.min((Date.now() - t0) / duration, 1));
+    }, 100);
 
     return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
+      clearTimeout(advanceTimer);
+      clearInterval(progressIv);
     };
   }, [activeMode, activeScene?.durationMs, advance, isPaused, seqIndex]);
 

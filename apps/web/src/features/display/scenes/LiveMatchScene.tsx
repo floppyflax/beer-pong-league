@@ -1,13 +1,22 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { getInitials } from "@/utils/string";
 import type { DisplaySource } from "../types";
 
 interface Props {
   source: DisplaySource;
 }
 
+interface TeamPlayer {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  delta: number;
+}
+
 /**
- * Scène "Match qui vient de tomber" : grand format, équipe A vs B, ELO delta
- * par joueur. Si pas encore de match, fallback "En attente du premier match".
+ * Scène "Match qui vient de tomber" : grand format, équipe A vs B, avatars +
+ * noms des joueurs, et **un seul** delta ELO par équipe (gagné côté vainqueur,
+ * perdu côté battu). Si pas encore de match, fallback.
  */
 export function LiveMatchScene({ source }: Props) {
   const last = source.matches[0];
@@ -26,16 +35,18 @@ export function LiveMatchScene({ source }: Props) {
   }
 
   const winnerA = last.scoreA > last.scoreB;
-  const teamA = last.teamA.map((id) => ({
-    id,
-    name: source.players.find((p) => p.id === id)?.name ?? "Joueur",
-    delta: last.eloChanges?.[id] ?? 0,
-  }));
-  const teamB = last.teamB.map((id) => ({
-    id,
-    name: source.players.find((p) => p.id === id)?.name ?? "Joueur",
-    delta: last.eloChanges?.[id] ?? 0,
-  }));
+  const toTeam = (ids: string[]): TeamPlayer[] =>
+    ids.map((id) => {
+      const p = source.players.find((sp) => sp.id === id);
+      return {
+        id,
+        name: p?.name ?? "Joueur",
+        avatarUrl: p?.avatarUrl,
+        delta: last.eloChanges?.[id] ?? 0,
+      };
+    });
+  const teamA = toTeam(last.teamA);
+  const teamB = toTeam(last.teamB);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -63,56 +74,82 @@ export function LiveMatchScene({ source }: Props) {
   );
 }
 
+/** Delta ELO représentatif de l'équipe : moyenne arrondie des deltas joueurs
+ *  (égal à la valeur commune en 1v1 ou quand le K-factor est uniforme). */
+function teamDelta(team: TeamPlayer[]): number {
+  const withDelta = team.filter((p) => p.delta !== 0);
+  if (withDelta.length === 0) return 0;
+  const sum = withDelta.reduce((acc, p) => acc + p.delta, 0);
+  return Math.round(sum / withDelta.length);
+}
+
+function PlayerAvatar({ player }: { player: TeamPlayer }) {
+  return (
+    <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-navy-deep flex items-center justify-center font-mono font-bold text-white overflow-hidden border-2 border-card flex-shrink-0 text-lg">
+      {player.avatarUrl ? (
+        <img
+          src={player.avatarUrl}
+          alt=""
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span>{getInitials(player.name)}</span>
+      )}
+    </div>
+  );
+}
+
 function TeamCard({
   team,
   score,
   isWinner,
 }: {
-  team: { id: string; name: string; delta: number }[];
+  team: TeamPlayer[];
   score: number;
   isWinner: boolean;
 }) {
+  const delta = teamDelta(team);
   return (
     <div
-      className={`flex flex-col items-center justify-center h-full rounded-card border-[1.5px] p-8 ${
+      className={`flex flex-col items-center justify-center h-full rounded-card border-[1.5px] p-6 md:p-8 ${
         isWinner
           ? "bg-lime/10 border-lime shadow-[0_3px_0_#8BCC1F]"
           : "bg-signal-red/10 border-signal-red shadow-[0_3px_0_#C42418]"
       }`}
     >
-      <div className="font-mono text-xs uppercase tracking-[3px] mb-4 opacity-70">
+      <div className="font-mono text-xs uppercase tracking-[3px] mb-3 opacity-70">
         {isWinner ? "Vainqueur" : "Battu"}
       </div>
       <div
-        className={`font-archivo font-black tabular-nums leading-none mb-6 ${
+        className={`font-archivo font-black tabular-nums leading-none mb-3 ${
           isWinner ? "text-lime" : "text-signal-red"
         }`}
-        style={{ fontSize: "min(200px, 22vh)", letterSpacing: "-6px" }}
+        style={{ fontSize: "min(180px, 20vh)", letterSpacing: "-6px" }}
       >
         {score}
       </div>
-      <div className="space-y-2 w-full">
+
+      {/* Un seul delta ELO pour toute l'équipe */}
+      {delta !== 0 && (
+        <div
+          className={`flex items-center gap-1.5 font-archivo font-black tabular-nums mb-5 text-2xl md:text-3xl ${
+            delta > 0 ? "text-lime" : "text-signal-red"
+          }`}
+        >
+          {delta > 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
+          {delta > 0 ? "+" : ""}
+          {delta} ELO
+        </div>
+      )}
+
+      {/* Avatars + noms */}
+      <div className="flex flex-col items-center gap-3 w-full">
         {team.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-center justify-between gap-3 font-archivo font-extrabold uppercase tracking-tight text-xl md:text-2xl"
-          >
-            <span className="truncate">{p.name}</span>
-            {p.delta !== 0 && (
-              <span
-                className={`flex items-center gap-1 text-base tabular-nums ${
-                  p.delta > 0 ? "text-lime" : "text-signal-red"
-                }`}
-              >
-                {p.delta > 0 ? (
-                  <TrendingUp size={16} />
-                ) : (
-                  <TrendingDown size={16} />
-                )}
-                {p.delta > 0 ? "+" : ""}
-                {p.delta}
-              </span>
-            )}
+          <div key={p.id} className="flex items-center gap-3 max-w-full">
+            <PlayerAvatar player={p} />
+            <span className="font-archivo font-extrabold uppercase tracking-tight text-white truncate text-2xl md:text-4xl">
+              {p.name}
+            </span>
           </div>
         ))}
       </div>
