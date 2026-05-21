@@ -2,7 +2,7 @@
  * LeagueCard — listing pressed-card pour une ligue.
  *
  * Construit sur `CardShell` (partagé avec `EventCard`).
- * Header : pill statut (Active / Terminée) + Propriétaire si owner + rang
+ * Header : pill statut (Active / Terminée) + badge "Admin" si créateur + rang
  * `1er / N` à droite du titre quand je participe.
  * Body : 3 colonnes de stats — membres, événements, dernière activité.
  */
@@ -80,7 +80,7 @@ export const LeagueCard: React.FC<LeagueCardProps> = ({ league }) => {
                 : `Saison ${league.currentSeasonNumber}`,
         tone: lifecycle === "active" ? "live" : "muted",
       }}
-      ownerLabel={isOwner ? "Propriétaire" : undefined}
+      adminBadge={Boolean(isOwner)}
       titleSuffix={
         myRank ? <MyRankBadge rank={myRank.rank} total={myRank.total} /> : undefined
       }

@@ -8,12 +8,9 @@ import {
   Users,
   Monitor,
   UserPlus,
-  FileJson,
-  FileSpreadsheet,
   Settings,
   Pause,
   Play,
-  RotateCcw,
 } from "lucide-react";
 import {
   getLeagueLifecycle,
@@ -38,8 +35,8 @@ import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import {
   getDeltaFromLastMatch,
   getLast5MatchResults,
+  getRankDeltasFromLastMatch,
 } from "@/utils/playerStats";
-import { exportLeagueJSON, exportPlayersCSV, exportMatchesCSV } from "@/services/ExportService";
 import { Podium } from "@/components/ponglo/Podium";
 import { PButton } from "@/components/ponglo/PButton";
 import { PlayerCard } from "@/components/design-system/PlayerCard";
@@ -52,7 +49,6 @@ export const LeagueDashboard = () => {
     addPlayer,
     pauseLeague,
     resumeLeague,
-    startNewLeagueSeason,
     isLoadingInitialData,
   } = useLeague();
   const navigate = useNavigate();
@@ -62,6 +58,8 @@ export const LeagueDashboard = () => {
     "classement" | "matchs" | "stats" | "events"
   >("classement");
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  // Ghost management vit dans LeagueSettings (mig 029 — plus de menu overflow
+  // sur le hero). Si tu cherches `useUnclaimedGuests`, c'est là-bas.
 
   // Escape key closes add-player modal
   useEffect(() => {
@@ -120,6 +118,12 @@ export const LeagueDashboard = () => {
     [league.matches],
   );
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const rankDeltas = useMemo(
+    () => getRankDeltasFromLastMatch(sortedPlayers, sortedMatches),
+    [sortedPlayers, sortedMatches],
+  );
+
   // Story 9-5 - Get permissions for contextual actions
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { isAdmin, canInvite } = useDetailPagePermissions(id || "", "league");
@@ -131,38 +135,10 @@ export const LeagueDashboard = () => {
     setShowAddPlayer(false);
   };
 
-  // Kebab menu — admin gère tout via Paramètres, donc menu vide.
-  // Non-admin garde l'accès à l'historique et aux exports via le menu.
-  const detailHeroMenuItems = isAdmin
-    ? []
-    : [
-        {
-          label: "Historique des saisons",
-          icon: <History size={20} />,
-          onClick: () => navigate(`/league/${league.id}/seasons`),
-        },
-        {
-          label: "Exporter JSON",
-          icon: <FileJson size={20} />,
-          onClick: () => exportLeagueJSON(league),
-        },
-        {
-          label: "Exporter joueurs CSV",
-          icon: <FileSpreadsheet size={20} />,
-          onClick: () => exportPlayersCSV(league),
-        },
-        {
-          label: "Exporter matchs CSV",
-          icon: <FileSpreadsheet size={20} />,
-          onClick: () => {
-            const map: Record<string, string> = {};
-            league.players.forEach((p) => {
-              map[p.id] = p.name;
-            });
-            exportMatchesCSV(league, map);
-          },
-        },
-      ];
+  // Pas d'overflow menu sur le hero league (mig 029) : Paramètres + Mode
+  // Diffusion sont des iconOnly dédiés, et tout le reste (historique des
+  // saisons, exports CSV/JSON, gestion ghosts, suppression) est accessible
+  // depuis LeagueSettings.
 
   const shortDateFormatter: Intl.DateTimeFormatOptions = {
     day: "2-digit",
@@ -218,20 +194,12 @@ export const LeagueDashboard = () => {
           ? "Non démarrée"
           : "Active";
 
-  const handleStartNewSeason = async () => {
-    if (
-      !confirm(
-        `Démarrer la Saison ${seasonNumber + 1} ?\n\nLe classement actuel (Saison ${seasonNumber}) sera archivé et les ELO de tous les joueurs seront reset à 1000.\n\nCette action est irréversible.`,
-      )
-    )
-      return;
-    try {
-      await startNewLeagueSeason(league.id);
-    } catch {
-      // toast déjà affiché côté context
-    }
-  };
-
+  // Hero actions — spec uniforme event/league (mig 029) :
+  //  • Admin : [Ajouter primary] [Pause/Reprendre iconOnly] [Paramètres iconOnly] [Mode Diffusion iconOnly]
+  //  • Non-admin / invité : [Ajouter primary] uniquement.
+  //
+  // Les actions Clôturer/Réouvrir et le cycle de saison (forcer la fin →
+  // démarrer la suivante) ont migré dans la page Paramètres (mig 029).
   const detailHeroAdminActions: Parameters<typeof DetailHero>[0]["actions"] = [];
   if (isAdmin || canInvite) {
     detailHeroAdminActions.push({
@@ -242,7 +210,11 @@ export const LeagueDashboard = () => {
     });
   }
   if (isAdmin) {
-    if (lifecycle === "paused") {
+    if (lifecycle === "not_started") {
+      // Pas d'action lifecycle exposée — la league passera `active` toute
+      // seule à `planned_start_at`. L'admin peut quand même clôturer via
+      // les paramètres ou attendre.
+    } else if (lifecycle === "paused") {
       detailHeroAdminActions.push({
         label: "Reprendre la ligue",
         icon: <Play size={18} />,
@@ -260,16 +232,10 @@ export const LeagueDashboard = () => {
         },
         variant: "iconOnly",
       });
-      detailHeroAdminActions.push({
-        label: `Démarrer la Saison ${seasonNumber + 1}`,
-        icon: <RotateCcw size={18} />,
-        onClick: handleStartNewSeason,
-        variant: "iconOnly",
-      });
     }
-    // Clôturer / Réouvrir : pas dans la hero bar — accessibles via la page
-    // Paramètres (toggle unique). Pour `not_started`, la ligue passera
-    // `active` toute seule à `planned_start_at`.
+    // États `between_seasons` et `finished` → pas de bouton lifecycle dans le
+    // hero. L'admin gère via Paramètres (cf. LifecycleStrip ci-dessous qui
+    // l'oriente).
     detailHeroAdminActions.push({
       label: "Paramètres",
       icon: <Settings size={18} />,
@@ -313,10 +279,9 @@ export const LeagueDashboard = () => {
           { label: "Top ELO", value: topElo !== null ? String(topElo) : "—" },
         ]}
         actions={detailHeroAdminActions}
-        menuItems={detailHeroMenuItems}
       />
 
-      {/* Mig 028+029 — Lifecycle status strip (prio absolue) ou strip de
+      {/* Mig 028+029+030 — Lifecycle status strip (prio absolue) ou strip de
           rappel (saison/league overdue). Un seul strip à la fois pour ne pas
           surcharger l'admin. */}
       {lifecycle === "not_started" ? (
@@ -332,21 +297,37 @@ export const LeagueDashboard = () => {
               : "L'enregistrement de matchs sera autorisé une fois la ligue démarrée."
           }
         />
-      ) : lifecycle === "paused" || lifecycle === "finished" ? (
+      ) : lifecycle === "paused" ||
+        lifecycle === "between_seasons" ||
+        lifecycle === "finished" ? (
         <LifecycleStrip
-          tone={lifecycle === "paused" ? "paused" : "finished"}
+          tone={
+            lifecycle === "paused"
+              ? "paused"
+              : lifecycle === "between_seasons"
+                ? "between_seasons"
+                : "finished"
+          }
           testId="league-lifecycle-banner"
           title={
-            lifecycle === "paused" ? "Ligue en pause" : "Ligue terminée"
+            lifecycle === "paused"
+              ? "Ligue en pause"
+              : lifecycle === "between_seasons"
+                ? `Saison ${seasonNumber} close — en attente`
+                : "Ligue terminée"
           }
           description={
             lifecycle === "paused"
               ? isAdmin
                 ? "Reprends la ligue pour réautoriser l'enregistrement des matchs."
                 : "L'enregistrement de matchs est suspendu."
-              : isAdmin
-                ? "Plus aucun match ne peut être enregistré. Réouvre la ligue depuis le menu admin si besoin."
-                : "Cette ligue est clôturée. Le classement est figé."
+              : lifecycle === "between_seasons"
+                ? isAdmin
+                  ? `Démarre la Saison ${seasonNumber + 1} depuis Paramètres.`
+                  : "Aucun match ne peut être enregistré tant que la saison suivante n'a pas démarré."
+                : isAdmin
+                  ? "Plus aucun match ne peut être enregistré. Réouvre la ligue depuis Paramètres si besoin."
+                  : "Cette ligue est clôturée. Le classement est figé."
           }
         />
       ) : reminders.seasonOverdue ? (
@@ -429,6 +410,7 @@ export const LeagueDashboard = () => {
                       elo: p.elo,
                       delta:
                         getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
+                      rankDelta: rankDeltas.get(p.id),
                     }))}
                     className="mb-1"
                   />
@@ -452,6 +434,7 @@ export const LeagueDashboard = () => {
                         name={player.name}
                         elo={player.elo}
                         delta={delta ?? undefined}
+                        rankDelta={rankDeltas.get(player.id)}
                         rank={rank}
                         wins={player.wins}
                         losses={player.losses}

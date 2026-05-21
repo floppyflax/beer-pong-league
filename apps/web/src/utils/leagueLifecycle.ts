@@ -1,32 +1,39 @@
 /**
- * League lifecycle — derived state from `leagues` columns (mig 028 + mig 029).
+ * League lifecycle — derived state from `leagues` columns (mig 028 + 029 + 030).
  *
  * Schema:
- *   - paused_at         TIMESTAMPTZ NULL  (admin "Mettre en pause")
- *   - ended_at          TIMESTAMPTZ NULL  (admin "Clôturer la league")
- *   - planned_start_at  TIMESTAMPTZ NULL  (mig 029, gate not_started si futur)
+ *   - paused_at               TIMESTAMPTZ NULL  (mig 028 — admin "Mettre en pause")
+ *   - ended_at                TIMESTAMPTZ NULL  (mig 028 — admin "Clôturer la league")
+ *   - planned_start_at        TIMESTAMPTZ NULL  (mig 029 — gate not_started si futur)
+ *   - current_season_ended_at TIMESTAMPTZ NULL  (mig 030 — saison N close, en attente de N+1)
  *
- * Rules:
- *   finished    → ended_at
- *   paused      → !ended_at && paused_at
- *   not_started → !ended_at && !paused_at && planned_start_at > today
- *   active      → otherwise
+ * Rules (précédence du plus terminal au plus actif) :
+ *   finished        → endedAt
+ *   paused          → !endedAt && pausedAt
+ *   between_seasons → !endedAt && !pausedAt && currentSeasonEndedAt
+ *   not_started     → !endedAt && !pausedAt && !currentSeasonEndedAt && plannedStartAt > today
+ *   active          → otherwise
  *
  * Match logging is only allowed in `active`.
  *
  * Plus, des rappels informationnels (`getLeagueReminders`) qui n'affectent pas
- * le gating mais peuvent déclencher des strips UX (cf. mig 029) :
+ * le gating mais peuvent déclencher des strips UX (mig 029) :
  *   - seasonOverdue : currentSeasonStartedAt + seasonDurationDays < now
  *   - leagueOverdue : plannedEndAt < now (et league non encore clôturée)
  */
 
 import type { League } from '@/types';
 
-export type LeagueLifecycle = 'not_started' | 'active' | 'paused' | 'finished';
+export type LeagueLifecycle =
+  | 'not_started'
+  | 'active'
+  | 'paused'
+  | 'between_seasons'
+  | 'finished';
 
 export type LeagueLifecycleInput = Pick<
   League,
-  'pausedAt' | 'endedAt' | 'plannedStartAt'
+  'pausedAt' | 'endedAt' | 'plannedStartAt' | 'currentSeasonEndedAt'
 >;
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
@@ -34,6 +41,7 @@ const todayIso = (): string => new Date().toISOString().slice(0, 10);
 export function getLeagueLifecycle(league: LeagueLifecycleInput): LeagueLifecycle {
   if (league.endedAt) return 'finished';
   if (league.pausedAt) return 'paused';
+  if (league.currentSeasonEndedAt) return 'between_seasons';
   const startsAt = league.plannedStartAt?.slice(0, 10);
   if (startsAt && startsAt > todayIso()) return 'not_started';
   return 'active';
@@ -46,6 +54,7 @@ export const LEAGUE_LIFECYCLE_LABEL_FR: Record<LeagueLifecycle, string> = {
   not_started: 'Non démarrée',
   active: 'Active',
   paused: 'En pause',
+  between_seasons: 'Inter-saison',
   finished: 'Terminée',
 };
 

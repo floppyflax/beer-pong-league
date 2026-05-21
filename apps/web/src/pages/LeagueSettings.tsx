@@ -2,13 +2,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Archive,
-  FileJson,
-  FileSpreadsheet,
   Ghost,
-  History,
   Lock,
   Play,
   Plus,
+  RotateCcw,
   Trash2,
   Trophy,
 } from "lucide-react";
@@ -18,11 +16,6 @@ import { useLeague } from "@/context/LeagueContext";
 import { useDetailPagePermissions } from "@/hooks/useDetailPagePermissions";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
-import {
-  exportLeagueJSON,
-  exportMatchesCSV,
-  exportPlayersCSV,
-} from "@/services/ExportService";
 import { getLeagueLifecycle } from "@/utils/leagueLifecycle";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -40,6 +33,8 @@ export const LeagueSettings = () => {
     deleteLeague,
     finishLeague,
     reopenLeague,
+    finishCurrentLeagueSeason,
+    startNewLeagueSeason,
     isLoadingInitialData,
     reloadData,
   } = useLeague();
@@ -133,31 +128,6 @@ export const LeagueSettings = () => {
     navigate("/");
   };
 
-  // Lifecycle toggle — symétrique à EventSettings.handleFinish.
-  // - finished → Réouvrir (one-tap, pas de confirm).
-  // - sinon (not_started / active / paused) → Clôturer (confirm requis).
-  const lifecycle = getLeagueLifecycle(league);
-  const isFinishedLeague = lifecycle === "finished";
-  const handleLifecycleToggle = async () => {
-    try {
-      if (isFinishedLeague) {
-        await reopenLeague(league.id);
-        toast.success("Ligue rouverte");
-      } else {
-        if (
-          !confirm(
-            "Clôturer cette ligue ? Plus aucun match ne pourra être enregistré (réversible via Réouvrir).",
-          )
-        )
-          return;
-        await finishLeague(league.id);
-        toast.success("Ligue clôturée");
-      }
-    } catch {
-      // toast d'erreur déjà émis côté context
-    }
-  };
-
   const handleRenameGhost = async (playerId: string, newPseudo: string) => {
     const result = await identityMergeService.renameAnonymousPlayer(
       "league",
@@ -213,6 +183,84 @@ export const LeagueSettings = () => {
       throw new Error(result.error);
     }
     return { token: result.token };
+  };
+
+  // ── Lifecycle + cycle de saison (mig 029) ──────────────────────────────
+  const lifecycle = getLeagueLifecycle(league);
+  const seasonNumber = league.currentSeasonNumber ?? 1;
+  const seasonStartedAt = league.currentSeasonStartedAt ?? league.createdAt;
+  const seasonEndedAt = league.currentSeasonEndedAt ?? null;
+  const dateFmt: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  };
+  const seasonStartedLabel = new Date(seasonStartedAt).toLocaleDateString(
+    "fr-FR",
+    dateFmt,
+  );
+  const seasonEndedLabel = seasonEndedAt
+    ? new Date(seasonEndedAt).toLocaleDateString("fr-FR", dateFmt)
+    : null;
+  const plannedStartLabel = league.plannedStartAt
+    ? new Date(league.plannedStartAt).toLocaleDateString("fr-FR", dateFmt)
+    : null;
+
+  const handleFinishLeague = () => {
+    if (
+      !confirm(
+        "Clôturer cette ligue ?\n\nPlus aucun match ne pourra être enregistré. Réversible via Réouvrir.",
+      )
+    )
+      return;
+    void finishLeague(league.id);
+  };
+
+  const handleReopenLeague = () => {
+    void reopenLeague(league.id);
+  };
+
+  const handleFinishCurrentSeason = async () => {
+    if (
+      !confirm(
+        `Forcer la fin de la Saison ${seasonNumber} ?\n\nLe classement actuel sera archivé. Aucun match ne pourra être enregistré tant que tu n'auras pas démarré la Saison ${seasonNumber + 1}.`,
+      )
+    )
+      return;
+    try {
+      await finishCurrentLeagueSeason(league.id);
+    } catch {
+      // toast déjà émis côté context
+    }
+  };
+
+  const handleStartNewSeason = async () => {
+    if (
+      !confirm(
+        `Démarrer la Saison ${seasonNumber + 1} ?\n\nLes ELO de tous les joueurs seront reset à 1000. Action irréversible.`,
+      )
+    )
+      return;
+    try {
+      await startNewLeagueSeason(league.id);
+    } catch {
+      // toast déjà émis côté context
+    }
+  };
+
+  const lifecycleDotClass: Record<typeof lifecycle, string> = {
+    not_started: "bg-ping-yellow",
+    active: "bg-lime",
+    paused: "bg-ping-yellow",
+    between_seasons: "bg-ping-yellow",
+    finished: "bg-cool-gray",
+  };
+  const lifecycleLabel: Record<typeof lifecycle, string> = {
+    not_started: "Non démarrée",
+    active: "Active",
+    paused: "En pause",
+    between_seasons: "Inter-saison",
+    finished: "Terminée",
   };
 
   const inputClass =
@@ -275,30 +323,133 @@ export const LeagueSettings = () => {
           </div>
         </div>
 
-        {/* Historique des saisons */}
+        {/* Lifecycle ligue (mig 029) — état + Clôturer/Réouvrir */}
         <div className="space-y-2">
           <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-            <span className="inline-flex items-center gap-1.5">
-              <History size={12} />
-              Historique des saisons
-            </span>
+            Lifecycle ligue
           </span>
-          <button
-            type="button"
-            onClick={() => navigate(`/league/${league.id}/seasons`)}
-            className="w-full p-3 rounded-card border border-card bg-navy-deep flex items-center gap-3 hover:border-white/60 transition-colors text-left"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="text-white font-archivo font-semibold text-sm">
-                Voir les saisons passées
-              </div>
-              <div className="text-cool-gray text-xs">
-                Classements archivés et palmarès
-              </div>
+          <div className="rounded-card border border-card bg-navy-deep p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2 h-2 rounded-full ${lifecycleDotClass[lifecycle]}`}
+                aria-hidden
+              />
+              <span className="font-archivo font-extrabold uppercase text-[12px] tracking-[1px] text-white">
+                {lifecycleLabel[lifecycle]}
+              </span>
             </div>
-            <div className="text-cool-gray">→</div>
-          </button>
+            {lifecycle === "active" && (
+              <PButton
+                type="button"
+                variant="ghost"
+                size="md"
+                full
+                onClick={handleFinishLeague}
+                data-testid="settings-finish-league"
+              >
+                <Archive size={16} className="inline mr-2" />
+                Clôturer la ligue
+              </PButton>
+            )}
+            {lifecycle === "finished" && (
+              <PButton
+                type="button"
+                variant="primary"
+                size="md"
+                full
+                onClick={handleReopenLeague}
+                data-testid="settings-reopen-league"
+              >
+                <Play size={16} className="inline mr-2" />
+                Réouvrir la ligue
+              </PButton>
+            )}
+            {lifecycle === "paused" && (
+              <p className="text-xs text-cool-gray">
+                La ligue est en pause. Reprends-la depuis le hero pour
+                réautoriser les matchs.
+              </p>
+            )}
+            {lifecycle === "between_seasons" && (
+              <p className="text-xs text-cool-gray">
+                Saison {seasonNumber} close. Démarre la suivante dans la
+                section ci-dessous.
+              </p>
+            )}
+            {lifecycle === "not_started" && (
+              <p className="text-xs text-cool-gray">
+                La ligue n'a pas encore démarré
+                {plannedStartLabel ? ` (prévue le ${plannedStartLabel})` : ""}.
+                Tu pourras la clôturer ici une fois active.
+              </p>
+            )}
+          </div>
         </div>
+
+        {/* Cycle de saison (mig 029) — UNIQUEMENT pour les ligues saisonnières.
+            Une ligue Continue (one-shot) = une seule saison, pas de cycle. */}
+        {league.type === "season" && (
+          <div className="space-y-2">
+            <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+              Cycle de saison
+            </span>
+            <div className="rounded-card border border-card bg-navy-deep p-3 space-y-3">
+              <div>
+                <div className="font-archivo font-extrabold uppercase text-sm tracking-tight text-white">
+                  Saison {seasonNumber}
+                </div>
+                <div className="text-xs text-cool-gray">
+                  Démarrée le {seasonStartedLabel}
+                  {seasonEndedLabel ? ` · close le ${seasonEndedLabel}` : ""}
+                </div>
+              </div>
+              {lifecycle === "active" && (
+                <PButton
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  full
+                  onClick={handleFinishCurrentSeason}
+                  data-testid="settings-finish-season"
+                >
+                  <Archive size={16} className="inline mr-2" />
+                  Forcer la fin de la Saison {seasonNumber}
+                </PButton>
+              )}
+              {lifecycle === "between_seasons" && (
+                <PButton
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  full
+                  onClick={handleStartNewSeason}
+                  data-testid="settings-start-next-season"
+                >
+                  <RotateCcw size={16} className="inline mr-2" />
+                  Démarrer la Saison {seasonNumber + 1}
+                </PButton>
+              )}
+              {(lifecycle === "paused" ||
+                lifecycle === "finished" ||
+                lifecycle === "not_started") && (
+                <p className="text-xs text-cool-gray">
+                  {lifecycle === "paused"
+                    ? "Reprends la ligue pour gérer le cycle de saison."
+                    : lifecycle === "finished"
+                      ? "Réouvre la ligue pour gérer le cycle de saison."
+                      : "Le cycle de saison sera actif dès que la ligue aura démarré."}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate(`/league/${league.id}/seasons`)}
+                className="w-full text-left text-xs text-cool-gray underline-offset-2 hover:text-white hover:underline transition-colors"
+              >
+                Voir l&apos;historique des saisons →
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Ghost management entry */}
         {leagueGhosts.length > 0 && (
@@ -373,78 +524,19 @@ export const LeagueSettings = () => {
           </PButton>
         </div>
 
-        {/* Export actions */}
-        <div className="space-y-2">
-          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
-            Exporter
-          </span>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <PButton
-              type="button"
-              variant="ghost"
-              size="md"
-              full
-              icon={<FileJson size={16} />}
-              onClick={() => exportLeagueJSON(league)}
-            >
-              JSON
-            </PButton>
-            <PButton
-              type="button"
-              variant="ghost"
-              size="md"
-              full
-              icon={<FileSpreadsheet size={16} />}
-              onClick={() => exportPlayersCSV(league)}
-            >
-              Joueurs CSV
-            </PButton>
-            <PButton
-              type="button"
-              variant="ghost"
-              size="md"
-              full
-              icon={<FileSpreadsheet size={16} />}
-              onClick={() => {
-                const map: Record<string, string> = {};
-                league.players.forEach((p) => {
-                  map[p.id] = p.name;
-                });
-                exportMatchesCSV(league, map);
-              }}
-            >
-              Matchs CSV
-            </PButton>
-          </div>
-        </div>
-
         {/* Sticky footer */}
         <div className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10">
           <div className="max-w-2xl mx-auto flex flex-col gap-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <PButton
-                type="button"
-                variant="ghost"
-                size="lg"
-                full
-                icon={
-                  isFinishedLeague ? <Play size={18} /> : <Archive size={18} />
-                }
-                onClick={handleLifecycleToggle}
-              >
-                {isFinishedLeague ? "Réouvrir la ligue" : "Clôturer la ligue"}
-              </PButton>
-              <PButton
-                type="button"
-                variant="ghost"
-                size="lg"
-                full
-                icon={<Trash2 size={18} />}
-                onClick={handleDeleteLeague}
-              >
-                Supprimer
-              </PButton>
-            </div>
+            <PButton
+              type="button"
+              variant="ghost"
+              size="lg"
+              full
+              icon={<Trash2 size={18} />}
+              onClick={handleDeleteLeague}
+            >
+              Supprimer la ligue
+            </PButton>
             <PButton
               type="submit"
               variant="primary"

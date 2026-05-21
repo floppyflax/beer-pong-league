@@ -51,6 +51,7 @@ import { PlayerCard } from "@/components/design-system/PlayerCard";
 import {
   getDeltaFromLastMatch,
   getLast5MatchResults,
+  getRankDeltasFromLastMatch,
 } from "@/utils/playerStats";
 
 // Task 4 - Utility function for relative timestamps (AC4)
@@ -207,6 +208,11 @@ export const EventDashboard = () => {
     getEventLocalRanking,
     getLeagueGlobalRanking,
   ]);
+
+  const rankDeltas = useMemo(
+    () => getRankDeltasFromLastMatch(ranking, sortedMatches),
+    [ranking, sortedMatches],
+  );
 
   // Auto-add new players from League to Event - MUST be called unconditionally
   useEffect(() => {
@@ -391,8 +397,8 @@ export const EventDashboard = () => {
     year: "2-digit",
   });
 
-  // Hero actions — spec refonte :
-  //  • Admin : [Ajouter primary] [Paramètres secondary] [📺 Mode Diffusion iconOnly]
+  // Hero actions — spec uniforme event/league (mig 029) :
+  //  • Admin : [Ajouter primary] [Pause/Démarrer/Reprendre iconOnly] [Paramètres iconOnly] [Mode Diffusion iconOnly]
   //  • Non-admin : [Ajouter primary], avec Quitter accessible via menu (seul item
   //    conservé pour les participants).
   const detailHeroActions: DetailHeroAction[] = [];
@@ -687,6 +693,7 @@ export const EventDashboard = () => {
                       name: p.name,
                       elo: p.elo,
                       delta: getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
+                      rankDelta: rankDeltas.get(p.id),
                     }))}
                     scope={rankingMode === "global" ? league?.name : undefined}
                     className="mb-1"
@@ -718,6 +725,7 @@ export const EventDashboard = () => {
                           name={player.name}
                           elo={player.elo}
                           delta={delta ?? undefined}
+                          rankDelta={rankDeltas.get(player.id)}
                           rank={rank}
                           wins={player.wins}
                           losses={player.losses}
