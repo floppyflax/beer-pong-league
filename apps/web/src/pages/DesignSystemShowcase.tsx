@@ -769,7 +769,7 @@ export function DesignSystemShowcase() {
                 <PlayerCard variant="compact" name="Florian" avatarUrl="https://i.pravatar.cc/150?img=12" selected />
                 <PlayerCard variant="compact" name="Amar" />
               </div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pt-2">variant=&quot;leaderRow&quot; — classement avec rang à gauche, stats W/L/% inline + dots</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pt-2">variant=&quot;leaderRow&quot; — médaillon rang en bas-droite de l&apos;avatar, badge ▲/▼ rang en haut-gauche, ELO + ΔELO sur la ligne du nom (ELO aligné à droite), stats W/L/% + dots sous le nom</p>
               <div className="space-y-2 max-w-md">
                 <PlayerCard
                   variant="leaderRow"
@@ -1123,11 +1123,16 @@ export function DesignSystemShowcase() {
           {/* LeaderRow */}
           <div>
             <SubHeading>LeaderRow (§5.3) — ligne leaderboard</SubHeading>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pb-2">
+              Badge ▲/▼ + places sur l&apos;avatar (haut-gauche). ΔELO à
+              gauche de l&apos;ELO pour alignement à droite. Convention partagée
+              avec <code>PlayerCard.leaderRow</code>.
+            </p>
             <div className="flex flex-col gap-1.5 p-4 bg-navy-soft rounded-card border border-card">
               {[
-                { rank: 1, name: "Marc Dupont", elo: 1850, delta: +24, eloHistory: [1700, 1750, 1780, 1800, 1850] },
-                { rank: 2, name: "Jean Martin", elo: 1720, delta: -12, eloHistory: [1780, 1760, 1730, 1720] },
-                { rank: 3, name: "Paul Tiers", elo: 1600, delta: +5, eloHistory: [1550, 1570, 1600] },
+                { rank: 1, name: "Marc Dupont", elo: 1850, delta: +24, rankDelta: 2, eloHistory: [1700, 1750, 1780, 1800, 1850] },
+                { rank: 2, name: "Jean Martin", elo: 1720, delta: -12, rankDelta: -1, eloHistory: [1780, 1760, 1730, 1720] },
+                { rank: 3, name: "Paul Tiers", elo: 1600, delta: +5, rankDelta: -1, eloHistory: [1550, 1570, 1600] },
                 { rank: 4, name: "Alice Lebrun", elo: 1400, delta: 0, eloHistory: [1420, 1400] },
               ].map((p) => (
                 <LeaderRow
@@ -1143,6 +1148,10 @@ export function DesignSystemShowcase() {
           {/* Podium */}
           <div>
             <SubHeading>Podium (§5.3) — top 3</SubHeading>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pb-2">
+              Badge ▲/▼ en haut-gauche de l&apos;avatar. Couronne 👑 du n°1 en
+              haut-droite pour éviter la collision. ΔELO à gauche de l&apos;ELO.
+            </p>
             <div className="max-w-xs">
               <Podium
                 top3={[
