@@ -242,49 +242,26 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         databaseService.loadEvents(userId, anonymousUserId),
       ]);
 
-      // Step 3: Filter localStorage data by current user before merging
-      // This ensures we don't mix data from different users
-      const localStorageLeagues = JSON.parse(localStorage.getItem("bpl_leagues") || "[]") as League[];
-      const localStorageEvents = JSON.parse(localStorage.getItem("bpl_events") || "[]") as Event[];
+      // Supabase is the source of truth as soon as it answers (here we are
+      // past the auth/identity guard, so we have a userId/anonymousUserId).
+      // The repositories already fall back to localStorage when Supabase is
+      // not configured at all (`isSupabaseAvailable()` check at the repo
+      // entry point), so `loadedLeagues`/`loadedEvents` either reflect the
+      // server truth or — in offline mode — the local cache. Either way we
+      // trust them directly. The previous "DB empty → keep localStorage"
+      // fallback caused phantom rows when the DB had legitimately been
+      // emptied (leagues deleted, account switched, stale cache from another
+      // device), which then broke FK constraints when the user tried to
+      // attach an event to one of these ghosts.
+      setLeagues(loadedLeagues);
+      setEvents(loadedEvents);
 
-      // Filter localStorage data by current user
-      const filteredLocalStorageLeagues = localStorageLeagues.filter((league) => {
-        if (userId) {
-          return league.creator_user_id === userId;
-        } else if (anonymousUserId) {
-          return league.creator_anonymous_user_id === anonymousUserId;
-        }
-        return false; // If no user ID, don't include localStorage data
-      });
+      // Refresh the local cache so a subsequent cold start sees DB truth.
+      localStorage.setItem("bpl_leagues", JSON.stringify(loadedLeagues));
+      localStorage.setItem("bpl_events", JSON.stringify(loadedEvents));
 
-      const filteredLocalStorageEvents = localStorageEvents.filter((event) => {
-        if (userId) {
-          return event.creator_user_id === userId;
-        } else if (anonymousUserId) {
-          return event.creator_anonymous_user_id === anonymousUserId;
-        }
-        return false; // If no user ID, don't include localStorage data
-      });
-
-      // Merge strategy: Use Supabase data if available, otherwise use filtered localStorage
-      const mergedLeagues = loadedLeagues.length > 0 
-        ? loadedLeagues 
-        : filteredLocalStorageLeagues;
-      
-      const mergedEvents = loadedEvents.length > 0 
-        ? loadedEvents 
-        : filteredLocalStorageEvents;
-
-      // Update state
-      setLeagues(mergedLeagues);
-      setEvents(mergedEvents);
-
-      // Update localStorage cache
-      localStorage.setItem("bpl_leagues", JSON.stringify(mergedLeagues));
-      localStorage.setItem("bpl_events", JSON.stringify(mergedEvents));
-
-      if (mergedLeagues.length > 0 || mergedEvents.length > 0) {
-        console.log(`✅ Loaded ${mergedLeagues.length} leagues and ${mergedEvents.length} events from Supabase`);
+      if (loadedLeagues.length > 0 || loadedEvents.length > 0) {
+        console.log(`✅ Loaded ${loadedLeagues.length} leagues and ${loadedEvents.length} events from Supabase`);
       }
     } catch (error) {
       console.error('Error loading data from Supabase:', error);
@@ -508,9 +485,19 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     try {
       await databaseService.associateEventToLeague(eventId, newLeagueId);
     } catch (err) {
+      // Most common cause: the chosen league no longer exists in DB (stale
+      // localStorage cache from a previous session). Surface it to the
+      // caller so the UX flow can react (e.g. inform the user and continue
+      // with a standalone event) instead of silently swallowing the error.
       console.error('associateEventToLeague failed:', err);
-      toast.error("Erreur lors du rattachement à la ligue");
-      return;
+      const message = err instanceof Error ? err.message : String(err);
+      const isFkViolation = /foreign key|not present in table/i.test(message);
+      if (isFkViolation) {
+        toast.error("Cette ligue n'existe plus — rattachement ignoré.");
+      } else {
+        toast.error("Erreur lors du rattachement à la ligue");
+      }
+      throw err;
     }
 
     // Update event local state

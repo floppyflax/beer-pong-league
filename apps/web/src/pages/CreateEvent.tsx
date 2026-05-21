@@ -299,13 +299,16 @@ export const CreateEvent = ({ skipPremiumCheck = false }: CreateEventProps = {})
 
       // Link to league BEFORE adding the creator, so that the creator's
       // membership propagates into league_memberships via the league_id
-      // lookup in addAnonymousPlayerToEvent.
+      // lookup in addAnonymousPlayerToEvent. If the link fails (most often:
+      // the chosen league no longer exists in DB, i.e. stale cache), the
+      // event stays standalone. The context already toasts the cause —
+      // don't duplicate it here, just keep going so the event is at least
+      // saved.
       if (attachedLeagueId) {
         try {
           await associateEventToLeague(eventId, attachedLeagueId);
         } catch (err) {
-          console.error('Linking event to league failed:', err);
-          toast.error('Événement créé mais rattachement à la ligue échoué');
+          console.warn('Event created without league attachment:', err);
         }
       }
 
