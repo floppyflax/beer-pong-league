@@ -39,6 +39,7 @@ import {
 } from "@/components/design-system";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
+import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
@@ -639,14 +640,12 @@ export const LeagueDashboard = () => {
               />
             ) : (
               league.matches.map((match) => {
-                const teamANames = league.players
-                  .filter((p) => match.teamA.includes(p.id))
-                  .map((p) => p.name)
-                  .join(", ");
-                const teamBNames = league.players
-                  .filter((p) => match.teamB.includes(p.id))
-                  .map((p) => p.name)
-                  .join(", ");
+                const teamAPlayers = league.players.filter((p) =>
+                  match.teamA.includes(p.id),
+                );
+                const teamBPlayers = league.players.filter((p) =>
+                  match.teamB.includes(p.id),
+                );
                 const winnerA = match.scoreA > match.scoreB;
 
                 return (
@@ -656,27 +655,12 @@ export const LeagueDashboard = () => {
                   >
                     {/* Phase D.4: Live badge */}
                     <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
-                    <div className="flex justify-between items-center text-sm">
-                      <div
-                        className={`flex-1 text-right ${
-                          winnerA ? "text-white font-bold" : "text-cool-gray"
-                        }`}
-                      >
-                        {winnerA && "🏆 "}
-                        {teamANames}
-                      </div>
-                      <div className="px-4 font-bold text-cool-gray text-xs">
-                        VS
-                      </div>
-                      <div
-                        className={`flex-1 text-left ${
-                          !winnerA ? "text-white font-bold" : "text-cool-gray"
-                        }`}
-                      >
-                        {!winnerA && "🏆 "}
-                        {teamBNames}
-                      </div>
-                    </div>
+                    <MatchTeamsRow
+                      teamAPlayers={teamAPlayers}
+                      teamBPlayers={teamBPlayers}
+                      winner={winnerA ? "A" : "B"}
+                      eloChanges={match.eloChanges}
+                    />
                     {/* Story 14-28: Photo thumbnail and cups badge */}
                     <MatchEnrichedDisplay
                       photoUrl={match.photo_url}

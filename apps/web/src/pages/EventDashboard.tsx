@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
+import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { databaseService } from "@/services/DatabaseService";
 import { useAuthContext } from "@/context/AuthContext";
@@ -756,8 +757,6 @@ export const EventDashboard = () => {
                 const teamBPlayers = eventPlayers.filter((p) =>
                   match.teamB.includes(p.id),
                 );
-                const teamANames = teamAPlayers.map((p) => p.name).join(", ");
-                const teamBNames = teamBPlayers.map((p) => p.name).join(", ");
                 const winnerA = match.scoreA > match.scoreB;
 
                 return (
@@ -818,55 +817,17 @@ export const EventDashboard = () => {
                     )}
                     {/* Phase D.4: Live badge */}
                     <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
-                    {/* Match teams and winner - Task 4 AC4 */}
-                    <div className="flex justify-between items-center text-sm mb-2">
-                      <div
-                        className={`flex-1 text-right ${
-                          winnerA ? "text-white font-bold" : "text-cool-gray"
-                        }`}
-                      >
-                        {winnerA && "🏆 "}
-                        {teamANames}
-                      </div>
-                      <div className="px-4 font-bold text-cool-gray text-xs">
-                        VS
-                      </div>
-                      <div
-                        className={`flex-1 text-left ${
-                          !winnerA ? "text-white font-bold" : "text-cool-gray"
-                        }`}
-                      >
-                        {!winnerA && "🏆 "}
-                        {teamBNames}
-                      </div>
-                    </div>
-                    {/* Task 4 - AC4: Timestamp display */}
-                    <div className="text-xs text-cool-gray mb-2">
+                    {/* Teams + ELO inline (1 valeur par équipe) */}
+                    <MatchTeamsRow
+                      teamAPlayers={teamAPlayers}
+                      teamBPlayers={teamBPlayers}
+                      winner={winnerA ? "A" : "B"}
+                      eloChanges={match.eloChanges}
+                    />
+                    {/* Timestamp */}
+                    <div className="text-xs text-cool-gray mt-2">
                       {getRelativeTimestamp(match.date)}
                     </div>
-                    {/* Task 4 - AC4: ELO changes for players */}
-                    {match.eloChanges &&
-                      Object.keys(match.eloChanges).length > 0 && (
-                        <div className="flex flex-wrap gap-2 text-xs">
-                          {[...teamAPlayers, ...teamBPlayers].map((player) => {
-                            const change = match.eloChanges?.[player.id];
-                            if (change === undefined) return null;
-                            return (
-                              <span
-                                key={player.id}
-                                className={`px-2 py-0.5 rounded ${
-                                  change > 0
-                                    ? "bg-lime/20 text-lime"
-                                    : "bg-signal-red/20 text-signal-red"
-                                }`}
-                              >
-                                {player.name}: {change > 0 ? "+" : ""}
-                                {change}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
                     {/* Story 14-28: Photo thumbnail and cups badge */}
                     <MatchEnrichedDisplay
                       photoUrl={match.photo_url}
