@@ -3,7 +3,7 @@
  *
  * Garantit que les deux cartes vivent dans la même famille visuelle :
  * fond `navy-soft`, bordure `card`, hover `cool-gray`, structure header
- * (status pill + titre + owner badge optionnel + chevron) puis un body
+ * (status pill + titre + admin badge optionnel + chevron) puis un body
  * libre dessous (meta inline ou colonnes de stats).
  */
 
@@ -21,8 +21,8 @@ export interface CardShellStatus {
 export interface CardShellProps {
   title: string;
   status?: CardShellStatus;
-  /** Pill secondaire après le statut (ex: "Propriétaire"). */
-  ownerLabel?: string;
+  /** Pill "ADMIN" — identique au DetailHero, affiché si l'utilisateur courant est créateur. */
+  adminBadge?: boolean;
   /** Bloc principal sous le header (meta inline ou colonnes de stats). */
   body?: React.ReactNode;
   /** Quand fourni, le shell devient un bouton et navigue. */
@@ -34,7 +34,7 @@ export interface CardShellProps {
 export const CardShell: React.FC<CardShellProps> = ({
   title,
   status,
-  ownerLabel,
+  adminBadge = false,
   body,
   onClick,
   ariaLabel,
@@ -47,7 +47,7 @@ export const CardShell: React.FC<CardShellProps> = ({
   const inner = (
     <>
       <div className="flex-1 min-w-0">
-        {(status || ownerLabel) && (
+        {(status || adminBadge) && (
           <div className="flex items-center gap-2 mb-1.5">
             {status && (
               <>
@@ -66,9 +66,9 @@ export const CardShell: React.FC<CardShellProps> = ({
                 </span>
               </>
             )}
-            {ownerLabel && (
-              <span className="font-mono text-[10px] tracking-[1.5px] uppercase font-bold text-ping-yellow">
-                · {ownerLabel}
+            {adminBadge && (
+              <span className="bg-ping-yellow text-navy px-2 py-0.5 rounded-sm font-archivo font-extrabold uppercase text-[10px] tracking-[1px] flex-shrink-0">
+                Admin
               </span>
             )}
           </div>

@@ -2,8 +2,8 @@
  * EventCard — listing pressed-card pour un événement.
  *
  * Construit sur `CardShell` (partagé avec `LeagueCard`).
- * Header : pill statut (en cours / à venir / terminé). Body : meta inline
- * (joueurs · matchs · format · ELO).
+ * Header : pill statut (en cours / à venir / terminé) + badge "Admin" si créateur.
+ * Body : meta inline (joueurs · matchs · format · ELO).
  */
 
 import React from "react";
@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import type { Event } from "@/types";
 import { CardShell, type CardShellStatus } from "./CardShell";
 import { getEventLifecycle } from "@/utils/eventLifecycle";
+import { useAuthContext } from "@/context/AuthContext";
+import { useIdentity } from "@/hooks/useIdentity";
 
 export interface EventCardProps {
   event: Event;
@@ -23,6 +25,13 @@ export const EventCard: React.FC<EventCardProps> = ({
   interactive = true,
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuthContext();
+  const { localUser } = useIdentity();
+
+  const isOwner =
+    (user && user.id === event.creator_user_id) ||
+    (localUser &&
+      localUser.anonymousUserId === event.creator_anonymous_user_id);
 
   const playerCount = event.playerIds?.length ?? 0;
   const matchCount = event.matches?.length ?? 0;
@@ -73,6 +82,7 @@ export const EventCard: React.FC<EventCardProps> = ({
     <CardShell
       title={event.name}
       status={status}
+      adminBadge={Boolean(isOwner)}
       body={body}
       testId="event-card"
       ariaLabel={`Voir l'événement ${event.name}`}
