@@ -6,16 +6,13 @@ import {
   Plus,
   History,
   Users,
-  Trash2,
   Monitor,
   UserPlus,
   FileJson,
   FileSpreadsheet,
   Settings,
-  Ghost,
   Pause,
   Play,
-  Archive,
   RotateCcw,
 } from "lucide-react";
 import {
@@ -23,7 +20,6 @@ import {
   canRecordLeagueMatch,
   getLeagueReminders,
 } from "@/utils/leagueLifecycle";
-import toast from "react-hot-toast";
 import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
@@ -34,14 +30,11 @@ import {
   FAB,
   DetailHero,
   InviteSheet,
-  GhostManagementSheet,
   LifecycleStrip,
 } from "@/components/design-system";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
-import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
-import { identityMergeService } from "@/services/IdentityMergeService";
 import {
   getDeltaFromLastMatch,
   getLast5MatchResults,
@@ -57,14 +50,10 @@ export const LeagueDashboard = () => {
     leagues,
     events,
     addPlayer,
-    deleteLeague,
     pauseLeague,
     resumeLeague,
-    finishLeague,
-    reopenLeague,
     startNewLeagueSeason,
     isLoadingInitialData,
-    reloadData,
   } = useLeague();
   const navigate = useNavigate();
 
@@ -73,17 +62,6 @@ export const LeagueDashboard = () => {
     "classement" | "matchs" | "stats" | "events"
   >("classement");
   const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [showGhostMgmt, setShowGhostMgmt] = useState(false);
-
-  // Ghosts (anonymous players manually added by the admin) for this league.
-  const {
-    guests: leagueGhosts,
-    refresh: refreshLeagueGhosts,
-  } = useUnclaimedGuests("league", id, { mode: "any" });
-  const {
-    guests: archivedLeagueGhosts,
-    refresh: refreshArchivedLeagueGhosts,
-  } = useUnclaimedGuests("league", id, { mode: "any", archivedFilter: "archived" });
 
   // Escape key closes add-player modal
   useEffect(() => {
@@ -153,141 +131,38 @@ export const LeagueDashboard = () => {
     setShowAddPlayer(false);
   };
 
-  const handleDeleteLeague = () => {
-    if (confirm("Es-tu sûr de vouloir supprimer cette ligue ?")) {
-      deleteLeague(league.id);
-      navigate("/");
-    }
-  };
-
-  const detailHeroMenuItems = [
-    {
-      label: "Historique des saisons",
-      icon: <History size={20} />,
-      onClick: () => navigate(`/league/${league.id}/seasons`),
-    },
-    ...(isAdmin
-      ? [
-          {
-            label: "Mode Diffusion",
-            icon: <Monitor size={20} />,
-            onClick: () => navigate(`/league/${league.id}/display`),
+  // Kebab menu — admin gère tout via Paramètres, donc menu vide.
+  // Non-admin garde l'accès à l'historique et aux exports via le menu.
+  const detailHeroMenuItems = isAdmin
+    ? []
+    : [
+        {
+          label: "Historique des saisons",
+          icon: <History size={20} />,
+          onClick: () => navigate(`/league/${league.id}/seasons`),
+        },
+        {
+          label: "Exporter JSON",
+          icon: <FileJson size={20} />,
+          onClick: () => exportLeagueJSON(league),
+        },
+        {
+          label: "Exporter joueurs CSV",
+          icon: <FileSpreadsheet size={20} />,
+          onClick: () => exportPlayersCSV(league),
+        },
+        {
+          label: "Exporter matchs CSV",
+          icon: <FileSpreadsheet size={20} />,
+          onClick: () => {
+            const map: Record<string, string> = {};
+            league.players.forEach((p) => {
+              map[p.id] = p.name;
+            });
+            exportMatchesCSV(league, map);
           },
-        ]
-      : []),
-    ...(isAdmin && leagueGhosts.length > 0
-      ? [
-          {
-            label: "Joueurs fantômes",
-            icon: <Ghost size={20} />,
-            onClick: () => setShowGhostMgmt(true),
-          },
-        ]
-      : []),
-    {
-      label: "Exporter JSON",
-      icon: <FileJson size={20} />,
-      onClick: () => exportLeagueJSON(league),
-    },
-    {
-      label: "Exporter joueurs CSV",
-      icon: <FileSpreadsheet size={20} />,
-      onClick: () => exportPlayersCSV(league),
-    },
-    {
-      label: "Exporter matchs CSV",
-      icon: <FileSpreadsheet size={20} />,
-      onClick: () => {
-        const map: Record<string, string> = {};
-        league.players.forEach((p) => {
-          map[p.id] = p.name;
-        });
-        exportMatchesCSV(league, map);
-      },
-    },
-    ...(isAdmin
-      ? [
-          {
-            label: "Supprimer",
-            icon: <Trash2 size={20} />,
-            onClick: handleDeleteLeague,
-            destructive: true,
-          },
-        ]
-      : []),
-  ];
-
-  // GhostManagementSheet handlers — admin-only.
-  const handleRenameGhost = async (playerId: string, newPseudo: string) => {
-    const result = await identityMergeService.renameAnonymousPlayer(
-      "league",
-      playerId,
-      newPseudo,
-    );
-    if (!result.success) {
-      toast.error(result.error || "Renommage impossible");
-      throw new Error(result.error);
-    }
-    toast.success("Joueur renommé");
-    await refreshLeagueGhosts();
-    reloadData();
-  };
-
-  const handleDeleteGhost = async (playerId: string) => {
-    const result = await identityMergeService.deleteAnonymousPlayer(
-      "league",
-      playerId,
-    );
-    if (!result.success) {
-      if (!result.error || !/match/i.test(result.error)) {
-        toast.error(result.error || "Suppression impossible");
-      }
-      throw new Error(result.error);
-    }
-    toast.success("Joueur supprimé");
-    await Promise.all([refreshLeagueGhosts(), refreshArchivedLeagueGhosts()]);
-    reloadData();
-  };
-
-  const handleArchiveGhost = async (playerId: string) => {
-    const result = await identityMergeService.archiveAnonymousPlayer(
-      "league",
-      playerId,
-    );
-    if (!result.success) {
-      toast.error(result.error || "Archivage impossible");
-      throw new Error(result.error);
-    }
-    toast.success("Joueur archivé");
-    await Promise.all([refreshLeagueGhosts(), refreshArchivedLeagueGhosts()]);
-    reloadData();
-  };
-
-  const handleUnarchiveGhost = async (playerId: string) => {
-    const result = await identityMergeService.unarchiveAnonymousPlayer(
-      "league",
-      playerId,
-    );
-    if (!result.success) {
-      toast.error(result.error || "Désarchivage impossible");
-      throw new Error(result.error);
-    }
-    toast.success("Joueur désarchivé");
-    await Promise.all([refreshLeagueGhosts(), refreshArchivedLeagueGhosts()]);
-    reloadData();
-  };
-
-  const handleGenerateGhostInvite = async (playerId: string) => {
-    const result = await identityMergeService.generateGhostInviteToken(
-      "league",
-      playerId,
-    );
-    if (!result.success || !result.token) {
-      toast.error(result.error || "Lien indisponible");
-      throw new Error(result.error);
-    }
-    return { token: result.token };
-  };
+        },
+      ];
 
   const shortDateFormatter: Intl.DateTimeFormatOptions = {
     day: "2-digit",
@@ -360,18 +235,14 @@ export const LeagueDashboard = () => {
   const detailHeroAdminActions: Parameters<typeof DetailHero>[0]["actions"] = [];
   if (isAdmin || canInvite) {
     detailHeroAdminActions.push({
-      label: "Inviter",
+      label: "Ajouter",
       icon: <UserPlus size={16} />,
       onClick: () => setShowAddPlayer(true),
-      variant: "secondary",
+      variant: "primary",
     });
   }
   if (isAdmin) {
-    if (lifecycle === "not_started") {
-      // Pas d'action lifecycle exposée — la league passera `active` toute
-      // seule à `planned_start_at`. L'admin peut quand même clôturer via
-      // les paramètres ou attendre.
-    } else if (lifecycle === "paused") {
+    if (lifecycle === "paused") {
       detailHeroAdminActions.push({
         label: "Reprendre la ligue",
         icon: <Play size={18} />,
@@ -395,37 +266,20 @@ export const LeagueDashboard = () => {
         onClick: handleStartNewSeason,
         variant: "iconOnly",
       });
-    } else if (lifecycle === "finished") {
-      detailHeroAdminActions.push({
-        label: "Réouvrir la ligue",
-        icon: <Play size={18} />,
-        onClick: () => {
-          void reopenLeague(league.id);
-        },
-        variant: "iconOnly",
-      });
     }
-    // Clôturer : disponible uniquement quand active (sinon n'a pas de sens)
-    if (lifecycle === "active") {
-      detailHeroAdminActions.push({
-        label: "Clôturer la ligue",
-        icon: <Archive size={18} />,
-        onClick: () => {
-          if (
-            confirm(
-              "Clôturer cette ligue ? Plus aucun match ne pourra être enregistré (réversible via Réouvrir).",
-            )
-          ) {
-            void finishLeague(league.id);
-          }
-        },
-        variant: "iconOnly",
-      });
-    }
+    // Clôturer / Réouvrir : pas dans la hero bar — accessibles via la page
+    // Paramètres (toggle unique). Pour `not_started`, la ligue passera
+    // `active` toute seule à `planned_start_at`.
     detailHeroAdminActions.push({
       label: "Paramètres",
       icon: <Settings size={18} />,
       onClick: () => navigate(`/league/${league.id}/settings`),
+      variant: "iconOnly",
+    });
+    detailHeroAdminActions.push({
+      label: "Mode Diffusion",
+      icon: <Monitor size={18} />,
+      onClick: () => navigate(`/league/${league.id}/display`),
       variant: "iconOnly",
     });
   }
@@ -771,22 +625,6 @@ export const LeagueDashboard = () => {
         onClose={() => setShowAddPlayer(false)}
         onAddManual={handleInviteAddManual}
       />
-
-      {/* Ghost player management — admin only, only when ghosts exist */}
-      {isAdmin && (
-        <GhostManagementSheet
-          isOpen={showGhostMgmt}
-          onClose={() => setShowGhostMgmt(false)}
-          guests={leagueGhosts}
-          archivedGuests={archivedLeagueGhosts}
-          joinPath={`/league/${league.id}/join`}
-          onRename={handleRenameGhost}
-          onDelete={handleDeleteGhost}
-          onArchive={handleArchiveGhost}
-          onUnarchive={handleUnarchiveGhost}
-          onGenerateInvite={handleGenerateGhostInvite}
-        />
-      )}
 
       {/* ELO Changes Display */}
       {showEloChanges && (

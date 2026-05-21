@@ -1,10 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  Archive,
   FileJson,
   FileSpreadsheet,
   Ghost,
+  History,
   Lock,
+  Play,
   Plus,
   Trash2,
   Trophy,
@@ -20,6 +23,7 @@ import {
   exportMatchesCSV,
   exportPlayersCSV,
 } from "@/services/ExportService";
+import { getLeagueLifecycle } from "@/utils/leagueLifecycle";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
@@ -34,6 +38,8 @@ export const LeagueSettings = () => {
     events,
     updateLeague,
     deleteLeague,
+    finishLeague,
+    reopenLeague,
     isLoadingInitialData,
     reloadData,
   } = useLeague();
@@ -125,6 +131,31 @@ export const LeagueSettings = () => {
     if (!confirm("Es-tu sûr de vouloir supprimer cette ligue ?")) return;
     deleteLeague(league.id);
     navigate("/");
+  };
+
+  // Lifecycle toggle — symétrique à EventSettings.handleFinish.
+  // - finished → Réouvrir (one-tap, pas de confirm).
+  // - sinon (not_started / active / paused) → Clôturer (confirm requis).
+  const lifecycle = getLeagueLifecycle(league);
+  const isFinishedLeague = lifecycle === "finished";
+  const handleLifecycleToggle = async () => {
+    try {
+      if (isFinishedLeague) {
+        await reopenLeague(league.id);
+        toast.success("Ligue rouverte");
+      } else {
+        if (
+          !confirm(
+            "Clôturer cette ligue ? Plus aucun match ne pourra être enregistré (réversible via Réouvrir).",
+          )
+        )
+          return;
+        await finishLeague(league.id);
+        toast.success("Ligue clôturée");
+      }
+    } catch {
+      // toast d'erreur déjà émis côté context
+    }
   };
 
   const handleRenameGhost = async (playerId: string, newPseudo: string) => {
@@ -242,6 +273,31 @@ export const LeagueSettings = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Historique des saisons */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+            <span className="inline-flex items-center gap-1.5">
+              <History size={12} />
+              Historique des saisons
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => navigate(`/league/${league.id}/seasons`)}
+            className="w-full p-3 rounded-card border border-card bg-navy-deep flex items-center gap-3 hover:border-white/60 transition-colors text-left"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-archivo font-semibold text-sm">
+                Voir les saisons passées
+              </div>
+              <div className="text-cool-gray text-xs">
+                Classements archivés et palmarès
+              </div>
+            </div>
+            <div className="text-cool-gray">→</div>
+          </button>
         </div>
 
         {/* Ghost management entry */}
@@ -365,16 +421,30 @@ export const LeagueSettings = () => {
         {/* Sticky footer */}
         <div className="fixed inset-x-0 bottom-0 bg-navy/95 backdrop-blur border-t border-card px-4 py-3 md:py-4 z-10">
           <div className="max-w-2xl mx-auto flex flex-col gap-3">
-            <PButton
-              type="button"
-              variant="ghost"
-              size="lg"
-              full
-              icon={<Trash2 size={18} />}
-              onClick={handleDeleteLeague}
-            >
-              Supprimer la ligue
-            </PButton>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <PButton
+                type="button"
+                variant="ghost"
+                size="lg"
+                full
+                icon={
+                  isFinishedLeague ? <Play size={18} /> : <Archive size={18} />
+                }
+                onClick={handleLifecycleToggle}
+              >
+                {isFinishedLeague ? "Réouvrir la ligue" : "Clôturer la ligue"}
+              </PButton>
+              <PButton
+                type="button"
+                variant="ghost"
+                size="lg"
+                full
+                icon={<Trash2 size={18} />}
+                onClick={handleDeleteLeague}
+              >
+                Supprimer
+              </PButton>
+            </div>
             <PButton
               type="submit"
               variant="primary"
