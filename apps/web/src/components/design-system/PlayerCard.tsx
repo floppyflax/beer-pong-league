@@ -12,7 +12,7 @@
  * été retirée : `leaderRow` la remplace.
  */
 
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
 import { getInitials } from "@/utils/string";
 
 export interface PlayerCardCompactProps {
@@ -33,6 +33,8 @@ export interface PlayerCardLeaderRowProps {
   rank?: number;
   /** Delta ELO (positif vert, négatif rouge). */
   delta?: number;
+  /** Variation de rang vs dernier match (>0 monté, <0 descendu, 0/undefined masqué). */
+  rankDelta?: number;
   avatarUrl?: string;
   /** Stats jouées : optionnel. Si fourni, affiche W/L/winrate inline. */
   wins?: number;
@@ -312,17 +314,39 @@ export function PlayerCard(props: PlayerCardProps) {
           </div>
         </div>
 
-        <div className="flex-shrink-0 flex items-center gap-2">
-          <span className="text-base font-mono font-bold tabular-nums text-lime">
-            {props.rightLabel ?? props.elo}
-          </span>
-          {props.delta !== undefined && (
+        <div className="flex-shrink-0 flex flex-col items-end gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-mono font-bold tabular-nums text-lime">
+              {props.rightLabel ?? props.elo}
+            </span>
+            {props.delta !== undefined && (
+              <span
+                className={`text-sm font-mono font-semibold tabular-nums ${deltaClass}`}
+                data-testid="playercard-delta"
+              >
+                {props.delta >= 0 ? "+" : ""}
+                {props.delta}
+              </span>
+            )}
+          </div>
+          {props.rankDelta !== undefined && props.rankDelta !== 0 && (
             <span
-              className={`text-sm font-mono font-semibold tabular-nums ${deltaClass}`}
-              data-testid="playercard-delta"
+              className={`flex items-center gap-0.5 text-[10px] font-mono font-bold tabular-nums ${
+                props.rankDelta > 0 ? "text-lime" : "text-signal-red"
+              }`}
+              data-testid="playercard-rank-delta"
+              aria-label={`${
+                props.rankDelta > 0 ? "Monté de" : "Descendu de"
+              } ${Math.abs(props.rankDelta)} ${
+                Math.abs(props.rankDelta) > 1 ? "places" : "place"
+              }`}
             >
-              {props.delta >= 0 ? "+" : ""}
-              {props.delta}
+              {props.rankDelta > 0 ? (
+                <TrendingUp size={12} aria-hidden />
+              ) : (
+                <TrendingDown size={12} aria-hidden />
+              )}
+              {Math.abs(props.rankDelta)}
             </span>
           )}
         </div>

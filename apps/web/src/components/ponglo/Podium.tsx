@@ -6,6 +6,7 @@
  * Background card: electric-blue per spec.
  */
 
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import { PAvatar } from './PAvatar';
 
 export interface PodiumPlayer {
@@ -14,6 +15,8 @@ export interface PodiumPlayer {
   elo: number;
   /** ELO change after the most recent match (positive, negative, or 0/undefined). */
   delta?: number | null;
+  /** Rank change vs previous match (>0 climbed, <0 dropped, 0/undefined hidden). */
+  rankDelta?: number | null;
   avatar?: string;
 }
 
@@ -114,6 +117,28 @@ export function Podium({
                   </span>
                 )}
               </div>
+
+              {/* Rank delta (▲/▼ + places) */}
+              {typeof player.rankDelta === "number" && player.rankDelta !== 0 && (
+                <span
+                  className={`flex items-center gap-0.5 text-[9px] font-mono font-bold tabular-nums ${
+                    player.rankDelta > 0 ? "text-lime" : "text-signal-red"
+                  }`}
+                  data-testid={`podium-rank-delta-${rank}`}
+                  aria-label={`${
+                    player.rankDelta > 0 ? "Monté de" : "Descendu de"
+                  } ${Math.abs(player.rankDelta)} ${
+                    Math.abs(player.rankDelta) > 1 ? "places" : "place"
+                  }`}
+                >
+                  {player.rankDelta > 0 ? (
+                    <TrendingUp size={10} aria-hidden />
+                  ) : (
+                    <TrendingDown size={10} aria-hidden />
+                  )}
+                  {Math.abs(player.rankDelta)}
+                </span>
+              )}
 
               {/* Pedestal bar */}
               <div

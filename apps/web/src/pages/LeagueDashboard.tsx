@@ -45,6 +45,7 @@ import { identityMergeService } from "@/services/IdentityMergeService";
 import {
   getDeltaFromLastMatch,
   getLast5MatchResults,
+  getRankDeltasFromLastMatch,
 } from "@/utils/playerStats";
 import { exportLeagueJSON, exportPlayersCSV, exportMatchesCSV } from "@/services/ExportService";
 import { Podium } from "@/components/ponglo/Podium";
@@ -140,6 +141,12 @@ export const LeagueDashboard = () => {
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       ),
     [league.matches],
+  );
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const rankDeltas = useMemo(
+    () => getRankDeltasFromLastMatch(sortedPlayers, sortedMatches),
+    [sortedPlayers, sortedMatches],
   );
 
   // Story 9-5 - Get permissions for contextual actions
@@ -574,6 +581,7 @@ export const LeagueDashboard = () => {
                       elo: p.elo,
                       delta:
                         getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
+                      rankDelta: rankDeltas.get(p.id),
                     }))}
                     className="mb-1"
                   />
@@ -597,6 +605,7 @@ export const LeagueDashboard = () => {
                         name={player.name}
                         elo={player.elo}
                         delta={delta ?? undefined}
+                        rankDelta={rankDeltas.get(player.id)}
                         rank={rank}
                         wins={player.wins}
                         losses={player.losses}

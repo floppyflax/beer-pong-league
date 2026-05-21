@@ -36,4 +36,63 @@ describe("PlayerCard", () => {
   // The `full` variant was replaced by `leaderRow` / `detailed`.
   // Its test is dropped — the new variants are covered indirectly by
   // page-level tests.
+
+  describe("variant leaderRow — rankDelta", () => {
+    it("renders a positive rank delta with lime styling", () => {
+      render(
+        <PlayerCard
+          variant="leaderRow"
+          name="Alice"
+          elo={1520}
+          rank={1}
+          rankDelta={2}
+        />,
+      );
+      const badge = screen.getByTestId("playercard-rank-delta");
+      expect(badge).toHaveTextContent("2");
+      expect(badge).toHaveClass("text-lime");
+      expect(badge).toHaveAttribute("aria-label", "Monté de 2 places");
+    });
+
+    it("renders a negative rank delta with signal-red styling", () => {
+      render(
+        <PlayerCard
+          variant="leaderRow"
+          name="Bob"
+          elo={1480}
+          rank={2}
+          rankDelta={-1}
+        />,
+      );
+      const badge = screen.getByTestId("playercard-rank-delta");
+      expect(badge).toHaveTextContent("1");
+      expect(badge).toHaveClass("text-signal-red");
+      expect(badge).toHaveAttribute("aria-label", "Descendu de 1 place");
+    });
+
+    it("does not render the badge when rankDelta is 0", () => {
+      render(
+        <PlayerCard
+          variant="leaderRow"
+          name="Carol"
+          elo={1400}
+          rank={3}
+          rankDelta={0}
+        />,
+      );
+      expect(screen.queryByTestId("playercard-rank-delta")).toBeNull();
+    });
+
+    it("does not render the badge when rankDelta is undefined", () => {
+      render(
+        <PlayerCard
+          variant="leaderRow"
+          name="Dave"
+          elo={1300}
+          rank={4}
+        />,
+      );
+      expect(screen.queryByTestId("playercard-rank-delta")).toBeNull();
+    });
+  });
 });

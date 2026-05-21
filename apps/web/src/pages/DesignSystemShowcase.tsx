@@ -777,6 +777,7 @@ export function DesignSystemShowcase() {
                   elo={1547}
                   rank={1}
                   delta={25}
+                  rankDelta={2}
                   wins={12}
                   losses={5}
                   recentResults={[true, true, false, true, true]}
@@ -788,6 +789,7 @@ export function DesignSystemShowcase() {
                   elo={1180}
                   rank={2}
                   delta={-12}
+                  rankDelta={-1}
                   wins={10}
                   losses={2}
                   recentResults={[true, false, true, true, true]}
@@ -1144,9 +1146,9 @@ export function DesignSystemShowcase() {
             <div className="max-w-xs">
               <Podium
                 top3={[
-                  { id: "p1", name: "Marc D.", elo: 1850 },
-                  { id: "p2", name: "Jean M.", elo: 1720 },
-                  { id: "p3", name: "Paul T.", elo: 1600 },
+                  { id: "p1", name: "Marc D.", elo: 1850, delta: 24, rankDelta: 1 },
+                  { id: "p2", name: "Jean M.", elo: 1720, delta: -12, rankDelta: -1 },
+                  { id: "p3", name: "Paul T.", elo: 1600, delta: 5 },
                 ]}
                 scope="League des Pingouins"
               />
