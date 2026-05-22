@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { Ghost, Pencil, Trash2, Share2, X, Copy, Loader2, Check, Archive, ArchiveRestore } from "lucide-react";
+import { Users, Pencil, Trash2, Share2, X, Copy, Loader2, Check, Archive, ArchiveRestore } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import type { UnclaimedGuest } from "../../hooks/useUnclaimedGuests";
@@ -76,7 +76,7 @@ export function GhostManagementSheet({
   onArchive,
   onUnarchive,
   onGenerateInvite,
-  title = "Joueurs fantômes",
+  title = "Joueurs",
 }: GhostManagementSheetProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
@@ -274,7 +274,7 @@ export function GhostManagementSheet({
             id="ghost-mgmt-sheet-title"
             className="font-archivo font-extrabold uppercase text-white text-[15px] tracking-[-0.3px] text-center px-8 flex items-center gap-2"
           >
-            <Ghost size={16} className="text-cool-gray" />
+            <Users size={16} className="text-cool-gray" />
             {title}
           </h2>
           <button
@@ -340,7 +340,7 @@ export function GhostManagementSheet({
           ) : view === "archived" ? (
             <>
               <p className="text-cool-gray text-[13px] mb-4 text-center">
-                Joueurs fantômes archivés. Désarchive pour les rendre à nouveau
+                Joueurs archivés. Désarchive pour les rendre à nouveau
                 disponibles dans les pickers de match.
               </p>
 
@@ -402,13 +402,14 @@ export function GhostManagementSheet({
           ) : (
             <>
               <p className="text-cool-gray text-[13px] mb-4 text-center">
-                Renomme, supprime ou envoie un lien d'invitation à un joueur
-                fantôme (ajouté manuellement, sans compte).
+                Retire ou archive un joueur de ce contexte. Le renommage et le
+                lien d'invitation sont réservés aux joueurs fantômes (ajoutés
+                manuellement, sans compte).
               </p>
 
               {guests.length === 0 ? (
                 <div className="text-center py-6 text-cool-gray text-[13px]">
-                  Aucun joueur fantôme dans cet événement.
+                  Aucun joueur à gérer.
                 </div>
               ) : (
                 <ul className="flex flex-col gap-2">
@@ -470,31 +471,35 @@ export function GhostManagementSheet({
                                 {g.pseudo}
                               </div>
                               <div className="text-cool-gray text-[10px] uppercase tracking-widest font-mono">
-                                Fantôme
+                                {g.isGhost ? "Fantôme" : "Compte"}
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleGenerateInvite(g)}
-                              disabled={isOtherPending || isPending}
-                              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-cool-gray flex items-center justify-center transition-colors disabled:opacity-40"
-                              aria-label={`Lien d'invitation pour ${g.pseudo}`}
-                            >
-                              {isPending ? (
-                                <Loader2 size={14} className="animate-spin" />
-                              ) : (
-                                <Share2 size={14} />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleStartRename(g)}
-                              disabled={isOtherPending || isPending}
-                              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-cool-gray flex items-center justify-center transition-colors disabled:opacity-40"
-                              aria-label={`Renommer ${g.pseudo}`}
-                            >
-                              <Pencil size={14} />
-                            </button>
+                            {g.isGhost && (
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateInvite(g)}
+                                disabled={isOtherPending || isPending}
+                                className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-cool-gray flex items-center justify-center transition-colors disabled:opacity-40"
+                                aria-label={`Lien d'invitation pour ${g.pseudo}`}
+                              >
+                                {isPending ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <Share2 size={14} />
+                                )}
+                              </button>
+                            )}
+                            {g.isGhost && (
+                              <button
+                                type="button"
+                                onClick={() => handleStartRename(g)}
+                                disabled={isOtherPending || isPending}
+                                className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-cool-gray flex items-center justify-center transition-colors disabled:opacity-40"
+                                aria-label={`Renommer ${g.pseudo}`}
+                              >
+                                <Pencil size={14} />
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => handleArchive(g)}

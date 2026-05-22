@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
@@ -101,9 +101,25 @@ export const EventSettings = () => {
   }, [id, event?.playerIds?.length]);
 
   const {
-    guests: eventGhosts,
-    refresh: refreshEventGhosts,
-  } = useUnclaimedGuests("event", id, { mode: "any" });
+    guests: eventPlayers,
+    refresh: refreshEventPlayers,
+  } = useUnclaimedGuests("event", id, {
+    mode: "any",
+    scope: "all",
+    excludeUserId: event?.creator_user_id ?? null,
+  });
+  const {
+    guests: eventArchivedPlayers,
+    refresh: refreshEventArchivedPlayers,
+  } = useUnclaimedGuests("event", id, {
+    mode: "any",
+    scope: "all",
+    archivedFilter: "archived",
+    excludeUserId: event?.creator_user_id ?? null,
+  });
+  const refreshEventGhosts = useCallback(async () => {
+    await Promise.all([refreshEventPlayers(), refreshEventArchivedPlayers()]);
+  }, [refreshEventPlayers, refreshEventArchivedPlayers]);
 
   const [name, setName] = useState(event?.name ?? "");
   const [date, setDate] = useState<string>(toIsoDay(event?.date));
@@ -352,32 +368,46 @@ export const EventSettings = () => {
     reloadData();
   };
 
-  const handleDeleteGhost = async (playerId: string) => {
-    const result = await identityMergeService.deleteAnonymousPlayer(
+  const handleDeleteGhost = async (membershipId: string) => {
+    const result = await identityMergeService.removeMembership(
       "event",
-      playerId,
+      membershipId,
     );
     if (!result.success) {
       if (!result.error || !/match/i.test(result.error)) {
-        toast.error(result.error || "Suppression impossible");
+        toast.error(result.error || "Retrait impossible");
       }
       throw new Error(result.error);
     }
-    toast.success("Joueur supprimé");
+    toast.success("Joueur retiré");
     await refreshEventGhosts();
     reloadData();
   };
 
-  const handleArchiveGhost = async (playerId: string) => {
-    const result = await identityMergeService.archiveAnonymousPlayer(
+  const handleArchiveGhost = async (membershipId: string) => {
+    const result = await identityMergeService.archiveMembership(
       "event",
-      playerId,
+      membershipId,
     );
     if (!result.success) {
       toast.error(result.error || "Archivage impossible");
       throw new Error(result.error);
     }
     toast.success("Joueur archivé");
+    await refreshEventGhosts();
+    reloadData();
+  };
+
+  const handleUnarchiveGhost = async (membershipId: string) => {
+    const result = await identityMergeService.unarchiveMembership(
+      "event",
+      membershipId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Désarchivage impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur désarchivé");
     await refreshEventGhosts();
     reloadData();
   };
@@ -749,13 +779,13 @@ export const EventSettings = () => {
           </div>
         )}
 
-        {/* Ghost management entry */}
-        {eventGhosts.length > 0 && (
+        {/* Players management entry */}
+        {(eventPlayers.length > 0 || eventArchivedPlayers.length > 0) && (
           <div className="space-y-2">
             <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
               <span className="inline-flex items-center gap-1.5">
                 <Ghost size={12} />
-                Joueurs fantômes ({eventGhosts.length})
+                Joueurs ({eventPlayers.length})
               </span>
             </span>
             <button
@@ -765,10 +795,10 @@ export const EventSettings = () => {
             >
               <div className="flex-1 min-w-0">
                 <div className="text-white font-archivo font-semibold text-sm">
-                  Gérer les joueurs fantômes
+                  Gérer les joueurs
                 </div>
                 <div className="text-cool-gray text-xs">
-                  Renommer, supprimer, envoyer un lien d&apos;invitation
+                  Retirer ou archiver un joueur de l&apos;événement
                 </div>
               </div>
             </button>
@@ -942,11 +972,13 @@ export const EventSettings = () => {
       <GhostManagementSheet
         isOpen={showGhostMgmt}
         onClose={() => setShowGhostMgmt(false)}
-        guests={eventGhosts}
+        guests={eventPlayers}
+        archivedGuests={eventArchivedPlayers}
         joinPath={`/event/${event.id}/join`}
         onRename={handleRenameGhost}
         onDelete={handleDeleteGhost}
         onArchive={handleArchiveGhost}
+        onUnarchive={handleUnarchiveGhost}
         onGenerateInvite={handleGenerateGhostInvite}
       />
 

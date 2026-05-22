@@ -13,11 +13,11 @@ import { sb } from "../services/repositories/_base";
 import { useAuth } from "./useAuth";
 
 function matchesArchivedFilter(
-  archivedAt: string | null,
+  archived: boolean,
   filter: "active" | "archived" | "all",
 ): boolean {
   if (filter === "all") return true;
-  return filter === "archived" ? archivedAt !== null : archivedAt === null;
+  return filter === "archived" ? archived : !archived;
 }
 
 export interface UnclaimedGuest {
@@ -28,21 +28,22 @@ export interface UnclaimedGuest {
   /** Display name (pseudo_override > players.pseudo). */
   pseudo: string;
   joinedAt: string;
-  /** True if the underlying player is soft-deleted (players.archived_at IS NOT NULL). */
+  /**
+   * True if removed from this context — either the membership is archived
+   * (membership.archived_at) or the underlying player is soft-deleted
+   * (players.archived_at). The first is context-scoped (correct for real
+   * accounts), the second is the legacy ghost-level archive.
+   */
   archived: boolean;
+  /** True when the underlying player has no account yet (players.user_id IS NULL). */
+  isGhost: boolean;
 }
 
-interface RawEventRow {
+interface RawRow {
   id: string;
   joined_at: string | null;
   pseudo_override: string | null;
-  player: { id: string; pseudo: string; user_id: string | null; archived_at: string | null } | null;
-}
-
-interface RawLeagueRow {
-  id: string;
-  joined_at: string | null;
-  pseudo_override: string | null;
+  archived_at: string | null;
   player: { id: string; pseudo: string; user_id: string | null; archived_at: string | null } | null;
 }
 
@@ -51,12 +52,25 @@ export function useUnclaimedGuests(
   contextId: string | null | undefined,
   options: {
     mode?: "auth-only" | "any";
-    /** Which subset of ghosts to return. Defaults to active only. */
+    /** Which subset to return. Defaults to active only. */
     archivedFilter?: "active" | "archived" | "all";
+    /**
+     * Which members to return:
+     *   - "ghosts" (default): only unclaimed players (user_id IS NULL).
+     *   - "all": every member (ghosts + real accounts).
+     */
+    scope?: "ghosts" | "all";
+    /**
+     * users.id to drop from the list (typically the context creator/admin,
+     * so the admin can't manage themselves). Compared against players.user_id.
+     */
+    excludeUserId?: string | null;
   } = {},
 ) {
   const mode = options.mode ?? "auth-only";
   const archivedFilter = options.archivedFilter ?? "active";
+  const scope = options.scope ?? "ghosts";
+  const excludeUserId = options.excludeUserId ?? null;
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [guests, setGuests] = useState<UnclaimedGuest[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -81,48 +95,39 @@ export function useUnclaimedGuests(
         id,
         joined_at,
         pseudo_override,
+        archived_at,
         player:players ( id, pseudo, user_id, archived_at )
       `;
 
-      if (kind === "event") {
-        const { data, error: queryError } = await sb
-          .from("event_memberships")
-          .select(select)
-          .eq("event_id", contextId)
-          .order("joined_at", { ascending: true });
-        if (queryError) throw queryError;
+      const table = kind === "event" ? "event_memberships" : "league_memberships";
+      const fk = kind === "event" ? "event_id" : "league_id";
 
-        const rows = (data ?? []) as unknown as RawEventRow[];
-        const filtered: UnclaimedGuest[] = rows
-          .filter((r) => r.player && r.player.user_id === null && matchesArchivedFilter(r.player.archived_at, archivedFilter))
-          .map((r) => ({
-            playerId: r.id,
-            anonymousUserId: r.player!.id,
-            pseudo: r.pseudo_override || r.player!.pseudo || "Joueur",
-            joinedAt: r.joined_at ?? "",
-            archived: r.player!.archived_at !== null,
-          }));
-        setGuests(filtered);
-      } else {
-        const { data, error: queryError } = await sb
-          .from("league_memberships")
-          .select(select)
-          .eq("league_id", contextId)
-          .order("joined_at", { ascending: true });
-        if (queryError) throw queryError;
+      const { data, error: queryError } = await sb
+        .from(table)
+        .select(select)
+        .eq(fk, contextId)
+        .order("joined_at", { ascending: true });
+      if (queryError) throw queryError;
 
-        const rows = (data ?? []) as unknown as RawLeagueRow[];
-        const filtered: UnclaimedGuest[] = rows
-          .filter((r) => r.player && r.player.user_id === null && matchesArchivedFilter(r.player.archived_at, archivedFilter))
-          .map((r) => ({
-            playerId: r.id,
-            anonymousUserId: r.player!.id,
-            pseudo: r.pseudo_override || r.player!.pseudo || "Joueur",
-            joinedAt: r.joined_at ?? "",
-            archived: r.player!.archived_at !== null,
-          }));
-        setGuests(filtered);
-      }
+      const rows = (data ?? []) as unknown as RawRow[];
+      const filtered: UnclaimedGuest[] = rows
+        .filter((r) => {
+          if (!r.player) return false;
+          const isGhost = r.player.user_id === null;
+          if (scope === "ghosts" && !isGhost) return false;
+          if (excludeUserId && r.player.user_id === excludeUserId) return false;
+          const archived = r.archived_at !== null || r.player.archived_at !== null;
+          return matchesArchivedFilter(archived, archivedFilter);
+        })
+        .map((r) => ({
+          playerId: r.id,
+          anonymousUserId: r.player!.id,
+          pseudo: r.pseudo_override || r.player!.pseudo || "Joueur",
+          joinedAt: r.joined_at ?? "",
+          archived: r.archived_at !== null || r.player!.archived_at !== null,
+          isGhost: r.player!.user_id === null,
+        }));
+      setGuests(filtered);
     } catch (err) {
       const detail = err instanceof Error ? err.message : JSON.stringify(err);
       console.error("[useUnclaimedGuests] load failed:", detail);
@@ -131,7 +136,7 @@ export function useUnclaimedGuests(
     } finally {
       setIsLoading(false);
     }
-  }, [kind, contextId, isAuthenticated, authLoading, mode, archivedFilter]);
+  }, [kind, contextId, isAuthenticated, authLoading, mode, archivedFilter, scope, excludeUserId]);
 
   useEffect(() => {
     load();
