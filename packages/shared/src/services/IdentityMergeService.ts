@@ -73,6 +73,15 @@ class IdentityMergeService {
     try {
       const playerId = await this.resolvePlayerId(kind, membershipOrPlayerId);
 
+      // FK safety: players.user_id → users.id. The anonymous users row must
+      // exist before we link the player to it, otherwise the UPDATE trips
+      // players_user_id_fkey. Idempotent (ON CONFLICT DO NOTHING) so it never
+      // clobbers an existing pseudo. Requires the mig 037 anon RLS policy.
+      await sb.from('users').upsert(
+        { id: claimerAnonymousUserId, pseudo: 'Joueur', is_anonymous: true } as never,
+        { onConflict: 'id', ignoreDuplicates: true },
+      );
+
       const { data: existing } = await sb
         .from('players')
         .select('id')

@@ -32,6 +32,7 @@ import {
 } from "../services/DatabaseService";
 import { migrationService } from "../services/MigrationService";
 import { localUserService } from "../services/LocalUserService";
+import { anonymousUserService } from "../services/AnonymousUserService";
 import { getDeviceFingerprint } from "../utils/deviceFingerprint";
 import { generateEventCode } from "../utils/eventCode";
 
@@ -880,6 +881,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
     // Save to Supabase
     try {
+      // FK safety: players.user_id → users.id. Ensure the anonymous users row
+      // exists before the player insert references it (mig 037 anon RLS).
+      if (!isAuthenticated && localUser) {
+        await anonymousUserService.createAnonymousUser(localUser);
+      }
       await databaseService.addPlayerToLeague(
         leagueId,
         newPlayer,
@@ -939,6 +945,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         localUser = await localUserService.createLocalUser(playerName, deviceFingerprint);
       }
       resolvedUserId = localUser.anonymousUserId;
+      // FK safety: players.user_id → users.id. Ensure the anonymous users row
+      // exists before the player insert references it (mig 037 anon RLS).
+      await anonymousUserService.createAnonymousUser(localUser);
     }
 
     const playerId = await databaseService.addAnonymousPlayerToEvent(
