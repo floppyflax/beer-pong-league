@@ -103,7 +103,7 @@ export function PersistentFrame({ source, children, rightRail }: Props) {
       </div>
 
       {/* Body — grid 2 colonnes : scène + rail droit */}
-      <div className="pt-20 md:pt-28 pb-6 md:pb-8 px-6 md:px-10 lg:px-12 h-full w-full relative z-10">
+      <div className="pt-24 md:pt-40 pb-6 md:pb-8 px-6 md:px-10 lg:px-12 h-full w-full relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5 md:gap-8 lg:gap-10 h-full">
           {/* Col gauche : scène active */}
           <div className="min-w-0 h-full overflow-hidden flex flex-col">
