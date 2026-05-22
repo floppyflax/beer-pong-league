@@ -21,14 +21,16 @@ export function StatsScene({ source }: Props) {
       </h2>
 
       <div className="flex-1 min-h-0 grid grid-rows-[1fr_1fr_auto] gap-3 md:gap-4">
-        {/* 2 lignes de 2 KPIs compacts */}
-        <div className="grid grid-cols-2 gap-3 md:gap-4 min-h-0">
+        {/* Ligne 1 : 3 chiffres globaux */}
+        <div className="grid grid-cols-3 gap-3 md:gap-4 min-h-0">
           <KpiTile kpi={kpis[0]} />
           <KpiTile kpi={kpis[1]} />
-        </div>
-        <div className="grid grid-cols-2 gap-3 md:gap-4 min-h-0">
           <KpiTile kpi={kpis[2]} />
+        </div>
+        {/* Ligne 2 : 2 récompenses joueur (Top ELO + le plus assidu) */}
+        <div className="grid grid-cols-2 gap-3 md:gap-4 min-h-0">
           <KpiTile kpi={kpis[3]} />
+          <KpiTile kpi={kpis[4]} />
         </div>
 
         {/* Match le plus serré — pleine largeur */}
@@ -158,6 +160,17 @@ function computeStats(source: DisplaySource): {
   const topElo = source.players[0]?.elo ?? 0;
   const topName = source.players[0]?.name ?? "—";
 
+  // Joueur le plus assidu : plus grand nombre de matchs joués (wins + losses).
+  // Égalité tranchée par nom pour un affichage déterministe.
+  const mostPlayed = [...source.players]
+    .filter((p) => p.wins + p.losses > 0)
+    .sort((a, b) => {
+      const diff = b.wins + b.losses - (a.wins + a.losses);
+      return diff !== 0 ? diff : a.name.localeCompare(b.name);
+    })[0];
+  const mostPlayedCount = mostPlayed ? mostPlayed.wins + mostPlayed.losses : 0;
+  const mostPlayedName = mostPlayed?.name ?? "—";
+
   const kpis: Kpi[] = [
     { label: "Matchs joués", value: String(matchesCount), colorClass: "text-white" },
     {
@@ -168,6 +181,12 @@ function computeStats(source: DisplaySource): {
     },
     { label: "Cups encaissés", value: String(totalCups), colorClass: "text-ping-yellow" },
     { label: "Top ELO", value: String(topElo), sub: topName, colorClass: "text-ping-yellow" },
+    {
+      label: "Plus de matchs",
+      value: String(mostPlayedCount),
+      sub: mostPlayedName,
+      colorClass: "text-lime",
+    },
   ];
 
   return { kpis, closest };
