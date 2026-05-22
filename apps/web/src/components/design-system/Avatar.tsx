@@ -3,11 +3,14 @@ import { clsx } from 'clsx';
 import { getInitials } from '@/utils/string';
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+/** Fond du fallback initiales. `soft` (défaut) ou `deep` (très foncé, pour contraster sur une carte navy-soft). */
+export type AvatarTone = 'soft' | 'deep';
 
 export interface AvatarProps {
   name: string;
   src?: string;
   size?: AvatarSize;
+  tone?: AvatarTone;
   className?: string;
 }
 
@@ -19,7 +22,12 @@ const sizeClasses: Record<AvatarSize, string> = {
   xl: 'w-20 h-20 text-xl',
 };
 
-export function Avatar({ name, src, size = 'md', className }: AvatarProps) {
+const toneClasses: Record<AvatarTone, string> = {
+  soft: 'bg-navy-soft',
+  deep: 'bg-navy-deep',
+};
+
+export function Avatar({ name, src, size = 'md', tone = 'soft', className }: AvatarProps) {
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
@@ -32,7 +40,8 @@ export function Avatar({ name, src, size = 'md', className }: AvatarProps) {
   return (
     <div
       className={clsx(
-        'rounded-full bg-navy-soft flex items-center justify-center font-bold text-cool-gray overflow-hidden flex-shrink-0',
+        'rounded-full flex items-center justify-center font-bold text-cool-gray overflow-hidden flex-shrink-0',
+        toneClasses[tone],
         sizeClasses[size],
         className,
       )}
