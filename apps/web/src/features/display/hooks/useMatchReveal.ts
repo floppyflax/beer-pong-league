@@ -69,7 +69,9 @@ export function withTransitionDeltas(
     const eloDelta = p.elo - prev.elo;
     return {
       ...p,
-      rankDelta: rankDelta !== 0 ? rankDelta : undefined,
+      // ▲/▼ pour tout mouvement (y compris un non-joueur dépassé) ; "=" (0)
+      // uniquement pour un joueur qui A JOUÉ (eloDelta≠0) mais a gardé son rang.
+      rankDelta: rankDelta !== 0 ? rankDelta : eloDelta !== 0 ? 0 : undefined,
       eloDelta: eloDelta !== 0 ? eloDelta : undefined,
     };
   });

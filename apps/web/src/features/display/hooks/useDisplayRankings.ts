@@ -13,6 +13,9 @@ import type { DisplaySourcePlayer } from "../types";
  * - `rankDelta` : variation de rang depuis l'état d'avant le dernier match.
  *   Calculé en reconstruisant l'ELO "pré-dernier-match" et en re-rankant.
  *   Positif = le joueur a gagné des places (donc apparu plus haut maintenant).
+ *   `0` = a joué le dernier match mais resté sur place (badge "="). Un joueur
+ *   dépassé sans avoir joué garde son ▲/▼ (cohérent avec le reveal de match).
+ *   `undefined` (pas de badge) = n'a ni joué ni changé de rang.
  *
  * Conçu pour le mode diffusion : c'est un dérivé pur de la donnée déjà
  * disponible dans `events`/`leagues`, pas une requête supplémentaire.
@@ -79,8 +82,15 @@ export function deriveDisplayPlayers(
     const recent = recentByPlayer[p.id] ?? [];
     const eloDelta = eloDeltaByPlayer[p.id];
     const prevRank = prevRankByPlayer[p.id];
+    const played = eloDelta !== undefined; // participant du dernier match
     const rankDelta =
-      prevRank !== undefined && prevRank !== rank ? prevRank - rank : undefined;
+      prevRank === undefined
+        ? undefined
+        : prevRank !== rank
+          ? prevRank - rank // a bougé (joueur ou non dépassé) → ▲/▼
+          : played
+            ? 0 // a joué mais resté sur place → "="
+            : undefined; // n'a pas joué → pas de badge
 
     return {
       id: p.id,

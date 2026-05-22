@@ -12,7 +12,7 @@
  * été retirée : `leaderRow` la remplace.
  */
 
-import { ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
+import { ChevronRight, Equal, TrendingDown, TrendingUp } from "lucide-react";
 import { getInitials } from "@/utils/string";
 
 export interface PlayerCardCompactProps {
@@ -154,7 +154,7 @@ function Avatar({
   size?: 8 | 10 | 12 | 14 | 16 | 20;
   /** When set, renders a small medallion overlay on the bottom-right with the rank. */
   rank?: number;
-  /** When set & non-zero, renders a small ▲/▼ badge overlay on the top-left. */
+  /** Rank movement vs last match: >0 ▲ / <0 ▼ / 0 = stayed (neutral dash). undefined = didn't play → no badge. */
   rankDelta?: number;
 }) {
   const initials = getInitials(name);
@@ -181,7 +181,7 @@ function Avatar({
       )}
     </div>
   );
-  const hasRankDelta = rankDelta !== undefined && rankDelta !== 0;
+  const hasRankDelta = rankDelta !== undefined;
   if (rank === undefined && !hasRankDelta) {
     return <div className="flex-shrink-0">{avatar}</div>;
   }
@@ -228,19 +228,27 @@ function Avatar({
           className={`absolute ${overlayOffsetTopLeft} ${overlayCls} rounded-full flex items-center gap-0.5 justify-center font-mono font-extrabold tabular-nums ring-2 ring-navy-soft ${
             rankDelta > 0
               ? "bg-lime text-navy"
-              : "bg-signal-red text-white"
+              : rankDelta < 0
+                ? "bg-signal-red text-white"
+                : "bg-cool-gray text-navy"
           }`}
           data-testid="playercard-rank-delta"
-          aria-label={`${rankDelta > 0 ? "Monté de" : "Descendu de"} ${Math.abs(
-            rankDelta,
-          )} ${Math.abs(rankDelta) > 1 ? "places" : "place"}`}
+          aria-label={
+            rankDelta > 0
+              ? `Monté de ${rankDelta} ${rankDelta > 1 ? "places" : "place"}`
+              : rankDelta < 0
+                ? `Descendu de ${Math.abs(rankDelta)} ${Math.abs(rankDelta) > 1 ? "places" : "place"}`
+                : "Place inchangée"
+          }
         >
           {rankDelta > 0 ? (
             <TrendingUp size={overlayIconSize} aria-hidden />
-          ) : (
+          ) : rankDelta < 0 ? (
             <TrendingDown size={overlayIconSize} aria-hidden />
+          ) : (
+            <Equal size={overlayIconSize} aria-hidden />
           )}
-          {Math.abs(rankDelta)}
+          {rankDelta !== 0 && Math.abs(rankDelta)}
         </div>
       )}
     </div>

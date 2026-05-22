@@ -93,8 +93,8 @@ describe("deriveDisplayPlayers", () => {
   it("computes rankDelta from pre-last-match ranking", () => {
     // Avant le dernier match : Alice 1100, Bob 1100 → Alice 1, Bob 2 (alpha)
     // Après le match (Alice gagne +20, Bob perd -20) : Alice 1120, Bob 1080
-    // Donc rangs actuels : Alice 1, Bob 2. rankDelta : Alice 0 (masqué),
-    // Bob 0 (masqué).
+    // Donc rangs actuels : Alice 1, Bob 2. Les deux ont JOUÉ et sont restés
+    // sur place → rankDelta 0 (badge "=").
     const playersNoChange = [
       makePlayer("a", "Alice", 1120, 1, 0),
       makePlayer("b", "Bob", 1080, 0, 1),
@@ -106,8 +106,8 @@ describe("deriveDisplayPlayers", () => {
       }),
     ];
     const outNoChange = deriveDisplayPlayers(playersNoChange, noChangeMatches);
-    expect(outNoChange.find((p) => p.id === "a")?.rankDelta).toBeUndefined();
-    expect(outNoChange.find((p) => p.id === "b")?.rankDelta).toBeUndefined();
+    expect(outNoChange.find((p) => p.id === "a")?.rankDelta).toBe(0);
+    expect(outNoChange.find((p) => p.id === "b")?.rankDelta).toBe(0);
 
     // Cas avec changement : Alice était 1080, Bob 1120. Bob 1, Alice 2.
     // Alice gagne +50, Bob perd -50. Alice 1130, Bob 1070. Alice 1, Bob 2.
@@ -126,6 +126,27 @@ describe("deriveDisplayPlayers", () => {
     const outFlip = deriveDisplayPlayers(playersFlip, flipMatches);
     expect(outFlip.find((p) => p.id === "a")?.rankDelta).toBe(1);
     expect(outFlip.find((p) => p.id === "b")?.rankDelta).toBe(-1);
+  });
+
+  it("shows 0 (resté sur place) for participants but hides non-participants who stayed", () => {
+    // Carol (1300) ne joue pas. Alice & Bob jouent et restent à leur rang.
+    // Avant : Carol 1300, Alice 1100, Bob 1100 → Carol 1, Alice 2, Bob 3.
+    // Après (Alice +20, Bob -20) : Carol 1300, Alice 1120, Bob 1080 → mêmes rangs.
+    const players = [
+      makePlayer("c", "Carol", 1300, 5, 0),
+      makePlayer("a", "Alice", 1120, 1, 0),
+      makePlayer("b", "Bob", 1080, 0, 1),
+    ];
+    const matches: Match[] = [
+      makeMatch("m1", "2026-05-22T12:00:00Z", ["a"], ["b"], 10, 5, {
+        a: 20,
+        b: -20,
+      }),
+    ];
+    const out = deriveDisplayPlayers(players, matches);
+    expect(out.find((p) => p.id === "a")?.rankDelta).toBe(0); // a joué, resté → "="
+    expect(out.find((p) => p.id === "b")?.rankDelta).toBe(0); // a joué, resté → "="
+    expect(out.find((p) => p.id === "c")?.rankDelta).toBeUndefined(); // pas joué, resté → rien
   });
 
   it("leaves rankDelta undefined when no matches", () => {
