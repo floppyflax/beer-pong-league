@@ -282,7 +282,8 @@ describe("EventDashboard - Story 8.3", () => {
       await waitFor(() => {
         expect(screen.getByText(/4 gobelets restants/i)).toBeInTheDocument();
       });
-      expect(screen.getByRole("img", { name: /photo de l'équipe gagnante/i })).toBeInTheDocument();
+      // Photo finish is opened via a "Photo" button (thumbnail img is decorative).
+      expect(screen.getByRole("button", { name: /voir la photo finish/i })).toBeInTheDocument();
     });
   });
 

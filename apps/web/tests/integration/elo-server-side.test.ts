@@ -53,10 +53,29 @@ const supabaseMock = {
   }),
 };
 
-vi.mock('../../src/lib/supabase', () => ({
-  supabase: supabaseMock,
-  isSupabaseAvailable: () => true,
-}));
+// Since the @elofight/shared extraction, MatchesRepository / EloRecalcService
+// no longer read the client from the web `lib/supabase` shim — they consume
+// the live `sb` / `supabase` bindings exported by the shared `_base` module
+// (populated by `_initBaseRepositoryClient()` at boot). Under test the real
+// client is null (empty env), so we mock `_base` directly: inject the spy
+// client and a BaseRepository whose `isSupabaseAvailable()` is always true
+// (the real one reads the module-level `supabase` let, which stays null).
+vi.mock('@elofight/shared/services/repositories/_base', async (importActual) => {
+  const actual = await importActual<
+    typeof import('@elofight/shared/services/repositories/_base')
+  >();
+  class MockBaseRepository {
+    protected isSupabaseAvailable(): boolean {
+      return true;
+    }
+  }
+  return {
+    ...actual,
+    supabase: supabaseMock,
+    sb: supabaseMock,
+    BaseRepository: MockBaseRepository,
+  };
+});
 
 vi.mock('../../src/services/repositories/LeaguesRepository', () => ({
   leaguesRepository: {
@@ -119,10 +138,12 @@ describe('ELO server-side (migration 025) — MatchesRepository delegates to app
       { name: 'apply_match_elo', args: { p_match_id: match.id } },
     ]);
 
-    // No direct write to elo_history / league_memberships / event_memberships
+    // No direct stat write to elo_history / league_memberships / event_memberships.
+    // resolveToPlayerIds reads *_memberships via select to map ids → players.id, so
+    // the builder may exist; assert the mutating method was never invoked, not absent.
     expect(tablesTouched.elo_history?.insert).toBeUndefined();
-    expect(tablesTouched.league_memberships?.update).toBeUndefined();
-    expect(tablesTouched.event_memberships?.update).toBeUndefined();
+    expect(tablesTouched.league_memberships?.update ?? vi.fn()).not.toHaveBeenCalled();
+    expect(tablesTouched.event_memberships?.update ?? vi.fn()).not.toHaveBeenCalled();
   });
 
   it('recordEventMatch inserts the match (with event_id + league_id) and calls apply_match_elo once', async () => {
@@ -163,10 +184,10 @@ describe('ELO server-side (migration 025) — MatchesRepository delegates to app
       { name: 'apply_match_elo', args: { p_match_id: match.id } },
     ]);
 
-    // Still no direct stat writes
+    // Still no direct stat writes — resolveToPlayerIds may read event_memberships.
     expect(tablesTouched.elo_history?.insert).toBeUndefined();
-    expect(tablesTouched.league_memberships?.update).toBeUndefined();
-    expect(tablesTouched.event_memberships?.update).toBeUndefined();
+    expect(tablesTouched.league_memberships?.update ?? vi.fn()).not.toHaveBeenCalled();
+    expect(tablesTouched.event_memberships?.update ?? vi.fn()).not.toHaveBeenCalled();
   });
 });
 
