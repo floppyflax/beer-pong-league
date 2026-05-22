@@ -359,6 +359,17 @@ class IdentityMergeService {
     return { success: false, error: 'Ghost invite tokens disabled (mig 022)' };
   }
 
+  /** True if the given user (auth user id or anonymous user id) already owns a player. */
+  async userOwnsPlayer(userId: string): Promise<boolean> {
+    if (!sb || !userId) return false;
+    const { data } = await sb
+      .from('players')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return !!data;
+  }
+
   private async resolvePlayerId(kind: 'event' | 'league', membershipOrPlayerId: string): Promise<string> {
     if (!sb) throw new Error('Supabase not configured');
     const table = kind === 'event' ? 'event_memberships' : 'league_memberships';

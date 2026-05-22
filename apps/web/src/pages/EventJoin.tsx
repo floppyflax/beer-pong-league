@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { useAuthContext } from "../context/AuthContext";
@@ -85,6 +85,27 @@ export const EventJoin = () => {
     isLoading: guestsLoading,
   } = useUnclaimedGuests("event", event?.id ?? null, { mode: "any" });
   const guestsReady = !guestsLoading;
+
+  // Does the current identity ALREADY own a player? If so, joining a NEW
+  // context means adding THAT player (1 user = 1 player) — we never offer
+  // "create a new player", just "rejoindre en tant que moi".
+  const resolvedUid =
+    isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+  const [hasOwnPlayer, setHasOwnPlayer] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!resolvedUid) {
+      setHasOwnPlayer(false);
+      return;
+    }
+    let alive = true;
+    identityMergeService
+      .userOwnsPlayer(resolvedUid)
+      .then((owns) => alive && setHasOwnPlayer(owns))
+      .catch(() => alive && setHasOwnPlayer(false));
+    return () => {
+      alive = false;
+    };
+  }, [resolvedUid]);
 
   // ---- Effects ----
 
@@ -248,6 +269,32 @@ export const EventJoin = () => {
     navigate(`/event/${event.id}`);
   };
 
+  // Identified user who already owns a player → join with THAT player (no
+  // "create new player"). addAnonymousPlayerToEvent reuses the caller's player
+  // (1 user = 1 player), so the name is irrelevant — pass the current pseudo.
+  const [joiningExisting, setJoiningExisting] = useState(false);
+  const finalizeJoinAsExisting = useCallback(async () => {
+    if (!event || joiningExisting) return;
+    setJoiningExisting(true);
+    try {
+      await addAnonymousPlayerToEvent(event.id, currentPseudo ?? "Joueur");
+      await reloadData();
+      toast.success(`Bienvenue dans ${event.name} !`);
+      navigate(`/event/${event.id}`);
+    } catch {
+      setJoiningExisting(false);
+      toast.error("Erreur lors de la jonction à l'événement");
+    }
+  }, [event, joiningExisting, addAnonymousPlayerToEvent, currentPseudo, reloadData, navigate]);
+
+  // Auto-join as the existing player when an identified user reaches the
+  // "create" step (no ghost claimed / not in the list) — no name prompt.
+  useEffect(() => {
+    if (step === "create" && hasOwnPlayer === true) {
+      void finalizeJoinAsExisting();
+    }
+  }, [step, hasOwnPlayer, finalizeJoinAsExisting]);
+
   const handleResume = () => {
     if (claimedGuest) setStep("confirm");
     else if (guestsReady && unclaimedGuests.length > 0 && !claimDismissed)
@@ -328,6 +375,7 @@ export const EventJoin = () => {
         onClaim={handleClaimGuest}
         onDismissAll={handleDismissClaim}
         title="Êtes-vous une de ces personnes ?"
+        dismissLabel={hasOwnPlayer ? "Rejoindre en tant que moi" : undefined}
       />
 
       <JoinNameSheet
@@ -339,8 +387,10 @@ export const EventJoin = () => {
         onSubmit={finalizeClaim}
       />
 
+      {/* "Create new player" name step — only for identities that DON'T already
+          own a player. Identified users with a player auto-join via the effect. */}
       <JoinNameSheet
-        isOpen={step === "create"}
+        isOpen={step === "create" && hasOwnPlayer === false}
         mode="create"
         initialName=""
         contextName={event.name}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { useAuthContext } from "../context/AuthContext";
@@ -70,6 +70,26 @@ export const LeagueJoin = () => {
     isLoading: guestsLoading,
   } = useUnclaimedGuests("league", id ?? null, { mode: "any" });
   const guestsReady = !guestsLoading;
+
+  // Does the current identity already own a player? If so, joining a NEW
+  // context adds THAT player (1 user = 1 player) — never "create a new player".
+  const resolvedUid =
+    isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+  const [hasOwnPlayer, setHasOwnPlayer] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!resolvedUid) {
+      setHasOwnPlayer(false);
+      return;
+    }
+    let alive = true;
+    identityMergeService
+      .userOwnsPlayer(resolvedUid)
+      .then((owns) => alive && setHasOwnPlayer(owns))
+      .catch(() => alive && setHasOwnPlayer(false));
+    return () => {
+      alive = false;
+    };
+  }, [resolvedUid]);
 
   // ---- Effects ----
 
@@ -226,6 +246,29 @@ export const LeagueJoin = () => {
     navigate(`/league/${id}`);
   };
 
+  // Identified user who already owns a player → join with THAT player (addPlayer
+  // reuses the caller's player, so the name is irrelevant).
+  const [joiningExisting, setJoiningExisting] = useState(false);
+  const finalizeJoinAsExisting = useCallback(async () => {
+    if (!id || joiningExisting) return;
+    setJoiningExisting(true);
+    try {
+      await addPlayer(id, currentPseudo ?? "Joueur");
+      await reloadData();
+      toast.success(`Bienvenue dans ${leagueName ?? "la ligue"} !`);
+      navigate(`/league/${id}`);
+    } catch {
+      setJoiningExisting(false);
+      toast.error("Erreur lors de la jonction à la ligue");
+    }
+  }, [id, joiningExisting, addPlayer, currentPseudo, leagueName, reloadData, navigate]);
+
+  useEffect(() => {
+    if (step === "create" && hasOwnPlayer === true) {
+      void finalizeJoinAsExisting();
+    }
+  }, [step, hasOwnPlayer, finalizeJoinAsExisting]);
+
   const handleResume = () => {
     if (claimedGuest) setStep("confirm");
     else if (guestsReady && unclaimedGuests.length > 0 && !claimDismissed)
@@ -316,6 +359,7 @@ export const LeagueJoin = () => {
         onClaim={handleClaimGuest}
         onDismissAll={handleDismissClaim}
         title="Êtes-vous une de ces personnes ?"
+        dismissLabel={hasOwnPlayer ? "Rejoindre en tant que moi" : undefined}
       />
 
       <JoinNameSheet
@@ -327,8 +371,10 @@ export const LeagueJoin = () => {
         onSubmit={finalizeClaim}
       />
 
+      {/* "Create new player" — only for identities without a player. Identified
+          users with a player auto-join via the effect above. */}
       <JoinNameSheet
-        isOpen={step === "create"}
+        isOpen={step === "create" && hasOwnPlayer === false}
         mode="create"
         initialName=""
         contextName={leagueName ?? undefined}

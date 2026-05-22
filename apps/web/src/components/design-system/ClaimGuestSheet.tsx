@@ -30,6 +30,8 @@ export interface ClaimGuestSheetProps {
   onDismissAll?: () => void;
   /** Titre custom (par défaut "Êtes-vous une de ces personnes ?"). */
   title?: string;
+  /** Libellé du bouton de repli (défaut "Je ne suis pas dans la liste"). */
+  dismissLabel?: string;
 }
 
 export function ClaimGuestSheet({
@@ -39,6 +41,7 @@ export function ClaimGuestSheet({
   onClaim,
   onDismissAll,
   title = "Êtes-vous une de ces personnes ?",
+  dismissLabel = "Je ne suis pas dans la liste",
 }: ClaimGuestSheetProps) {
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -165,7 +168,7 @@ export function ClaimGuestSheet({
               disabled={!!pendingId}
               className="w-full h-14 rounded-full bg-white/10 border-2 border-white/25 text-white font-archivo font-extrabold uppercase text-[14px] tracking-[1px] hover:bg-white/15 active:scale-[0.99] transition disabled:opacity-40"
             >
-              Je ne suis pas dans la liste
+              {dismissLabel}
             </button>
           </div>
         )}
