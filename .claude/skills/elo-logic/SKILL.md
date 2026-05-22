@@ -11,18 +11,35 @@ ELO is **computed by the database**, not the client. Two `SECURITY DEFINER`
 RPCs in `supabase/migrations/025_elo_server_side.sql` own every write to
 `elo_history` / `*_memberships.elo`:
 
-- **`apply_match_elo(p_match_id UUID)`** — recomputes the deltas from the
-  match scores and team-average ELOs, writes the history row(s) and
-  updates membership stats. Idempotent (anti-replay), refuses non-ranked
-  matches, refuses pending matches when anti-cheat is enabled.
+- **`apply_match_elo(p_match_id UUID, p_context TEXT DEFAULT 'both')`** —
+  recomputes the deltas from the match scores and team-average ELOs, writes
+  the history row(s) and updates membership stats. `p_context`
+  (`event` | `league` | `both`, mig 032) restricts which context(s) are
+  written; **anti-replay is per-context** (checks only the context being
+  applied). Idempotent, refuses non-ranked matches, refuses pending matches
+  when anti-cheat is enabled. The record path calls the 1-arg form
+  (→ `both`).
 - **`recalculate_league_elo(p_league_id UUID)`** — admin recovery: wipes
   the league's `elo_history` + resets memberships, then replays every
-  ranked match in chrono order via `apply_match_elo`. Returns count.
+  ranked match of the current season in chrono order via
+  `apply_match_elo(id, 'league')`. Returns count.
+- **`recalculate_event_elo(p_event_id UUID)`** (mig 032) — mirror for the
+  event bubble: wipes event-context `elo_history` + resets
+  `event_memberships`, replays every ranked match via
+  `apply_match_elo(id, 'event')`. No season bound (events have no seasons).
+
+**Why per-context matters**: `apply_match_elo` writes up to 2 rows per match
+(event + league). Before mig 032 the anti-replay was global, so
+`recalculate_league_elo` silently skipped any event-linked match (its
+event-context row survived the league-only wipe → `unique_violation` →
+`CONTINUE`). Per-context anti-replay fixes that.
 
 **Client never writes elo_history / memberships stats directly.**
 `MatchesRepository.recordMatch` and `recordEventMatch` insert the match
 row, then call `supabase.rpc('apply_match_elo', { p_match_id })`.
-`EloRecalcService` is a thin wrapper around `recalculate_league_elo`.
+`EloRecalcService` wraps both `recalculate_league_elo` and
+`recalculate_event_elo`. After an admin edit/delete of an event match, the
+caller rebuilds **both** bubbles (event + league when propagating).
 
 When you touch the formula or the K-factor, update **both**:
 - `apps/web/src/utils/elo.ts` (kept for the optimistic preview UI —
@@ -92,8 +109,9 @@ direct, ELO appliqué immédiatement après l'INSERT du match via la RPC.
 
 1. **Event ELO** — par event, stocké dans `event_memberships.elo` (mig
    023, table renommée en mig 024). Mis à jour par chaque match de
-   l'event. Inheritance : un player déjà membre de la ligue rattachée
-   hérite de son ELO ligue ; sinon démarre à 1000.
+   l'event. **Démarre à 1000, bulle indépendante** : aucun héritage du
+   ELO ligue, même quand l'event est rattaché à une ligue. La bulle se
+   calibre uniquement par les matchs joués dans l'event.
 2. **League ELO** — `league_memberships.elo`. Mis à jour par les matchs
    de league hors event ET, conditionnellement, par les matchs des events
    rattachés (toggle `events.propagates_to_league_elo`, default TRUE).

@@ -1,10 +1,14 @@
 /**
- * MatchAdminService — admin edit/delete of recorded matches via mig 021 RPCs.
+ * MatchAdminService — admin edit/delete of recorded matches via the
+ * `admin_update_match` / `admin_delete_match` RPCs (mig 021, realigned to the
+ * events schema in mig 033 — they now return `event_id` + `league_id`).
  *
- * Match edits and deletes are followed by a mandatory ELO rebuild
- * (`EloRecalcService.recalculateLeagueElo`) so league_players stats
- * stay coherent. Events without an associated league have no
- * persistent ELO, so the recalc is a no-op there.
+ * Match edits and deletes are followed by a mandatory ELO rebuild so stats
+ * stay coherent. Since mig 023 events carry their OWN persistent ELO
+ * (`event_memberships.elo`), so the caller must rebuild BOTH contexts when
+ * applicable: `recalculateEventElo(eventId)` for the event bubble AND
+ * `recalculateLeagueElo(leagueId)` for the league bubble (mig 032 added the
+ * per-context recalc RPCs).
  */
 
 import { getSupabase } from '../lib/supabase';

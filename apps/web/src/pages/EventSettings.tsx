@@ -29,7 +29,7 @@ import { ContextualHeader } from "@/components/navigation/ContextualHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { PaymentModal } from "@/components/PaymentModal";
-import { GhostManagementSheet } from "@/components/design-system";
+import { GhostManagementSheet, Sheet } from "@/components/design-system";
 import { PButton } from "@/components/ponglo/PButton";
 import type { EventUpdates } from "@/services/DatabaseService";
 
@@ -129,6 +129,13 @@ export const EventSettings = () => {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
+
+  // League (de)association confirmation. attachTarget non-null → confirm
+  // attach; detachConfirm true → confirm detach. isAssociating drives the
+  // blocking loader (the RPC replays ELO server-side, can take a couple s).
+  const [attachTarget, setAttachTarget] = useState<{ id: string; name: string } | null>(null);
+  const [detachConfirm, setDetachConfirm] = useState(false);
+  const [isAssociating, setIsAssociating] = useState(false);
 
   useEffect(() => {
     if (!event) return;
@@ -307,6 +314,22 @@ export const EventSettings = () => {
     if (!confirm("Es-tu sûr de vouloir supprimer cet événement ?")) return;
     deleteEvent(event.id);
     navigate("/");
+  };
+
+  // Confirm attach (targetLeagueId set) or detach (""). The success / error
+  // toasts are emitted by the context; here we only drive the loader + close.
+  const handleConfirmAssociation = async (targetLeagueId: string) => {
+    if (!event || isAssociating) return;
+    setIsAssociating(true);
+    try {
+      await associateEventToLeague(event.id, targetLeagueId);
+      setAttachTarget(null);
+      setDetachConfirm(false);
+    } catch {
+      // Error toast already surfaced by the context handler.
+    } finally {
+      setIsAssociating(false);
+    }
   };
 
   const handleRenameGhost = async (playerId: string, newPseudo: string) => {
@@ -770,13 +793,7 @@ export const EventSettings = () => {
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  if (
-                    confirm("Voulez-vous dissocier cet événement de la ligue ?")
-                  ) {
-                    associateEventToLeague(event.id, "");
-                  }
-                }}
+                onClick={() => setDetachConfirm(true)}
                 className="flex-shrink-0 px-3 h-8 rounded-full border border-white/30 text-white hover:bg-white/10 font-archivo font-extrabold uppercase text-[10px] tracking-[1px] transition-colors"
               >
                 Dissocier
@@ -796,7 +813,7 @@ export const EventSettings = () => {
                     type="button"
                     role="radio"
                     aria-checked="false"
-                    onClick={() => associateEventToLeague(event.id, l.id)}
+                    onClick={() => setAttachTarget({ id: l.id, name: l.name })}
                     className="w-full flex items-center gap-3 p-3 rounded-card border border-card bg-navy-soft hover:border-electric-blue hover:bg-electric-blue/5 transition-colors text-left"
                   >
                     <div className="flex-shrink-0 w-9 h-9 rounded-full bg-electric-blue/15 flex items-center justify-center">
@@ -933,6 +950,85 @@ export const EventSettings = () => {
         onClose={() => setShowPaymentModal(false)}
         onSuccess={() => setIsPremium(true)}
       />
+
+      {/* Rattachement à une ligue — confirmation + preview du replay ELO */}
+      <Sheet
+        isOpen={attachTarget !== null}
+        onClose={() => setAttachTarget(null)}
+        disableClose={isAssociating}
+        title="Rattacher à la ligue"
+        maxWidth="sm"
+        footer={
+          <PButton
+            variant="primary"
+            size="lg"
+            full
+            disabled={isAssociating}
+            onClick={() => attachTarget && handleConfirmAssociation(attachTarget.id)}
+          >
+            {isAssociating ? "Rattachement…" : "Confirmer le rattachement"}
+          </PButton>
+        }
+      >
+        <div className="space-y-3 text-sm text-white/80">
+          <p>
+            L&apos;événement sera rattaché à{" "}
+            <span className="font-bold text-white">{attachTarget?.name}</span>.
+          </p>
+          {(event.matches?.length ?? 0) > 0 ? (
+            <p>
+              Ses{" "}
+              <span className="font-bold text-electric-blue">
+                {event.matches.length} match{event.matches.length > 1 ? "s" : ""}
+              </span>{" "}
+              déjà enregistré{event.matches.length > 1 ? "s" : ""} seront pris en
+              compte dans le classement de la ligue — l&apos;ELO de la ligue est
+              recalculé immédiatement.
+            </p>
+          ) : (
+            <p className="text-cool-gray">
+              Aucun match n&apos;a encore été enregistré : le rattachement crée
+              simplement le lien.
+            </p>
+          )}
+          <p className="text-cool-gray text-xs">
+            L&apos;ELO de l&apos;événement reste indépendant et n&apos;est pas
+            modifié.
+          </p>
+        </div>
+      </Sheet>
+
+      {/* Dissociation — rollback total côté ligue */}
+      <Sheet
+        isOpen={detachConfirm}
+        onClose={() => setDetachConfirm(false)}
+        disableClose={isAssociating}
+        title="Dissocier de la ligue"
+        maxWidth="sm"
+        footer={
+          <PButton
+            variant="primary"
+            size="lg"
+            full
+            disabled={isAssociating}
+            onClick={() => handleConfirmAssociation("")}
+          >
+            {isAssociating ? "Dissociation…" : "Dissocier de la ligue"}
+          </PButton>
+        }
+      >
+        <div className="space-y-3 text-sm text-white/80">
+          <p>
+            L&apos;événement sera détaché de{" "}
+            <span className="font-bold text-white">{league?.name}</span>.
+          </p>
+          <p>
+            Ses matchs ne compteront plus pour le classement de la ligue, qui
+            sera recalculé sans eux. L&apos;ELO de l&apos;événement reste
+            inchangé.
+          </p>
+        </div>
+      </Sheet>
     </div>
   );
 };
