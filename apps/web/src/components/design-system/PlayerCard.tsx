@@ -372,9 +372,10 @@ export function PlayerCard(props: PlayerCardProps) {
     const isMe = props.isMe ?? false;
 
     // Surbrillance légère de ma propre ligne dans le classement — mêmes tokens
-    // que LeaderRow.isMe (electric-blue ténu) pour rester cohérent.
+    // que LeaderRow.isMe (electric-blue ténu) pour rester cohérent. Animation
+    // de respiration lente et discrète (désactivée si prefers-reduced-motion).
     const surfaceCls = isMe
-      ? "bg-electric-blue/10 border-electric-blue/30"
+      ? "bg-electric-blue/10 border-electric-blue/30 animate-me-pulse motion-reduce:animate-none"
       : "bg-navy-soft border-card";
 
     // Échelle "display" = TV/projecteur, sans chevron (non interactif en
