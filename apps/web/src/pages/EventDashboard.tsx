@@ -26,7 +26,10 @@ import { EloChangeDisplay } from "@/components/EloChangeDisplay";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
-import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
+import {
+  MatchEnrichedDisplay,
+  hasMatchEnrichedContent,
+} from "@/components/MatchEnrichedDisplay";
 import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { databaseService } from "@/services/DatabaseService";
@@ -870,27 +873,31 @@ export const EventDashboard = () => {
                         Validé
                       </div>
                     )}
-                    {/* Teams + ELO inline (1 valeur par équipe).
-                        `pr-10` quand admin pour réserver la place du bouton
-                        menu absolute top-right (≈ 40 px), sinon le `-X` ELO
-                        de la team B chevauche le ⋮. */}
+                    {/* Teams + ELO inline (1 valeur par équipe) + timestamp
+                        en haut à droite. `pr-10` quand admin pour réserver la
+                        place du bouton menu absolute top-right (≈ 40 px),
+                        sinon le `-X` ELO ou la date de la team B chevauche
+                        le ⋮. */}
                     <MatchTeamsRow
                       teamAPlayers={teamAPlayers}
                       teamBPlayers={teamBPlayers}
                       winner={winnerA ? "A" : "B"}
                       eloChanges={match.eloChanges}
+                      dateLabel={getRelativeTimestamp(match.date)}
                       className={isAdmin ? "pr-10" : undefined}
                     />
-                    {/* Footer : timestamp à gauche, chips photo/cups à droite */}
-                    <div className="flex items-center justify-between gap-3 mt-3">
-                      <div className="text-xs text-cool-gray">
-                        {getRelativeTimestamp(match.date)}
+                    {/* Footer : chips photo/cups, seulement si présents */}
+                    {hasMatchEnrichedContent(
+                      match.photo_url,
+                      match.cups_remaining,
+                    ) && (
+                      <div className="flex justify-end mt-2">
+                        <MatchEnrichedDisplay
+                          photoUrl={match.photo_url}
+                          cupsRemaining={match.cups_remaining}
+                        />
                       </div>
-                      <MatchEnrichedDisplay
-                        photoUrl={match.photo_url}
-                        cupsRemaining={match.cups_remaining}
-                      />
-                    </div>
+                    )}
                   </div>
                 );
               })

@@ -23,7 +23,10 @@ import {
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { formatRelativeTime, formatJoinedSince } from "@/utils/dateUtils";
-import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
+import {
+  MatchEnrichedDisplay,
+  hasMatchEnrichedContent,
+} from "@/components/MatchEnrichedDisplay";
 import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
 import { EloChart } from "@/components/ponglo/EloChart";
 import { PAvatar } from "@/components/ponglo/PAvatar";
@@ -753,17 +756,14 @@ export const PlayerProfile = () => {
                     isWinner ? "border-lime/50" : "border-signal-red/50"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-xs text-cool-gray">
-                      {formatRelativeTime(match.date)}
-                    </span>
+                  <div className="flex items-center gap-2 mb-2">
                     {contextName && (
                       <span className="text-xs text-cool-gray truncate max-w-[60%]">
                         {contextName}
                       </span>
                     )}
                     <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
+                      className={`ml-auto px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
                         isWinner
                           ? "bg-lime/20 text-lime"
                           : "bg-signal-red/20 text-signal-red"
@@ -777,15 +777,19 @@ export const PlayerProfile = () => {
                     teamBPlayers={teamBPlayers}
                     winner={winnerSide}
                     eloChanges={match.eloChanges}
+                    dateLabel={formatRelativeTime(match.date)}
                   />
-                  {/* Footer aligné à droite (le timestamp est dans le
-                      header de la card pour PlayerProfile) */}
-                  <div className="flex justify-end mt-3">
-                    <MatchEnrichedDisplay
-                      photoUrl={match.photo_url}
-                      cupsRemaining={match.cups_remaining}
-                    />
-                  </div>
+                  {hasMatchEnrichedContent(
+                    match.photo_url,
+                    match.cups_remaining,
+                  ) && (
+                    <div className="flex justify-end mt-2">
+                      <MatchEnrichedDisplay
+                        photoUrl={match.photo_url}
+                        cupsRemaining={match.cups_remaining}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
