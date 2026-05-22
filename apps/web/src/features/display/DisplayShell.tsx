@@ -13,6 +13,8 @@ import { LiveMatchScene } from "./scenes/LiveMatchScene";
 import { HighlightScene } from "./scenes/HighlightScene";
 import { StatsScene } from "./scenes/StatsScene";
 import { PhotoWallScene, matchesWithPhotos } from "./scenes/PhotoWallScene";
+import { DuosRivalriesScene } from "./scenes/DuosRivalriesScene";
+import { useDuoRivalryStats } from "./hooks/useDuoRivalryStats";
 import {
   useDisplayScenes,
   type SceneConfig,
@@ -40,6 +42,12 @@ const PHOTO_WALL_SCENE: SceneConfig = {
   durationMs: 12_000,
 };
 
+const DUOS_SCENE: SceneConfig = {
+  id: "duos",
+  mode: "timed",
+  durationMs: 12_000,
+};
+
 /**
  * Shell de la vue diffusion. Orchestre :
  * - `PersistentFrame` (header + QR + rail droit garanti) en dehors du slideshow.
@@ -54,12 +62,16 @@ export function DisplayShell({ source }: Props) {
   // Auto-refresh : l'écran se met à jour seul quand un match tombe ailleurs.
   useDisplayAutoRefresh(reloadData, { intervalMs: 10_000, enabled: !!source });
 
-  // La scène "photo-wall" n'entre dans la rotation que s'il y a des photos.
+  // Scènes optionnelles : photo-wall si des photos, duos si des stats duo/rivalité.
   const hasPhotos = source ? matchesWithPhotos(source).length > 0 : false;
-  const scenes = useMemo(
-    () => (hasPhotos ? [...BASE_SCENES, PHOTO_WALL_SCENE] : BASE_SCENES),
-    [hasPhotos],
-  );
+  const duoStats = useDuoRivalryStats(source);
+  const hasDuos = duoStats.available;
+  const scenes = useMemo(() => {
+    const s = [...BASE_SCENES];
+    if (hasPhotos) s.push(PHOTO_WALL_SCENE);
+    if (hasDuos) s.push(DUOS_SCENE);
+    return s;
+  }, [hasPhotos, hasDuos]);
 
   // Slideshow
   const {
@@ -129,6 +141,8 @@ export function DisplayShell({ source }: Props) {
         return <StatsScene source={source} />;
       case "photo-wall":
         return <PhotoWallScene source={source} />;
+      case "duos":
+        return <DuosRivalriesScene source={source} />;
       default:
         return null;
     }

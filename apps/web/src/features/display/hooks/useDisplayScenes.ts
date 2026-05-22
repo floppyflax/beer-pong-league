@@ -6,7 +6,8 @@ export type SceneId =
   | "live-match"
   | "highlight"
   | "stats"
-  | "photo-wall";
+  | "photo-wall"
+  | "duos";
 
 export type SceneMode = "timed" | "self-paced";
 

@@ -6,9 +6,7 @@ export type HighlightType =
   | "biggest-elo-gain"
   | "biggest-rank-climb"
   | "current-streak"
-  | "upset"
-  | "nemesis"
-  | "best-pair";
+  | "upset";
 
 export interface BaseHighlight {
   type: HighlightType;
@@ -25,13 +23,9 @@ export interface PlayerHighlight extends BaseHighlight {
   subject: DisplaySourcePlayer;
 }
 
-export interface PairHighlight extends BaseHighlight {
-  kind: "pair";
-  subjectA: DisplaySourcePlayer;
-  subjectB: DisplaySourcePlayer;
-}
-
-export type Highlight = PlayerHighlight | PairHighlight;
+// Les highlights de la scène "Highlight" sont des moments JOUEUR. Les stats
+// duo/rivalité vivent dans la scène "Duos & Rivalités" (useDuoRivalryStats).
+export type Highlight = PlayerHighlight;
 
 /* ------------------------- Helpers ------------------------- */
 
@@ -40,10 +34,6 @@ function playerById(
   id: string,
 ): DisplaySourcePlayer | undefined {
   return players.find((p) => p.id === id);
-}
-
-function pairKey(a: string, b: string): string {
-  return [a, b].sort().join("|");
 }
 
 /* ------------------------- Highlights ------------------------- */
@@ -244,103 +234,12 @@ export function computeUpset(source: DisplaySource): PlayerHighlight | null {
   };
 }
 
-/**
- * Nemesis : un couple (A, B) où A a battu B ≥ 3 fois sur la session.
- * On retourne le couple avec le plus grand nombre de victoires côté A.
- */
-export function computeNemesis(source: DisplaySource): PairHighlight | null {
-  if (source.matches.length === 0) return null;
-  // For each match, on inscrit toutes les paires (winner, loser) dans une map
-  const counts: Record<string, { winner: string; loser: string; n: number }> = {};
-  for (const m of source.matches) {
-    const winners = m.scoreA > m.scoreB ? m.teamA : m.teamB;
-    const losers = m.scoreA > m.scoreB ? m.teamB : m.teamA;
-    for (const w of winners) {
-      for (const l of losers) {
-        const key = `${w}>${l}`;
-        if (!counts[key]) counts[key] = { winner: w, loser: l, n: 0 };
-        counts[key].n++;
-      }
-    }
-  }
-  let best: { winner: string; loser: string; n: number } | null = null;
-  for (const c of Object.values(counts)) {
-    if (c.n >= 3 && (!best || c.n > best.n)) best = c;
-  }
-  if (!best) return null;
-  const subjectA = playerById(source.players, best.winner);
-  const subjectB = playerById(source.players, best.loser);
-  if (!subjectA || !subjectB) return null;
-  return {
-    type: "nemesis",
-    kind: "pair",
-    subjectA,
-    subjectB,
-    headline: "Nemesis",
-    tagline: `${subjectA.name} hante ${subjectB.name} — ${best.n}e victoire`,
-    metric: `${best.n}-0`,
-  };
-}
-
-/**
- * Meilleure paire : duo (A, B) ayant joué ensemble ≥ 3 matchs avec winrate
- * > 70%. Ranke par winrate puis par nombre de matchs.
- */
-export function computeBestPair(source: DisplaySource): PairHighlight | null {
-  if (source.matches.length === 0) return null;
-  const stats: Record<
-    string,
-    { a: string; b: string; wins: number; total: number }
-  > = {};
-  for (const m of source.matches) {
-    // Toutes les paires de teamA
-    for (let i = 0; i < m.teamA.length; i++) {
-      for (let j = i + 1; j < m.teamA.length; j++) {
-        const k = pairKey(m.teamA[i], m.teamA[j]);
-        if (!stats[k]) stats[k] = { a: m.teamA[i], b: m.teamA[j], wins: 0, total: 0 };
-        stats[k].total++;
-        if (m.scoreA > m.scoreB) stats[k].wins++;
-      }
-    }
-    for (let i = 0; i < m.teamB.length; i++) {
-      for (let j = i + 1; j < m.teamB.length; j++) {
-        const k = pairKey(m.teamB[i], m.teamB[j]);
-        if (!stats[k]) stats[k] = { a: m.teamB[i], b: m.teamB[j], wins: 0, total: 0 };
-        stats[k].total++;
-        if (m.scoreB > m.scoreA) stats[k].wins++;
-      }
-    }
-  }
-  let best: { a: string; b: string; wins: number; total: number; rate: number } | null = null;
-  for (const s of Object.values(stats)) {
-    if (s.total < 3) continue;
-    const rate = s.wins / s.total;
-    if (rate <= 0.7) continue;
-    if (!best || rate > best.rate || (rate === best.rate && s.total > best.total)) {
-      best = { ...s, rate };
-    }
-  }
-  if (!best) return null;
-  const subjectA = playerById(source.players, best.a);
-  const subjectB = playerById(source.players, best.b);
-  if (!subjectA || !subjectB) return null;
-  return {
-    type: "best-pair",
-    kind: "pair",
-    subjectA,
-    subjectB,
-    headline: "Meilleure paire",
-    tagline: `${subjectA.name} & ${subjectB.name} — ${best.wins}V/${best.total - best.wins}D ensemble`,
-    metric: `${Math.round(best.rate * 100)}%`,
-  };
-}
-
 /* ------------------------- Hook ------------------------- */
 
 /**
- * Retourne la liste des highlights disponibles, dans l'ordre où ils seront
- * cyclés par `HighlightScene`. Liste vide si rien à montrer (pas de matchs,
- * etc.).
+ * Retourne la liste des moments marquants JOUEUR disponibles (gain ELO,
+ * remontée, série, upset). Liste vide si rien à montrer. Les stats duo/rivalité
+ * sont gérées séparément par `useDuoRivalryStats`.
  */
 export function useDisplayHighlights(source: DisplaySource | null): Highlight[] {
   return useMemo(() => {
@@ -350,8 +249,6 @@ export function useDisplayHighlights(source: DisplaySource | null): Highlight[] 
       computeBiggestRankClimb(source),
       computeCurrentStreak(source),
       computeUpset(source),
-      computeNemesis(source),
-      computeBestPair(source),
     ];
     return all.filter((h): h is Highlight => h !== null);
   }, [source]);

@@ -1,49 +1,33 @@
-import {
-  StatRevealCard,
-  getStatAccent,
-  type StatAccentKey,
-  type StatCardData,
-} from "../components/StatRevealCard";
-import {
-  useDisplayHighlights,
-  type Highlight,
-  type HighlightType,
-} from "../hooks/useDisplayHighlights";
+import { useState } from "react";
+import { StatRevealCard } from "../components/StatRevealCard";
+import { getStatAccent } from "../components/StatRevealCard";
+import { useDuoRivalryStats } from "../hooks/useDuoRivalryStats";
 import type { DisplaySource } from "../types";
 
-const ACCENT_BY_TYPE: Record<HighlightType, StatAccentKey> = {
-  "biggest-elo-gain": "elo-gain",
-  "biggest-rank-climb": "rank-climb",
-  "current-streak": "streak",
-  upset: "upset",
-};
-
-function toCard(h: Highlight): StatCardData {
-  return {
-    key: h.type,
-    accent: ACCENT_BY_TYPE[h.type],
-    headline: h.headline,
-    metric: h.metric,
-    tagline: h.tagline,
-    subjects: [h.subject],
-  };
+interface Props {
+  source: DisplaySource;
 }
 
 /**
- * Scène "moments marquants" (joueur) : jusqu'à 3 highlights côte à côte.
- * Fallback si 0.
+ * Scène "Duos & Rivalités" : jusqu'à 3 cartes côte à côte (meilleur/pire binôme,
+ * plus grande rivalité, bête noire / meilleur allié de joueurs **tirés au
+ * hasard à chaque passage**). Le tirage est figé au mount → varie à chaque fois
+ * que le diaporama repasse sur la scène.
  */
-export function HighlightScene({ source }: Props) {
-  const cards = useDisplayHighlights(source).slice(0, 3).map(toCard);
+export function DuosRivalriesScene({ source }: Props) {
+  const stats = useDuoRivalryStats(source);
+  // Calcul figé au mount (la scène se démonte hors écran → nouveau tirage à
+  // chaque passage).
+  const [cards] = useState(() => stats.buildCards(3));
 
   if (cards.length === 0) {
     return (
       <div className="flex flex-col h-full min-h-0 items-center justify-center">
         <p className="font-archivo font-black uppercase tracking-tight text-3xl text-cool-gray text-center">
-          Pas encore de moment marquant
+          Pas encore assez de matchs
         </p>
         <p className="font-mono text-xs uppercase tracking-[2px] text-cool-gray/70 mt-3">
-          Joue quelques matchs pour faire émerger les highlights
+          Les duos & rivalités émergent après quelques parties
         </p>
       </div>
     );
@@ -52,7 +36,7 @@ export function HighlightScene({ source }: Props) {
   return (
     <div className="flex flex-col h-full min-h-0">
       <h2 className="font-archivo font-black uppercase tracking-[-0.6px] text-xl md:text-3xl mb-4 flex-shrink-0">
-        Moments marquants
+        Duos & Rivalités
       </h2>
 
       <div
@@ -75,8 +59,4 @@ export function HighlightScene({ source }: Props) {
       </div>
     </div>
   );
-}
-
-interface Props {
-  source: DisplaySource;
 }

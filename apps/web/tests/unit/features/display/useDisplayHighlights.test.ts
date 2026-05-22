@@ -5,11 +5,9 @@ import type {
   DisplaySourcePlayer,
 } from "@/features/display/types";
 import {
-  computeBestPair,
   computeBiggestEloGain,
   computeBiggestRankClimb,
   computeCurrentStreak,
-  computeNemesis,
   computeUpset,
 } from "@/features/display/hooks/useDisplayHighlights";
 
@@ -199,65 +197,5 @@ describe("computeUpset", () => {
   });
 });
 
-describe("computeNemesis", () => {
-  it("returns null if no winner beats the same loser 3+ times", () => {
-    const players = [
-      makePlayer("a", "Alice", 1100, 1),
-      makePlayer("b", "Bob", 900, 2),
-    ];
-    const matches = [
-      makeMatch("m1", "2026-05-22T12:00:00Z", ["a"], ["b"], 10, 5),
-      makeMatch("m2", "2026-05-22T13:00:00Z", ["a"], ["b"], 10, 5),
-    ];
-    expect(computeNemesis(makeSource(players, matches))).toBeNull();
-  });
-
-  it("detects when Alice beats Bob 4 times", () => {
-    const players = [
-      makePlayer("a", "Alice", 1100, 1),
-      makePlayer("b", "Bob", 900, 2),
-    ];
-    const matches = Array.from({ length: 4 }, (_, i) =>
-      makeMatch(`m${i}`, "2026-05-22T12:00:00Z", ["a"], ["b"], 10, 4),
-    );
-    const h = computeNemesis(makeSource(players, matches));
-    expect(h?.subjectA.id).toBe("a");
-    expect(h?.subjectB.id).toBe("b");
-    expect(h?.metric).toBe("4-0");
-  });
-});
-
-describe("computeBestPair", () => {
-  it("returns null if no pair has 3+ matches and >70%", () => {
-    const players = [
-      makePlayer("a", "Alice", 1100, 1),
-      makePlayer("b", "Bob", 1050, 2),
-      makePlayer("c", "Carol", 950, 3),
-      makePlayer("d", "Dave", 900, 4),
-    ];
-    const matches = [
-      makeMatch("m1", "x", ["a", "b"], ["c", "d"], 10, 5),
-    ];
-    expect(computeBestPair(makeSource(players, matches))).toBeNull();
-  });
-
-  it("detects a strong pair (3W/1L = 75%)", () => {
-    const players = [
-      makePlayer("a", "Alice", 1100, 1),
-      makePlayer("b", "Bob", 1050, 2),
-      makePlayer("c", "Carol", 950, 3),
-      makePlayer("d", "Dave", 900, 4),
-    ];
-    const matches = [
-      makeMatch("m1", "x", ["a", "b"], ["c", "d"], 10, 5),
-      makeMatch("m2", "x", ["a", "b"], ["c", "d"], 10, 4),
-      makeMatch("m3", "x", ["a", "b"], ["c", "d"], 10, 3),
-      makeMatch("m4", "x", ["a", "b"], ["c", "d"], 4, 10),
-    ];
-    const h = computeBestPair(makeSource(players, matches));
-    expect(h).not.toBeNull();
-    const ids = [h?.subjectA.id, h?.subjectB.id].sort();
-    expect(ids).toEqual(["a", "b"]);
-    expect(h?.metric).toBe("75%");
-  });
-});
+// computeNemesis / computeBestPair (paire) ont été déplacés vers
+// useDuoRivalryStats (scène "Duos & Rivalités") — cf. useDuoRivalryStats.test.ts.
