@@ -100,6 +100,25 @@ describe("PlayerCard", () => {
     });
   });
 
+  describe("variant leaderRow — isMe highlight", () => {
+    it("applies a light electric-blue surface when isMe", () => {
+      render(
+        <PlayerCard variant="leaderRow" name="Flo" elo={1200} rank={1} isMe />,
+      );
+      const card = screen.getByTestId("playercard-leaderrow");
+      expect(card).toHaveClass("bg-electric-blue/10");
+      expect(card).toHaveClass("border-electric-blue/30");
+      expect(card).not.toHaveClass("bg-navy-soft");
+    });
+
+    it("keeps the neutral surface when isMe is omitted", () => {
+      render(<PlayerCard variant="leaderRow" name="Amar" elo={1100} rank={2} />);
+      const card = screen.getByTestId("playercard-leaderrow");
+      expect(card).toHaveClass("bg-navy-soft");
+      expect(card).not.toHaveClass("bg-electric-blue/10");
+    });
+  });
+
   describe("variant leaderRow — size display", () => {
     it("renders without chevron in display size", () => {
       const { container } = render(

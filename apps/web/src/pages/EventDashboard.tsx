@@ -35,6 +35,7 @@ import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { databaseService } from "@/services/DatabaseService";
 import { useAuthContext } from "@/context/AuthContext";
 import { useIdentity } from "@/hooks/useIdentity";
+import { useCurrentUserMemberships } from "@/hooks/useCurrentUserMemberships";
 import { toast } from "react-hot-toast";
 import { useDetailPagePermissions } from "@/hooks/useDetailPagePermissions";
 import {
@@ -115,6 +116,12 @@ export const EventDashboard = () => {
     isLoadingInitialData,
     reloadData,
   } = useLeague();
+
+  // "C'est moi" dans le classement : on résout mon membership id (= id des
+  // lignes du classement event) via mon user id (auth) ou anonyme.
+  const meUserId =
+    isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+  const myMemberships = useCurrentUserMemberships(meUserId);
 
   const [activeTab, setActiveTab] = useState<
     "classement" | "matchs" | "stats"
@@ -765,6 +772,11 @@ export const EventDashboard = () => {
                           wins={player.wins}
                           losses={player.losses}
                           recentResults={recentResults}
+                          isMe={
+                            myMemberships.eventMembershipByEvent.get(
+                              event.id,
+                            ) === player.id
+                          }
                           onClick={() =>
                             navigate(`/player/${profileId}?event=${id}`)
                           }

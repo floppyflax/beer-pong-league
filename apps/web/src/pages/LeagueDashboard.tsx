@@ -39,6 +39,9 @@ import {
 import { Podium } from "@/components/ponglo/Podium";
 import { PButton } from "@/components/ponglo/PButton";
 import { PlayerCard } from "@/components/design-system/PlayerCard";
+import { useAuthContext } from "@/context/AuthContext";
+import { useIdentity } from "@/hooks/useIdentity";
+import { useCurrentUserMemberships } from "@/hooks/useCurrentUserMemberships";
 
 export const LeagueDashboard = () => {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +54,14 @@ export const LeagueDashboard = () => {
     isLoadingInitialData,
   } = useLeague();
   const navigate = useNavigate();
+
+  // "C'est moi" dans le classement : résout mon membership id (= league.players[].id)
+  // via mon user id (auth) ou anonyme. Appelé avant les early returns (rules-of-hooks).
+  const { user, isAuthenticated } = useAuthContext();
+  const { localUser } = useIdentity();
+  const meUserId =
+    isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+  const myMemberships = useCurrentUserMemberships(meUserId);
 
   const league = leagues.find((l) => l.id === id);
   const [activeTab, setActiveTab] = useState<
@@ -459,6 +470,11 @@ export const LeagueDashboard = () => {
                         wins={player.wins}
                         losses={player.losses}
                         recentResults={recentResults}
+                        isMe={
+                          myMemberships.leagueMembershipByLeague.get(
+                            league.id,
+                          ) === player.id
+                        }
                         onClick={() => navigate(`/player/${player.id}`)}
                       />
                     );
