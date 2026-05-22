@@ -4,4 +4,4 @@
  * directly to the shared package opportunistically.
  */
 export { calculateEloChange } from '@elofight/shared';
-export type { EloPlayer } from '@elofight/shared';
+export type { EloPlayer, EloContext } from '@elofight/shared';
