@@ -90,17 +90,20 @@ describe("useMatchReveal", () => {
     expect(result.current.active).toBe(true);
     expect(result.current.blinkMatchId).toBe("m2");
 
-    // Fin de l'alerte (~3.5s) → REVEAL : commit + surbrillance, plus de blur
+    // Fin de l'alerte (~3.5s) → REVEAL : surbrillance gagnant(vert)/perdant(rouge),
+    // mais on montre encore l'ANCIEN ordre (pas de commit immédiat).
     act(() => {
       vi.advanceTimersByTime(3_600);
     });
     expect(result.current.phase).toBe("reveal");
     expect(result.current.blur).toBe(false);
+    expect([...result.current.winnerIds]).toEqual(["a"]);
+    expect([...result.current.loserIds]).toEqual(["b"]);
     expect([...result.current.highlightedPlayerIds].sort()).toEqual(["a", "b"]);
 
-    // Visite : focus d'abord le vainqueur (a), puis le perdant (b)
+    // Le hold de 3s écoulé puis ~0.5s → visite : focus d'abord le vainqueur (a)
     act(() => {
-      vi.advanceTimersByTime(500);
+      vi.advanceTimersByTime(3_000 + 500);
     });
     expect(result.current.focusedPlayerId).toBe("a");
     act(() => {
@@ -116,6 +119,7 @@ describe("useMatchReveal", () => {
     expect(result.current.active).toBe(false);
     expect(result.current.focusedPlayerId).toBeNull();
     expect(result.current.highlightedPlayerIds.size).toBe(0);
+    expect(result.current.winnerIds.size).toBe(0);
   });
 
   it("toggles sound with the M key", () => {

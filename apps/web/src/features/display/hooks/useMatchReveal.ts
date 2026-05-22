@@ -13,8 +13,12 @@ export interface MatchReveal {
   alertMatch: Match | null;
   /** Ordre du classement affiché (gelé hors reveal, committé au reveal). */
   committedPlayers: DisplaySourcePlayer[];
-  /** Protagonistes en surbrillance (vert si gain, rouge si perte — via eloDelta). */
+  /** Protagonistes en surbrillance (union gagnants + perdants). */
   highlightedPlayerIds: Set<string>;
+  /** Vainqueurs du dernier match → brillance verte. */
+  winnerIds: Set<string>;
+  /** Perdants du dernier match → brillance rouge. */
+  loserIds: Set<string>;
   /** Joueur sur lequel le classement doit scroller pendant la visite. */
   focusedPlayerId: string | null;
   /** Match qui clignote dans le panneau "Derniers matchs". */
@@ -26,6 +30,9 @@ export interface MatchReveal {
 }
 
 const ALERT_MS = 3_500;
+/** On affiche d'abord le classement AVANT (ancien ordre) ce temps, puis on
+ *  anime vers les nouvelles positions. */
+const PRE_REVEAL_HOLD_MS = 3_000;
 const VISIT_STEP_MS = 1_900;
 const END_HOLD_MS = 1_400;
 
@@ -64,6 +71,8 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
   const [highlightedPlayerIds, setHighlightedPlayerIds] = useState<Set<string>>(
     new Set(),
   );
+  const [winnerIds, setWinnerIds] = useState<Set<string>>(new Set());
+  const [loserIds, setLoserIds] = useState<Set<string>>(new Set());
   const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
   const [blinkMatchId, setBlinkMatchId] = useState<string | null>(null);
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
@@ -151,36 +160,51 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
     setAlertMatch(match);
     if (soundOnRef.current) playChime();
 
-    // 2) REVEAL : retour Classement, commit du nouvel ordre, surbrillance.
+    // 2) REVEAL : retour au Classement, on montre d'abord l'ancien ordre +
+    // surbrillance verte/rouge des protagonistes (le classement "avant").
     at(ALERT_MS, () => {
       const s = sourceRef.current;
       if (!s) return;
       setPhase("reveal");
       setBlur(false);
       setAlertMatch(null);
-      setCommittedPlayers(s.players);
-      const protagonists = [...match.teamA, ...match.teamB];
-      setHighlightedPlayerIds(new Set(protagonists));
 
-      // 3) VISITE séquentielle : vainqueurs (mieux classés d'abord) puis perdants.
       const winnerA = match.scoreA > match.scoreB;
       const winners = winnerA ? match.teamA : match.teamB;
       const losers = winnerA ? match.teamB : match.teamA;
+      setWinnerIds(new Set(winners));
+      setLoserIds(new Set(losers));
+      setHighlightedPlayerIds(new Set([...winners, ...losers]));
+      // committedPlayers reste l'ANCIEN ordre (gelé) → on voit le classement avant.
+
+      // 3) Après le hold : commit du nouvel ordre → les lignes glissent vers
+      // leurs nouvelles positions (auto-animate).
+      at(PRE_REVEAL_HOLD_MS, () => {
+        const cur = sourceRef.current;
+        if (cur) setCommittedPlayers(cur.players);
+      });
+
+      // 4) VISITE séquentielle (après le morph) : vainqueurs (mieux classés
+      // d'abord) puis perdants.
       const order = [...byRank(winners, s.players), ...byRank(losers, s.players)];
-
-      // NB : ces timers sont planifiés DANS le callback d'alerte (donc à
-      // t=ALERT_MS), les offsets sont relatifs au début du reveal.
       order.forEach((pid, i) => {
-        at(400 + i * VISIT_STEP_MS, () => setFocusedPlayerId(pid));
+        at(PRE_REVEAL_HOLD_MS + 400 + i * VISIT_STEP_MS, () =>
+          setFocusedPlayerId(pid),
+        );
       });
 
-      // 4) Fin : reprise du slideshow.
-      at(400 + order.length * VISIT_STEP_MS + END_HOLD_MS, () => {
-        setFocusedPlayerId(null);
-        setHighlightedPlayerIds(new Set());
-        setPhase("idle");
-        setPendingMatchId(null);
-      });
+      // 5) Fin : reprise du slideshow.
+      at(
+        PRE_REVEAL_HOLD_MS + 400 + order.length * VISIT_STEP_MS + END_HOLD_MS,
+        () => {
+          setFocusedPlayerId(null);
+          setHighlightedPlayerIds(new Set());
+          setWinnerIds(new Set());
+          setLoserIds(new Set());
+          setPhase("idle");
+          setPendingMatchId(null);
+        },
+      );
     });
 
     return () => {
@@ -195,6 +219,8 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
     alertMatch,
     committedPlayers: committedPlayers ?? source?.players ?? [],
     highlightedPlayerIds,
+    winnerIds,
+    loserIds,
     focusedPlayerId,
     blinkMatchId,
     active: phase !== "idle",

@@ -7,11 +7,8 @@ import {
 } from "../hooks/useSelfPacedScroll";
 import type { DisplaySourcePlayer } from "../types";
 
-/** Couleur du glow d'un protagoniste selon le signe de son delta ELO. */
-function glowColor(eloDelta: number | undefined): string {
-  if (eloDelta === undefined || eloDelta === 0) return "rgba(47,107,255,0.75)"; // electric-blue
-  return eloDelta > 0 ? "rgba(183,255,59,0.8)" : "rgba(255,59,59,0.8)"; // lime / signal-red
-}
+const GLOW_WIN = "rgba(183,255,59,0.85)"; // lime
+const GLOW_LOSE = "rgba(255,59,59,0.85)"; // signal-red
 
 interface Props {
   /**
@@ -20,8 +17,10 @@ interface Props {
    * `source.players`, pour éviter un réordonnancement en arrière-plan.
    */
   players: DisplaySourcePlayer[];
-  /** Ids des joueurs à highlighter (animation d'arrivée d'un match récent). */
-  highlightedPlayerIds?: Set<string>;
+  /** Vainqueurs du dernier match → toute la card brille en vert. */
+  winnerIds?: Set<string>;
+  /** Perdants du dernier match → toute la card brille en rouge. */
+  loserIds?: Set<string>;
   /** Active le self-paced scroll (la scène est-elle visible). */
   enabled?: boolean;
   /** Freeze le scroll (pause clavier). */
@@ -48,7 +47,8 @@ interface Props {
  */
 export function RankingScene({
   players,
-  highlightedPlayerIds,
+  winnerIds,
+  loserIds,
   enabled = true,
   paused = false,
   onComplete,
@@ -117,28 +117,17 @@ export function RankingScene({
       >
         <div ref={topListRef} className="space-y-2 mb-6">
           {top10.map((player) => {
-            const isHighlighted = highlightedPlayerIds?.has(player.id);
+            const isWinner = winnerIds?.has(player.id);
+            const isLoser = loserIds?.has(player.id);
+            const isHighlighted = isWinner || isLoser;
             const isFocused = focusedPlayerId === player.id;
             return (
               <div
                 key={player.id}
                 ref={setRowRef(player.id)}
-                className={`rounded-card transition-transform duration-500 ${
-                  isHighlighted ? "ring-2 animate-glow-pulse" : ""
-                } ${isFocused ? "scale-[1.04]" : isHighlighted ? "scale-[1.02]" : ""} ${
-                  isHighlighted
-                    ? player.eloDelta && player.eloDelta > 0
-                      ? "ring-lime"
-                      : player.eloDelta && player.eloDelta < 0
-                        ? "ring-signal-red"
-                        : "ring-electric-blue"
-                    : ""
+                className={`relative rounded-card transition-transform duration-500 ${
+                  isFocused ? "scale-[1.04]" : isHighlighted ? "scale-[1.02]" : ""
                 }`}
-                style={
-                  isHighlighted
-                    ? ({ ["--glow"]: glowColor(player.eloDelta) } as CSSProperties)
-                    : undefined
-                }
               >
                 <PlayerCard
                   variant="leaderRow"
@@ -154,6 +143,17 @@ export function RankingScene({
                   winRate={player.winRate}
                   recentResults={player.recentResults}
                 />
+                {isHighlighted && (
+                  <div
+                    aria-hidden
+                    className={`absolute inset-0 rounded-card pointer-events-none animate-glow-pulse ring-2 ${
+                      isWinner ? "bg-lime/25 ring-lime" : "bg-signal-red/25 ring-signal-red"
+                    }`}
+                    style={
+                      { ["--glow"]: isWinner ? GLOW_WIN : GLOW_LOSE } as CSSProperties
+                    }
+                  />
+                )}
               </div>
             );
           })}
@@ -161,26 +161,29 @@ export function RankingScene({
 
         {rest.length > 0 && (
           <div ref={restListRef} className="space-y-2">
-            {rest.map((player) => (
+            {rest.map((player) => {
+              const isWinner = winnerIds?.has(player.id);
+              const isLoser = loserIds?.has(player.id);
+              const isHighlighted = isWinner || isLoser;
+              return (
               <div
                 key={player.id}
                 ref={setRowRef(player.id)}
-                className={`bg-navy-soft/70 border rounded-card px-4 py-2.5 transition-transform duration-500 ${
-                  highlightedPlayerIds?.has(player.id)
-                    ? "ring-2 animate-glow-pulse " +
-                      (player.eloDelta && player.eloDelta > 0
-                        ? "ring-lime"
-                        : player.eloDelta && player.eloDelta < 0
-                          ? "ring-signal-red"
-                          : "ring-electric-blue")
-                    : "border-card"
-                } ${focusedPlayerId === player.id ? "scale-[1.04]" : ""}`}
-                style={
-                  highlightedPlayerIds?.has(player.id)
-                    ? ({ ["--glow"]: glowColor(player.eloDelta) } as CSSProperties)
-                    : undefined
-                }
+                className={`relative bg-navy-soft/70 border border-card rounded-card px-4 py-2.5 transition-transform duration-500 ${
+                  focusedPlayerId === player.id ? "scale-[1.04]" : ""
+                }`}
               >
+                {isHighlighted && (
+                  <div
+                    aria-hidden
+                    className={`absolute inset-0 rounded-card pointer-events-none animate-glow-pulse ring-2 ${
+                      isWinner ? "bg-lime/25 ring-lime" : "bg-signal-red/25 ring-signal-red"
+                    }`}
+                    style={
+                      { ["--glow"]: isWinner ? GLOW_WIN : GLOW_LOSE } as CSSProperties
+                    }
+                  />
+                )}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 flex items-center justify-center font-archivo font-bold text-base bg-navy text-cool-gray rounded-full border border-card">
@@ -200,7 +203,8 @@ export function RankingScene({
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -122,7 +122,8 @@ export function DisplayShell({ source }: Props) {
         return (
           <RankingScene
             players={reveal.committedPlayers}
-            highlightedPlayerIds={reveal.highlightedPlayerIds}
+            winnerIds={reveal.winnerIds}
+            loserIds={reveal.loserIds}
             enabled
             paused={isPaused}
             onComplete={notifyComplete}
@@ -150,7 +151,8 @@ export function DisplayShell({ source }: Props) {
     activeSceneId,
     source,
     reveal.committedPlayers,
-    reveal.highlightedPlayerIds,
+    reveal.winnerIds,
+    reveal.loserIds,
     reveal.phase,
     reveal.focusedPlayerId,
     isPaused,
