@@ -2,16 +2,20 @@ import { useMemo } from "react";
 import type { Match } from "@/types";
 import {
   computeBestAlly,
+  computeFormTrend,
   computeNemesis,
+  computeWinRateByFormat,
 } from "@/utils/playerStatsAdvanced";
 import { computeTopRivalries } from "@/utils/contextStats";
-import type { DisplaySource } from "../types";
+import type { DisplaySource, DisplaySourcePlayer } from "../types";
 import type { StatCardData, StatSubject } from "../components/StatRevealCard";
 
 const MIN_TOGETHER = 3;
 const MIN_AGAINST = 3;
 /** Un adversaire doit avoir battu le joueur au moins ça pour être sa "bête noire". */
 const MIN_NEMESIS_WINS = 2;
+/** Nombre min de matchs joués pour qu'un joueur soit éligible au focus. */
+const MIN_PLAYED = 3;
 
 interface PairStat {
   aId: string;
@@ -64,33 +68,50 @@ export function computePairExtremes(matches: Match[]): {
       worst = stat;
     }
   }
-  // Si une seule paire éligible, ne pas afficher best ET worst identiques.
   if (best && worst && best.aId === worst.aId && best.bId === worst.bId) {
     worst = null;
   }
   return { best, worst };
 }
 
-export interface DuoRivalryStats {
-  /** Cartes globales déterministes (meilleur/pire binôme, plus grande rivalité). */
-  globalCards: StatCardData[];
-  /** Joueurs avec assez de matchs pour une stat par-joueur. */
-  eligiblePlayerIds: string[];
-  nemesisCardFor: (playerId: string) => StatCardData | null;
-  bestAllyCardFor: (playerId: string) => StatCardData | null;
-  /** true s'il existe au moins une carte affichable (pour inclure la scène). */
-  available: boolean;
-  /** Tire un set aléatoire de `max` cartes (mix global + par-joueur random). */
-  buildCards: (max?: number, rng?: () => number) => StatCardData[];
+/** Série en cours (run en tête des résultats récents, le plus récent en 1er). */
+function leadingStreak(recent: boolean[]): { n: number; win: boolean } | null {
+  if (recent.length === 0) return null;
+  const win = recent[0];
+  let n = 0;
+  for (const r of recent) {
+    if (r === win) n += 1;
+    else break;
+  }
+  return n >= 2 ? { n, win } : null;
 }
 
-function shuffle<T>(arr: T[], rng: () => number): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+export type FocusTileColor = "white" | "lime" | "signal-red" | "electric-blue" | "ping-yellow";
+
+export interface FocusTile {
+  label: string;
+  value: string;
+  sub?: string;
+  color: FocusTileColor;
+}
+
+export interface PlayerFocus {
+  player: DisplaySourcePlayer;
+  tiles: FocusTile[];
+}
+
+export interface DuoRivalryStats {
+  /** Cartes globales déterministes pour la scène "Duos" (meilleur/pire binôme,
+   *  plus grande rivalité). Toujours les mêmes. */
+  globalCards: StatCardData[];
+  /** Joueurs éligibles à une scène "Focus joueur". */
+  eligiblePlayerIds: string[];
+  /** Construit le focus d'un joueur : grand sujet + tuiles de stats perso. */
+  playerFocusFor: (playerId: string) => PlayerFocus | null;
+  /** Au moins un binôme/rivalité global → inclure la scène "Duos". */
+  duosAvailable: boolean;
+  /** Au moins un joueur avec un focus intéressant → inclure la scène "Focus joueur". */
+  focusAvailable: boolean;
 }
 
 export function useDuoRivalryStats(source: DisplaySource | null): DuoRivalryStats {
@@ -105,7 +126,7 @@ export function useDuoRivalryStats(source: DisplaySource | null): DuoRivalryStat
       return { id, name: p?.name ?? "Joueur", avatarUrl: p?.avatarUrl };
     };
 
-    // --- Cartes globales ---
+    // --- Cartes globales (scène Duos) ---
     const globalCards: StatCardData[] = [];
     const { best, worst } = computePairExtremes(matches);
     if (best) {
@@ -144,69 +165,93 @@ export function useDuoRivalryStats(source: DisplaySource | null): DuoRivalryStat
     }
 
     const eligiblePlayerIds = players
-      .filter((p) => p.wins + p.losses >= MIN_TOGETHER)
+      .filter((p) => p.wins + p.losses >= MIN_PLAYED)
       .map((p) => p.id);
 
-    const nemesisCardFor = (playerId: string): StatCardData | null => {
-      const n = computeNemesis(playerId, matches, MIN_AGAINST);
-      // n.losses = défaites du joueur contre cet adversaire = victoires de l'adversaire sur lui
-      if (!n || n.losses < MIN_NEMESIS_WINS) return null;
-      return {
-        key: `nemesis-${playerId}`,
-        accent: "nemesis",
-        headline: `La bête noire de ${nameOf(playerId)}`,
-        metric: `${n.losses}`,
-        tagline: `bat ${nameOf(playerId)} ${n.losses} fois sur ${n.matchesPlayed}`,
-        subjects: [subjectOf(n.playerId)],
-      };
-    };
+    // --- Focus joueur ---
+    const playerFocusFor = (playerId: string): PlayerFocus | null => {
+      const player = players.find((p) => p.id === playerId);
+      if (!player) return null;
+      const tiles: FocusTile[] = [];
 
-    const bestAllyCardFor = (playerId: string): StatCardData | null => {
-      const a = computeBestAlly(playerId, matches, MIN_TOGETHER);
-      if (!a) return null;
-      return {
-        key: `ally-${playerId}`,
-        accent: "best-ally",
-        headline: `Meilleur allié de ${nameOf(playerId)}`,
-        metric: `${a.winRate}%`,
-        tagline: `${nameOf(playerId)} gagne le plus avec ${nameOf(a.playerId)}`,
-        subjects: [subjectOf(a.playerId)],
-      };
-    };
-
-    const buildCards = (
-      max: number = 3,
-      rng: () => number = Math.random,
-    ): StatCardData[] => {
-      const pool: StatCardData[] = [...globalCards];
-      // Ajoute des cartes par-joueur sur quelques joueurs tirés au hasard.
-      for (const pid of shuffle(eligiblePlayerIds, rng).slice(0, 4)) {
-        const n = nemesisCardFor(pid);
-        if (n) pool.push(n);
-        const a = bestAllyCardFor(pid);
-        if (a) pool.push(a);
-      }
-      // Dé-doublonne par accent pour éviter 2 "bête noire" côte à côte.
-      const seen = new Set<string>();
-      const deduped = shuffle(pool, rng).filter((c) => {
-        if (seen.has(c.accent)) return false;
-        seen.add(c.accent);
-        return true;
+      // Bilan (toujours)
+      tiles.push({
+        label: "Bilan",
+        value: `${player.wins}V ${player.losses}D`,
+        sub: `${player.winRate}% de victoires`,
+        color: "white",
       });
-      return deduped.slice(0, max);
+
+      // Série en cours
+      const streak = leadingStreak(player.recentResults);
+      if (streak) {
+        tiles.push({
+          label: "Série en cours",
+          value: `${streak.n}${streak.win ? "V" : "D"}`,
+          sub: streak.win ? "victoires d'affilée" : "défaites d'affilée",
+          color: streak.win ? "lime" : "signal-red",
+        });
+      }
+
+      // Meilleur allié
+      const ally = computeBestAlly(playerId, matches, MIN_TOGETHER);
+      if (ally) {
+        tiles.push({
+          label: "Meilleur allié",
+          value: nameOf(ally.playerId),
+          sub: `${ally.winRate}% ensemble (${ally.matchesPlayed} matchs)`,
+          color: "electric-blue",
+        });
+      }
+
+      // Bête noire
+      const nem = computeNemesis(playerId, matches, MIN_AGAINST);
+      if (nem && nem.losses >= MIN_NEMESIS_WINS) {
+        tiles.push({
+          label: "Bête noire",
+          value: nameOf(nem.playerId),
+          sub: `t'a battu ${nem.losses} fois sur ${nem.matchesPlayed}`,
+          color: "signal-red",
+        });
+      }
+
+      // Format favori
+      const formats = computeWinRateByFormat(playerId, matches)
+        .filter((f) => f.matches >= MIN_PLAYED)
+        .sort((a, b) => b.matches - a.matches);
+      if (formats[0]) {
+        tiles.push({
+          label: "Format favori",
+          value: formats[0].format,
+          sub: `${formats[0].winRate}% sur ${formats[0].matches} matchs`,
+          color: "ping-yellow",
+        });
+      }
+
+      // Forme récente
+      const form = computeFormTrend(playerId, matches);
+      if (form.lifetimeMatches >= 5 && form.recentMatches >= 3) {
+        tiles.push({
+          label: "Forme",
+          value: `${form.delta >= 0 ? "+" : ""}${form.delta}%`,
+          sub: form.delta >= 0 ? "en progression" : "en perte de vitesse",
+          color: form.delta >= 0 ? "lime" : "signal-red",
+        });
+      }
+
+      return { player, tiles };
     };
 
-    const available =
-      globalCards.length > 0 ||
-      eligiblePlayerIds.some((id) => nemesisCardFor(id) || bestAllyCardFor(id));
+    const focusAvailable = eligiblePlayerIds.some(
+      (id) => (playerFocusFor(id)?.tiles.length ?? 0) >= 3,
+    );
 
     return {
       globalCards,
       eligiblePlayerIds,
-      nemesisCardFor,
-      bestAllyCardFor,
-      available,
-      buildCards,
+      playerFocusFor,
+      duosAvailable: globalCards.length > 0,
+      focusAvailable,
     };
   }, [matches, players]);
 }

@@ -14,6 +14,7 @@ import { HighlightScene } from "./scenes/HighlightScene";
 import { StatsScene } from "./scenes/StatsScene";
 import { PhotoWallScene, matchesWithPhotos } from "./scenes/PhotoWallScene";
 import { DuosRivalriesScene } from "./scenes/DuosRivalriesScene";
+import { PlayerFocusScene } from "./scenes/PlayerFocusScene";
 import { useDuoRivalryStats } from "./hooks/useDuoRivalryStats";
 import {
   useDisplayScenes,
@@ -48,6 +49,12 @@ const DUOS_SCENE: SceneConfig = {
   durationMs: 12_000,
 };
 
+const PLAYER_FOCUS_SCENE: SceneConfig = {
+  id: "player-focus",
+  mode: "timed",
+  durationMs: 12_000,
+};
+
 /**
  * Shell de la vue diffusion. Orchestre :
  * - `PersistentFrame` (header + QR + rail droit garanti) en dehors du slideshow.
@@ -65,13 +72,15 @@ export function DisplayShell({ source }: Props) {
   // Scènes optionnelles : photo-wall si des photos, duos si des stats duo/rivalité.
   const hasPhotos = source ? matchesWithPhotos(source).length > 0 : false;
   const duoStats = useDuoRivalryStats(source);
-  const hasDuos = duoStats.available;
+  const hasDuos = duoStats.duosAvailable;
+  const hasPlayerFocus = duoStats.focusAvailable;
   const scenes = useMemo(() => {
     const s = [...BASE_SCENES];
     if (hasPhotos) s.push(PHOTO_WALL_SCENE);
+    if (hasPlayerFocus) s.push(PLAYER_FOCUS_SCENE);
     if (hasDuos) s.push(DUOS_SCENE);
     return s;
-  }, [hasPhotos, hasDuos]);
+  }, [hasPhotos, hasPlayerFocus, hasDuos]);
 
   // Slideshow
   const {
@@ -144,6 +153,8 @@ export function DisplayShell({ source }: Props) {
         return <PhotoWallScene source={source} />;
       case "duos":
         return <DuosRivalriesScene source={source} />;
+      case "player-focus":
+        return <PlayerFocusScene source={source} />;
       default:
         return null;
     }

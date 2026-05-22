@@ -7,7 +7,8 @@ export type SceneId =
   | "highlight"
   | "stats"
   | "photo-wall"
-  | "duos";
+  | "duos"
+  | "player-focus";
 
 export type SceneMode = "timed" | "self-paced";
 

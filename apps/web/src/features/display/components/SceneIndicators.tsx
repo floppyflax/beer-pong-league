@@ -22,6 +22,7 @@ const SCENE_LABEL: Record<SceneId, string> = {
   stats: "Stats",
   "photo-wall": "Photos",
   duos: "Duos",
+  "player-focus": "Joueur",
 };
 
 const PHASE_LABEL: Record<SelfPacedScrollPhase, string> = {
