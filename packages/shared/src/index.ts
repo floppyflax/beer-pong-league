@@ -71,4 +71,4 @@ export { parseQRData, extractCodeFromQR } from './utils/extractCodeFromQR';
 export type { QRParseResult } from './utils/extractCodeFromQR';
 export { getInitials } from './utils/string';
 export { calculateEloChange } from './utils/elo';
-export type { EloPlayer } from './utils/elo';
+export type { EloPlayer, EloContext } from './utils/elo';

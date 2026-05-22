@@ -940,7 +940,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     const teamA = league.players.filter((p) => teamAIds.includes(p.id));
     const teamB = league.players.filter((p) => teamBIds.includes(p.id));
 
-    const newRatings = calculateEloChange(teamA, teamB, winner);
+    const newRatings = calculateEloChange(teamA, teamB, winner, 'league');
 
     // Calculate ELO changes for return and for DB
     const eloChanges: Record<string, number> = {};
@@ -1084,7 +1084,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
     // ── Event ELO delta — uses event_memberships.elo (provided via
     //    participantsOverride from loadEventParticipants since mig 023).
-    const newEventRatings = calculateEloChange(teamA, teamB, winner);
+    const newEventRatings = calculateEloChange(teamA, teamB, winner, 'event');
     const eloChanges: Record<string, number> = {};
     const eventEloChangesDB: Record<string, { before: number; after: number; change: number }> = {};
 
@@ -1130,7 +1130,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         const leagueTeamB = buildLeagueTeam(teamBIds);
 
         if (leagueTeamA.length > 0 && leagueTeamB.length > 0) {
-          const newLeagueRatings = calculateEloChange(leagueTeamA, leagueTeamB, winner);
+          const newLeagueRatings = calculateEloChange(leagueTeamA, leagueTeamB, winner, 'league');
           leagueEloChangesDB = {};
           [...leagueTeamA, ...leagueTeamB].forEach((player) => {
             const oldElo = player.elo;
@@ -1273,7 +1273,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       const teamA = localPlayers.filter((p) => match.teamA.includes(p.id));
       const teamB = localPlayers.filter((p) => match.teamB.includes(p.id));
       const winner = match.scoreA > match.scoreB ? "A" : "B";
-      const newRatings = calculateEloChange(teamA, teamB, winner);
+      const newRatings = calculateEloChange(teamA, teamB, winner, 'event');
 
       // Update local players
       localPlayers = localPlayers.map((player) => {

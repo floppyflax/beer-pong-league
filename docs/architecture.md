@@ -167,6 +167,8 @@ Effet du `paused`/`finished` (choix produit) : bloque uniquement l'enregistremen
 2. **League ELO** (per-league) — les matchs d'un événement rattaché à une ligue mettent à jour `league_memberships.elo` **si le paramétrage de l'événement le permet** (`tournaments.propagates_to_league_elo`, default TRUE). Le delta league est calculé indépendamment du delta event (chacun avec sa propre baseline). Un match de ligue hors événement met aussi à jour `league_memberships.elo`.
 3. **Stats lifetime** (per-user, app-wide) — agrégat lifetime non-ELO : `totalMatches`, `winRate`, `bestStreak`. Calculé à la volée depuis `elo_history`, **dédupliqué par `match_id`** pour éviter de compter deux fois un match propagé. **Pas d'ELO agrégé** — ces stats n'ont pas besoin de calibration cross-cluster.
 
+**K-factor par contexte** (décision 2026-05-22, mig 033) : `event` = **64 fixe** (events courts ~10-15 matchs/joueur — le palier 20 ne mord jamais ; K élevé pour un classement étalé/vivant le soir même) ; `league` = **32** (`matches_played < 20`) puis **16** (établi), pour un classement durable et stable. Le K est un **facteur d'échelle** : il dilate les écarts sans changer l'ordre ni la justesse (le « spectacle »/les renversements dépendent du format et du nombre de matchs, pas du K). Source de vérité : `public.elo_k_factor(matches_played, context)` (serveur) + `calculateEloChange(teamA, teamB, winner, context)` (client `packages/shared/src/utils/elo.ts`).
+
 **Auto-add à la ligue** — quand un joueur rejoint un event rattaché à une ligue (via lien/code/admin), une `league_memberships` est créée automatiquement si elle n'existe pas. Inversement, quand un event est rattaché à une ligue _a posteriori_ (`associateTournamentToLeague`), tous les joueurs de l'event sont synchronisés vers la ligue.
 
 **`elo_history` post-mig-023** — un match peut produire jusqu'à 2 lignes par joueur :
@@ -181,7 +183,7 @@ Cela permet de tracer l'évolution ELO **par contexte** indépendamment, et d'al
 - Home : stat hero card sur les matchs joués lifetime (pas d'ELO global).
 - Profil joueur : ELO **par contexte** (chart + tableau par ligue/event), jamais une moyenne agrégée.
 
-**Anti-cheat** (cible) : l'invariant produit est que l'ELO doit être calculé serveur pour les matchs ranked confirmés. **Implémentation actuelle : 100 % côté client** via [`apps/web/src/utils/elo.ts`](../apps/web/src/utils/elo.ts) et [`apps/web/src/services/EloRecalcService.ts`](../apps/web/src/services/EloRecalcService.ts) — gap connu, à corriger via une fonction Postgres `SECURITY DEFINER` (cf. roadmap §2.1 du plan d'audit). Le squelette anti-cheat (`status` + `confirmed_by_*`) est en place ; seul le calcul reste à déplacer côté serveur.
+**Anti-cheat** : l'ELO des matchs ranked confirmés est **calculé serveur** depuis mig 025 via les RPC `SECURITY DEFINER` `apply_match_elo` / `_apply_elo_for_player` (K-factor contextuel depuis mig 033). Le client ([`apps/web/src/utils/elo.ts`](../apps/web/src/utils/elo.ts) → `@elofight/shared`) ne sert plus qu'à la **preview optimiste** ; il doit rester en sync avec la formule serveur (même K par contexte). `EloRecalcService` est un wrapper de la RPC `recalculate_league_elo`. Squelette de confirmation (`status` + `confirmed_by_*`) en place (mig 022/030).
 
 ## Composants
 
