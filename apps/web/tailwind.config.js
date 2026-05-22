@@ -210,12 +210,18 @@ export default {
           "10%, 88%": { transform: "translateY(0)", opacity: "1" },
           "100%": { transform: "translateY(-120%)", opacity: "0" },
         },
+        // Flash de l'écran à l'arrivée d'un match (clignotement).
+        "screen-flash": {
+          "0%, 100%": { opacity: "0" },
+          "50%": { opacity: "0.45" },
+        },
       },
       animation: {
         "invite-sheet-up": "sheet-up 220ms cubic-bezier(0.16, 1, 0.3, 1)",
         "cup-spin": "cup-spin 1.6s linear infinite",
         "glow-pulse": "glow-pulse 1.4s ease-in-out infinite",
         "banner-drop": "banner-drop 3.2s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "screen-flash": "screen-flash 0.55s ease-in-out infinite",
       },
     },
   },

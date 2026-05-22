@@ -26,12 +26,17 @@ export function NewMatchAlertOverlay({ match, source }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-navy/50"
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-navy/50 overflow-hidden"
       role="status"
       aria-live="assertive"
       key={match.id}
     >
-      <div className="flex flex-col items-center gap-6 px-10 py-8 rounded-card bg-navy-soft border-2 border-electric-blue shadow-glow-electric max-w-[80vw]">
+      {/* Flash de l'écran (clignotement) — derrière la carte */}
+      <div
+        className="absolute inset-0 bg-electric-blue animate-screen-flash motion-reduce:hidden pointer-events-none"
+        aria-hidden
+      />
+      <div className="relative flex flex-col items-center gap-6 px-10 py-8 rounded-card bg-navy-soft border-2 border-electric-blue shadow-glow-electric max-w-[80vw]">
         <div className="flex items-center gap-3 animate-pulse">
           <Zap size={28} className="text-electric-blue" aria-hidden />
           <span className="font-mono uppercase tracking-[6px] font-bold text-electric-blue text-base md:text-2xl">
