@@ -128,6 +128,33 @@ https://beer-pong-elo.com/auth/callback
 
 Le code utilise `${window.location.origin}/auth/callback`, l'URL doit donc figurer dans cette liste sinon la redirection est bloquée.
 
+## Templates d'email brandés
+
+Les emails d'authentification Supabase sont brandés **Beer Pong ELO** (palette Everything ELO : fond `navy`, CTA `electric-blue`, wordmark Teko). Les sources HTML vivent dans `supabase/templates/` (référence versionnée) :
+
+| Fichier | Template Dashboard | Quand l'utilisateur le reçoit |
+|---|---|---|
+| `magic_link.html` | **Magic Link** | Revendication de profil via `signInWithOtp` pour un email déjà connu. C'est le flow réel de l'app. |
+| `confirm_signup.html` | **Confirm signup** | Premier email inconnu, si la confirmation d'email est activée. |
+| `invite.html` | **Invite user** | Invitation admin via `inviteUserByEmail` (non utilisé aujourd'hui, fourni pour cohérence visuelle). |
+
+**Variables Go utilisées** : `{{ .ConfirmationURL }}` (CTA + lien de secours) et `{{ .SiteURL }}` (lien du logo). Supabase expose aussi `{{ .Token }}`, `{{ .TokenHash }}`, `{{ .Email }}`, `{{ .RedirectTo }}`, `{{ .Data }}` si besoin.
+
+### Déploiement (Dashboard)
+
+L'auth de ce projet est gérée côté Dashboard — on ne pousse **pas** de `config.toml` (un `config push` écraserait les réglages auth existants). Pour appliquer un template :
+
+1. Dashboard Supabase → **Authentication → Emails** (Email Templates).
+2. Onglet du template (Magic Link / Confirm signup / Invite user).
+3. Coller le contenu du `.html` correspondant dans **Message body (HTML)**.
+4. Renseigner l'objet (**Subject**) :
+   - Magic Link → `Ta connexion à Beer Pong ELO`
+   - Confirm signup → `Confirme ton compte Beer Pong ELO`
+   - Invite user → `Tu es invité·e sur Beer Pong ELO`
+5. **Save**.
+
+Les fonts Teko/Sora sont chargées via `@import` Google Fonts — rendues par Apple Mail, partiellement par Gmail (fallback `Arial Narrow`/sans-serif). Le design dark reste lisible avec les fallbacks. CTA et lien de secours dégradent proprement sous Outlook (button VML).
+
 ## Dépannage
 
 - **"Invalid login credentials"** → les comptes de test n'existent pas dans `auth.users`, exécuter le SQL ci-dessus.
