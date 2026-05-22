@@ -186,14 +186,30 @@ function Avatar({
     return <div className="flex-shrink-0">{avatar}</div>;
   }
   // Échelle des médaillons : plus l'avatar est gros, plus les overlays le sont.
+  // Palier intermédiaire pour la diffusion (avatar 14) : médaillon lisible de
+  // loin sans grossir l'avatar lui-même.
+  const overlaySize: "big" | "mid" | "small" =
+    size && size >= 16 ? "big" : size === 14 ? "mid" : "small";
   const overlayCls =
-    size && size >= 16
+    overlaySize === "big"
       ? "min-w-[28px] h-[28px] px-1.5 text-sm"
-      : "min-w-[18px] h-[18px] px-1 text-[10px]";
-  const overlayIconSize = size && size >= 16 ? 14 : 10;
-  const overlayOffset = size && size >= 16 ? "-bottom-2 -right-2" : "-bottom-1 -right-1";
+      : overlaySize === "mid"
+        ? "min-w-[26px] h-[26px] px-1.5 text-sm"
+        : "min-w-[18px] h-[18px] px-1 text-[10px]";
+  const overlayIconSize =
+    overlaySize === "big" ? 14 : overlaySize === "mid" ? 13 : 10;
+  const overlayOffset =
+    overlaySize === "big"
+      ? "-bottom-2 -right-2"
+      : overlaySize === "mid"
+        ? "-bottom-1.5 -right-1.5"
+        : "-bottom-1 -right-1";
   const overlayOffsetTopLeft =
-    size && size >= 16 ? "-top-2 -left-2" : "-top-1 -left-1";
+    overlaySize === "big"
+      ? "-top-2 -left-2"
+      : overlaySize === "mid"
+        ? "-top-1.5 -left-1.5"
+        : "-top-1 -left-1";
   return (
     <div className="relative flex-shrink-0">
       {avatar}
