@@ -55,7 +55,7 @@ import type { Match } from "@/types";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const { leagues, events, reloadData } = useLeague();
+  const { leagues, events } = useLeague();
   const { user } = useAuthContext();
   const navigate = useNavigate();
   const [fetchedPlayer, setFetchedPlayer] = useState<{
@@ -480,9 +480,12 @@ export const PlayerProfile = () => {
     setIsSavingName(true);
     try {
       await databaseService.updateGhostPlayerIdentity(globalPlayerId, { pseudo: trimmed });
+      // Local override reflects the change immediately on this profile. We do
+      // NOT call reloadData() here: it resets the global league/event context
+      // (isLoadingInitialData + full array replacement), which blanks the page
+      // mid-edit. Other views pick up the rename on their next natural load.
       setNameOverride(trimmed);
       setIsEditingName(false);
-      await reloadData();
       toast.success("Nom mis à jour");
     } catch {
       toast.error("Impossible de mettre à jour le nom");
@@ -501,8 +504,8 @@ export const PlayerProfile = () => {
       const url = await databaseService.uploadGhostAvatar(user.id, globalPlayerId, file);
       if (!url) throw new Error("upload failed");
       await databaseService.updateGhostPlayerIdentity(globalPlayerId, { avatarUrl: url });
+      // Local override only — see saveEditName for why we avoid reloadData().
       setAvatarOverride(url);
-      await reloadData();
       toast.success("Photo mise à jour");
     } catch {
       toast.error("Impossible d'uploader la photo");
