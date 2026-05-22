@@ -16,6 +16,13 @@
  * Le caller reçoit `{ status: 'pending' }` pour ajuster son toast / UI.
  * La confirmation passe ensuite par `confirmMatch()` → RPC `confirm_match`.
  *
+ * Exception admin : si le créateur du match est l'admin du contexte (créateur
+ * de l'event OU de la league rattachée), le match est inséré directement en
+ * `confirmed` même sous anti-cheat — un admin peut déjà valider n'importe quel
+ * match via `confirm_match` (bypass), donc lui faire valider ses propres
+ * saisies serait une friction inutile. `apply_match_elo` accepte ce match
+ * (il ne gate que sur `status = 'confirmed'`, cf. mig 025).
+ *
  * Si la migration 025 n'est pas appliquée, le match sera bien créé mais
  * l'ELO ne sera pas calculé — un warning console est émis dans ce cas.
  */
@@ -52,25 +59,38 @@ class MatchesRepository extends BaseRepository {
    * `pending` (anti-cheat ON anywhere up the chain) or proceed straight
    * to `confirmed`. Returns the league_id of an event-linked match too
    * — recordEventMatch needs it for the INSERT.
+   *
+   * Also resolves `callerIsAdmin`: TRUE when `callerUserId` is the creator
+   * of the event OR of the linked/target league. Mirrors the admin check in
+   * the `confirm_match` RPC (mig 030) and `usePendingMatches`. When true, the
+   * caller's own match skips the pending queue (admin auto-confirm).
    */
-  private async resolveParentAntiCheat(args: {
+  private async resolveParentContext(args: {
     eventId?: string | null;
     leagueId?: string | null;
-  }): Promise<{ antiCheatOn: boolean; eventLeagueId: string | null }> {
-    if (!sb) return { antiCheatOn: false, eventLeagueId: null };
+    callerUserId?: string | null;
+  }): Promise<{ antiCheatOn: boolean; eventLeagueId: string | null; callerIsAdmin: boolean }> {
+    if (!sb) return { antiCheatOn: false, eventLeagueId: null, callerIsAdmin: false };
 
     let antiCheatOn = false;
     let eventLeagueId: string | null = null;
+    let eventCreatorId: string | null = null;
+    let leagueCreatorId: string | null = null;
 
     if (args.eventId) {
       const { data: tRow } = await sb
         .from('events')
-        .select('league_id, anti_cheat_enabled')
+        .select('league_id, anti_cheat_enabled, creator_user_id')
         .eq('id', args.eventId)
         .single();
       if (tRow) {
-        const row = tRow as { league_id: string | null; anti_cheat_enabled: boolean | null };
+        const row = tRow as {
+          league_id: string | null;
+          anti_cheat_enabled: boolean | null;
+          creator_user_id: string | null;
+        };
         eventLeagueId = row.league_id;
+        eventCreatorId = row.creator_user_id;
         if (row.anti_cheat_enabled) antiCheatOn = true;
       }
     }
@@ -79,16 +99,23 @@ class MatchesRepository extends BaseRepository {
     if (effectiveLeagueId) {
       const { data: lRow } = await sb
         .from('leagues')
-        .select('anti_cheat_enabled')
+        .select('anti_cheat_enabled, creator_user_id')
         .eq('id', effectiveLeagueId)
         .single();
       if (lRow) {
-        const row = lRow as { anti_cheat_enabled: boolean | null };
+        const row = lRow as { anti_cheat_enabled: boolean | null; creator_user_id: string | null };
+        leagueCreatorId = row.creator_user_id;
         if (row.anti_cheat_enabled) antiCheatOn = true;
       }
     }
 
-    return { antiCheatOn, eventLeagueId };
+    const callerIsAdmin = Boolean(
+      args.callerUserId &&
+        ((eventCreatorId !== null && eventCreatorId === args.callerUserId) ||
+          (leagueCreatorId !== null && leagueCreatorId === args.callerUserId)),
+    );
+
+    return { antiCheatOn, eventLeagueId, callerIsAdmin };
   }
 
   /**
@@ -160,9 +187,14 @@ class MatchesRepository extends BaseRepository {
         this.resolveToPlayerIds(match.teamB, { leagueId }),
       ]);
 
-      // Mig 030 — anti-cheat awareness on INSERT
-      const { antiCheatOn } = await this.resolveParentAntiCheat({ leagueId });
-      const status: 'pending' | 'confirmed' = antiCheatOn ? 'pending' : 'confirmed';
+      // Mig 030 — anti-cheat awareness on INSERT. Admin auto-confirm: the
+      // league creator's own match skips the pending queue.
+      const { antiCheatOn, callerIsAdmin } = await this.resolveParentContext({
+        leagueId,
+        callerUserId,
+      });
+      const status: 'pending' | 'confirmed' =
+        antiCheatOn && !callerIsAdmin ? 'pending' : 'confirmed';
 
       const { error: matchError } = await sb!.from('matches').insert({
         id: match.id,
@@ -243,10 +275,17 @@ class MatchesRepository extends BaseRepository {
     }
 
     try {
-      // Mig 030 — single SELECT pulls league_id + anti-cheat state.
-      const { antiCheatOn, eventLeagueId } = await this.resolveParentAntiCheat({ eventId });
+      const callerUserId = userId || anonymousUserId || null;
+
+      // Mig 030 — single SELECT pulls league_id + anti-cheat state. Admin
+      // auto-confirm: the event/league creator's own match skips pending.
+      const { antiCheatOn, eventLeagueId, callerIsAdmin } = await this.resolveParentContext({
+        eventId,
+        callerUserId,
+      });
       const leagueId = eventLeagueId;
-      const status: 'pending' | 'confirmed' = antiCheatOn ? 'pending' : 'confirmed';
+      const status: 'pending' | 'confirmed' =
+        antiCheatOn && !callerIsAdmin ? 'pending' : 'confirmed';
 
       const format =
         match.teamA.length === 1 && match.teamB.length === 1
@@ -254,8 +293,6 @@ class MatchesRepository extends BaseRepository {
           : match.teamA.length === 2 && match.teamB.length === 2
             ? '2v2'
             : '3v3';
-
-      const callerUserId = userId || anonymousUserId || null;
 
       const [teamAPlayerIds, teamBPlayerIds] = await Promise.all([
         this.resolveToPlayerIds(match.teamA, { eventId }),
