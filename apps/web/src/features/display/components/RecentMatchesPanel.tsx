@@ -115,12 +115,11 @@ function TeamSide({
   isWinner: boolean;
   align: "left" | "right";
 }) {
-  const names = players.map((p) => p.name).join(", ");
   const isRight = align === "right";
   return (
     <div
       className={`min-w-0 flex items-center gap-2 ${
-        isRight ? "flex-row-reverse text-right" : "text-left"
+        isRight ? "flex-row-reverse" : ""
       }`}
     >
       {/* Avatars (photo quand dispo, sinon initiales) */}
@@ -135,22 +134,32 @@ function TeamSide({
           />
         ))}
       </div>
-      <div className="min-w-0 flex items-center gap-1">
+      <div className={`min-w-0 flex items-center gap-1 ${isRight ? "flex-row-reverse" : ""}`}>
         {isWinner && (
           <span aria-hidden className="text-xs leading-none flex-shrink-0">
             🏆
           </span>
         )}
-        <span
-          className={`truncate text-sm ${
-            isWinner
-              ? "font-archivo font-extrabold text-white"
-              : "font-medium text-cool-gray"
+        {/* Un joueur = une ligne */}
+        <div
+          className={`min-w-0 flex flex-col ${
+            isRight ? "items-end text-right" : "items-start text-left"
           }`}
-          title={names}
         >
-          {names}
-        </span>
+          {players.map((p) => (
+            <span
+              key={p.id}
+              className={`truncate max-w-full text-sm leading-tight ${
+                isWinner
+                  ? "font-archivo font-extrabold text-white"
+                  : "font-medium text-cool-gray"
+              }`}
+              title={p.name}
+            >
+              {p.name}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
