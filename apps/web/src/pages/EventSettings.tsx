@@ -205,7 +205,12 @@ export const EventSettings = () => {
     initialDateIso,
   ]);
 
-  if (isLoadingInitialData) {
+  // Spinner uniquement au chargement initial (event pas encore résolu). Sur un
+  // rechargement de fond (loadDataFromSupabase rejoué quand auth/identité
+  // changent), `isLoadingInitialData` repasse à true : ne pas démonter le
+  // formulaire, sinon les modifications en cours sont perdues et le sticky save
+  // disparaît.
+  if (isLoadingInitialData && !event) {
     return (
       <div className="flex items-center justify-center h-full">
         <LoadingSpinner size={48} />
