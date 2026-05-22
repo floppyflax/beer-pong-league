@@ -394,49 +394,54 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     setLeagues((prev) => [...prev, newLeague]);
     setCurrentLeagueId(newLeague.id);
 
-    // Save to Supabase
+    // Persist to Supabase. Échec d'écriture = fatal : on annule l'ajout
+    // optimiste et on remonte l'erreur. Sinon loadDataFromSupabase écraserait
+    // la ligue optimiste au reload et l'UI afficherait "Ligue introuvable".
+    // L'appelant (CreateLeague) gère le toast et n'enchaîne pas la navigation.
     try {
       await databaseService.saveLeague(newLeague);
-
-      // Auto-add the creator as the first member of the league so they
-      // appear in the ranking and can record matches without an extra step.
-      // Mirrors the event creation flow (CreateEvent.handleSubmit).
-      const creatorPseudo =
-        userProfile?.pseudo?.trim() ||
-        localUser?.pseudo?.trim() ||
-        (user?.user_metadata?.name as string | undefined) ||
-        user?.email?.split('@')[0] ||
-        'Joueur';
-      const creatorPlayer: Player = {
-        id: crypto.randomUUID(),
-        name: creatorPseudo,
-        elo: 1000,
-        wins: 0,
-        losses: 0,
-        matchesPlayed: 0,
-        streak: 0,
-      };
-      try {
-        await databaseService.addPlayerToLeague(
-          newLeague.id,
-          creatorPlayer,
-          isAuthenticated && user ? user.id : null,
-          !isAuthenticated && localUser ? localUser.anonymousUserId : null,
-        );
-        // Reload from Supabase so the league shows the membership with the
-        // canonical players.pseudo (mig 022) rather than our fallback string,
-        // and so player.id matches league_memberships.id (required by
-        // downstream consumers like edit/delete).
-        await loadDataFromSupabase();
-      } catch (err) {
-        console.error('Auto-add creator to league failed:', err);
-      }
-
-      toast.success(`Ligue "${name}" créée avec succès`);
     } catch (error) {
       console.error('Error saving league to Supabase:', error);
-      toast.error('Erreur lors de la sauvegarde de la ligue');
+      setLeagues((prev) => prev.filter((l) => l.id !== newLeague.id));
+      setCurrentLeagueId((prev) => (prev === newLeague.id ? null : prev));
+      throw error;
     }
+
+    // La ligue est persistée. L'auto-ajout du créateur comme premier membre
+    // est best-effort : un échec ne doit pas invalider la création.
+    // Mirrors the event creation flow (CreateEvent.handleSubmit).
+    const creatorPseudo =
+      userProfile?.pseudo?.trim() ||
+      localUser?.pseudo?.trim() ||
+      (user?.user_metadata?.name as string | undefined) ||
+      user?.email?.split('@')[0] ||
+      'Joueur';
+    const creatorPlayer: Player = {
+      id: crypto.randomUUID(),
+      name: creatorPseudo,
+      elo: 1000,
+      wins: 0,
+      losses: 0,
+      matchesPlayed: 0,
+      streak: 0,
+    };
+    try {
+      await databaseService.addPlayerToLeague(
+        newLeague.id,
+        creatorPlayer,
+        isAuthenticated && user ? user.id : null,
+        !isAuthenticated && localUser ? localUser.anonymousUserId : null,
+      );
+      // Reload from Supabase so the league shows the membership with the
+      // canonical players.pseudo (mig 022) rather than our fallback string,
+      // and so player.id matches league_memberships.id (required by
+      // downstream consumers like edit/delete).
+      await loadDataFromSupabase();
+    } catch (err) {
+      console.error('Auto-add creator to league failed:', err);
+    }
+
+    toast.success(`Ligue "${name}" créée avec succès`);
 
     return newLeague.id;
   };

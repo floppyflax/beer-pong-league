@@ -267,8 +267,12 @@ class LeaguesRepository extends BaseRepository {
       if (leagueError) throw leagueError;
       this.saveLeagueToLocalStorage(league);
     } catch (error) {
+      // Supabase est joignable mais l'écriture a échoué (colonne manquante,
+      // RLS, contrainte…). On NE retombe PAS sur localStorage : un faux succès
+      // ici crée une ligue fantôme que loadDataFromSupabase écrase ensuite au
+      // reload ("Ligue introuvable"). On remonte l'erreur à l'appelant.
       console.error('Error saving league to Supabase:', error);
-      this.saveLeagueToLocalStorage(league);
+      throw error;
     }
   }
 
