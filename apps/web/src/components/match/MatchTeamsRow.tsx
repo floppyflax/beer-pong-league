@@ -3,7 +3,6 @@
  *
  * Layout 2 colonnes + séparateur VS au centre :
  *
- *                            IL Y A 5 MIN   ← dateLabel (optionnel, top-right)
  *   🏆 +16     |  VS  |       −16
  *   flo2SA     |      |       Amar
  *   WINNIE     |      |       Dudu
@@ -12,8 +11,6 @@
  * - L'ordre des équipes est *préservé* : team A toujours à gauche,
  *   team B toujours à droite, indépendamment du gagnant. Le trophée 🏆
  *   et la couleur ELO (lime / signal-red) identifient qui a gagné.
- * - `dateLabel` (déjà formaté par le parent) s'affiche en haut à droite,
- *   aligné sur la colonne team B, pour libérer la ligne de footer.
  * - 1 valeur ELO par équipe (les joueurs d'une même équipe partagent
  *   l'expected score, donc le delta est identique sauf K-factor d'écart).
  * - 1 joueur = 1 ligne (font-semibold blanc pour le gagnant, cool-gray
@@ -31,11 +28,6 @@ export interface MatchTeamsRowProps {
   winner: "A" | "B";
   /** Map player.id → ELO change (signed integer). Absent on live matches. */
   eloChanges?: Record<string, number> | null;
-  /**
-   * Timestamp relatif déjà formaté (ex. "Il y a 5 min"). Rendu en haut à
-   * droite, aligné sur team B. Omis → pas de ligne date.
-   */
-  dateLabel?: string;
   className?: string;
 }
 
@@ -106,36 +98,30 @@ export function MatchTeamsRow({
   teamBPlayers,
   winner,
   eloChanges,
-  dateLabel,
   className,
 }: MatchTeamsRowProps) {
   return (
-    <div className={className}>
-      {dateLabel && (
-        <div className="mb-1 text-right text-[10px] font-semibold uppercase tracking-wider text-cool-gray">
-          {dateLabel}
-        </div>
-      )}
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-x-3 items-start">
-        <TeamColumn
-          players={teamAPlayers}
-          isWinner={winner === "A"}
-          delta={pickTeamDelta(teamAPlayers, eloChanges)}
-          align="left"
-        />
-        <div
-          className="self-center font-mono text-[10px] font-bold uppercase tracking-widest text-cool-gray"
-          aria-hidden
-        >
-          VS
-        </div>
-        <TeamColumn
-          players={teamBPlayers}
-          isWinner={winner === "B"}
-          delta={pickTeamDelta(teamBPlayers, eloChanges)}
-          align="right"
-        />
+    <div
+      className={`grid grid-cols-[1fr_auto_1fr] gap-x-3 items-start ${className ?? ""}`}
+    >
+      <TeamColumn
+        players={teamAPlayers}
+        isWinner={winner === "A"}
+        delta={pickTeamDelta(teamAPlayers, eloChanges)}
+        align="left"
+      />
+      <div
+        className="self-center font-mono text-[10px] font-bold uppercase tracking-widest text-cool-gray"
+        aria-hidden
+      >
+        VS
       </div>
+      <TeamColumn
+        players={teamBPlayers}
+        isWinner={winner === "B"}
+        delta={pickTeamDelta(teamBPlayers, eloChanges)}
+        align="right"
+      />
     </div>
   );
 }

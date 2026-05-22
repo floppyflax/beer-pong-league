@@ -757,13 +757,8 @@ export const PlayerProfile = () => {
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    {contextName && (
-                      <span className="text-xs text-cool-gray truncate max-w-[60%]">
-                        {contextName}
-                      </span>
-                    )}
                     <span
-                      className={`ml-auto px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
+                      className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
                         isWinner
                           ? "bg-lime/20 text-lime"
                           : "bg-signal-red/20 text-signal-red"
@@ -771,13 +766,20 @@ export const PlayerProfile = () => {
                     >
                       {isWinner ? "Victoire" : "Défaite"}
                     </span>
+                    {contextName && (
+                      <span className="min-w-0 flex-1 truncate text-xs text-cool-gray">
+                        {contextName}
+                      </span>
+                    )}
+                    <span className="ml-auto flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-cool-gray">
+                      {formatRelativeTime(match.date)}
+                    </span>
                   </div>
                   <MatchTeamsRow
                     teamAPlayers={teamAPlayers}
                     teamBPlayers={teamBPlayers}
                     winner={winnerSide}
                     eloChanges={match.eloChanges}
-                    dateLabel={formatRelativeTime(match.date)}
                   />
                   {hasMatchEnrichedContent(
                     match.photo_url,
