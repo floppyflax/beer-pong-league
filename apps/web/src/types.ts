@@ -19,6 +19,13 @@ export interface Match {
   teamB: string[]; // Player IDs
   scoreA: number;
   scoreB: number;
+  /**
+   * Source event of this match, when it was recorded in (or imported into) an
+   * event. `null` for a league-only ("hors événement") match. Used by the
+   * league activity feed to group matches by event while displaying the
+   * LEAGUE-context ELO delta (cf. `LeaguesRepository.loadLeagues`).
+   */
+  eventId?: string | null;
   eloChanges?: Record<string, number>; // Player ID -> ELO change (positive = gain, negative = loss)
   created_by_user_id?: string | null; // FK → users.id (auth or anonymous, since mig 022)
   /** @deprecated since mig 022. Always null. Use created_by_user_id. */

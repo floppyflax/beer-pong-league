@@ -10,7 +10,7 @@
  */
 
 import { useMemo } from "react";
-import type { Event, League } from "@/types";
+import type { Event, League, Match } from "@/types";
 import { useViewModePref } from "@/hooks/useViewModePref";
 import { ViewModeSwitcher } from "./ViewModeSwitcher";
 import { GroupedView } from "./GroupedView";
@@ -39,15 +39,39 @@ export const LeagueActivityFeed = ({
   // Si pas d'events, on force timeline — le mode groupé n'a pas de sens.
   const effectiveMode = hasEvents ? viewMode : "timeline";
 
-  const timelineEntries = useMemo<TimelineMatchEntry[]>(() => {
-    const libres: TimelineMatchEntry[] = league.matches.map((m) => ({
-      match: m,
-      event: null,
+  // Le feed se construit ENTIÈREMENT depuis `league.matches`, qui portent le
+  // delta ELO du contexte LIGUE (cf. LeaguesRepository) et incluent les matchs
+  // d'events rattachés (via `matches.league_id`). On les regroupe par
+  // `eventId` pour le mode groupé et on rattache les métadonnées d'event.
+  // Important : ne PAS lire `event.matches` (delta du contexte EVENT) ni
+  // dédupliquer — sinon les matchs d'event rattachés apparaîtraient en double
+  // (groupe event + "hors événement") avec le mauvais delta.
+  const { groupedEvents, orphanMatches, timelineEntries } = useMemo(() => {
+    const byEvent = new Map<string, Match[]>();
+    const orphans: Match[] = [];
+    for (const m of league.matches) {
+      if (m.eventId) {
+        const list = byEvent.get(m.eventId) ?? [];
+        list.push(m);
+        byEvent.set(m.eventId, list);
+      } else {
+        orphans.push(m);
+      }
+    }
+    const eventById = new Map(leagueEvents.map((e) => [e.id, e]));
+    const grouped: Event[] = leagueEvents.map((e) => ({
+      ...e,
+      matches: byEvent.get(e.id) ?? [],
     }));
-    const fromEvents: TimelineMatchEntry[] = leagueEvents.flatMap((event) =>
-      (event.matches ?? []).map((match) => ({ match, event })),
-    );
-    return [...libres, ...fromEvents];
+    const timeline: TimelineMatchEntry[] = league.matches.map((m) => ({
+      match: m,
+      event: m.eventId ? eventById.get(m.eventId) ?? null : null,
+    }));
+    return {
+      groupedEvents: grouped,
+      orphanMatches: orphans,
+      timelineEntries: timeline,
+    };
   }, [league.matches, leagueEvents]);
 
   return (
@@ -58,8 +82,8 @@ export const LeagueActivityFeed = ({
 
       {effectiveMode === "grouped" ? (
         <GroupedView
-          events={leagueEvents}
-          orphanMatches={league.matches}
+          events={groupedEvents}
+          orphanMatches={orphanMatches}
           players={league.players}
           leagueId={league.id}
         />
