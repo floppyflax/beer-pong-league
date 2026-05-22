@@ -7,14 +7,25 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { databaseService } from '../../src/services/DatabaseService';
-import { supabase } from '../../src/lib/supabase';
 
-// Mock supabase
-vi.mock('../../src/lib/supabase', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
-}));
+// createEvent lives in EventsRepository, which reads the live `sb` binding from
+// the shared `_base` module (populated at boot) and gates on
+// BaseRepository.isSupabaseAvailable() — not the web lib/supabase shim. Mock
+// `_base` to inject the spy client and a base whose isSupabaseAvailable() is
+// always true.
+const { supabase } = vi.hoisted(() => ({ supabase: { from: vi.fn() } }));
+
+vi.mock('@elofight/shared/services/repositories/_base', async (importActual) => {
+  const actual = await importActual<
+    typeof import('@elofight/shared/services/repositories/_base')
+  >();
+  class MockBaseRepository {
+    protected isSupabaseAvailable(): boolean {
+      return true;
+    }
+  }
+  return { ...actual, supabase, sb: supabase, BaseRepository: MockBaseRepository };
+});
 
 describe('Event Creation - Auto-add Creator as Participant (Story 8.6)', () => {
   beforeEach(() => {

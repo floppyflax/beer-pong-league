@@ -34,3 +34,23 @@ export const ELIMINATION_ORDER: string[] = (() => {
 export const EMPTY_DROPPED: Set<string> = new Set();
 
 export type EnrichedPlayer = Player & { avatarUrl?: string | null };
+
+/**
+ * Score d'un match, convention « gobelets restants » : le vainqueur marque
+ * ses gobelets restants (1..10), le perdant 0 (sa rack est vidée). C'est
+ * exactement ce que la saisie affiche, donc score saisi == score persisté ==
+ * score validé.
+ *
+ * Invariant : `winnerCupsRemaining ≥ 1`, donc le score du vainqueur est
+ * toujours strictement supérieur à celui du perdant — le calcul ELO (client
+ * et serveur) dérive le vainqueur d'un simple `scoreA > scoreB`.
+ */
+export function deriveMatchScore(
+  winnerTeam: Team,
+  winnerCupsRemaining: number,
+): { scoreA: number; scoreB: number } {
+  return {
+    scoreA: winnerTeam === "A" ? winnerCupsRemaining : 0,
+    scoreB: winnerTeam === "B" ? winnerCupsRemaining : 0,
+  };
+}

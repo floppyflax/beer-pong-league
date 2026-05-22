@@ -394,49 +394,54 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     setLeagues((prev) => [...prev, newLeague]);
     setCurrentLeagueId(newLeague.id);
 
-    // Save to Supabase
+    // Persist to Supabase. Échec d'écriture = fatal : on annule l'ajout
+    // optimiste et on remonte l'erreur. Sinon loadDataFromSupabase écraserait
+    // la ligue optimiste au reload et l'UI afficherait "Ligue introuvable".
+    // L'appelant (CreateLeague) gère le toast et n'enchaîne pas la navigation.
     try {
       await databaseService.saveLeague(newLeague);
-
-      // Auto-add the creator as the first member of the league so they
-      // appear in the ranking and can record matches without an extra step.
-      // Mirrors the event creation flow (CreateEvent.handleSubmit).
-      const creatorPseudo =
-        userProfile?.pseudo?.trim() ||
-        localUser?.pseudo?.trim() ||
-        (user?.user_metadata?.name as string | undefined) ||
-        user?.email?.split('@')[0] ||
-        'Joueur';
-      const creatorPlayer: Player = {
-        id: crypto.randomUUID(),
-        name: creatorPseudo,
-        elo: 1000,
-        wins: 0,
-        losses: 0,
-        matchesPlayed: 0,
-        streak: 0,
-      };
-      try {
-        await databaseService.addPlayerToLeague(
-          newLeague.id,
-          creatorPlayer,
-          isAuthenticated && user ? user.id : null,
-          !isAuthenticated && localUser ? localUser.anonymousUserId : null,
-        );
-        // Reload from Supabase so the league shows the membership with the
-        // canonical players.pseudo (mig 022) rather than our fallback string,
-        // and so player.id matches league_memberships.id (required by
-        // downstream consumers like edit/delete).
-        await loadDataFromSupabase();
-      } catch (err) {
-        console.error('Auto-add creator to league failed:', err);
-      }
-
-      toast.success(`Ligue "${name}" créée avec succès`);
     } catch (error) {
       console.error('Error saving league to Supabase:', error);
-      toast.error('Erreur lors de la sauvegarde de la ligue');
+      setLeagues((prev) => prev.filter((l) => l.id !== newLeague.id));
+      setCurrentLeagueId((prev) => (prev === newLeague.id ? null : prev));
+      throw error;
     }
+
+    // La ligue est persistée. L'auto-ajout du créateur comme premier membre
+    // est best-effort : un échec ne doit pas invalider la création.
+    // Mirrors the event creation flow (CreateEvent.handleSubmit).
+    const creatorPseudo =
+      userProfile?.pseudo?.trim() ||
+      localUser?.pseudo?.trim() ||
+      (user?.user_metadata?.name as string | undefined) ||
+      user?.email?.split('@')[0] ||
+      'Joueur';
+    const creatorPlayer: Player = {
+      id: crypto.randomUUID(),
+      name: creatorPseudo,
+      elo: 1000,
+      wins: 0,
+      losses: 0,
+      matchesPlayed: 0,
+      streak: 0,
+    };
+    try {
+      await databaseService.addPlayerToLeague(
+        newLeague.id,
+        creatorPlayer,
+        isAuthenticated && user ? user.id : null,
+        !isAuthenticated && localUser ? localUser.anonymousUserId : null,
+      );
+      // Reload from Supabase so the league shows the membership with the
+      // canonical players.pseudo (mig 022) rather than our fallback string,
+      // and so player.id matches league_memberships.id (required by
+      // downstream consumers like edit/delete).
+      await loadDataFromSupabase();
+    } catch (err) {
+      console.error('Auto-add creator to league failed:', err);
+    }
+
+    toast.success(`Ligue "${name}" créée avec succès`);
 
     return newLeague.id;
   };
@@ -934,13 +939,21 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   ): Promise<RecordMatchOutcome | null> => {
     const league = leagues.find((l) => l.id === leagueId);
     if (!league) return null;
-    // Mig 030 — anti-cheat awareness for the optimistic client update.
+    // Mig 030 — anti-cheat awareness for the optimistic client update. Admin
+    // auto-confirm: the league creator's own match skips the pending queue, so
+    // the optimistic state mirrors the repo and applies the ELO immediately.
     const antiCheatOn = league.anti_cheat_enabled === true;
+    const callerUserId =
+      isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+    const callerIsAdmin = Boolean(
+      callerUserId && league.creator_user_id === callerUserId,
+    );
+    const effectiveAntiCheat = antiCheatOn && !callerIsAdmin;
 
     const teamA = league.players.filter((p) => teamAIds.includes(p.id));
     const teamB = league.players.filter((p) => teamBIds.includes(p.id));
 
-    const newRatings = calculateEloChange(teamA, teamB, winner);
+    const newRatings = calculateEloChange(teamA, teamB, winner, 'league');
 
     // Calculate ELO changes for return and for DB
     const eloChanges: Record<string, number> = {};
@@ -997,26 +1010,30 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       date: new Date().toISOString(),
       teamA: teamAIds,
       teamB: teamBIds,
-      scoreA: winner === "A" ? 10 : (cupsRem !== undefined ? 10 - cupsRem : 0),
-      scoreB: winner === "B" ? 10 : (cupsRem !== undefined ? 10 - cupsRem : 0),
+      // Score = gobelets restants : le vainqueur marque ses gobelets restants
+      // (1..10), le perdant 0. Fallback 10 (victoire « parfaite ») si la
+      // saisie ne fournit pas le détail. cups_remaining reste null : le score
+      // encode déjà l'info, on ne la duplique pas.
+      scoreA: winner === "A" ? (cupsRem ?? 10) : 0,
+      scoreB: winner === "B" ? (cupsRem ?? 10) : 0,
       // Pending matches don't expose preview deltas — they only land after
       // confirmation.
-      eloChanges: antiCheatOn ? undefined : eloChanges,
-      cups_remaining: cupsRem ?? null,
+      eloChanges: effectiveAntiCheat ? undefined : eloChanges,
+      cups_remaining: null,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
-      status: antiCheatOn ? 'pending' : 'confirmed',
+      status: effectiveAntiCheat ? 'pending' : 'confirmed',
     };
 
-    // Optimistic local mutation: when anti-cheat is OFF we apply the stats
-    // immediately (legacy behaviour). When ON, the match is pending — keep
-    // player stats unchanged until the confirmation flow lands.
+    // Optimistic local mutation: when anti-cheat is OFF (or the caller is the
+    // admin) we apply the stats immediately. When ON for a non-admin, the
+    // match is pending — keep player stats unchanged until confirmation lands.
     setLeagues((prev) =>
       prev.map((league) => {
         if (league.id !== leagueId) return league;
         return {
           ...league,
-          players: antiCheatOn ? league.players : updatedPlayers,
+          players: effectiveAntiCheat ? league.players : updatedPlayers,
           matches: [newMatch, ...league.matches],
         };
       })
@@ -1065,6 +1082,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     const antiCheatOn =
       event.anti_cheat_enabled === true ||
       parentLeague?.anti_cheat_enabled === true;
+    // Admin auto-confirm: the event creator (or linked-league creator) skips
+    // the pending queue for their own matches. Mirror of the repo + confirm_match.
+    const callerUserId =
+      isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+    const callerIsAdmin = Boolean(
+      callerUserId &&
+        (event.creator_user_id === callerUserId ||
+          parentLeague?.creator_user_id === callerUserId),
+    );
+    const effectiveAntiCheat = antiCheatOn && !callerIsAdmin;
 
     // Use participantsOverride (event_players) when provided, else fallback to league.players
     let eventPlayers: Player[] = [];
@@ -1084,7 +1111,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
     // ── Event ELO delta — uses event_memberships.elo (provided via
     //    participantsOverride from loadEventParticipants since mig 023).
-    const newEventRatings = calculateEloChange(teamA, teamB, winner);
+    const newEventRatings = calculateEloChange(teamA, teamB, winner, 'event');
     const eloChanges: Record<string, number> = {};
     const eventEloChangesDB: Record<string, { before: number; after: number; change: number }> = {};
 
@@ -1130,7 +1157,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         const leagueTeamB = buildLeagueTeam(teamBIds);
 
         if (leagueTeamA.length > 0 && leagueTeamB.length > 0) {
-          const newLeagueRatings = calculateEloChange(leagueTeamA, leagueTeamB, winner);
+          const newLeagueRatings = calculateEloChange(leagueTeamA, leagueTeamB, winner, 'league');
           leagueEloChangesDB = {};
           [...leagueTeamA, ...leagueTeamB].forEach((player) => {
             const oldElo = player.elo;
@@ -1157,11 +1184,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       teamB: teamBIds,
       scoreA: scoreA,
       scoreB: scoreB,
-      eloChanges: antiCheatOn ? undefined : eloChanges,
+      eloChanges: effectiveAntiCheat ? undefined : eloChanges,
       cups_remaining: scores?.cupsRemaining ?? null,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
-      status: antiCheatOn ? 'pending' : 'confirmed',
+      status: effectiveAntiCheat ? 'pending' : 'confirmed',
     };
 
     setEvents((prev) =>
@@ -1175,9 +1202,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // Update league cache with the LEAGUE delta (independent from event delta)
-    // when propagation is active. Skipped under anti-cheat — stats only
-    // shift after confirmation.
-    if (!antiCheatOn && event.leagueId && propagates && leagueEloChangesDB) {
+    // when propagation is active. Skipped under anti-cheat for non-admins —
+    // stats only shift after confirmation.
+    if (!effectiveAntiCheat && event.leagueId && propagates && leagueEloChangesDB) {
       setLeagues((prev) =>
         prev.map((league) => {
           if (league.id !== event.leagueId) return league;
@@ -1273,7 +1300,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       const teamA = localPlayers.filter((p) => match.teamA.includes(p.id));
       const teamB = localPlayers.filter((p) => match.teamB.includes(p.id));
       const winner = match.scoreA > match.scoreB ? "A" : "B";
-      const newRatings = calculateEloChange(teamA, teamB, winner);
+      const newRatings = calculateEloChange(teamA, teamB, winner, 'event');
 
       // Update local players
       localPlayers = localPlayers.map((player) => {

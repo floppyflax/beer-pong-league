@@ -27,10 +27,21 @@ const makeEvent = (overrides: Partial<Event>): Event => ({
 const renderWithRouter = (ui: React.ReactElement) =>
   render(<BrowserRouter>{ui}</BrowserRouter>);
 
+const emptyParticipantsMap = new Map<string, Player[]>();
+
+const participantsMapWith = (eventId: string): Map<string, Player[]> =>
+  new Map([[eventId, players]]);
+
 describe("GroupedView", () => {
   it("renders global empty state when no events and no orphan matches", () => {
     renderWithRouter(
-      <GroupedView events={[]} orphanMatches={[]} players={players} leagueId="lg1" />,
+      <GroupedView
+        events={[]}
+        orphanMatches={[]}
+        players={players}
+        leagueId="lg1"
+        participantsByEvent={emptyParticipantsMap}
+      />,
     );
     expect(screen.getByText(/aucune activité/i)).toBeInTheDocument();
   });
@@ -62,10 +73,10 @@ describe("GroupedView", () => {
         orphanMatches={[]}
         players={players}
         leagueId="lg1"
+        participantsByEvent={emptyParticipantsMap}
       />,
     );
 
-    // Récupère les cards dans l'ordre du DOM.
     const cards = screen.getAllByTestId("event-group-card");
     expect(cards).toHaveLength(3);
     expect(cards[0]).toHaveTextContent("En cours");
@@ -73,7 +84,7 @@ describe("GroupedView", () => {
     expect(cards[2]).toHaveTextContent("Ancien tournoi");
   });
 
-  it("expands the hero (first in_progress) by default and collapses others", () => {
+  it("expands the hero (first in_progress) by default and shows open icon for every event", () => {
     const hero = makeEvent({
       id: "hero",
       name: "Soirée vedette",
@@ -101,15 +112,16 @@ describe("GroupedView", () => {
         orphanMatches={[]}
         players={players}
         leagueId="lg1"
+        participantsByEvent={participantsMapWith("hero")}
       />,
     );
 
-    // Hero expanded → CTA "Ouvrir l'événement" visible une fois.
+    // L'icône d'ouverture est désormais toujours présente dans le header,
+    // qu'on soit déplié ou non — une par event.
     const openButtons = screen.queryAllByRole("button", {
       name: /Ouvrir l'événement/i,
     });
-    expect(openButtons).toHaveLength(1);
-    // Le hero doit être au-dessus de l'autre in_progress (tri par dernière activité).
+    expect(openButtons).toHaveLength(2);
     const cards = screen.getAllByTestId("event-group-card");
     expect(cards[0]).toHaveTextContent("Soirée vedette");
   });
@@ -138,6 +150,7 @@ describe("GroupedView", () => {
         ]}
         players={players}
         leagueId="lg1"
+        participantsByEvent={emptyParticipantsMap}
       />,
     );
 
@@ -145,5 +158,26 @@ describe("GroupedView", () => {
       screen.getByText(/Matchs hors événement \(2\)/i),
     ).toBeInTheDocument();
     expect(screen.getAllByTestId("orphan-match-card")).toHaveLength(2);
+  });
+
+  it("does not render a 'Créer un événement' button", () => {
+    renderWithRouter(
+      <GroupedView
+        events={[
+          makeEvent({
+            id: "e1",
+            name: "Soirée Toulouse",
+            matches: [],
+          }),
+        ]}
+        orphanMatches={[]}
+        players={players}
+        leagueId="lg1"
+        participantsByEvent={emptyParticipantsMap}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: /Créer un événement/i }),
+    ).toBeNull();
   });
 });

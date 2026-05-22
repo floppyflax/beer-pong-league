@@ -332,8 +332,10 @@ describe("PlayerProfile - Story 14.20", () => {
 
     it("should display delta ELO in recent matches when eloChanges present (Story 14-35)", async () => {
       renderWithPlayer(PLAYER_1);
+      // MatchTeamsRow now shows the delta as the abs value + an aria-labelled
+      // sign ("ELO +15"); the old inline "+15 ELO" text was dropped.
       await waitFor(() => {
-        expect(screen.getByText(/\+15 ELO/)).toBeInTheDocument();
+        expect(screen.getByLabelText(/ELO \+15/)).toBeInTheDocument();
       });
     });
 

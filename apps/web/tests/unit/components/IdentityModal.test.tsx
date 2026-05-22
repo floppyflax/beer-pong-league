@@ -4,7 +4,9 @@ import { IdentityModal } from "../../../src/components/IdentityModal";
 
 vi.mock("../../../src/services/LocalUserService", () => ({
   localUserService: {
-    getLocalUser: vi.fn(() => null),
+    // getLocalUser is async (Promise) since the @elofight/shared extraction —
+    // IdentityModal does getLocalUser().then(...), so the mock must be thenable.
+    getLocalUser: vi.fn(() => Promise.resolve(null)),
   },
 }));
 

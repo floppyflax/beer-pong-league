@@ -1,18 +1,11 @@
 /**
  * OrphanMatchesSection — section "Matchs hors événement" du mode "Par event".
- * Affiche les matchs de la ligue qui ne sont rattachés à aucun event.
- *
- * Le rendu reprend le pattern adopté par main (#31 / #32) :
- * `MatchTeamsRow` pour le bloc équipes + ELO, footer timestamp +
- * photo/cups via `MatchEnrichedDisplay`.
+ * Affiche les matchs de la ligue qui ne sont rattachés à aucun event,
+ * via la card unifiée `LeagueMatchCard`.
  */
 
-import { CheckCircle2, Hourglass, XCircle } from "lucide-react";
 import type { Match, Player } from "@/types";
-import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
-import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
-import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
-import { formatRelativeTime } from "@/utils/dateUtils";
+import { LeagueMatchCard } from "./LeagueMatchCard";
 
 export interface OrphanMatchesSectionProps {
   matches: Match[];
@@ -43,72 +36,15 @@ export const OrphanMatchesSection = ({
         <span className="flex-1 h-px bg-card/30" aria-hidden="true" />
       </div>
 
-      {sorted.map((match) => {
-        const teamAPlayers = players.filter((p) => match.teamA.includes(p.id));
-        const teamBPlayers = players.filter((p) => match.teamB.includes(p.id));
-        const winnerA = match.scoreA > match.scoreB;
-
-        return (
-          <div
-            key={match.id}
-            className={`bg-navy-soft p-4 rounded-xl border ${match.is_live ? "border-lime/50" : "border-card/50"}`}
-            data-testid="orphan-match-card"
-          >
-            <LiveMatchBadge
-              isLive={Boolean(match.is_live)}
-              className="mb-2"
-            />
-            {/* Mig 032 — anti-cheat status badges (mirror EventDashboard /
-                MatchHistoryCard). "Validé" only when league anti-cheat ON
-                — otherwise visual noise on every match. */}
-            {match.status === "pending" && (
-              <div
-                className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
-                data-testid="match-status-pending"
-                aria-label="Match en attente de validation"
-              >
-                <Hourglass size={11} aria-hidden="true" />
-                En attente de validation
-              </div>
-            )}
-            {match.status === "rejected" && (
-              <div
-                className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-signal-red/15 text-signal-red text-[10px] font-bold uppercase tracking-wide"
-                data-testid="match-status-rejected"
-                aria-label="Match refusé"
-              >
-                <XCircle size={11} aria-hidden="true" />
-                Refusé
-              </div>
-            )}
-            {match.status === "confirmed" && antiCheatEnabled && (
-              <div
-                className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime/15 text-lime text-[10px] font-bold uppercase tracking-wide"
-                data-testid="match-status-validated"
-                aria-label="Match validé"
-              >
-                <CheckCircle2 size={11} aria-hidden="true" />
-                Validé
-              </div>
-            )}
-            <MatchTeamsRow
-              teamAPlayers={teamAPlayers}
-              teamBPlayers={teamBPlayers}
-              winner={winnerA ? "A" : "B"}
-              eloChanges={match.eloChanges}
-            />
-            <div className="flex items-center justify-between gap-3 mt-3">
-              <div className="text-xs text-cool-gray">
-                {formatRelativeTime(match.date)}
-              </div>
-              <MatchEnrichedDisplay
-                photoUrl={match.photo_url}
-                cupsRemaining={match.cups_remaining}
-              />
-            </div>
-          </div>
-        );
-      })}
+      {sorted.map((match) => (
+        <LeagueMatchCard
+          key={match.id}
+          match={match}
+          players={players}
+          antiCheatEnabled={antiCheatEnabled}
+          testId="orphan-match-card"
+        />
+      ))}
     </section>
   );
 };

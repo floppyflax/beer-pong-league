@@ -3,6 +3,8 @@
  *
  * Responsabilités :
  *  - Filtrer les events de la ligue (depuis le tableau global `events`).
+ *  - Charger les participants de chaque event (les ids des match.teamA/teamB
+ *    sont des event_memberships.id, différents de league.players[].id).
  *  - Calculer le default view mode (timeline si 0 event, sinon grouped).
  *  - Persister la pref user (localStorage global, voir useViewModePref).
  *  - Construire les entrées du mode timeline (union events.matches + libres).
@@ -12,6 +14,7 @@
 import { useMemo } from "react";
 import type { Event, League } from "@/types";
 import { useViewModePref } from "@/hooks/useViewModePref";
+import { useLeagueEventParticipants } from "@/hooks/useLeagueEventParticipants";
 import { ViewModeSwitcher } from "./ViewModeSwitcher";
 import { GroupedView } from "./GroupedView";
 import { TimelineView, type TimelineMatchEntry } from "./TimelineView";
@@ -30,6 +33,8 @@ export const LeagueActivityFeed = ({
     if (ids.size === 0) return [];
     return events.filter((e) => ids.has(e.id));
   }, [events, league.events]);
+
+  const participantsByEvent = useLeagueEventParticipants(leagueEvents);
 
   const hasEvents = leagueEvents.length > 0;
   const [viewMode, setViewMode] = useViewModePref(
@@ -63,13 +68,15 @@ export const LeagueActivityFeed = ({
           players={league.players}
           leagueId={league.id}
           antiCheatEnabled={league.anti_cheat_enabled === true}
+          participantsByEvent={participantsByEvent}
         />
       ) : (
         <TimelineView
           entries={timelineEntries}
-          players={league.players}
+          leaguePlayers={league.players}
           leagueId={league.id}
           antiCheatEnabled={league.anti_cheat_enabled === true}
+          participantsByEvent={participantsByEvent}
         />
       )}
     </div>

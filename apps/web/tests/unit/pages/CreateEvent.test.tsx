@@ -59,6 +59,11 @@ vi.mock("@/services/PremiumService", () => ({
 vi.mock("@/context/LeagueContext", () => ({
   useLeague: () => ({
     reloadData: mockReloadData,
+    // CreateEvent now destructures these from useLeague() for the optional
+    // league-attach picker — without `leagues` the component crashes on render.
+    leagues: [],
+    addAnonymousPlayerToEvent: vi.fn(),
+    associateEventToLeague: vi.fn(),
   }),
 }));
 

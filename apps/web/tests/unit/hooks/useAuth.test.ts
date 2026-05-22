@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useAuth } from '@/hooks/useAuth';
-import { authService } from '@/services/AuthService';
+// The useAuth hook lives in @elofight/shared and imports authService from the
+// shared services path, so mock there (not the web @/services re-export shim).
+import { authService } from '@elofight/shared/services/AuthService';
 
-// Mock AuthService
-vi.mock('@/services/AuthService', () => ({
+vi.mock('@elofight/shared/services/AuthService', () => ({
   authService: {
     getCurrentUser: vi.fn(),
     signInWithOTP: vi.fn(),

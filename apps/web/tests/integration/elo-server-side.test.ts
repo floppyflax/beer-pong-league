@@ -53,9 +53,26 @@ const supabaseMock = {
   }),
 };
 
-vi.mock('../../src/lib/supabase', () => ({
+// Since the shared extraction, MatchesRepository / EloRecalcService read the
+// live `sb` / `supabase` bindings from
+// `@elofight/shared/services/repositories/_base` — the web `src/lib/supabase`
+// shim is no longer on that path. Those bindings are normally populated by
+// `initShared()` → `_initBaseRepositoryClient()` → `getSupabase()`, which
+// returns null under the test env (empty url/key). Mocking the lower-level
+// `lib/supabase` factory is ineffective here: vitest.setup's `beforeAll`
+// imports `@elofight/shared` (→ `_base`) and runs `initShared()` before this
+// file's mocks register, freezing the real `_base` singleton with `sb=null`.
+// So intercept `_base` directly — inject the mock client as `sb`/`supabase`
+// and force `isSupabaseAvailable()` true on the BaseRepository the services
+// extend.
+vi.mock('@elofight/shared/services/repositories/_base', () => ({
   supabase: supabaseMock,
-  isSupabaseAvailable: () => true,
+  sb: supabaseMock,
+  BaseRepository: class {
+    protected isSupabaseAvailable(): boolean {
+      return true;
+    }
+  },
 }));
 
 vi.mock('../../src/services/repositories/LeaguesRepository', () => ({
@@ -84,6 +101,18 @@ const buildMatch = (): Match => ({
   created_by_user_id: 'user-1',
   created_by_anonymous_user_id: null,
 });
+
+// mig 025 invariant: the client never *writes* elo_history / *_memberships
+// stats directly — every mutation goes through the apply_match_elo RPC. A
+// table may still be *read* (resolveToPlayerIds selects *_memberships to map
+// membership ids → players.id), so we assert no insert/update/delete was
+// issued rather than that the table was never accessed.
+const expectNoStatWrites = (table?: QueryBuilder): void => {
+  if (!table) return; // table never accessed at all
+  expect(table.insert).not.toHaveBeenCalled();
+  expect(table.update).not.toHaveBeenCalled();
+  expect(table.delete).not.toHaveBeenCalled();
+};
 
 describe('ELO server-side (migration 025) — MatchesRepository delegates to apply_match_elo RPC', () => {
   beforeEach(() => {
@@ -120,9 +149,9 @@ describe('ELO server-side (migration 025) — MatchesRepository delegates to app
     ]);
 
     // No direct write to elo_history / league_memberships / event_memberships
-    expect(tablesTouched.elo_history?.insert).toBeUndefined();
-    expect(tablesTouched.league_memberships?.update).toBeUndefined();
-    expect(tablesTouched.event_memberships?.update).toBeUndefined();
+    expectNoStatWrites(tablesTouched.elo_history);
+    expectNoStatWrites(tablesTouched.league_memberships);
+    expectNoStatWrites(tablesTouched.event_memberships);
   });
 
   it('recordEventMatch inserts the match (with event_id + league_id) and calls apply_match_elo once', async () => {
@@ -164,9 +193,120 @@ describe('ELO server-side (migration 025) — MatchesRepository delegates to app
     ]);
 
     // Still no direct stat writes
-    expect(tablesTouched.elo_history?.insert).toBeUndefined();
-    expect(tablesTouched.league_memberships?.update).toBeUndefined();
-    expect(tablesTouched.event_memberships?.update).toBeUndefined();
+    expectNoStatWrites(tablesTouched.elo_history);
+    expectNoStatWrites(tablesTouched.league_memberships);
+    expectNoStatWrites(tablesTouched.event_memberships);
+  });
+});
+
+describe('Anti-cheat status decision (mig 030) — admin auto-confirm', () => {
+  beforeEach(() => {
+    Object.keys(tablesTouched).forEach((k) => delete tablesTouched[k]);
+    rpcCalls.length = 0;
+    vi.clearAllMocks();
+  });
+
+  it('recordMatch under anti-cheat: a non-admin caller lands the match in pending and skips apply_match_elo', async () => {
+    tablesTouched.leagues = makeBuilder();
+    tablesTouched.leagues.single = vi.fn().mockResolvedValue({
+      data: { anti_cheat_enabled: true, creator_user_id: 'admin-user' },
+      error: null,
+    });
+
+    const { matchesRepository } = await import('../../src/services/repositories/MatchesRepository');
+    const match = buildMatch();
+
+    const result = await matchesRepository.recordMatch('league-1', match, {}, 'other-user', null);
+
+    expect(result).toEqual({ status: 'pending' });
+    expect(tablesTouched.matches.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'pending' }),
+    );
+    // No ELO applied while the match awaits opponent confirmation.
+    expect(rpcCalls).toEqual([]);
+  });
+
+  it('recordMatch under anti-cheat: the league admin (creator) auto-confirms and ELO applies immediately', async () => {
+    tablesTouched.leagues = makeBuilder();
+    tablesTouched.leagues.single = vi.fn().mockResolvedValue({
+      data: { anti_cheat_enabled: true, creator_user_id: 'admin-user' },
+      error: null,
+    });
+
+    const { matchesRepository } = await import('../../src/services/repositories/MatchesRepository');
+    const match = buildMatch();
+
+    const result = await matchesRepository.recordMatch('league-1', match, {}, 'admin-user', null);
+
+    expect(result).toEqual({ status: 'confirmed' });
+    expect(tablesTouched.matches.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'confirmed' }),
+    );
+    expect(rpcCalls).toEqual([{ name: 'apply_match_elo', args: { p_match_id: match.id } }]);
+  });
+
+  it('recordEventMatch under anti-cheat: the event admin (creator) auto-confirms', async () => {
+    tablesTouched.events = makeBuilder();
+    tablesTouched.events.single = vi.fn().mockResolvedValue({
+      data: { league_id: null, anti_cheat_enabled: true, creator_user_id: 'admin-user' },
+      error: null,
+    });
+
+    const { matchesRepository } = await import('../../src/services/repositories/MatchesRepository');
+    const match = buildMatch();
+
+    const result = await matchesRepository.recordEventMatch('event-1', match, {}, 'admin-user', null);
+
+    expect(result).toEqual({ status: 'confirmed' });
+    expect(tablesTouched.matches.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'confirmed', event_id: 'event-1' }),
+    );
+    expect(rpcCalls).toEqual([{ name: 'apply_match_elo', args: { p_match_id: match.id } }]);
+  });
+
+  it('recordEventMatch under a linked anti-cheat league: a non-admin (neither event nor league creator) lands in pending', async () => {
+    tablesTouched.events = makeBuilder();
+    tablesTouched.events.single = vi.fn().mockResolvedValue({
+      data: { league_id: 'league-1', anti_cheat_enabled: false, creator_user_id: 'event-creator' },
+      error: null,
+    });
+    tablesTouched.leagues = makeBuilder();
+    tablesTouched.leagues.single = vi.fn().mockResolvedValue({
+      data: { anti_cheat_enabled: true, creator_user_id: 'league-admin' },
+      error: null,
+    });
+
+    const { matchesRepository } = await import('../../src/services/repositories/MatchesRepository');
+    const match = buildMatch();
+
+    const result = await matchesRepository.recordEventMatch('event-1', match, {}, 'random-user', null);
+
+    expect(result).toEqual({ status: 'pending' });
+    expect(tablesTouched.matches.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'pending' }),
+    );
+    expect(rpcCalls).toEqual([]);
+  });
+
+  it('recordEventMatch under a linked anti-cheat league: the league admin auto-confirms even when the event is not the anti-cheat source', async () => {
+    tablesTouched.events = makeBuilder();
+    tablesTouched.events.single = vi.fn().mockResolvedValue({
+      data: { league_id: 'league-1', anti_cheat_enabled: false, creator_user_id: 'event-creator' },
+      error: null,
+    });
+    tablesTouched.leagues = makeBuilder();
+    tablesTouched.leagues.single = vi.fn().mockResolvedValue({
+      data: { anti_cheat_enabled: true, creator_user_id: 'league-admin' },
+      error: null,
+    });
+
+    const { matchesRepository } = await import('../../src/services/repositories/MatchesRepository');
+    const match = buildMatch();
+
+    const result = await matchesRepository.recordEventMatch('event-1', match, {}, 'league-admin', null);
+
+    expect(result).toEqual({ status: 'confirmed' });
+    expect(rpcCalls).toEqual([{ name: 'apply_match_elo', args: { p_match_id: match.id } }]);
   });
 });
 
@@ -189,8 +329,8 @@ describe('ELO server-side — EloRecalcService delegates to recalculate_league_e
     expect(result).toEqual({ success: true, matchesReplayed: 7 });
 
     // No direct table writes — the whole thing is the RPC
-    expect(tablesTouched.league_memberships?.update).toBeUndefined();
-    expect(tablesTouched.elo_history?.delete).toBeUndefined();
+    expectNoStatWrites(tablesTouched.league_memberships);
+    expectNoStatWrites(tablesTouched.elo_history);
   });
 
   it('recalculateLeagueElo surfaces RPC errors as { success: false, error }', async () => {

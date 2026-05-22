@@ -85,7 +85,7 @@ class LeaguesRepository extends BaseRepository {
           sb!.from('leagues').select('*').in('id', ids),
           sb!
             .from('league_memberships')
-            .select('id, league_id, player_id, pseudo_override, elo, wins, losses, matches_played, streak, joined_at, archived_at, player:players(pseudo)')
+            .select('id, league_id, player_id, pseudo_override, elo, wins, losses, matches_played, streak, joined_at, archived_at, player:players(pseudo, avatar_url)')
             .in('league_id', ids),
           sb!.from('matches').select('*').in('league_id', ids).order('created_at', { ascending: false }),
           sb!.from('events').select('id, league_id').in('league_id', ids),
@@ -101,7 +101,7 @@ class LeaguesRepository extends BaseRepository {
       // namespace at hydration time so UI lookups like `players.find(p => p.id
       // === teamA[i])` continue to work unchanged.
       const playerToMembershipByLeague = new Map<string, Map<string, string>>();
-      ((allMembers ?? []) as unknown as Array<LeagueMembershipRow & { player: { pseudo: string } | null }>).forEach((m) => {
+      ((allMembers ?? []) as unknown as Array<LeagueMembershipRow & { player: { pseudo: string; avatar_url: string | null } | null }>).forEach((m) => {
         const list = playersByLeague.get(m.league_id) ?? [];
         list.push({
           id: m.id,
@@ -111,6 +111,7 @@ class LeaguesRepository extends BaseRepository {
           losses: m.losses,
           matchesPlayed: m.matches_played,
           streak: m.streak,
+          avatarUrl: m.player?.avatar_url ?? null,
         });
         playersByLeague.set(m.league_id, list);
 
@@ -266,8 +267,12 @@ class LeaguesRepository extends BaseRepository {
       if (leagueError) throw leagueError;
       this.saveLeagueToLocalStorage(league);
     } catch (error) {
+      // Supabase est joignable mais l'écriture a échoué (colonne manquante,
+      // RLS, contrainte…). On NE retombe PAS sur localStorage : un faux succès
+      // ici crée une ligue fantôme que loadDataFromSupabase écrase ensuite au
+      // reload ("Ligue introuvable"). On remonte l'erreur à l'appelant.
       console.error('Error saving league to Supabase:', error);
-      this.saveLeagueToLocalStorage(league);
+      throw error;
     }
   }
 

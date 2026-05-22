@@ -68,6 +68,7 @@ describe('useLeagues — league facade', () => {
         'createLeague',
         'currentLeague',
         'deleteLeague',
+        'finishCurrentLeagueSeason',
         'finishLeague',
         'getLeagueGlobalRanking',
         'isLoadingInitialData',
