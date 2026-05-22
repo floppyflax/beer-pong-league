@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@elofight/shared": "*",
+    "@formkit/auto-animate": "^0.9.0",
     "@stripe/stripe-js": "^8.7.0",
     "@supabase/supabase-js": "^2.39.0",
     "@tanstack/react-query": "^5.90.20",
