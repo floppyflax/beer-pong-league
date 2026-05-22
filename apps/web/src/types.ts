@@ -6,6 +6,7 @@ export interface Player {
   losses: number;
   matchesPlayed: number;
   streak: number; // Positive for win streak, negative for loss streak
+  avatarUrl?: string | null; // Snapshot of users.avatar_url, propagated to players.avatar_url
 }
 
 export interface Team {

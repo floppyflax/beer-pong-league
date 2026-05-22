@@ -37,6 +37,7 @@ export const EventDisplayView = () => {
             losses: p.losses,
             matchesPlayed: p.matchesPlayed,
             streak: 0,
+            avatarUrl: p.avatarUrl,
           })),
         ),
       )

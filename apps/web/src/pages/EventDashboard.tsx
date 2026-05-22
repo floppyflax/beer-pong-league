@@ -161,7 +161,7 @@ export const EventDashboard = () => {
 
   // Load event participants from event_players (IDs match match.teamA/teamB)
   const [eventParticipants, setEventParticipants] = useState<
-    { id: string; leaguePlayerId?: string; name: string; elo: number; wins: number; losses: number; matchesPlayed: number; streak: number }[]
+    { id: string; leaguePlayerId?: string; name: string; elo: number; wins: number; losses: number; matchesPlayed: number; streak: number; avatarUrl?: string | null }[]
   >([]);
 
   useEffect(() => {
@@ -179,6 +179,7 @@ export const EventDashboard = () => {
             losses: p.losses,
             matchesPlayed: p.matchesPlayed,
             streak: 0,
+            avatarUrl: p.avatarUrl,
           })),
         ),
       )
@@ -709,6 +710,7 @@ export const EventDashboard = () => {
                       id: p.id,
                       name: p.name,
                       elo: p.elo,
+                      avatar: p.avatarUrl ?? undefined,
                       delta: getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
                       rankDelta: rankDeltas.get(p.id),
                     }))}
@@ -740,6 +742,7 @@ export const EventDashboard = () => {
                           key={player.id}
                           variant="leaderRow"
                           name={player.name}
+                          avatarUrl={player.avatarUrl ?? undefined}
                           elo={player.elo}
                           delta={delta ?? undefined}
                           rankDelta={rankDeltas.get(player.id)}

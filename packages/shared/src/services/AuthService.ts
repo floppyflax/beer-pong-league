@@ -184,6 +184,15 @@ class AuthService {
         }
       }
 
+      // Same propagation for the avatar: push users.avatar_url into the
+      // user's players row so every league / event shows the new photo.
+      if (updates.avatar_url !== undefined) {
+        const { error: rpcError } = await supabase.rpc('propagate_user_avatar');
+        if (rpcError) {
+          console.warn('propagate_user_avatar failed:', rpcError);
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Error updating user profile:', error);
