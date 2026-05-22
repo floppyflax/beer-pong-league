@@ -2,9 +2,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { LeagueJoin } from "../../../src/pages/LeagueJoin";
-import { LeagueProvider } from "../../../src/context/LeagueContext";
-import { AuthProvider } from "../../../src/context/AuthContext";
-import { IdentityProvider } from "../../../src/context/IdentityContext";
 import "@testing-library/jest-dom";
 
 const mockNavigate = vi.fn();
@@ -18,22 +15,7 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("react-hot-toast", () => ({
-  default: {
-    success: vi.fn(),
-    error: vi.fn(),
-    loading: vi.fn(),
-    dismiss: vi.fn(),
-  },
-}));
-
-const mockEnsureIdentity = vi.fn();
-vi.mock("../../../src/hooks/useRequireIdentity", () => ({
-  useRequireIdentity: () => ({
-    ensureIdentity: mockEnsureIdentity,
-    showModal: false,
-    handleIdentityCreated: vi.fn(),
-    handleCancel: vi.fn(),
-  }),
+  default: { success: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() },
 }));
 
 const mockAddPlayer = vi.fn().mockResolvedValue(undefined);
@@ -45,21 +27,27 @@ const mockLeague = {
   createdAt: new Date().toISOString(),
   players: [] as Array<{ id: string; name: string }>,
 };
-const defaultLeagueContext = {
-  leagues: [mockLeague],
-  addPlayer: mockAddPlayer,
-  isLoadingInitialData: false,
-  reloadData: mockReloadData,
-};
-const mockUseLeague = vi.fn(() => defaultLeagueContext);
+let mockLeagueCtx: Record<string, unknown> = {};
 vi.mock("../../../src/context/LeagueContext", () => ({
-  useLeague: () => mockUseLeague(),
-  LeagueProvider: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
+  useLeague: () => mockLeagueCtx,
+  LeagueProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// Unclaimed-ghosts hook drives the "select existing player" list.
+let mockAuthCtx: Record<string, unknown> = {};
+vi.mock("../../../src/context/AuthContext", () => ({
+  useAuthContext: () => mockAuthCtx,
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+const mockInitAnon = vi
+  .fn()
+  .mockResolvedValue({ anonymousUserId: "anon-1", pseudo: "Joueur" });
+let mockIdentityCtx: Record<string, unknown> = {};
+vi.mock("../../../src/context/IdentityContext", () => ({
+  useIdentityContext: () => mockIdentityCtx,
+  IdentityProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 interface MockGuest {
   playerId: string;
   anonymousUserId: string;
@@ -77,94 +65,117 @@ vi.mock("../../../src/hooks/useUnclaimedGuests", () => ({
   }),
 }));
 
-const { mockClaimAnon, mockClaimAuth, mockClaimById } = vi.hoisted(() => ({
-  mockClaimAnon: vi.fn().mockResolvedValue({ success: true }),
-  mockClaimAuth: vi.fn().mockResolvedValue({ success: true }),
-  mockClaimById: vi.fn().mockResolvedValue({ success: true }),
-}));
+const { mockClaimAnon, mockClaimAuth, mockClaimById, mockRename } = vi.hoisted(
+  () => ({
+    mockClaimAnon: vi.fn().mockResolvedValue({ success: true }),
+    mockClaimAuth: vi.fn().mockResolvedValue({ success: true }),
+    mockClaimById: vi.fn().mockResolvedValue({ success: true }),
+    mockRename: vi.fn().mockResolvedValue({ success: true }),
+  }),
+);
 vi.mock("../../../src/services/IdentityMergeService", () => ({
   identityMergeService: {
     claimAnonymousPlayer: mockClaimAuth,
     claimAnonymousPlayerAsAnonymous: mockClaimAnon,
     claimPlayerById: mockClaimById,
+    renameAnonymousPlayer: mockRename,
   },
 }));
 
+vi.mock("../../../src/services/DatabaseService", () => ({
+  databaseService: { getLeagueById: vi.fn().mockResolvedValue(null) },
+}));
+
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
-  <BrowserRouter>
-    <AuthProvider>
-      <IdentityProvider>
-        <LeagueProvider>{children}</LeagueProvider>
-      </IdentityProvider>
-    </AuthProvider>
-  </BrowserRouter>
+  <BrowserRouter>{children}</BrowserRouter>
 );
 
-describe("LeagueJoin", () => {
+const renderPage = () => render(<LeagueJoin />, { wrapper: Wrapper });
+
+describe("LeagueJoin — step flow (gate → claim → name)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGuests = [];
-    mockUseLeague.mockImplementation(() => defaultLeagueContext);
-    mockEnsureIdentity.mockResolvedValue({
-      type: "anonymous",
-      user: { anonymousUserId: "test-anon-id" },
-    });
+    mockLeagueCtx = {
+      leagues: [mockLeague],
+      addPlayer: mockAddPlayer,
+      isLoadingInitialData: false,
+      reloadData: mockReloadData,
+    };
+    mockAuthCtx = { user: null, isAuthenticated: false };
+    mockIdentityCtx = { localUser: null, initializeAnonymousUser: mockInitAnon };
   });
 
-  it("renders the league name", () => {
-    render(<LeagueJoin />, { wrapper: Wrapper });
+  it("renders the league and shows the identity gate first", () => {
+    renderPage();
     expect(screen.getAllByText("Test League").length).toBeGreaterThan(0);
+    expect(screen.getByText(/jouer sans compte/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/nom du joueur/i)).not.toBeInTheDocument();
   });
 
-  it("creates a new player via addPlayer", async () => {
-    render(<LeagueJoin />, { wrapper: Wrapper });
+  it("no participants: gate → name (create) → join", async () => {
+    renderPage();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /créer un nouveau joueur/i }),
+    fireEvent.click(screen.getByText(/jouer sans compte/i));
+    await waitFor(() => expect(mockInitAnon).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByText(/choisis ton pseudo/i)).toBeInTheDocument(),
     );
 
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/ton pseudo/i)).toBeInTheDocument();
-    });
-    fireEvent.change(screen.getByPlaceholderText(/ton pseudo/i), {
+    fireEvent.change(screen.getByLabelText(/nom du joueur/i), {
       target: { value: "Bob" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /^rejoindre$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /rejoindre/i }));
 
-    await waitFor(() => {
-      expect(mockAddPlayer).toHaveBeenCalledWith("test-league-id", "Bob");
-    });
+    await waitFor(() =>
+      expect(mockAddPlayer).toHaveBeenCalledWith("test-league-id", "Bob"),
+    );
     expect(mockNavigate).toHaveBeenCalledWith("/league/test-league-id");
   });
 
-  it("claims an unclaimed ghost when selected as existing player", async () => {
+  it("with participants: gate → claim → keep name → join (no rename)", async () => {
     mockGuests = [
-      {
-        playerId: "lm-1",
-        anonymousUserId: "player-1",
-        pseudo: "Alice",
-        joinedAt: "",
-        archived: false,
-      },
+      { playerId: "lm1", anonymousUserId: "p1", pseudo: "Alice", joinedAt: "", archived: false },
     ];
+    renderPage();
 
-    render(<LeagueJoin />, { wrapper: Wrapper });
-
-    // The claim proposal is shown FIRST (before any identity/name prompt).
-    expect(
-      screen.getByText(/êtes-vous une de ces personnes/i),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
-
+    fireEvent.click(screen.getByText(/jouer sans compte/i));
+    await waitFor(() =>
+      expect(screen.getByText(/êtes-vous une de ces personnes/i)).toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByRole("button", { name: /c'est moi/i }));
 
-    await waitFor(() => {
-      expect(mockClaimAnon).toHaveBeenCalledWith(
-        "league",
-        "lm-1",
-        "test-anon-id",
-      );
-    });
-    expect(mockNavigate).toHaveBeenCalledWith("/league/test-league-id");
+    await waitFor(() =>
+      expect(mockClaimAnon).toHaveBeenCalledWith("league", "lm1", "anon-1"),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/garde ou modifie ton nom/i)).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /c'est parti/i }));
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("/league/test-league-id"),
+    );
+    expect(mockRename).not.toHaveBeenCalled();
+  });
+
+  it("\"not in the list\" goes to the create-name step", async () => {
+    mockGuests = [
+      { playerId: "lm1", anonymousUserId: "p1", pseudo: "Alice", joinedAt: "", archived: false },
+    ];
+    renderPage();
+
+    fireEvent.click(screen.getByText(/jouer sans compte/i));
+    await waitFor(() =>
+      expect(screen.getByText(/êtes-vous une de ces personnes/i)).toBeInTheDocument(),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /je ne suis pas dans la liste/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/choisis ton pseudo/i)).toBeInTheDocument(),
+    );
+    expect(mockClaimAnon).not.toHaveBeenCalled();
   });
 });

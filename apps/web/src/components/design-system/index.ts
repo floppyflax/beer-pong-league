@@ -108,6 +108,10 @@ export type {
   IdentityGateChoice,
 } from './IdentityGateSheet';
 
+// Join-time name step (confirm a claimed player's name, or pick a new pseudo)
+export { JoinNameSheet } from './JoinNameSheet';
+export type { JoinNameSheetProps } from './JoinNameSheet';
+
 // Admin ghost player management (rename / invite link / delete)
 export { GhostManagementSheet } from './GhostManagementSheet';
 export type { GhostManagementSheetProps } from './GhostManagementSheet';
