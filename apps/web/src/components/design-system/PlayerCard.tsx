@@ -12,7 +12,7 @@
  * été retirée : `leaderRow` la remplace.
  */
 
-import { ChevronRight, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { ChevronRight, Equal, TrendingDown, TrendingUp } from "lucide-react";
 import { getInitials } from "@/utils/string";
 
 export interface PlayerCardCompactProps {
@@ -198,7 +198,7 @@ function Avatar({
           ) : rankDelta < 0 ? (
             <TrendingDown size={10} aria-hidden />
           ) : (
-            <Minus size={10} aria-hidden />
+            <Equal size={10} aria-hidden />
           )}
           {rankDelta !== 0 && Math.abs(rankDelta)}
         </div>

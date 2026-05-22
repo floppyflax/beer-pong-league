@@ -12,7 +12,7 @@
  * - ELO delta (±N) → left of the ELO so the ELO column stays right-aligned
  */
 
-import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
+import { Equal, TrendingDown, TrendingUp } from 'lucide-react';
 import { PAvatar } from './PAvatar';
 import { Sparkline } from './Sparkline';
 
@@ -105,7 +105,7 @@ export function LeaderRow({ rank, player, isMe = false, onClick }: LeaderRowProp
             ) : player.rankDelta < 0 ? (
               <TrendingDown size={9} aria-hidden />
             ) : (
-              <Minus size={9} aria-hidden />
+              <Equal size={9} aria-hidden />
             )}
             {player.rankDelta !== 0 && Math.abs(player.rankDelta)}
           </span>

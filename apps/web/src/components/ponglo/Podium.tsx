@@ -6,7 +6,7 @@
  * Background card: electric-blue per spec.
  */
 
-import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
+import { Equal, TrendingDown, TrendingUp } from 'lucide-react';
 import { PAvatar } from './PAvatar';
 
 export interface PodiumPlayer {
@@ -114,7 +114,7 @@ export function Podium({
                     ) : player.rankDelta < 0 ? (
                       <TrendingDown size={10} aria-hidden />
                     ) : (
-                      <Minus size={10} aria-hidden />
+                      <Equal size={10} aria-hidden />
                     )}
                     {player.rankDelta !== 0 && Math.abs(player.rankDelta)}
                   </div>
