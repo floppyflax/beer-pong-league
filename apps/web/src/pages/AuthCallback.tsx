@@ -50,10 +50,14 @@ export const AuthCallback = () => {
             .eq('id', session.user.id)
             .single();
 
-          // Create user profile if doesn't exist
+          // Create user profile if doesn't exist. Set auth_user_id = id so the
+          // canonical users row matches auth.uid() AND claim_player resolves it
+          // (WHERE auth_user_id = auth.uid()) instead of inserting a duplicate.
           if (!profile.data) {
             await supabase.from('users').insert({
               id: session.user.id,
+              auth_user_id: session.user.id,
+              is_anonymous: false,
               pseudo: localUser.pseudo,
             });
           }
@@ -82,6 +86,8 @@ export const AuthCallback = () => {
             const emailUsername = session.user.email?.split('@')[0] || 'Joueur';
             await supabase.from('users').insert({
               id: session.user.id,
+              auth_user_id: session.user.id,
+              is_anonymous: false,
               pseudo: emailUsername,
             });
           }
@@ -89,11 +95,13 @@ export const AuthCallback = () => {
 
         setStatus('success');
 
-        // Check for returnTo in sessionStorage
-        const returnTo = sessionStorage.getItem('authReturnTo');
-        if (returnTo) {
-          sessionStorage.removeItem('authReturnTo'); // Clean up
-        }
+        // Check for returnTo. localStorage first (survives the magic-link
+        // new-tab round-trip), sessionStorage as a fallback (legacy callers).
+        const returnTo =
+          localStorage.getItem('authReturnTo') ??
+          sessionStorage.getItem('authReturnTo');
+        localStorage.removeItem('authReturnTo');
+        sessionStorage.removeItem('authReturnTo');
 
         // Redirect after a short delay
         setTimeout(() => {

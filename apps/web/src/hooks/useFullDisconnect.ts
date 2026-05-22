@@ -19,9 +19,13 @@ export function useFullDisconnect() {
     // 2. Local/anonymous identity
     clearIdentity();
 
-    // 3. Session storage — auth-related keys (AC3: authReturnTo and any auth-related)
-    const AUTH_SESSION_KEYS = ["authReturnTo"];
-    AUTH_SESSION_KEYS.forEach((key) => sessionStorage.removeItem(key));
+    // 3. Auth-related keys (AC3: authReturnTo). Cleared from both stores —
+    //    the join flow now writes authReturnTo to localStorage.
+    const AUTH_KEYS = ["authReturnTo"];
+    AUTH_KEYS.forEach((key) => {
+      sessionStorage.removeItem(key);
+      localStorage.removeItem(key);
+    });
 
     // 4. Clear LeagueContext cache to avoid stale data
     localStorage.removeItem("bpl_leagues");

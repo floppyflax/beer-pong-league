@@ -165,6 +165,14 @@ export const EventJoin = () => {
 
   const handleGateChoice = async (choice: IdentityGateChoice) => {
     if (choice === "auth") {
+      // OTP magic-link leaves the app; persist the join URL so AuthCallback
+      // brings the user back HERE (authenticated) to finish joining, instead
+      // of dropping them on "/". localStorage (not sessionStorage) because the
+      // magic link often opens in a NEW tab, which doesn't share sessionStorage.
+      localStorage.setItem(
+        "authReturnTo",
+        window.location.pathname + window.location.search,
+      );
       setShowAuthModal(true);
       return;
     }
