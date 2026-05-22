@@ -14,7 +14,7 @@ import { PButton } from '../components/ponglo/PButton';
  */
 export const AuthCallback = () => {
   const navigate = useNavigate();
-  const { localUser } = useIdentityContext();
+  const { localUser, clearIdentity } = useIdentityContext();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
@@ -62,16 +62,29 @@ export const AuthCallback = () => {
             });
           }
 
-          // Merge anonymous identity to authenticated user
-          const mergeResult = await identityMergeService.mergeAnonymousToUser(
-            localUser.anonymousUserId,
-            session.user.id,
-            localUser.pseudo
-          );
+          // Transfer the anonymous player (claimed or created while playing as
+          // a guest) to this authenticated account, so progress is preserved
+          // under auth.uid() and accessible across devices. claim_player moves
+          // an anon-owned player to the caller's authenticated user.
+          const { data: anonPlayer } = await supabase
+            .from('players')
+            .select('id')
+            .eq('user_id', localUser.anonymousUserId)
+            .maybeSingle();
 
-          if (!mergeResult.success) {
-            console.warn('Failed to merge identity:', mergeResult.error);
-            // Continue anyway, user is authenticated
+          if (anonPlayer) {
+            const transfer = await identityMergeService.claimAnonymousPlayer(
+              'event',
+              (anonPlayer as { id: string }).id,
+              session.user.id,
+            );
+            if (transfer.success) {
+              // The anonymous identity is now subsumed by the account — drop the
+              // local guest so the app uses the authenticated identity.
+              await clearIdentity?.();
+            } else {
+              console.warn('Failed to transfer anonymous player:', transfer.error);
+            }
           }
         } else if (session.user && supabase) {
           // No local identity, just create profile

@@ -50,7 +50,15 @@ export const AnonGatePlaceholder = ({
             variant="primary"
             size="lg"
             full
-            onClick={() => setShowAuthModal(true)}
+            onClick={() => {
+              // Persist where we are so the OTP magic-link round-trip (often a
+              // new tab → no sessionStorage) brings the user back here.
+              localStorage.setItem(
+                "authReturnTo",
+                window.location.pathname + window.location.search,
+              );
+              setShowAuthModal(true);
+            }}
           >
             <UserPlus size={16} className="mr-2" />
             {ctaLabel}

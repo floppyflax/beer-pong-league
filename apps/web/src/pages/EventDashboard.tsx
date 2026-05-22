@@ -24,6 +24,7 @@ import { getEventLifecycle, canLogMatch } from "@/utils/eventLifecycle";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "@/components/EloChangeDisplay";
 import { EmptyState } from "@/components/EmptyState";
+import { SaveProgressBanner } from "@/components/SaveProgressBanner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import {
@@ -647,6 +648,11 @@ export const EventDashboard = () => {
         actions={detailHeroActions}
         menuItems={detailHeroMenuItems}
       />
+
+      {/* Guest → account nudge (anonymous players only). */}
+      <div className="px-4 md:px-6 pt-3">
+        <SaveProgressBanner />
+      </div>
 
       {/* Lifecycle status strip — sits between hero and content, sticky so it
           stays visible while scrolling. Distinct ping-yellow accent so it

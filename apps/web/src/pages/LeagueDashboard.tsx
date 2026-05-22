@@ -19,6 +19,7 @@ import {
 import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
+import { SaveProgressBanner } from "../components/SaveProgressBanner";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useDetailPagePermissions } from "../hooks/useDetailPagePermissions";
 import { usePendingMatches } from "@/hooks/usePendingMatches";
@@ -296,6 +297,11 @@ export const LeagueDashboard = () => {
         ]}
         actions={detailHeroAdminActions}
       />
+
+      {/* Guest → account nudge (anonymous players only). */}
+      <div className="px-4 md:px-6 pt-3">
+        <SaveProgressBanner />
+      </div>
 
       {/* Mig 028+029+030 — Lifecycle status strip (prio absolue) ou strip de
           rappel (saison/league overdue). Un seul strip à la fois pour ne pas
