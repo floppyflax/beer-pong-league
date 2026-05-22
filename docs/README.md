@@ -7,6 +7,8 @@ Documentation technique et produit de l'application Beer Pong League. Ce dossier
 - [Getting Started](./getting-started.md) — prérequis, installation, premier lancement local.
 - [Architecture](./architecture.md) — stack, arborescence, modèle de données Supabase, inventaire des composants, contrats API.
 - [Product Context](./product-context.md) — règles de codage, patterns, anti-patterns (TypeScript, React, Supabase, DS Arcade).
+- [Brand Kit Everything ELO](./brand-kit-everything-elo.md) — identité de marque, palette hex canonique, typo, déclinaisons tonales.
+- [Design System](./design-system.md) — lexique des composants (badge/chip/pill/avatar/card/row) + cartographie des incohérences UI/UX.
 - [Authentification & identité](./auth-identity.md) — flow anonyme → OTP → merge, comptes de test dev, configuration des providers.
 - [Paiements Stripe](./payments.md) — setup Stripe, Price IDs, edge functions checkout/verify, cartes de test.
 - [Supabase](./supabase.md) — projet Supabase, nouvelles clés `sb_publishable_*`, variables d'environnement, déploiement edge functions.

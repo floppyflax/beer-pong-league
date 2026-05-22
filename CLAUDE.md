@@ -59,6 +59,8 @@ Depuis la racine (les scripts délèguent à `apps/web` via `--prefix`) :
 |---|---|
 | Patterns, anti-patterns, naming conventions | [`docs/product-context.md`](docs/product-context.md) |
 | Architecture système, schéma DB, services | [`docs/architecture.md`](docs/architecture.md) |
+| Design system : lexique composants + cartographie incohérences UI | [`docs/design-system.md`](docs/design-system.md) |
+| Identité de marque : palette hex, typo, tokens | [`docs/brand-kit-everything-elo.md`](docs/brand-kit-everything-elo.md) |
 | Roadmap + fonctionnalités livrées/backlog | [`docs/roadmap.md`](docs/roadmap.md) |
 | Tech debt + chantiers en attente + tâches admin user | [`docs/tech-debt.md`](docs/tech-debt.md) |
 | Auth flow anonyme → OTP → merge | [`docs/auth-identity.md`](docs/auth-identity.md) |

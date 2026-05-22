@@ -171,16 +171,14 @@ packages/
 
 ---
 
-## Design System (Ponglo Arcade)
+## Design System (Everything ELO)
 
 - Tokens définis dans `apps/web/tailwind.config.js` — **jamais** de couleurs hardcodées
-- Palette : `cream`, `paper`, `ink`/`ink-soft`/`ink-mute`, `cup-red` / `cup-blue` / `lime`, `gold`, `ruby`
 - Tailwind utilitaires : `p-page`, `rounded-card`, `shadow-modal` — préférer à `p-4` / `rounded-lg`
-- Typos : `Space Grotesk` (body), `Archivo` (display uppercase), `JetBrains Mono` (chiffres)
-- Primitives Ponglo : `PongloWordmark`, `PButton`, `EloDelta`, `PRankBadge` (dans `components/ponglo/`)
-- Composants DS : voir showcase vivant `/design-system` (`DesignSystemShowcase.tsx`)
-
-Détails complets : `architecture.md` section "Design system Ponglo Arcade".
+- **Palette + typo canoniques** → [`brand-kit-everything-elo.md`](./brand-kit-everything-elo.md) (navy / electric-blue / ping-yellow / signal-red / lime / cool-gray / bronze ; Sora + Teko + JetBrains Mono). Les anciens alias (`cream`, `cup-red`, `ink`, `gold`…) et `Space Grotesk` ont été purgés ; `Archivo` est conservé en legacy `@deprecated`.
+- **Lexique des composants** (badge / chip / pill / avatar / card / row) + **cartographie des incohérences UI** → [`design-system.md`](./design-system.md)
+- **Inventaire des composants** + showcase vivant `/design-system` (`DesignSystemShowcase.tsx`) → [`architecture.md`](./architecture.md)
+- `components/ponglo/` = primitives **legacy à retirer progressivement** (cf. [brand-kit §1](./brand-kit-everything-elo.md))
 
 ---
 
