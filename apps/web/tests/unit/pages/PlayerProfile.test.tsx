@@ -333,7 +333,9 @@ describe("PlayerProfile - Story 14.20", () => {
     it("should display delta ELO in recent matches when eloChanges present (Story 14-35)", async () => {
       renderWithPlayer(PLAYER_1);
       await waitFor(() => {
-        expect(screen.getByText(/\+15 ELO/)).toBeInTheDocument();
+        // MatchTeamsRow renders the per-team delta compactly as "+15"
+        // (visible text) with an aria-label of "ELO +15".
+        expect(screen.getByText("+15")).toBeInTheDocument();
       });
     });
 
