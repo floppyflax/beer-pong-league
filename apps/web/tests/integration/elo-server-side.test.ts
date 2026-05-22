@@ -348,3 +348,83 @@ describe('ELO server-side — EloRecalcService delegates to recalculate_league_e
     });
   });
 });
+
+describe('Anti-cheat — confirmMatch wrapper (mig 030)', () => {
+  beforeEach(() => {
+    Object.keys(tablesTouched).forEach((k) => delete tablesTouched[k]);
+    rpcCalls.length = 0;
+    vi.clearAllMocks();
+  });
+
+  it("calls confirm_match RPC with correct params on 'confirmed' decision", async () => {
+    const { matchesRepository } = await import(
+      '../../src/services/repositories/MatchesRepository'
+    );
+
+    await matchesRepository.confirmMatch('match-abc', 'confirmed', 'user-1');
+
+    expect(rpcCalls).toEqual([
+      {
+        name: 'confirm_match',
+        args: { p_match_id: 'match-abc', p_decision: 'confirmed', p_caller_user_id: 'user-1' },
+      },
+    ]);
+  });
+
+  it("passes p_decision 'rejected' through to the RPC unchanged", async () => {
+    const { matchesRepository } = await import(
+      '../../src/services/repositories/MatchesRepository'
+    );
+
+    await matchesRepository.confirmMatch('match-abc', 'rejected', 'user-1');
+
+    expect(rpcCalls).toEqual([
+      {
+        name: 'confirm_match',
+        args: { p_match_id: 'match-abc', p_decision: 'rejected', p_caller_user_id: 'user-1' },
+      },
+    ]);
+  });
+
+  it("throws a rights error on ERRCODE 'insufficient_privilege'", async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'permission denied', code: 'insufficient_privilege' },
+    });
+    const { matchesRepository } = await import(
+      '../../src/services/repositories/MatchesRepository'
+    );
+
+    await expect(
+      matchesRepository.confirmMatch('match-abc', 'confirmed', 'user-1'),
+    ).rejects.toThrow("Tu n'as pas les droits pour valider ce match.");
+  });
+
+  it("throws an already-validated error on ERRCODE 'check_violation'", async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'check violation', code: 'check_violation' },
+    });
+    const { matchesRepository } = await import(
+      '../../src/services/repositories/MatchesRepository'
+    );
+
+    await expect(
+      matchesRepository.confirmMatch('match-abc', 'confirmed', 'user-1'),
+    ).rejects.toThrow('Ce match ne peut plus être validé (déjà confirmé ou rejeté).');
+  });
+
+  it('throws a fallback message on unknown RPC errors', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'unexpected db error', code: 'XXXXX' },
+    });
+    const { matchesRepository } = await import(
+      '../../src/services/repositories/MatchesRepository'
+    );
+
+    await expect(
+      matchesRepository.confirmMatch('match-abc', 'confirmed', 'user-1'),
+    ).rejects.toThrow('La validation a échoué. Réessaie dans un instant.');
+  });
+});
