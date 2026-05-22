@@ -26,6 +26,22 @@ function formatCupsBadge(count: number): string {
   return count === 1 ? "1 gobelet restant" : `${count} gobelets restants`;
 }
 
+/**
+ * True quand `MatchEnrichedDisplay` rendrait quelque chose (photo ou cups).
+ * Permet au parent de ne pas réserver une ligne de footer vide. N'inclut
+ * pas l'état runtime `imageError` (photo cassée) : sur ce cas rare le footer
+ * peut rester vide une fraction de seconde avant que l'image n'échoue.
+ */
+export function hasMatchEnrichedContent(
+  photoUrl?: string | null,
+  cupsRemaining?: number | null,
+): boolean {
+  const hasPhoto = Boolean(photoUrl?.trim());
+  const hasCups =
+    cupsRemaining != null && cupsRemaining >= 1 && cupsRemaining <= 10;
+  return hasPhoto || hasCups;
+}
+
 export function MatchEnrichedDisplay({
   photoUrl,
   cupsRemaining,

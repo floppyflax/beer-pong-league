@@ -26,7 +26,10 @@ import { EloChangeDisplay } from "@/components/EloChangeDisplay";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
-import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
+import {
+  MatchEnrichedDisplay,
+  hasMatchEnrichedContent,
+} from "@/components/MatchEnrichedDisplay";
 import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { databaseService } from "@/services/DatabaseService";
@@ -834,46 +837,54 @@ export const EventDashboard = () => {
                         )}
                       </div>
                     )}
-                    {/* Phase D.4: Live badge */}
-                    <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
-                    {/* Mig 030 — anti-cheat status badge. The "Validé"
-                        badge on confirmed matches only shows up when the
-                        parent event/league is under anti-cheat — otherwise
-                        a check on every match would be visual noise. */}
-                    {match.status === "pending" && (
-                      <div
-                        className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
-                        data-testid="match-status-pending"
-                        aria-label="Match en attente de validation"
-                      >
-                        <Hourglass size={11} aria-hidden="true" />
-                        En attente de validation
+                    {/* Badges de statut + timestamp sur la même ligne, en
+                        haut. `pr-10` quand admin pour dégager le bouton menu
+                        ⋮ (absolute top-right, ≈ 40 px). La même valeur est
+                        appliquée à MatchTeamsRow pour aligner la date sur la
+                        colonne team B. */}
+                    <div
+                      className={`flex items-center justify-between gap-2 mb-2 ${isAdmin ? "pr-10" : ""}`}
+                    >
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <LiveMatchBadge isLive={Boolean(match.is_live)} />
+                        {match.status === "pending" && (
+                          <div
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
+                            data-testid="match-status-pending"
+                            aria-label="Match en attente de validation"
+                          >
+                            <Hourglass size={11} aria-hidden="true" />
+                            En attente de validation
+                          </div>
+                        )}
+                        {match.status === "rejected" && (
+                          <div
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-signal-red/15 text-signal-red text-[10px] font-bold uppercase tracking-wide"
+                            data-testid="match-status-rejected"
+                            aria-label="Match refusé"
+                          >
+                            <XCircle size={11} aria-hidden="true" />
+                            Refusé
+                          </div>
+                        )}
+                        {match.status === "confirmed" && event.anti_cheat_enabled && (
+                          <div
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime/15 text-lime text-[10px] font-bold uppercase tracking-wide"
+                            data-testid="match-status-validated"
+                            aria-label="Match validé"
+                          >
+                            <CheckCircle2 size={11} aria-hidden="true" />
+                            Validé
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {match.status === "rejected" && (
-                      <div
-                        className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-signal-red/15 text-signal-red text-[10px] font-bold uppercase tracking-wide"
-                        data-testid="match-status-rejected"
-                        aria-label="Match refusé"
-                      >
-                        <XCircle size={11} aria-hidden="true" />
-                        Refusé
-                      </div>
-                    )}
-                    {match.status === "confirmed" && event.anti_cheat_enabled && (
-                      <div
-                        className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime/15 text-lime text-[10px] font-bold uppercase tracking-wide"
-                        data-testid="match-status-validated"
-                        aria-label="Match validé"
-                      >
-                        <CheckCircle2 size={11} aria-hidden="true" />
-                        Validé
-                      </div>
-                    )}
-                    {/* Teams + ELO inline (1 valeur par équipe).
-                        `pr-10` quand admin pour réserver la place du bouton
-                        menu absolute top-right (≈ 40 px), sinon le `-X` ELO
-                        de la team B chevauche le ⋮. */}
+                      <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-cool-gray">
+                        {getRelativeTimestamp(match.date)}
+                      </span>
+                    </div>
+                    {/* Teams + ELO inline (1 valeur par équipe). `pr-10`
+                        quand admin : aligne team B sur la date au-dessus et
+                        dégage le ⋮. */}
                     <MatchTeamsRow
                       teamAPlayers={teamAPlayers}
                       teamBPlayers={teamBPlayers}
@@ -881,16 +892,18 @@ export const EventDashboard = () => {
                       eloChanges={match.eloChanges}
                       className={isAdmin ? "pr-10" : undefined}
                     />
-                    {/* Footer : timestamp à gauche, chips photo/cups à droite */}
-                    <div className="flex items-center justify-between gap-3 mt-3">
-                      <div className="text-xs text-cool-gray">
-                        {getRelativeTimestamp(match.date)}
+                    {/* Footer : chips photo/cups, seulement si présents */}
+                    {hasMatchEnrichedContent(
+                      match.photo_url,
+                      match.cups_remaining,
+                    ) && (
+                      <div className="flex justify-end mt-2">
+                        <MatchEnrichedDisplay
+                          photoUrl={match.photo_url}
+                          cupsRemaining={match.cups_remaining}
+                        />
                       </div>
-                      <MatchEnrichedDisplay
-                        photoUrl={match.photo_url}
-                        cupsRemaining={match.cups_remaining}
-                      />
-                    </div>
+                    )}
                   </div>
                 );
               })

@@ -15,7 +15,10 @@
 
 import { CheckCircle2, Hourglass, XCircle } from "lucide-react";
 import type { Match, Player } from "@/types";
-import { MatchEnrichedDisplay } from "@/components/MatchEnrichedDisplay";
+import {
+  MatchEnrichedDisplay,
+  hasMatchEnrichedContent,
+} from "@/components/MatchEnrichedDisplay";
 import { LiveMatchBadge } from "@/components/live/LiveMatchBadge";
 import { MatchTeamsRow } from "@/components/match/MatchTeamsRow";
 import { formatRelativeTime } from "@/utils/dateUtils";
@@ -48,52 +51,58 @@ export const LeagueMatchCard = ({
       className={`bg-navy-soft p-4 rounded-xl border ${match.is_live ? "border-lime/50" : "border-card/50"}`}
       data-testid={testId}
     >
-      <LiveMatchBadge isLive={Boolean(match.is_live)} className="mb-2" />
-      {match.status === "pending" && (
-        <div
-          className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
-          data-testid="match-status-pending"
-          aria-label="Match en attente de validation"
-        >
-          <Hourglass size={11} aria-hidden="true" />
-          En attente de validation
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <LiveMatchBadge isLive={Boolean(match.is_live)} />
+          {match.status === "pending" && (
+            <div
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ping-yellow/15 text-ping-yellow text-[10px] font-bold uppercase tracking-wide"
+              data-testid="match-status-pending"
+              aria-label="Match en attente de validation"
+            >
+              <Hourglass size={11} aria-hidden="true" />
+              En attente de validation
+            </div>
+          )}
+          {match.status === "rejected" && (
+            <div
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-signal-red/15 text-signal-red text-[10px] font-bold uppercase tracking-wide"
+              data-testid="match-status-rejected"
+              aria-label="Match refusé"
+            >
+              <XCircle size={11} aria-hidden="true" />
+              Refusé
+            </div>
+          )}
+          {match.status === "confirmed" && antiCheatEnabled && (
+            <div
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime/15 text-lime text-[10px] font-bold uppercase tracking-wide"
+              data-testid="match-status-validated"
+              aria-label="Match validé"
+            >
+              <CheckCircle2 size={11} aria-hidden="true" />
+              Validé
+            </div>
+          )}
         </div>
-      )}
-      {match.status === "rejected" && (
-        <div
-          className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-signal-red/15 text-signal-red text-[10px] font-bold uppercase tracking-wide"
-          data-testid="match-status-rejected"
-          aria-label="Match refusé"
-        >
-          <XCircle size={11} aria-hidden="true" />
-          Refusé
-        </div>
-      )}
-      {match.status === "confirmed" && antiCheatEnabled && (
-        <div
-          className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime/15 text-lime text-[10px] font-bold uppercase tracking-wide"
-          data-testid="match-status-validated"
-          aria-label="Match validé"
-        >
-          <CheckCircle2 size={11} aria-hidden="true" />
-          Validé
-        </div>
-      )}
+        <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-cool-gray">
+          {formatRelativeTime(match.date)}
+        </span>
+      </div>
       <MatchTeamsRow
         teamAPlayers={teamAPlayers}
         teamBPlayers={teamBPlayers}
         winner={winnerA ? "A" : "B"}
         eloChanges={match.eloChanges}
       />
-      <div className="flex items-center justify-between gap-3 mt-3">
-        <div className="text-xs text-cool-gray">
-          {formatRelativeTime(match.date)}
+      {hasMatchEnrichedContent(match.photo_url, match.cups_remaining) && (
+        <div className="flex justify-end mt-2">
+          <MatchEnrichedDisplay
+            photoUrl={match.photo_url}
+            cupsRemaining={match.cups_remaining}
+          />
         </div>
-        <MatchEnrichedDisplay
-          photoUrl={match.photo_url}
-          cupsRemaining={match.cups_remaining}
-        />
-      </div>
+      )}
     </div>
   );
 };
