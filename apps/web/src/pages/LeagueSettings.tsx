@@ -79,7 +79,12 @@ export const LeagueSettings = () => {
     return nameDirty || antiCheatDirty || validatorDirty;
   }, [league, name, antiCheatEnabled, scoreValidator]);
 
-  if (isLoadingInitialData) {
+  // Spinner uniquement au chargement initial (league pas encore résolue). Sur un
+  // rechargement de fond (loadDataFromSupabase rejoué quand auth/identité
+  // changent), `isLoadingInitialData` repasse à true : ne pas démonter le
+  // formulaire, sinon les modifications en cours sont perdues et le sticky save
+  // disparaît.
+  if (isLoadingInitialData && !league) {
     return (
       <div className="flex items-center justify-center h-full">
         <LoadingSpinner size={48} />
