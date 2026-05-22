@@ -44,6 +44,13 @@ export interface PlayerCardLeaderRowProps {
   /** 5 derniers résultats (true = win/lime, false = loss/red). */
   recentResults?: boolean[];
   onClick?: () => void;
+  /**
+   * Échelle d'affichage :
+   * - `default` (~10 avatar, text-base) — listes mobile/desktop habituelles.
+   * - `display` (~16 avatar, text-2xl/3xl, padding doublé, dots 4px) — mode
+   *   diffusion plein écran TV/projecteur. Pas de chevron (non interactif).
+   */
+  size?: "default" | "display";
 }
 
 export interface PlayerCardDetailedProps {
@@ -94,10 +101,22 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
-function ResultDots({ results }: { results: boolean[] }) {
+function ResultDots({
+  results,
+  size = "md",
+}: {
+  results: boolean[];
+  size?: "md" | "lg";
+}) {
   const slots = Array.from({ length: 5 }, (_, i) => results[i]);
+  const dotCls = size === "lg" ? "w-4 h-4" : "w-2.5 h-2.5";
+  const gapCls = size === "lg" ? "gap-1.5" : "gap-0.5";
   return (
-    <div className="flex gap-0.5" role="img" aria-label="5 derniers résultats">
+    <div
+      className={`flex ${gapCls}`}
+      role="img"
+      aria-label="5 derniers résultats"
+    >
       {slots.map((won, i) => {
         const cls =
           won === undefined
@@ -114,7 +133,7 @@ function ResultDots({ results }: { results: boolean[] }) {
         return (
           <div
             key={i}
-            className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cls}`}
+            className={`${dotCls} rounded-full flex-shrink-0 ${cls}`}
             title={title}
           />
         );
@@ -132,7 +151,7 @@ function Avatar({
 }: {
   name: string;
   avatarUrl?: string;
-  size?: 8 | 10 | 12 | 14;
+  size?: 8 | 10 | 12 | 14 | 16 | 20;
   /** When set, renders a small medallion overlay on the bottom-right with the rank. */
   rank?: number;
   /** When set & non-zero, renders a small ▲/▼ badge overlay on the top-left. */
@@ -140,13 +159,17 @@ function Avatar({
 }) {
   const initials = getInitials(name);
   const cls =
-    size === 14
-      ? "w-14 h-14 text-base"
-      : size === 12
-        ? "w-12 h-12 text-base"
-        : size === 8
-          ? "w-8 h-8 text-xs"
-          : "w-10 h-10 text-sm";
+    size === 20
+      ? "w-20 h-20 text-2xl"
+      : size === 16
+        ? "w-16 h-16 text-xl"
+        : size === 14
+          ? "w-14 h-14 text-base"
+          : size === 12
+            ? "w-12 h-12 text-base"
+            : size === 8
+              ? "w-8 h-8 text-xs"
+              : "w-10 h-10 text-sm";
   const avatar = (
     <div
       className={`rounded-full bg-navy-deep flex items-center justify-center font-mono font-bold text-cool-gray overflow-hidden border border-card ${cls}`}
@@ -162,12 +185,37 @@ function Avatar({
   if (rank === undefined && !hasRankDelta) {
     return <div className="flex-shrink-0">{avatar}</div>;
   }
+  // Échelle des médaillons : plus l'avatar est gros, plus les overlays le sont.
+  // Palier intermédiaire pour la diffusion (avatar 14) : médaillon lisible de
+  // loin sans grossir l'avatar lui-même.
+  const overlaySize: "big" | "mid" | "small" =
+    size && size >= 16 ? "big" : size === 14 ? "mid" : "small";
+  const overlayCls =
+    overlaySize === "big"
+      ? "min-w-[28px] h-[28px] px-1.5 text-sm"
+      : overlaySize === "mid"
+        ? "min-w-[26px] h-[26px] px-1.5 text-sm"
+        : "min-w-[18px] h-[18px] px-1 text-[10px]";
+  const overlayIconSize =
+    overlaySize === "big" ? 14 : overlaySize === "mid" ? 13 : 10;
+  const overlayOffset =
+    overlaySize === "big"
+      ? "-bottom-2 -right-2"
+      : overlaySize === "mid"
+        ? "-bottom-1.5 -right-1.5"
+        : "-bottom-1 -right-1";
+  const overlayOffsetTopLeft =
+    overlaySize === "big"
+      ? "-top-2 -left-2"
+      : overlaySize === "mid"
+        ? "-top-1.5 -left-1.5"
+        : "-top-1 -left-1";
   return (
     <div className="relative flex-shrink-0">
       {avatar}
       {rank !== undefined && (
         <div
-          className={`absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-mono font-bold ring-2 ring-navy-soft ${getRankBadgeClass(
+          className={`absolute ${overlayOffset} ${overlayCls} rounded-full flex items-center justify-center font-mono font-bold ring-2 ring-navy-soft ${getRankBadgeClass(
             rank,
           )}`}
           aria-label={`Rang ${rank}`}
@@ -177,7 +225,7 @@ function Avatar({
       )}
       {hasRankDelta && (
         <div
-          className={`absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full flex items-center gap-0.5 justify-center text-[10px] font-mono font-extrabold tabular-nums ring-2 ring-navy-soft ${
+          className={`absolute ${overlayOffsetTopLeft} ${overlayCls} rounded-full flex items-center gap-0.5 justify-center font-mono font-extrabold tabular-nums ring-2 ring-navy-soft ${
             rankDelta > 0
               ? "bg-lime text-navy"
               : "bg-signal-red text-white"
@@ -188,9 +236,9 @@ function Avatar({
           )} ${Math.abs(rankDelta) > 1 ? "places" : "place"}`}
         >
           {rankDelta > 0 ? (
-            <TrendingUp size={10} aria-hidden />
+            <TrendingUp size={overlayIconSize} aria-hidden />
           ) : (
-            <TrendingDown size={10} aria-hidden />
+            <TrendingDown size={overlayIconSize} aria-hidden />
           )}
           {Math.abs(rankDelta)}
         </div>
@@ -211,16 +259,20 @@ function StatsInline({
   wins: number;
   losses: number;
   winRate: number;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }) {
   const labelCls =
     size === "sm"
       ? "text-[9px] tracking-[1px]"
-      : "text-[10px] tracking-widest";
-  const valueCls = size === "sm" ? "text-xs" : "text-sm";
+      : size === "lg"
+        ? "text-sm tracking-[2px]"
+        : "text-[10px] tracking-widest";
+  const valueCls =
+    size === "sm" ? "text-xs" : size === "lg" ? "text-lg" : "text-sm";
+  const gapCls = size === "lg" ? "gap-4" : "gap-2";
   return (
     <div
-      className={`flex items-center gap-2 font-mono uppercase ${labelCls} text-cool-gray`}
+      className={`flex items-center ${gapCls} font-mono uppercase ${labelCls} text-cool-gray`}
     >
       <span>
         <span className={`text-lime font-bold tabular-nums ${valueCls}`}>
@@ -306,12 +358,29 @@ export function PlayerCard(props: PlayerCardProps) {
     const winRate = hasStats
       ? props.winRate ?? deriveWinRate(props.wins, props.losses)
       : 0;
+    const isDisplay = props.size === "display";
+
+    // Échelle "display" = TV/projecteur, sans chevron (non interactif en
+    // diffusion). Plus grand que la version par défaut, mais compact pour
+    // afficher davantage de lignes.
+    const containerCls = isDisplay
+      ? "flex items-center gap-4 p-3 md:p-4 w-full bg-navy-soft rounded-card border-[1.5px] border-card text-left"
+      : `flex items-center gap-3 p-4 w-full bg-navy-soft rounded-card border border-card transition-colors hover:border-card-muted text-left ${
+          props.onClick ? "cursor-pointer" : ""
+        }`;
+    const nameCls = isDisplay
+      ? "text-xl md:text-2xl font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0"
+      : "text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0";
+    const eloCls = isDisplay
+      ? "text-2xl md:text-3xl font-archivo font-black tabular-nums text-white tracking-[-1px]"
+      : "text-base font-mono font-bold tabular-nums text-white";
+    const deltaSizeCls = isDisplay
+      ? "text-base font-mono font-semibold tabular-nums"
+      : "text-sm font-mono font-semibold tabular-nums";
 
     return (
       <Wrapper
-        className={`flex items-center gap-3 p-4 w-full bg-navy-soft rounded-card border border-card transition-colors hover:border-card-muted text-left ${
-          props.onClick ? "cursor-pointer" : ""
-        }`}
+        className={containerCls}
         data-testid="playercard-leaderrow"
         {...wrapperProps}
       >
@@ -319,51 +388,58 @@ export function PlayerCard(props: PlayerCardProps) {
         <Avatar
           name={props.name}
           avatarUrl={props.avatarUrl}
+          size={isDisplay ? 14 : 10}
           rank={props.rank}
           rankDelta={props.rankDelta}
         />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2 min-w-0">
-            <span className="text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0">
-              {props.name}
-            </span>
+            <span className={nameCls}>{props.name}</span>
             <span className="flex-shrink-0 flex items-baseline gap-2">
               {props.delta !== undefined && (
                 <span
-                  className={`text-sm font-mono font-semibold tabular-nums ${deltaClass}`}
+                  className={`${deltaSizeCls} ${deltaClass}`}
                   data-testid="playercard-delta"
                 >
                   {props.delta >= 0 ? "+" : ""}
                   {props.delta}
                 </span>
               )}
-              <span className="text-base font-mono font-bold tabular-nums text-white">
-                {props.rightLabel ?? props.elo}
-              </span>
+              <span className={eloCls}>{props.rightLabel ?? props.elo}</span>
             </span>
           </div>
-          <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0">
+          <div
+            className={`flex items-center justify-between gap-2 min-w-0 ${
+              isDisplay ? "mt-1" : "mt-0.5"
+            }`}
+          >
             <div className="flex items-center gap-2 min-w-0">
               {hasStats && (
                 <StatsInline
                   wins={props.wins ?? 0}
                   losses={props.losses ?? 0}
                   winRate={winRate}
+                  size={isDisplay ? "lg" : "md"}
                 />
               )}
             </div>
             {props.recentResults !== undefined && (
-              <ResultDots results={props.recentResults} />
+              <ResultDots
+                results={props.recentResults}
+                size={isDisplay ? "lg" : "md"}
+              />
             )}
           </div>
         </div>
 
-        <ChevronRight
-          size={20}
-          className="flex-shrink-0 text-cool-gray"
-          aria-hidden
-        />
+        {!isDisplay && (
+          <ChevronRight
+            size={20}
+            className="flex-shrink-0 text-cool-gray"
+            aria-hidden
+          />
+        )}
       </Wrapper>
     );
   }

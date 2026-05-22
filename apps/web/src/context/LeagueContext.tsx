@@ -940,8 +940,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   ): Promise<RecordMatchOutcome | null> => {
     const league = leagues.find((l) => l.id === leagueId);
     if (!league) return null;
-    // Mig 030 — anti-cheat awareness for the optimistic client update.
+    // Mig 030 — anti-cheat awareness for the optimistic client update. Admin
+    // auto-confirm: the league creator's own match skips the pending queue, so
+    // the optimistic state mirrors the repo and applies the ELO immediately.
     const antiCheatOn = league.anti_cheat_enabled === true;
+    const callerUserId =
+      isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+    const callerIsAdmin = Boolean(
+      callerUserId && league.creator_user_id === callerUserId,
+    );
+    const effectiveAntiCheat = antiCheatOn && !callerIsAdmin;
 
     const teamA = league.players.filter((p) => teamAIds.includes(p.id));
     const teamB = league.players.filter((p) => teamBIds.includes(p.id));
@@ -1011,22 +1019,22 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       scoreB: winner === "B" ? (cupsRem ?? 10) : 0,
       // Pending matches don't expose preview deltas — they only land after
       // confirmation.
-      eloChanges: antiCheatOn ? undefined : eloChanges,
+      eloChanges: effectiveAntiCheat ? undefined : eloChanges,
       cups_remaining: null,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
-      status: antiCheatOn ? 'pending' : 'confirmed',
+      status: effectiveAntiCheat ? 'pending' : 'confirmed',
     };
 
-    // Optimistic local mutation: when anti-cheat is OFF we apply the stats
-    // immediately (legacy behaviour). When ON, the match is pending — keep
-    // player stats unchanged until the confirmation flow lands.
+    // Optimistic local mutation: when anti-cheat is OFF (or the caller is the
+    // admin) we apply the stats immediately. When ON for a non-admin, the
+    // match is pending — keep player stats unchanged until confirmation lands.
     setLeagues((prev) =>
       prev.map((league) => {
         if (league.id !== leagueId) return league;
         return {
           ...league,
-          players: antiCheatOn ? league.players : updatedPlayers,
+          players: effectiveAntiCheat ? league.players : updatedPlayers,
           matches: [newMatch, ...league.matches],
         };
       })
@@ -1075,6 +1083,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     const antiCheatOn =
       event.anti_cheat_enabled === true ||
       parentLeague?.anti_cheat_enabled === true;
+    // Admin auto-confirm: the event creator (or linked-league creator) skips
+    // the pending queue for their own matches. Mirror of the repo + confirm_match.
+    const callerUserId =
+      isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+    const callerIsAdmin = Boolean(
+      callerUserId &&
+        (event.creator_user_id === callerUserId ||
+          parentLeague?.creator_user_id === callerUserId),
+    );
+    const effectiveAntiCheat = antiCheatOn && !callerIsAdmin;
 
     // Use participantsOverride (event_players) when provided, else fallback to league.players
     let eventPlayers: Player[] = [];
@@ -1167,11 +1185,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       teamB: teamBIds,
       scoreA: scoreA,
       scoreB: scoreB,
-      eloChanges: antiCheatOn ? undefined : eloChanges,
+      eloChanges: effectiveAntiCheat ? undefined : eloChanges,
       cups_remaining: scores?.cupsRemaining ?? null,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
-      status: antiCheatOn ? 'pending' : 'confirmed',
+      status: effectiveAntiCheat ? 'pending' : 'confirmed',
     };
 
     setEvents((prev) =>
@@ -1185,9 +1203,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // Update league cache with the LEAGUE delta (independent from event delta)
-    // when propagation is active. Skipped under anti-cheat — stats only
-    // shift after confirmation.
-    if (!antiCheatOn && event.leagueId && propagates && leagueEloChangesDB) {
+    // when propagation is active. Skipped under anti-cheat for non-admins —
+    // stats only shift after confirmation.
+    if (!effectiveAntiCheat && event.leagueId && propagates && leagueEloChangesDB) {
       setLeagues((prev) =>
         prev.map((league) => {
           if (league.id !== event.leagueId) return league;
