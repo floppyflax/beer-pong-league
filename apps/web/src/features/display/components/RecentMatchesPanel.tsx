@@ -10,13 +10,16 @@ interface Props {
 
 /**
  * Liste des derniers matchs — réutilisée dans le rail droit du DisplayShell.
- * Affichage compact : équipes nommées + scores, dernier match mis en avant.
+ *
+ * Card "versus" alignée sur le style match de l'app (cf. MatchTeamsRow) :
+ * équipe A à gauche, score au centre, équipe B à droite. Le gagnant est en
+ * blanc + son score en lime ; le perdant en cool-gray.
  */
 export function RecentMatchesPanel({ source, max = 12, blinkMatchId }: Props) {
   const matches = source.matches.slice(0, max);
 
-  const playerName = (id: string) =>
-    source.players.find((p) => p.id === id)?.name ?? "Joueur";
+  const teamNames = (ids: string[]) =>
+    ids.map((id) => source.players.find((p) => p.id === id)?.name ?? "Joueur");
 
   return (
     <div className="bg-navy-soft border border-card rounded-card p-4 md:p-5 flex-1 min-h-0 flex flex-col">
@@ -30,8 +33,8 @@ export function RecentMatchesPanel({ source, max = 12, blinkMatchId }: Props) {
           </p>
         ) : (
           matches.map((match, index) => {
-            const teamA = match.teamA.map(playerName).join(", ");
-            const teamB = match.teamB.map(playerName).join(", ");
+            const teamA = teamNames(match.teamA);
+            const teamB = teamNames(match.teamB);
             const winnerA = match.scoreA > match.scoreB;
             const isBlinking = blinkMatchId === match.id;
             return (
@@ -48,7 +51,7 @@ export function RecentMatchesPanel({ source, max = 12, blinkMatchId }: Props) {
                     : undefined
                 }
               >
-                <div className="font-mono text-[10px] uppercase tracking-[1.5px] text-cool-gray font-bold mb-1.5">
+                <div className="font-mono text-[10px] uppercase tracking-[1.5px] text-cool-gray font-bold mb-2">
                   {new Date(match.date).toLocaleTimeString("fr-FR", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -57,37 +60,60 @@ export function RecentMatchesPanel({ source, max = 12, blinkMatchId }: Props) {
                     <span className="ml-2 text-electric-blue">· Dernier</span>
                   )}
                 </div>
-                <div className="space-y-0.5">
-                  <div
-                    className={`truncate ${
-                      winnerA
-                        ? "font-archivo font-extrabold text-white text-base"
-                        : "text-cool-gray text-sm"
-                    }`}
-                  >
-                    {teamA}{" "}
+
+                {/* Versus : équipe A | score | équipe B */}
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <TeamSide names={teamA} isWinner={winnerA} align="left" />
+                  <div className="font-archivo font-black tabular-nums text-lg leading-none flex items-baseline gap-0.5">
                     <span className={winnerA ? "text-lime" : "text-cool-gray"}>
                       {match.scoreA}
                     </span>
-                  </div>
-                  <div
-                    className={`truncate ${
-                      !winnerA
-                        ? "font-archivo font-extrabold text-white text-base"
-                        : "text-cool-gray text-sm"
-                    }`}
-                  >
-                    {teamB}{" "}
+                    <span className="text-cool-gray/60 text-sm">-</span>
                     <span className={!winnerA ? "text-lime" : "text-cool-gray"}>
                       {match.scoreB}
                     </span>
                   </div>
+                  <TeamSide names={teamB} isWinner={!winnerA} align="right" />
                 </div>
               </div>
             );
           })
         )}
       </div>
+    </div>
+  );
+}
+
+function TeamSide({
+  names,
+  isWinner,
+  align,
+}: {
+  names: string[];
+  isWinner: boolean;
+  align: "left" | "right";
+}) {
+  return (
+    <div
+      className={`min-w-0 flex items-center gap-1 ${
+        align === "right" ? "justify-end flex-row-reverse text-right" : "text-left"
+      }`}
+    >
+      {isWinner && (
+        <span aria-hidden className="text-xs leading-none flex-shrink-0">
+          🏆
+        </span>
+      )}
+      <span
+        className={`truncate text-sm ${
+          isWinner
+            ? "font-archivo font-extrabold text-white"
+            : "font-medium text-cool-gray"
+        }`}
+        title={names.join(", ")}
+      >
+        {names.join(", ")}
+      </span>
     </div>
   );
 }
