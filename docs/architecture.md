@@ -191,6 +191,7 @@ Cela permet de tracer l'évolution ELO **par contexte** indépendamment, et d'al
 - Composants dans `src/components/design-system/` — APIs stables : `Avatar`, `Badge`, `Banner`, `Button`, `Card`, `CodeInput`, `DetailHero`, `FAB`, `FormField`, `HelpCard`, `Input`, `ListRow`, `MatchHistoryCard`, `PageHero`, `PlayerCard`, `PremiumGate`, `ScreenLayout`, `SearchBar`, `SegmentedTabs`, `Select`, `Sheet` + dérivés (`SettingsSheet`, `InviteSheet`, `IdentityGateSheet`, `ClaimGuestSheet`, `GhostManagementSheet`), `StatCard`, `StickyCTA`, `ToggleRow`. Sous-dossiers `atoms/`, `molecules/`, `page-specific/`, `showcase/`.
 - Primitives "marque" dans `src/components/ponglo/` (frontière à durcir — cf. roadmap §3.1) : `Wordmark`, `PButton` (variants `primary` / `accent` / `lime` / `dark` / `ghost`), `EloDelta`, `PRankBadge` (tiers par ELO), `PAvatar`, `LeaderRow`, `Podium`, `MatchRow`, `Sparkline`, `EloChart`, `BeerCupLoader`, `DayGroup`, `FAB`.
 - Showcase vivant : route `/design-system` (`apps/web/src/pages/DesignSystemShowcase.tsx`).
+- **Lexique des composants** (badge / chip / pill / avatar / card / row) + **cartographie des incohérences UI** (doublons, arbitrages liés à la sortie de `ponglo/`) : [`design-system.md`](./design-system.md).
 
 ### Form Page Pattern (Sticky CTA)
 
