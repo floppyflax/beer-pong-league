@@ -122,11 +122,13 @@ vi.mock("react-router-dom", async () => {
 // Mutable so a test can simulate `leagues` being replaced wholesale mid-render
 // (auth token refresh / loadDataFromSupabase churn).
 let mockCurrentLeagues: typeof mockLeagues = mockLeagues;
+// Mutable events context (event-context profile test sets this).
+let mockCurrentEvents: { id: string; name: string; leagueId: string | null; matches: unknown[] }[] = [];
 
 vi.mock("@/context/LeagueContext", () => ({
   useLeague: () => ({
     leagues: mockCurrentLeagues,
-    events: [],
+    events: mockCurrentEvents,
     updatePlayer: vi.fn(),
   }),
 }));
@@ -164,10 +166,22 @@ const renderWithPlayer = (playerId: string) => {
 };
 
 describe("PlayerProfile - Story 14.20", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mockUser = null;
     mockCurrentLeagues = mockLeagues;
+    mockCurrentEvents = [];
+    // clearAllMocks resets call history but NOT implementations — restore the
+    // module-level defaults so a per-test mockResolvedValue can't leak forward.
+    const { databaseService } = await import("@/services/DatabaseService");
+    vi.mocked(databaseService.loadPlayerById).mockResolvedValue(null);
+    vi.mocked(databaseService.loadPlayerEnrichment).mockResolvedValue({
+      avatarUrl: null,
+      joinedAt: null,
+      userId: null,
+      anonymousUserId: null,
+      globalPlayerId: null,
+    });
   });
 
   describe("AC1: Header with name + back", () => {
@@ -497,6 +511,62 @@ describe("PlayerProfile - Story 14.20", () => {
       ).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("ELO")).toBeInTheDocument();
       expect(screen.queryByText(/joueur introuvable/i)).not.toBeInTheDocument();
+    });
+  });
+
+  // Profile opened from an event ranking (/player/:id?event=<id>). The player
+  // is resolved via the event membership (loadPlayerById event path) so the
+  // hero ELO is the event-local bubble, matching the event ranking — not the
+  // divergent league ELO. See invariant #8.
+  describe("Event-context profile", () => {
+    const EVENT_MEMBERSHIP_ID = "tm-event-1";
+
+    beforeEach(async () => {
+      mockCurrentLeagues = []; // not resolvable via league sync
+      mockCurrentEvents = [
+        { id: "event-1", name: "Tournoi du Vendredi", leagueId: "league-1", matches: [] },
+      ];
+      const { databaseService } = await import("@/services/DatabaseService");
+      vi.mocked(databaseService.loadPlayerById).mockResolvedValue({
+        player: {
+          id: EVENT_MEMBERSHIP_ID,
+          name: "Event Guy",
+          elo: 1337, // event-local ELO (≠ any league ELO)
+          wins: 3,
+          losses: 1,
+          matchesPlayed: 4,
+          streak: 2,
+        },
+        leagueId: "league-1",
+        leagueName: "League des Pingouins",
+        eventId: "event-1",
+        globalPlayerId: "gp-1",
+        userId: "user-x",
+      });
+    });
+
+    const renderEventContext = () =>
+      render(
+        <MemoryRouter
+          initialEntries={[`/player/${EVENT_MEMBERSHIP_ID}?event=event-1`]}
+        >
+          <Routes>
+            <Route path="/player/:playerId" element={<PlayerProfile />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+    it("shows the event-local ELO and labels it 'ELO event'", async () => {
+      renderEventContext();
+      expect(await screen.findByText("1337")).toBeInTheDocument();
+      expect(await screen.findByText("ELO event")).toBeInTheDocument();
+    });
+
+    it("shows the event name as the context subtitle", async () => {
+      renderEventContext();
+      expect(
+        await screen.findByText(/tournoi du vendredi/i),
+      ).toBeInTheDocument();
     });
   });
 

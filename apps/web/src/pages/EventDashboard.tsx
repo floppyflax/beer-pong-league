@@ -195,9 +195,13 @@ export const EventDashboard = () => {
     : null;
   // Use event participants (from event_players) - IDs match match.teamA/teamB
   const eventPlayers = eventParticipants;
-  // For PlayerProfile navigation: use leaguePlayerId when available so /player/:id finds the player
-  const getPlayerProfileId = (p: { id: string; leaguePlayerId?: string }) =>
-    p.leaguePlayerId || p.id;
+  // For PlayerProfile navigation: use the EVENT membership id (p.id), NOT the
+  // leaguePlayerId. ELO is contextual (invariant #8) — resolving via the event
+  // membership makes the profile show the event-local ELO + event-scoped
+  // matches/stats, matching this ranking. We also pass ?event= so the profile
+  // labels the context. (Resolving via leaguePlayerId would show the divergent
+  // league ELO instead — the bug this fixes.)
+  const getPlayerProfileId = (p: { id: string; leaguePlayerId?: string }) => p.id;
 
   // Story 9-5 - Get permissions for contextual actions
   const { isAdmin, canInvite } = useDetailPagePermissions(
@@ -761,7 +765,9 @@ export const EventDashboard = () => {
                           wins={player.wins}
                           losses={player.losses}
                           recentResults={recentResults}
-                          onClick={() => navigate(`/player/${profileId}`)}
+                          onClick={() =>
+                            navigate(`/player/${profileId}?event=${id}`)
+                          }
                         />
                       );
                     },
@@ -930,7 +936,7 @@ export const EventDashboard = () => {
               const profileId = participant
                 ? getPlayerProfileId(participant)
                 : playerId;
-              navigate(`/player/${profileId}`);
+              navigate(`/player/${profileId}?event=${id}`);
             }}
           />
         )}

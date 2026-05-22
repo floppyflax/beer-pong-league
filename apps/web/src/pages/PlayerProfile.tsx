@@ -5,7 +5,7 @@
  * Story 14-35: Avatar photo, Membre depuis, streak "En feu !", matchs enrichis, head-to-head avatars, ELO graph.
  */
 
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
 import { useAuthContext } from "@/context/AuthContext";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
@@ -55,6 +55,10 @@ import type { Match } from "@/types";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
+  const [searchParams] = useSearchParams();
+  // Event-context navigation (?event=) — opened from an event ranking. Drives
+  // the contextual ELO + event-scoped stats (invariant #8).
+  const urlEventId = searchParams.get("event");
   const { leagues, events } = useLeague();
   const { user } = useAuthContext();
   const navigate = useNavigate();
@@ -469,7 +473,12 @@ export const PlayerProfile = () => {
       : undefined;
   const globalPlayerId =
     fetchedPlayer?.globalPlayerId ?? enrichment?.globalPlayerId ?? null;
-  const contextEventId = fetchedPlayer?.eventId ?? null;
+  const contextEventId = urlEventId ?? fetchedPlayer?.eventId ?? null;
+  // Event-scoped profile: show the event name as the context subtitle so it's
+  // clear the displayed ELO/stats are this event's bubble, not the league's.
+  const contextEventName = contextEventId
+    ? events.find((e) => e.id === contextEventId)?.name ?? null
+    : null;
   const isGhost = ownerUserId === null;
   const canAdminEdit = (() => {
     if (!user) return false;
@@ -645,10 +654,18 @@ export const PlayerProfile = () => {
                 )}
               </div>
             )}
-            {playerLeague && (
+            {contextEventName ? (
               <p className="text-sm text-cool-gray truncate">
-                {playerLeague.name}
+                <span className="text-electric-blue font-semibold">Event</span>
+                {" · "}
+                {contextEventName}
               </p>
+            ) : (
+              playerLeague && (
+                <p className="text-sm text-cool-gray truncate">
+                  {playerLeague.name}
+                </p>
+              )
             )}
             {joinedAt && (
               <p className="text-xs text-cool-gray mt-0.5">
@@ -661,7 +678,11 @@ export const PlayerProfile = () => {
 
       {/* AC3: StatCards (ELO, W/L, Win rate) */}
       <div className="grid grid-cols-3 gap-2 px-4 py-4">
-        <StatCard value={player.elo} label="ELO" variant="accent" />
+        <StatCard
+          value={player.elo}
+          label={contextEventId ? "ELO event" : "ELO"}
+          variant="accent"
+        />
         <StatCard
           value={`${playerWins}V - ${playerLosses}D`}
           label="W/L"
