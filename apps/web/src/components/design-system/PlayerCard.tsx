@@ -51,6 +51,8 @@ export interface PlayerCardLeaderRowProps {
    *   diffusion plein écran TV/projecteur. Pas de chevron (non interactif).
    */
   size?: "default" | "display";
+  /** Surligne légèrement la ligne du joueur connecté ("c'est moi"). */
+  isMe?: boolean;
 }
 
 export interface PlayerCardDetailedProps {
@@ -367,15 +369,22 @@ export function PlayerCard(props: PlayerCardProps) {
       ? props.winRate ?? deriveWinRate(props.wins, props.losses)
       : 0;
     const isDisplay = props.size === "display";
+    const isMe = props.isMe ?? false;
+
+    // Surbrillance légère de ma propre ligne dans le classement — mêmes tokens
+    // que LeaderRow.isMe (electric-blue ténu) pour rester cohérent.
+    const surfaceCls = isMe
+      ? "bg-electric-blue/10 border-electric-blue/30"
+      : "bg-navy-soft border-card";
 
     // Échelle "display" = TV/projecteur, sans chevron (non interactif en
     // diffusion). Plus grand que la version par défaut, mais compact pour
     // afficher davantage de lignes.
     const containerCls = isDisplay
-      ? "flex items-center gap-4 p-3 md:p-4 w-full bg-navy-soft rounded-card border-[1.5px] border-card text-left"
-      : `flex items-center gap-3 p-4 w-full bg-navy-soft rounded-card border border-card transition-colors hover:border-card-muted text-left ${
-          props.onClick ? "cursor-pointer" : ""
-        }`;
+      ? `flex items-center gap-4 p-3 md:p-4 w-full rounded-card border-[1.5px] ${surfaceCls} text-left`
+      : `flex items-center gap-3 p-4 w-full rounded-card border ${surfaceCls} transition-colors ${
+          isMe ? "" : "hover:border-card-muted"
+        } text-left ${props.onClick ? "cursor-pointer" : ""}`;
     const nameCls = isDisplay
       ? "text-xl md:text-2xl font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0"
       : "text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0";
