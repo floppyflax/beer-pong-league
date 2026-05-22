@@ -21,6 +21,7 @@ export function useEventDisplaySource(eventId: string | undefined): DisplaySourc
   );
 
   const [participants, setParticipants] = useState<Player[]>([]);
+  const [avatarById, setAvatarById] = useState<Record<string, string>>({});
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(true);
 
   useEffect(() => {
@@ -46,6 +47,11 @@ export function useEventDisplaySource(eventId: string | undefined): DisplaySourc
             streak: 0,
           })),
         );
+        const avatars: Record<string, string> = {};
+        for (const p of raw) {
+          if (p.avatarUrl) avatars[p.id] = p.avatarUrl;
+        }
+        setAvatarById(avatars);
       })
       .catch(() => {
         if (!cancelled) setParticipants([]);
@@ -65,7 +71,16 @@ export function useEventDisplaySource(eventId: string | undefined): DisplaySourc
     return getEventLocalRanking(event.id, participants);
   }, [event, participants, getEventLocalRanking]);
 
-  const displayPlayers = useDisplayRankings(sortedPlayers, event?.matches ?? []);
+  const displayPlayersRaw = useDisplayRankings(sortedPlayers, event?.matches ?? []);
+
+  // Injecte la photo du joueur (event_participants.avatar_url) quand dispo.
+  const displayPlayers = useMemo(
+    () =>
+      displayPlayersRaw.map((p) =>
+        avatarById[p.id] ? { ...p, avatarUrl: avatarById[p.id] } : p,
+      ),
+    [displayPlayersRaw, avatarById],
+  );
 
   const matchesDesc = useMemo(() => {
     if (!event) return [];

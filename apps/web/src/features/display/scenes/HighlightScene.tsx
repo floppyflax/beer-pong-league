@@ -1,4 +1,4 @@
-import { HighlightCard } from "../components/HighlightCard";
+import { HighlightCard, getHighlightAccent } from "../components/HighlightCard";
 import { useDisplayHighlights } from "../hooks/useDisplayHighlights";
 import type { DisplaySource } from "../types";
 
@@ -44,7 +44,7 @@ export function HighlightScene({ source }: Props) {
         {highlights.map((h) => (
           <div
             key={h.type}
-            className="bg-navy-soft border-[1.5px] border-card rounded-card min-h-0 overflow-hidden"
+            className={`bg-navy-soft border-[1.5px] rounded-card min-h-0 overflow-hidden ${getHighlightAccent(h.type).border}`}
           >
             <HighlightCard highlight={h} variant="column" />
           </div>

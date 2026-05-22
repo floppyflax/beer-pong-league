@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { Avatar } from "@/components/design-system/Avatar";
 import type { DisplaySource } from "../types";
 
 interface Props {
@@ -8,18 +9,28 @@ interface Props {
   blinkMatchId?: string | null;
 }
 
+interface CardPlayer {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+}
+
 /**
- * Liste des derniers matchs — réutilisée dans le rail droit du DisplayShell.
+ * Liste des derniers matchs — rail droit du DisplayShell.
  *
- * Card "versus" alignée sur le style match de l'app (cf. MatchTeamsRow) :
- * équipe A à gauche, score au centre, équipe B à droite. Le gagnant est en
- * blanc + son score en lime ; le perdant en cool-gray.
+ * Card "versus" : équipe A à gauche, équipe B à droite. Les **noms + avatars**
+ * (photo quand dispo, sinon initiales) sont l'info primaire ; le **score est
+ * secondaire** (petit, au centre). Si le match a une photo finish, on l'affiche
+ * en vignette. Gagnant en blanc + 🏆 ; perdant en cool-gray.
  */
-export function RecentMatchesPanel({ source, max = 12, blinkMatchId }: Props) {
+export function RecentMatchesPanel({ source, max = 10, blinkMatchId }: Props) {
   const matches = source.matches.slice(0, max);
 
-  const teamNames = (ids: string[]) =>
-    ids.map((id) => source.players.find((p) => p.id === id)?.name ?? "Joueur");
+  const resolveTeam = (ids: string[]): CardPlayer[] =>
+    ids.map((id) => {
+      const p = source.players.find((sp) => sp.id === id);
+      return { id, name: p?.name ?? "Joueur", avatarUrl: p?.avatarUrl };
+    });
 
   return (
     <div className="bg-navy-soft border border-card rounded-card p-4 md:p-5 flex-1 min-h-0 flex flex-col">
@@ -33,8 +44,8 @@ export function RecentMatchesPanel({ source, max = 12, blinkMatchId }: Props) {
           </p>
         ) : (
           matches.map((match, index) => {
-            const teamA = teamNames(match.teamA);
-            const teamB = teamNames(match.teamB);
+            const teamA = resolveTeam(match.teamA);
+            const teamB = resolveTeam(match.teamB);
             const winnerA = match.scoreA > match.scoreB;
             const isBlinking = blinkMatchId === match.id;
             return (
@@ -61,19 +72,30 @@ export function RecentMatchesPanel({ source, max = 12, blinkMatchId }: Props) {
                   )}
                 </div>
 
-                {/* Versus : équipe A | score | équipe B */}
+                {/* Photo finish (si présente) */}
+                {match.photo_url && (
+                  <div className="mb-2 rounded-card overflow-hidden border border-card h-16 bg-navy-deep">
+                    <img
+                      src={match.photo_url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Versus : noms + avatars primaires, score secondaire au centre */}
                 <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-                  <TeamSide names={teamA} isWinner={winnerA} align="left" />
-                  <div className="font-archivo font-black tabular-nums text-lg leading-none flex items-baseline gap-0.5">
-                    <span className={winnerA ? "text-lime" : "text-cool-gray"}>
+                  <TeamSide players={teamA} isWinner={winnerA} align="left" />
+                  <div className="font-mono text-xs tabular-nums text-cool-gray flex items-baseline gap-0.5 flex-shrink-0">
+                    <span className={winnerA ? "text-white font-bold" : ""}>
                       {match.scoreA}
                     </span>
-                    <span className="text-cool-gray/60 text-sm">-</span>
-                    <span className={!winnerA ? "text-lime" : "text-cool-gray"}>
+                    <span className="opacity-50">-</span>
+                    <span className={!winnerA ? "text-white font-bold" : ""}>
                       {match.scoreB}
                     </span>
                   </div>
-                  <TeamSide names={teamB} isWinner={!winnerA} align="right" />
+                  <TeamSide players={teamB} isWinner={!winnerA} align="right" />
                 </div>
               </div>
             );
@@ -85,35 +107,51 @@ export function RecentMatchesPanel({ source, max = 12, blinkMatchId }: Props) {
 }
 
 function TeamSide({
-  names,
+  players,
   isWinner,
   align,
 }: {
-  names: string[];
+  players: CardPlayer[];
   isWinner: boolean;
   align: "left" | "right";
 }) {
+  const names = players.map((p) => p.name).join(", ");
+  const isRight = align === "right";
   return (
     <div
-      className={`min-w-0 flex items-center gap-1 ${
-        align === "right" ? "justify-end flex-row-reverse text-right" : "text-left"
+      className={`min-w-0 flex items-center gap-2 ${
+        isRight ? "flex-row-reverse text-right" : "text-left"
       }`}
     >
-      {isWinner && (
-        <span aria-hidden className="text-xs leading-none flex-shrink-0">
-          🏆
+      {/* Avatars (photo quand dispo, sinon initiales) */}
+      <div className={`flex flex-shrink-0 ${isRight ? "flex-row-reverse" : ""}`}>
+        {players.slice(0, 2).map((p, i) => (
+          <Avatar
+            key={p.id}
+            name={p.name}
+            src={p.avatarUrl}
+            size="xs"
+            className={i > 0 ? "-ml-2 ring-2 ring-navy-soft" : "ring-2 ring-navy-soft"}
+          />
+        ))}
+      </div>
+      <div className="min-w-0 flex items-center gap-1">
+        {isWinner && (
+          <span aria-hidden className="text-xs leading-none flex-shrink-0">
+            🏆
+          </span>
+        )}
+        <span
+          className={`truncate text-sm ${
+            isWinner
+              ? "font-archivo font-extrabold text-white"
+              : "font-medium text-cool-gray"
+          }`}
+          title={names}
+        >
+          {names}
         </span>
-      )}
-      <span
-        className={`truncate text-sm ${
-          isWinner
-            ? "font-archivo font-extrabold text-white"
-            : "font-medium text-cool-gray"
-        }`}
-        title={names.join(", ")}
-      >
-        {names.join(", ")}
-      </span>
+      </div>
     </div>
   );
 }

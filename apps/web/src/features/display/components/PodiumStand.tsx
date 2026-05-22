@@ -45,11 +45,12 @@ export function PodiumStand({ players, variant = "compact" }: Props) {
 
   const isFs = variant === "fullscreen";
 
-  // Tailles des avatars + marches selon variant
-  const avatarSize = isFs ? "w-32 h-32" : "w-16 h-16";
-  const avatarText = isFs ? "text-4xl" : "text-xl";
-  const nameSize = isFs ? "text-3xl" : "text-base";
-  const eloSize = isFs ? "text-4xl" : "text-xl";
+  // Tailles des avatars + marches selon variant. En compact, on reste petit
+  // pour tenir dans le rail droit (sinon la 3e colonne est croppée).
+  const avatarSize = isFs ? "w-32 h-32" : "w-12 h-12 md:w-14 md:h-14";
+  const avatarText = isFs ? "text-4xl" : "text-base";
+  const nameSize = isFs ? "text-3xl" : "text-sm";
+  const eloSize = isFs ? "text-4xl" : "text-lg";
   const stepHeights = isFs
     ? { 1: "h-32", 2: "h-20", 3: "h-12" }
     : { 1: "h-12", 2: "h-8", 3: "h-6" };
@@ -69,7 +70,9 @@ export function PodiumStand({ players, variant = "compact" }: Props) {
         Podium
       </h3>
 
-      <div className={`grid grid-cols-3 items-end ${isFs ? "gap-6" : "gap-2"}`}>
+      <div
+        className={`grid grid-cols-3 items-end ${isFs ? "gap-6" : "gap-1.5"}`}
+      >
         {/* #2 — gauche */}
         {second ? (
           <PodiumColumn
@@ -140,17 +143,17 @@ function PodiumColumn({
   const stepBg = RANK_BG[rank];
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-1.5 min-w-0">
       <div className="relative flex flex-col items-center">
         {highlight && (
           <Crown
             className="text-ping-yellow mb-1"
-            size={28}
+            size={avatarText.includes("4xl") ? 28 : 22}
             aria-label="Tête du classement"
           />
         )}
         <div
-          className={`${avatarSize} rounded-full bg-navy-deep flex items-center justify-center font-mono font-bold text-white overflow-hidden border-2 border-card ring-4 ${ringCls} ${avatarText}`}
+          className={`${avatarSize} rounded-full bg-navy-deep flex items-center justify-center font-mono font-bold text-white overflow-hidden border-2 border-card ring-2 ${ringCls} ${avatarText}`}
         >
           {player.avatarUrl ? (
             <img
