@@ -36,6 +36,8 @@ vi.mock("recharts", () => ({
 }));
 
 const mockNavigate = vi.fn();
+// Mutable auth user (vitest allows `mock`-prefixed vars inside hoisted factories).
+let mockUser: { id: string } | null = null;
 const PLAYER_1 = "11111111-1111-4111-8111-111111111111";
 const PLAYER_2 = "22222222-2222-4222-8222-222222222222";
 const PLAYER_3 = "33333333-3333-4333-8333-333333333333";
@@ -47,6 +49,7 @@ const mockLeagues = [
     name: "League des Pingouins",
     type: "one-shot" as const,
     createdAt: "2026-01-01",
+    creator_user_id: "admin-1",
     players: [
       {
         id: PLAYER_1,
@@ -116,12 +119,25 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+// Mutable so a test can simulate `leagues` being replaced wholesale mid-render
+// (auth token refresh / loadDataFromSupabase churn).
+let mockCurrentLeagues: typeof mockLeagues = mockLeagues;
+// Mutable events context (event-context profile test sets this).
+let mockCurrentEvents: { id: string; name: string; leagueId: string | null; matches: unknown[] }[] = [];
+// Mutable event ranking returned by getEventLocalRanking (event-context test).
+let mockEventRanking: { id: string; name: string; elo: number; wins: number; losses: number; matchesPlayed: number; streak: number }[] = [];
+
 vi.mock("@/context/LeagueContext", () => ({
   useLeague: () => ({
-    leagues: mockLeagues,
-    events: [],
+    leagues: mockCurrentLeagues,
+    events: mockCurrentEvents,
     updatePlayer: vi.fn(),
+    getEventLocalRanking: () => mockEventRanking,
   }),
+}));
+
+vi.mock("@/context/AuthContext", () => ({
+  useAuthContext: () => ({ user: mockUser }),
 }));
 
 vi.mock("@/services/DatabaseService", () => ({
@@ -133,9 +149,12 @@ vi.mock("@/services/DatabaseService", () => ({
       joinedAt: null,
       userId: null,
       anonymousUserId: null,
+      globalPlayerId: null,
     }),
     loadAvatarUrlsForPlayerIds: vi.fn().mockResolvedValue({}),
     loadEloHistoryForPlayer: vi.fn().mockResolvedValue([]),
+    updateGhostPlayerIdentity: vi.fn().mockResolvedValue(undefined),
+    uploadGhostAvatar: vi.fn().mockResolvedValue("https://example.com/ghost.png"),
   },
 }));
 
@@ -150,8 +169,23 @@ const renderWithPlayer = (playerId: string) => {
 };
 
 describe("PlayerProfile - Story 14.20", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    mockUser = null;
+    mockCurrentLeagues = mockLeagues;
+    mockCurrentEvents = [];
+    mockEventRanking = [];
+    // clearAllMocks resets call history but NOT implementations — restore the
+    // module-level defaults so a per-test mockResolvedValue can't leak forward.
+    const { databaseService } = await import("@/services/DatabaseService");
+    vi.mocked(databaseService.loadPlayerById).mockResolvedValue(null);
+    vi.mocked(databaseService.loadPlayerEnrichment).mockResolvedValue({
+      avatarUrl: null,
+      joinedAt: null,
+      userId: null,
+      anonymousUserId: null,
+      globalPlayerId: null,
+    });
   });
 
   describe("AC1: Header with name + back", () => {
@@ -381,6 +415,186 @@ describe("PlayerProfile - Story 14.20", () => {
         const scrollable = container.querySelector(".pb-bottom-nav");
         expect(scrollable).toBeInTheDocument();
       });
+    });
+  });
+
+  // Admin edit of a ghost player (no user attached). Reproduces the bug where
+  // saving the name blanked the profile (regression: reloadData() churned the
+  // global context). The profile must stay rendered after save.
+  describe("Admin ghost edit", () => {
+    const asGhostAdmin = async () => {
+      mockUser = { id: "admin-1" }; // matches league-1.creator_user_id
+      const { databaseService } = await import("@/services/DatabaseService");
+      vi.mocked(databaseService.loadPlayerEnrichment).mockResolvedValue({
+        avatarUrl: null,
+        joinedAt: null,
+        userId: null, // ghost: no account attached
+        anonymousUserId: null,
+        globalPlayerId: "global-p1",
+      });
+      return databaseService;
+    };
+
+    it("shows the edit pencil only for an admin viewing a ghost", async () => {
+      await asGhostAdmin();
+      renderWithPlayer(PLAYER_1);
+      expect(
+        await screen.findByRole("button", { name: /modifier le nom du joueur/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("hides the edit pencil for a non-admin viewer", async () => {
+      mockUser = { id: "someone-else" };
+      renderWithPlayer(PLAYER_1);
+      // Wait for the profile to render, then assert no edit affordance.
+      await screen.findAllByText("Marc Dupont");
+      expect(
+        screen.queryByRole("button", { name: /modifier le nom du joueur/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("saves the new name and KEEPS the profile rendered (no black screen)", async () => {
+      const user = userEvent.setup();
+      const databaseService = await asGhostAdmin();
+      renderWithPlayer(PLAYER_1);
+
+      await user.click(
+        await screen.findByRole("button", { name: /modifier le nom du joueur/i }),
+      );
+      const input = screen.getByDisplayValue("Marc Dupont");
+      await user.clear(input);
+      await user.type(input, "Nouveau Nom");
+      await user.click(screen.getByRole("button", { name: /valider/i }));
+
+      // Persisted to players.pseudo via the ghost RPC.
+      await waitFor(() => {
+        expect(databaseService.updateGhostPlayerIdentity).toHaveBeenCalledWith(
+          "global-p1",
+          { pseudo: "Nouveau Nom" },
+        );
+      });
+
+      // The profile must remain mounted — the regression blanked it here.
+      expect(await screen.findByText("ELO")).toBeInTheDocument();
+      // The header reflects the new name immediately (local override). Match
+      // rows keep the context name until the next natural context reload.
+      const headings = await screen.findAllByRole("heading", { name: /nouveau nom/i });
+      expect(headings.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  // Reproduces "flash-then-black": the profile renders, then `leagues` is
+  // replaced wholesale (auth token refresh / loadDataFromSupabase) and no
+  // longer contains the player. The sticky last-resolved player must keep the
+  // profile on screen instead of blanking to a black `return null`.
+  describe("Resilience to leagues churn", () => {
+    it("keeps the profile rendered when leagues is replaced and loses the player", async () => {
+      const tree = (
+        <MemoryRouter initialEntries={[`/player/${PLAYER_1}`]}>
+          <Routes>
+            <Route path="/player/:playerId" element={<PlayerProfile />} />
+          </Routes>
+        </MemoryRouter>
+      );
+      const { rerender } = render(tree);
+
+      // Initial render: player resolved from the leagues context.
+      expect(
+        (await screen.findAllByText("Marc Dupont")).length,
+      ).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("ELO")).toBeInTheDocument();
+
+      // Simulate the churn: leagues replaced, player no longer present.
+      mockCurrentLeagues = [];
+      rerender(tree);
+
+      // Must NOT blank: the sticky player keeps header + stats on screen, and
+      // we must not fall into the "Joueur introuvable" / null branches.
+      expect(
+        screen.getAllByText("Marc Dupont").length,
+      ).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("ELO")).toBeInTheDocument();
+      expect(screen.queryByText(/joueur introuvable/i)).not.toBeInTheDocument();
+    });
+  });
+
+  // Profile opened from an event ranking (/player/:id?event=<id>). The player
+  // is resolved via the event membership (loadPlayerById event path) so the
+  // hero ELO is the event-local bubble, matching the event ranking — not the
+  // divergent league ELO. See invariant #8.
+  describe("Event-context profile", () => {
+    const EVENT_MEMBERSHIP_ID = "tm-event-1";
+
+    beforeEach(async () => {
+      mockCurrentLeagues = []; // not resolvable via league sync
+      mockCurrentEvents = [
+        { id: "event-1", name: "Tournoi du Vendredi", leagueId: "league-1", matches: [] },
+      ];
+      const { databaseService } = await import("@/services/DatabaseService");
+      // Server event_memberships.elo (1500) deliberately ≠ the ranking replay
+      // (1337). The profile must show the RANKING value, not this one.
+      vi.mocked(databaseService.loadPlayerById).mockResolvedValue({
+        player: {
+          id: EVENT_MEMBERSHIP_ID,
+          name: "Event Guy",
+          elo: 1500,
+          wins: 9,
+          losses: 9,
+          matchesPlayed: 18,
+          streak: 0,
+        },
+        leagueId: "league-1",
+        leagueName: "League des Pingouins",
+        eventId: "event-1",
+        globalPlayerId: "gp-1",
+        userId: "user-x",
+      });
+      // The event leaderboard (getEventLocalRanking) — the source of truth the
+      // user actually sees. ELO 1337, distinct from the server value above.
+      mockEventRanking = [
+        {
+          id: EVENT_MEMBERSHIP_ID,
+          name: "Event Guy",
+          elo: 1337,
+          wins: 3,
+          losses: 1,
+          matchesPlayed: 4,
+          streak: 2,
+        },
+      ];
+    });
+
+    const renderEventContext = () =>
+      render(
+        <MemoryRouter
+          initialEntries={[`/player/${EVENT_MEMBERSHIP_ID}?event=event-1`]}
+        >
+          <Routes>
+            <Route path="/player/:playerId" element={<PlayerProfile />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+    it("shows the ranking ELO (not the server value) and labels it 'ELO event'", async () => {
+      renderEventContext();
+      // Ranking replay value, not the server event_memberships.elo (1500).
+      expect(await screen.findByText("1337")).toBeInTheDocument();
+      expect(await screen.findByText("ELO event")).toBeInTheDocument();
+      expect(screen.queryByText("1500")).not.toBeInTheDocument();
+    });
+
+    it("shows the ranking W/L, not the server tallies", async () => {
+      renderEventContext();
+      // Ranking 3V-1D wins over the server 9V-9D.
+      expect(await screen.findByText("3V - 1D")).toBeInTheDocument();
+      expect(screen.queryByText("9V - 9D")).not.toBeInTheDocument();
+    });
+
+    it("shows the event name as the context subtitle", async () => {
+      renderEventContext();
+      expect(
+        await screen.findByText(/tournoi du vendredi/i),
+      ).toBeInTheDocument();
     });
   });
 

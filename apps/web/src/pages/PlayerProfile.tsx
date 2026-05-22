@@ -5,12 +5,18 @@
  * Story 14-35: Avatar photo, Membre depuis, streak "En feu !", matchs enrichis, head-to-head avatars, ELO graph.
  */
 
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
+import { useAuthContext } from "@/context/AuthContext";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
-import { StatCard, ListRow } from "@/components/design-system";
+import { StatCard, ListRow, Sheet } from "@/components/design-system";
+import { PButton } from "@/components/ponglo/PButton";
+import { WebcamCaptureSheet } from "@/components/WebcamCaptureSheet";
+import { PhotoService } from "@/services/PhotoService";
+import { supportsGetUserMedia } from "@/utils/platform";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { databaseService } from "@/services/DatabaseService";
+import toast from "react-hot-toast";
 import {
   TrendingUp,
   TrendingDown,
@@ -20,8 +26,13 @@ import {
   Activity,
   Heart,
   Skull,
+  Camera,
+  Pencil,
+  Check,
+  X,
+  Image as ImageIcon,
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { formatRelativeTime, formatJoinedSince } from "@/utils/dateUtils";
 import {
   MatchEnrichedDisplay,
@@ -44,7 +55,12 @@ import type { Match } from "@/types";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const { leagues, events } = useLeague();
+  const [searchParams] = useSearchParams();
+  // Event-context navigation (?event=) — opened from an event ranking. Drives
+  // the contextual ELO + event-scoped stats (invariant #8).
+  const urlEventId = searchParams.get("event");
+  const { leagues, events, getEventLocalRanking } = useLeague();
+  const { user } = useAuthContext();
   const navigate = useNavigate();
   const [fetchedPlayer, setFetchedPlayer] = useState<{
     player: Player;
@@ -52,18 +68,44 @@ export const PlayerProfile = () => {
     playersMap: Record<string, string>;
     avatarUrl?: string | null;
     joinedAt?: string | null;
+    eventId?: string | null;
+    globalPlayerId?: string | null;
+    userId?: string | null;
   } | null>(null);
   const [enrichment, setEnrichment] = useState<{
     avatarUrl: string | null;
     joinedAt: string | null;
     userId: string | null;
     anonymousUserId: string | null;
+    globalPlayerId: string | null;
   } | null>(null);
+  // Admin edits of a ghost player — local overrides reflect changes immediately
+  // (fetched-from-DB players are not in the league context that reloadData refreshes).
+  const [nameOverride, setNameOverride] = useState<string | null>(null);
+  const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [showAvatarSourceSheet, setShowAvatarSourceSheet] = useState(false);
+  const [showWebcamSheet, setShowWebcamSheet] = useState(false);
   const [opponentAvatars, setOpponentAvatars] = useState<Record<string, string | null>>({});
   const [eloHistoryFromDb, setEloHistoryFromDb] = useState<{ date: string; elo: number }[]>([]);
   const [playerNotFound, setPlayerNotFound] = useState(false);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  // Event-context hero stats — sourced from the SAME getEventLocalRanking the
+  // event leaderboard uses (client replay from 1000, K=64). The profile must
+  // show exactly what the ranking shows, not the server event_memberships.elo
+  // (those can diverge until the server-elo refactor lands). Keyed by the event
+  // membership id, which is the URL playerId when navigated from an event.
+  const [eventRank, setEventRank] = useState<{
+    elo: number;
+    wins: number;
+    losses: number;
+    matchesPlayed: number;
+    streak: number;
+  } | null>(null);
 
   // Find player in leagues first (sync)
   let player: Player | null = null;
@@ -99,7 +141,7 @@ export const PlayerProfile = () => {
           setFetchedPlayer(null);
           return;
         }
-        const { player: p, leagueId, leagueName, eventId } = result;
+        const { player: p, leagueId, leagueName, eventId, globalPlayerId, userId } = result;
         const playersMap: Record<string, string> = {};
         leagues.forEach((l) => {
           l.players.forEach((pl) => {
@@ -114,6 +156,9 @@ export const PlayerProfile = () => {
           playersMap: {} as Record<string, string>,
           avatarUrl: null, // TODO(Phase B): restore via loadPlayerEnrichment
           joinedAt: null,  // TODO(Phase B): restore via loadPlayerEnrichment
+          eventId: eventId ?? null,
+          globalPlayerId: globalPlayerId ?? null,
+          userId: userId ?? null,
         };
 
         if (eventId) {
@@ -192,9 +237,74 @@ export const PlayerProfile = () => {
       });
   }, [playerId]);
 
+  // Event-context hero stats: replay the event ranking (same source as the
+  // event leaderboard) and pick this player's row, so the profile ELO/W-L/
+  // streak match the ranking exactly. Resolved by event membership id (the URL
+  // playerId when navigated from an event ranking).
+  useEffect(() => {
+    if (!urlEventId || !playerId) {
+      setEventRank(null);
+      return;
+    }
+    let cancelled = false;
+    databaseService
+      .loadEventParticipants(urlEventId)
+      .then((participants) => {
+        if (cancelled) return;
+        const ranked = getEventLocalRanking(
+          urlEventId,
+          participants as unknown as Player[],
+        );
+        const me = ranked.find((p) => p.id === playerId);
+        setEventRank(
+          me
+            ? {
+                elo: me.elo,
+                wins: me.wins,
+                losses: me.losses,
+                matchesPlayed: me.matchesPlayed,
+                streak: me.streak,
+              }
+            : null,
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setEventRank(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // getEventLocalRanking is recreated each render (not memoized in the
+    // provider); depending on it would loop. `events` carries the real data
+    // dependency (the ranking reads event.matches).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlEventId, playerId, events]);
+
   if (fetchedPlayer) {
     player = fetchedPlayer.player;
     playerLeague = fetchedPlayer.playerLeague;
+  }
+
+  // Sticky last-resolved player. `leagues` is replaced wholesale on every
+  // loadDataFromSupabase (auth token refresh, tab focus, reloadData…). During
+  // that churn the sync lookup can transiently miss this player, which — with
+  // fetchedPlayer force-cleared by the fetch effect — left NOTHING to render
+  // and blanked the page to black (flash-then-black). We retain the last
+  // player resolved for THIS playerId so a transient miss never blanks the UI.
+  // Cleared automatically when navigating to a different playerId.
+  const lastResolvedRef = useRef<{
+    id: string;
+    player: Player;
+    playerLeague: { id: string; name: string } | null;
+  } | null>(null);
+  if (player && playerId) {
+    lastResolvedRef.current = { id: playerId, player, playerLeague };
+  } else if (!player) {
+    const cached = lastResolvedRef.current;
+    if (cached && cached.id === playerId) {
+      player = cached.player;
+      playerLeague = cached.playerLeague;
+    }
   }
 
   // Hooks MUST be called unconditionally before any early returns (Rules of Hooks)
@@ -397,21 +507,135 @@ export const PlayerProfile = () => {
   const currentPlayerId = player!.id;
 
   const playerLosses = playerMatches.length - playerWins;
+
+  // Hero stats: in event context, mirror the event ranking exactly (eventRank).
+  // Otherwise use the resolved player's values / computed match tallies.
+  const heroElo = eventRank ? eventRank.elo : player.elo;
+  const heroWins = eventRank ? eventRank.wins : playerWins;
+  const heroLosses = eventRank ? eventRank.losses : playerLosses;
+  const heroStreak = eventRank ? eventRank.streak : player.streak;
   const winRate =
-    playerMatches.length > 0
-      ? Math.round((playerWins / playerMatches.length) * 100)
+    heroWins + heroLosses > 0
+      ? Math.round((heroWins / (heroWins + heroLosses)) * 100)
       : 0;
 
   // Story 14-35: Resolve avatar and joined_at (from fetchedPlayer or enrichment)
   const avatarUrl =
-    fetchedPlayer?.avatarUrl ?? enrichment?.avatarUrl ?? null;
+    avatarOverride ?? fetchedPlayer?.avatarUrl ?? enrichment?.avatarUrl ?? null;
   const joinedAt = fetchedPlayer?.joinedAt ?? enrichment?.joinedAt ?? null;
+  const displayName = nameOverride ?? player.name;
+
+  // ── Admin edit of ghost players (no user attached) ───────────────────────
+  // Ghost = the underlying players row has user_id IS NULL. Admin = the viewer
+  // created the league or event this player belongs to.
+  const ownerUserId = fetchedPlayer
+    ? fetchedPlayer.userId
+    : enrichment
+      ? enrichment.userId
+      : undefined;
+  const globalPlayerId =
+    fetchedPlayer?.globalPlayerId ?? enrichment?.globalPlayerId ?? null;
+  const contextEventId = urlEventId ?? fetchedPlayer?.eventId ?? null;
+  // Event-scoped profile: show the event name as the context subtitle so it's
+  // clear the displayed ELO/stats are this event's bubble, not the league's.
+  const contextEventName = contextEventId
+    ? events.find((e) => e.id === contextEventId)?.name ?? null
+    : null;
+  const isGhost = ownerUserId === null;
+  const canAdminEdit = (() => {
+    if (!user) return false;
+    if (playerLeague) {
+      const lg = leagues.find((l) => l.id === playerLeague.id);
+      if (lg?.creator_user_id === user.id) return true;
+    }
+    if (contextEventId) {
+      const ev = events.find((e) => e.id === contextEventId);
+      if (ev?.creator_user_id === user.id) return true;
+    }
+    return false;
+  })();
+  const showAdminEdit = canAdminEdit && isGhost && Boolean(globalPlayerId);
+
+  const startEditName = () => {
+    setEditedName(displayName);
+    setIsEditingName(true);
+  };
+  const cancelEditName = () => {
+    setIsEditingName(false);
+    setEditedName("");
+  };
+  const saveEditName = async () => {
+    const trimmed = editedName.trim();
+    if (!trimmed || trimmed === displayName || !globalPlayerId) {
+      cancelEditName();
+      return;
+    }
+    setIsSavingName(true);
+    try {
+      await databaseService.updateGhostPlayerIdentity(globalPlayerId, { pseudo: trimmed });
+      // Local override reflects the change immediately on this profile. We do
+      // NOT call reloadData() here: it resets the global league/event context
+      // (isLoadingInitialData + full array replacement), which blanks the page
+      // mid-edit. Other views pick up the rename on their next natural load.
+      setNameOverride(trimmed);
+      setIsEditingName(false);
+      toast.success("Nom mis à jour");
+    } catch {
+      toast.error("Impossible de mettre à jour le nom");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const uploadAvatarFromBlob = async (blob: Blob) => {
+    if (!user?.id || !globalPlayerId) return;
+    setIsUploadingAvatar(true);
+    try {
+      const mime = blob.type || "image/jpeg";
+      const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+      const file = new File([blob], `avatar.${ext}`, { type: mime });
+      const url = await databaseService.uploadGhostAvatar(user.id, globalPlayerId, file);
+      if (!url) throw new Error("upload failed");
+      await databaseService.updateGhostPlayerIdentity(globalPlayerId, { avatarUrl: url });
+      // Local override only — see saveEditName for why we avoid reloadData().
+      setAvatarOverride(url);
+      toast.success("Photo mise à jour");
+    } catch {
+      toast.error("Impossible d'uploader la photo");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handlePickAvatar = async (source: "camera" | "gallery") => {
+    if (!globalPlayerId) return;
+    setShowAvatarSourceSheet(false);
+    if (source === "camera" && supportsGetUserMedia()) {
+      setShowWebcamSheet(true);
+      return;
+    }
+    try {
+      const result =
+        source === "camera"
+          ? await PhotoService.takePhoto()
+          : await PhotoService.pickFromGallery();
+      await uploadAvatarFromBlob(result.blob);
+    } catch (err) {
+      if (err instanceof Error && err.message === "No file selected") return;
+      toast.error("Impossible d'uploader la photo");
+    }
+  };
+
+  const handleWebcamCapture = async (blob: Blob) => {
+    setShowWebcamSheet(false);
+    await uploadAvatarFromBlob(blob);
+  };
 
   return (
     <div className="min-h-screen bg-navy text-white flex flex-col">
       {/* AC1: Header — nom + retour */}
       <ContextualHeader
-        title={player.name}
+        title={displayName}
         showBackButton={true}
         onBack={() => navigate(-1)}
       />
@@ -419,23 +643,91 @@ export const PlayerProfile = () => {
       {/* AC1, AC2: PAvatar 72px + infos + Membre depuis */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center gap-4">
-          <PAvatar
-            name={player.name}
-            size={72}
-            imageUrl={avatarUrl ?? undefined}
-            ring="#B7FF3B"
-            className="flex-shrink-0"
-          />
+          <div className="relative flex-shrink-0 group">
+            <PAvatar
+              name={displayName}
+              size={72}
+              imageUrl={avatarUrl ?? undefined}
+              ring="#B7FF3B"
+            />
+            {showAdminEdit && (
+              <button
+                type="button"
+                onClick={() => setShowAvatarSourceSheet(true)}
+                disabled={isUploadingAvatar}
+                aria-label="Changer la photo du joueur"
+                className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity disabled:cursor-wait"
+              >
+                {isUploadingAvatar ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera size={18} className="text-white" />
+                )}
+              </button>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-white truncate">
-                {player.name}
-              </h2>
-            </div>
-            {playerLeague && (
+            {isEditingName ? (
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void saveEditName();
+                    if (e.key === "Escape") cancelEditName();
+                  }}
+                  maxLength={50}
+                  autoFocus
+                  className="flex-1 min-w-0 bg-navy-deep border border-electric-blue rounded-md px-3 py-1.5 text-white text-base font-archivo font-extrabold uppercase tracking-tight focus:outline-none focus:ring-2 focus:ring-electric-blue/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => void saveEditName()}
+                  disabled={isSavingName}
+                  aria-label="Valider"
+                  className="w-8 h-8 rounded-full bg-lime text-navy flex items-center justify-center flex-shrink-0 disabled:opacity-50"
+                >
+                  <Check size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEditName}
+                  aria-label="Annuler"
+                  className="w-8 h-8 rounded-full border border-card text-cool-gray flex items-center justify-center flex-shrink-0"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-white truncate">
+                  {displayName}
+                </h2>
+                {showAdminEdit && (
+                  <button
+                    type="button"
+                    onClick={startEditName}
+                    aria-label="Modifier le nom du joueur"
+                    className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-cool-gray hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                )}
+              </div>
+            )}
+            {contextEventName ? (
               <p className="text-sm text-cool-gray truncate">
-                {playerLeague.name}
+                <span className="text-electric-blue font-semibold">Event</span>
+                {" · "}
+                {contextEventName}
               </p>
+            ) : (
+              playerLeague && (
+                <p className="text-sm text-cool-gray truncate">
+                  {playerLeague.name}
+                </p>
+              )
             )}
             {joinedAt && (
               <p className="text-xs text-cool-gray mt-0.5">
@@ -448,9 +740,13 @@ export const PlayerProfile = () => {
 
       {/* AC3: StatCards (ELO, W/L, Win rate) */}
       <div className="grid grid-cols-3 gap-2 px-4 py-4">
-        <StatCard value={player.elo} label="ELO" variant="accent" />
         <StatCard
-          value={`${playerWins}V - ${playerLosses}D`}
+          value={heroElo}
+          label={contextEventId ? "ELO event" : "ELO"}
+          variant="accent"
+        />
+        <StatCard
+          value={`${heroWins}V - ${heroLosses}D`}
           label="W/L"
         />
         <StatCard value={`${winRate}%`} label="Win rate" variant="success" />
@@ -460,35 +756,35 @@ export const PlayerProfile = () => {
       <div className="px-4 pb-4">
         <div
           className={`p-4 rounded-xl flex items-center gap-3 border ${
-            player.streak >= 3
+            heroStreak >= 3
               ? "bg-ping-yellow/20 border-ping-yellow/50"
-              : player.streak > 0
+              : heroStreak > 0
                 ? "bg-lime/20 border-lime/50"
-                : player.streak < 0
+                : heroStreak < 0
                   ? "bg-signal-red/20 border-signal-red/50"
                   : "bg-navy-soft/50 border-card/50"
           }`}
         >
-          {player.streak >= 3 ? (
+          {heroStreak >= 3 ? (
             <Flame className="text-ping-yellow flex-shrink-0" size={24} />
-          ) : player.streak > 0 ? (
+          ) : heroStreak > 0 ? (
             <TrendingUp className="text-lime flex-shrink-0" size={24} />
-          ) : player.streak < 0 ? (
+          ) : heroStreak < 0 ? (
             <TrendingDown className="text-signal-red flex-shrink-0" size={24} />
           ) : null}
           <div className="min-w-0">
             <div className="font-bold text-white">
-              {player.streak >= 3
+              {heroStreak >= 3
                 ? "En feu !"
-                : player.streak > 0
-                  ? `${player.streak} victoires d'affilée`
-                  : player.streak < 0
-                    ? `${Math.abs(player.streak)} défaites d'affilée`
+                : heroStreak > 0
+                  ? `${heroStreak} victoires d'affilée`
+                  : heroStreak < 0
+                    ? `${Math.abs(heroStreak)} défaites d'affilée`
                     : "Aucune série"}
             </div>
             <div className="text-xs text-cool-gray">
-              {player.streak >= 3
-                ? `${player.streak} victoires d'affilée`
+              {heroStreak >= 3
+                ? `${heroStreak} victoires d'affilée`
                 : "Série actuelle"}
             </div>
           </div>
@@ -803,6 +1099,44 @@ export const PlayerProfile = () => {
           </div>
         </section>
       </div>
+
+      {showAdminEdit && (
+        <>
+          <Sheet
+            isOpen={showAvatarSourceSheet}
+            onClose={() => setShowAvatarSourceSheet(false)}
+            title="Photo du joueur"
+            maxWidth="sm"
+          >
+            <div className="flex flex-col gap-3 pt-2">
+              <PButton
+                variant="primary"
+                size="md"
+                full
+                icon={<Camera size={18} />}
+                onClick={() => void handlePickAvatar("camera")}
+              >
+                Prendre une photo
+              </PButton>
+              <PButton
+                variant="accent"
+                size="md"
+                full
+                icon={<ImageIcon size={18} />}
+                onClick={() => void handlePickAvatar("gallery")}
+              >
+                Choisir depuis la galerie
+              </PButton>
+            </div>
+          </Sheet>
+
+          <WebcamCaptureSheet
+            isOpen={showWebcamSheet}
+            onClose={() => setShowWebcamSheet(false)}
+            onCapture={(blob) => void handleWebcamCapture(blob)}
+          />
+        </>
+      )}
     </div>
   );
 };
