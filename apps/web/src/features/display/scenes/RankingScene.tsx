@@ -30,6 +30,13 @@ interface Props {
   onComplete?: () => void;
   /** Reporte la phase au DisplayShell pour les indicators. */
   onPhaseChange?: (phase: SelfPacedScrollPhase) => void;
+  /**
+   * Mode "reveal" : désactive le scroll auto self-paced ; le scroll suit le
+   * `focusedPlayerId` (visite séquentielle des protagonistes).
+   */
+  focusMode?: boolean;
+  /** Joueur sur lequel scroller (et mettre en avant) pendant la visite. */
+  focusedPlayerId?: string | null;
 }
 
 /**
@@ -46,11 +53,15 @@ export function RankingScene({
   paused = false,
   onComplete,
   onPhaseChange,
+  focusMode = false,
+  focusedPlayerId = null,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const phase = useSelfPacedScroll(scrollRef, {
-    enabled,
+    // En mode reveal, le scroll est piloté par focusedPlayerId, pas par le
+    // self-paced.
+    enabled: enabled && !focusMode,
     paused,
     holdTopMs: 8_000,
     scrollSpeedPxPerSec: 30,
@@ -65,6 +76,18 @@ export function RankingScene({
   useEffect(() => {
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
+
+  // Visite séquentielle : scroll doux vers le joueur focalisé.
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const setRowRef = (id: string) => (el: HTMLDivElement | null) => {
+    if (el) rowRefs.current.set(id, el);
+    else rowRefs.current.delete(id);
+  };
+  useEffect(() => {
+    if (!focusedPlayerId) return;
+    const el = rowRefs.current.get(focusedPlayerId);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusedPlayerId]);
 
   // Réordonnancement animé : les lignes glissent vers leur nouvelle position
   // quand le classement change. API core (impérative) pour éviter le souci de
@@ -95,14 +118,14 @@ export function RankingScene({
         <div ref={topListRef} className="space-y-2.5 md:space-y-3 mb-6">
           {top10.map((player) => {
             const isHighlighted = highlightedPlayerIds?.has(player.id);
+            const isFocused = focusedPlayerId === player.id;
             return (
               <div
                 key={player.id}
-                className={`rounded-card ${
-                  isHighlighted
-                    ? "ring-2 animate-glow-pulse scale-[1.02]"
-                    : ""
-                } ${
+                ref={setRowRef(player.id)}
+                className={`rounded-card transition-transform duration-500 ${
+                  isHighlighted ? "ring-2 animate-glow-pulse" : ""
+                } ${isFocused ? "scale-[1.04]" : isHighlighted ? "scale-[1.02]" : ""} ${
                   isHighlighted
                     ? player.eloDelta && player.eloDelta > 0
                       ? "ring-lime"
@@ -141,7 +164,22 @@ export function RankingScene({
             {rest.map((player) => (
               <div
                 key={player.id}
-                className="bg-navy-soft/70 border border-card rounded-card px-4 py-2.5"
+                ref={setRowRef(player.id)}
+                className={`bg-navy-soft/70 border rounded-card px-4 py-2.5 transition-transform duration-500 ${
+                  highlightedPlayerIds?.has(player.id)
+                    ? "ring-2 animate-glow-pulse " +
+                      (player.eloDelta && player.eloDelta > 0
+                        ? "ring-lime"
+                        : player.eloDelta && player.eloDelta < 0
+                          ? "ring-signal-red"
+                          : "ring-electric-blue")
+                    : "border-card"
+                } ${focusedPlayerId === player.id ? "scale-[1.04]" : ""}`}
+                style={
+                  highlightedPlayerIds?.has(player.id)
+                    ? ({ ["--glow"]: glowColor(player.eloDelta) } as CSSProperties)
+                    : undefined
+                }
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

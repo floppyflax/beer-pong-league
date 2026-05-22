@@ -5,7 +5,7 @@ import { Volume2, VolumeX } from "lucide-react";
 import { PersistentFrame } from "./components/PersistentFrame";
 import { PodiumStand } from "./components/PodiumStand";
 import { RecentMatchesPanel } from "./components/RecentMatchesPanel";
-import { NewMatchBanner } from "./components/NewMatchBanner";
+import { NewMatchAlertOverlay } from "./components/NewMatchAlertOverlay";
 import { SceneIndicators } from "./components/SceneIndicators";
 import { RankingScene } from "./scenes/RankingScene";
 import { PodiumScene } from "./scenes/PodiumScene";
@@ -18,8 +18,7 @@ import {
   type SceneConfig,
 } from "./hooks/useDisplayScenes";
 import { useDisplayAutoRefresh } from "./hooks/useDisplayAutoRefresh";
-import { useRankingReveal } from "./hooks/useRankingReveal";
-import { useNewMatchAlert } from "./hooks/useNewMatchAlert";
+import { useMatchReveal } from "./hooks/useMatchReveal";
 import type { SelfPacedScrollPhase } from "./hooks/useSelfPacedScroll";
 import type { DisplaySource } from "./types";
 
@@ -55,8 +54,6 @@ export function DisplayShell({ source }: Props) {
   // Auto-refresh : l'écran se met à jour seul quand un match tombe ailleurs.
   useDisplayAutoRefresh(reloadData, { intervalMs: 10_000, enabled: !!source });
 
-  const lastMatchId = source?.matches[0]?.id ?? null;
-
   // La scène "photo-wall" n'entre dans la rotation que s'il y a des photos.
   const hasPhotos = source ? matchesWithPhotos(source).length > 0 : false;
   const scenes = useMemo(
@@ -72,22 +69,25 @@ export function DisplayShell({ source }: Props) {
     isPaused,
     uniqueScenes,
     notifyComplete,
-  } = useDisplayScenes({
-    scenes,
-    pauseOnNewMatch: true,
-    newMatchSceneId: "live-match",
-    newMatchHoldMs: 8_000,
-    newMatchSignal: lastMatchId,
-  });
+    pause,
+    resume,
+    jumpTo,
+  } = useDisplayScenes({ scenes });
 
-  // Reveal différé : le classement ne se réordonne pas en arrière-plan ; on
-  // attend d'être sur le slide Classement pour animer le mouvement + mettre
-  // les protagonistes en surbrillance. Le nouveau match clignote dans le rail.
-  const { committedPlayers, highlightedPlayerIds, blinkMatchId } =
-    useRankingReveal(source, activeSceneId);
+  // Orchestration complète de l'arrivée d'un nouveau match : alerte floutée +
+  // sonnerie, puis reveal chorégraphié sur le Classement (commit du nouvel
+  // ordre, surbrillance, visite séquentielle des protagonistes).
+  const reveal = useMatchReveal(source);
 
-  // Feedback d'arrivée d'un nouveau match : bannière (visuel primaire) + son.
-  const { alertMatch, soundOn, audioArmed } = useNewMatchAlert(source);
+  // Pendant la séquence : on met la rotation en pause et on force le Classement
+  // (au passage en phase "reveal").
+  useEffect(() => {
+    if (reveal.active) pause();
+    else resume();
+  }, [reveal.active, pause, resume]);
+  useEffect(() => {
+    if (reveal.phase === "reveal") jumpTo("ranking");
+  }, [reveal.phase, jumpTo]);
 
   // Phase rapportée par la scène self-paced active (pour les indicators)
   const [selfPacedPhase, setSelfPacedPhase] =
@@ -109,12 +109,14 @@ export function DisplayShell({ source }: Props) {
       case "ranking":
         return (
           <RankingScene
-            players={committedPlayers}
-            highlightedPlayerIds={highlightedPlayerIds}
+            players={reveal.committedPlayers}
+            highlightedPlayerIds={reveal.highlightedPlayerIds}
             enabled
             paused={isPaused}
             onComplete={notifyComplete}
             onPhaseChange={setSelfPacedPhase}
+            focusMode={reveal.phase === "reveal"}
+            focusedPlayerId={reveal.focusedPlayerId}
           />
         );
       case "podium":
@@ -133,8 +135,10 @@ export function DisplayShell({ source }: Props) {
   }, [
     activeSceneId,
     source,
-    committedPlayers,
-    highlightedPlayerIds,
+    reveal.committedPlayers,
+    reveal.highlightedPlayerIds,
+    reveal.phase,
+    reveal.focusedPlayerId,
     isPaused,
     notifyComplete,
   ]);
@@ -170,7 +174,10 @@ export function DisplayShell({ source }: Props) {
             <div className="flex-shrink-0">
               <PodiumStand players={top3} variant="compact" />
             </div>
-            <RecentMatchesPanel source={source} blinkMatchId={blinkMatchId} />
+            <RecentMatchesPanel
+              source={source}
+              blinkMatchId={reveal.blinkMatchId}
+            />
           </>
         }
       >
@@ -190,20 +197,20 @@ export function DisplayShell({ source }: Props) {
         </div>
       </PersistentFrame>
 
-      {/* Bannière d'arrivée d'un nouveau match (canal visuel primaire) */}
-      <NewMatchBanner match={alertMatch} source={source} />
+      {/* Alerte plein écran floutée (canal visuel primaire) + sonnerie */}
+      <NewMatchAlertOverlay match={reveal.alertMatch} source={source} />
 
       {/* Indicateur état du son (découvrabilité du toggle M) */}
       <div className="fixed bottom-3 left-4 z-40 flex items-center gap-1.5 font-mono text-[10px] md:text-xs uppercase tracking-[1.5px] text-cool-gray font-bold pointer-events-none">
-        {soundOn && audioArmed ? (
+        {reveal.soundOn && reveal.audioArmed ? (
           <Volume2 size={14} className="text-electric-blue" aria-hidden />
         ) : (
           <VolumeX size={14} aria-hidden />
         )}
         <span>
-          {!audioArmed
+          {!reveal.audioArmed
             ? "Touche = son"
-            : soundOn
+            : reveal.soundOn
               ? "Son · M"
               : "Muet · M"}
         </span>

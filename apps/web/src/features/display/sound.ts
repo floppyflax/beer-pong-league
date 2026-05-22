@@ -40,26 +40,42 @@ export function isAudioReady(): boolean {
   return !!ctx && ctx.state === "running";
 }
 
-/**
- * Joue un arpège montant court (~0.6s), volume modéré. No-op si l'audio n'est
- * pas armé/running.
- */
-export function playChime(): void {
-  if (!ctx || ctx.state !== "running") return;
-  const now = ctx.currentTime;
+function emitChime(audioCtx: AudioContext): void {
+  const now = audioCtx.currentTime;
   // Mi5 · Sol5 · Do6 — accord majeur, montée positive.
   const notes = [659.25, 783.99, 1046.5];
   for (let i = 0; i < notes.length; i++) {
     const t = now + i * 0.09;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
     osc.type = "triangle";
     osc.frequency.value = notes[i];
     gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.linearRampToValueAtTime(0.16, t + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
-    osc.connect(gain).connect(ctx.destination);
+    gain.gain.linearRampToValueAtTime(0.18, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+    osc.connect(gain).connect(audioCtx.destination);
     osc.start(t);
-    osc.stop(t + 0.45);
+    osc.stop(t + 0.48);
   }
+}
+
+/**
+ * Joue un arpège montant court (~0.6s), volume modéré. Tente de reprendre
+ * l'AudioContext s'il a été suspendu (onglet revenu au premier plan). No-op
+ * si l'audio n'a jamais été armé (aucun geste utilisateur).
+ */
+export function playChime(): void {
+  if (!ctx) return;
+  if (ctx.state === "suspended") {
+    ctx
+      .resume()
+      .then(() => {
+        if (ctx) emitChime(ctx);
+      })
+      .catch(() => {
+        /* autoplay bloqué — silencieux */
+      });
+    return;
+  }
+  if (ctx.state === "running") emitChime(ctx);
 }
