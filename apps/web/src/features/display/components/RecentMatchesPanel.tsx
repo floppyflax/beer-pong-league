@@ -1,15 +1,18 @@
+import type { CSSProperties } from "react";
 import type { DisplaySource } from "../types";
 
 interface Props {
   source: DisplaySource;
   max?: number;
+  /** Match à faire clignoter (nouveau match qui vient de tomber). */
+  blinkMatchId?: string | null;
 }
 
 /**
  * Liste des derniers matchs — réutilisée dans le rail droit du DisplayShell.
  * Affichage compact : équipes nommées + scores, dernier match mis en avant.
  */
-export function RecentMatchesPanel({ source, max = 12 }: Props) {
+export function RecentMatchesPanel({ source, max = 12, blinkMatchId }: Props) {
   const matches = source.matches.slice(0, max);
 
   const playerName = (id: string) =>
@@ -30,6 +33,7 @@ export function RecentMatchesPanel({ source, max = 12 }: Props) {
             const teamA = match.teamA.map(playerName).join(", ");
             const teamB = match.teamB.map(playerName).join(", ");
             const winnerA = match.scoreA > match.scoreB;
+            const isBlinking = blinkMatchId === match.id;
             return (
               <div
                 key={match.id}
@@ -37,7 +41,12 @@ export function RecentMatchesPanel({ source, max = 12 }: Props) {
                   index === 0
                     ? "bg-electric-blue/10 border-electric-blue shadow-[0_3px_0_#0052D4]"
                     : "bg-navy/60 border-card"
-                }`}
+                } ${isBlinking ? "animate-glow-pulse ring-2 ring-electric-blue" : ""}`}
+                style={
+                  isBlinking
+                    ? ({ ["--glow"]: "rgba(47,107,255,0.85)" } as CSSProperties)
+                    : undefined
+                }
               >
                 <div className="font-mono text-[10px] uppercase tracking-[1.5px] text-cool-gray font-bold mb-1.5">
                   {new Date(match.date).toLocaleTimeString("fr-FR", {

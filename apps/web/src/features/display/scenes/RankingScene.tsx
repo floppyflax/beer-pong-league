@@ -5,7 +5,7 @@ import {
   useSelfPacedScroll,
   type SelfPacedScrollPhase,
 } from "../hooks/useSelfPacedScroll";
-import type { DisplaySource } from "../types";
+import type { DisplaySourcePlayer } from "../types";
 
 /** Couleur du glow d'un protagoniste selon le signe de son delta ELO. */
 function glowColor(eloDelta: number | undefined): string {
@@ -14,7 +14,12 @@ function glowColor(eloDelta: number | undefined): string {
 }
 
 interface Props {
-  source: DisplaySource;
+  /**
+   * Ordre du classement à afficher. Fourni par le DisplayShell (ordre
+   * "committé", gelé jusqu'au reveal d'un nouveau match) — pas directement
+   * `source.players`, pour éviter un réordonnancement en arrière-plan.
+   */
+  players: DisplaySourcePlayer[];
   /** Ids des joueurs à highlighter (animation d'arrivée d'un match récent). */
   highlightedPlayerIds?: Set<string>;
   /** Active le self-paced scroll (la scène est-elle visible). */
@@ -35,7 +40,7 @@ interface Props {
  * hold-top → scroll lent → hold-bottom → notifyComplete().
  */
 export function RankingScene({
-  source,
+  players,
   highlightedPlayerIds,
   enabled = true,
   paused = false,
@@ -74,8 +79,8 @@ export function RankingScene({
     if (restListRef.current) autoAnimate(restListRef.current);
   }, []);
 
-  const top10 = source.players.slice(0, 10);
-  const rest = source.players.slice(10);
+  const top10 = players.slice(0, 10);
+  const rest = players.slice(10);
 
   return (
     <div className="flex flex-col h-full min-h-0">

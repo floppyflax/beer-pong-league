@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLeague } from "../../context/LeagueContext";
 import { PersistentFrame } from "./components/PersistentFrame";
@@ -16,6 +16,7 @@ import {
   type SceneConfig,
 } from "./hooks/useDisplayScenes";
 import { useDisplayAutoRefresh } from "./hooks/useDisplayAutoRefresh";
+import { useRankingReveal } from "./hooks/useRankingReveal";
 import type { SelfPacedScrollPhase } from "./hooks/useSelfPacedScroll";
 import type { DisplaySource } from "./types";
 
@@ -51,28 +52,7 @@ export function DisplayShell({ source }: Props) {
   // Auto-refresh : l'écran se met à jour seul quand un match tombe ailleurs.
   useDisplayAutoRefresh(reloadData, { intervalMs: 10_000, enabled: !!source });
 
-  // Highlight 5s les joueurs du dernier match dès qu'il change
-  const lastMatchIdRef = useRef<string | null>(null);
-  const [highlightedPlayerIds, setHighlightedPlayerIds] = useState<Set<string>>(
-    new Set(),
-  );
   const lastMatchId = source?.matches[0]?.id ?? null;
-
-  useEffect(() => {
-    if (!source || !lastMatchId) return;
-    if (lastMatchId === lastMatchIdRef.current) return;
-    // Premier mount : on capture l'id sans déclencher l'effet visuel
-    if (lastMatchIdRef.current === null) {
-      lastMatchIdRef.current = lastMatchId;
-      return;
-    }
-    lastMatchIdRef.current = lastMatchId;
-    const last = source.matches[0];
-    if (!last) return;
-    setHighlightedPlayerIds(new Set([...last.teamA, ...last.teamB]));
-    const timeout = setTimeout(() => setHighlightedPlayerIds(new Set()), 5000);
-    return () => clearTimeout(timeout);
-  }, [source, lastMatchId]);
 
   // La scène "photo-wall" n'entre dans la rotation que s'il y a des photos.
   const hasPhotos = source ? matchesWithPhotos(source).length > 0 : false;
@@ -97,6 +77,12 @@ export function DisplayShell({ source }: Props) {
     newMatchSignal: lastMatchId,
   });
 
+  // Reveal différé : le classement ne se réordonne pas en arrière-plan ; on
+  // attend d'être sur le slide Classement pour animer le mouvement + mettre
+  // les protagonistes en surbrillance. Le nouveau match clignote dans le rail.
+  const { committedPlayers, highlightedPlayerIds, blinkMatchId } =
+    useRankingReveal(source, activeSceneId);
+
   // Phase rapportée par la scène self-paced active (pour les indicators)
   const [selfPacedPhase, setSelfPacedPhase] =
     useState<SelfPacedScrollPhase>("idle");
@@ -117,7 +103,7 @@ export function DisplayShell({ source }: Props) {
       case "ranking":
         return (
           <RankingScene
-            source={source}
+            players={committedPlayers}
             highlightedPlayerIds={highlightedPlayerIds}
             enabled
             paused={isPaused}
@@ -138,7 +124,14 @@ export function DisplayShell({ source }: Props) {
       default:
         return null;
     }
-  }, [activeSceneId, source, highlightedPlayerIds, isPaused, notifyComplete]);
+  }, [
+    activeSceneId,
+    source,
+    committedPlayers,
+    highlightedPlayerIds,
+    isPaused,
+    notifyComplete,
+  ]);
 
   if (!source) {
     return (
@@ -170,7 +163,7 @@ export function DisplayShell({ source }: Props) {
           <div className="flex-shrink-0">
             <PodiumStand players={top3} variant="compact" />
           </div>
-          <RecentMatchesPanel source={source} />
+          <RecentMatchesPanel source={source} blinkMatchId={blinkMatchId} />
         </>
       }
     >
