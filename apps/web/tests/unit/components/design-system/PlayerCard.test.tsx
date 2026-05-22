@@ -70,7 +70,7 @@ describe("PlayerCard", () => {
       expect(badge).toHaveAttribute("aria-label", "Descendu de 1 place");
     });
 
-    it("does not render the badge when rankDelta is 0", () => {
+    it("renders a neutral 'stayed put' badge when rankDelta is 0", () => {
       render(
         <PlayerCard
           variant="leaderRow"
@@ -80,7 +80,11 @@ describe("PlayerCard", () => {
           rankDelta={0}
         />,
       );
-      expect(screen.queryByTestId("playercard-rank-delta")).toBeNull();
+      const badge = screen.getByTestId("playercard-rank-delta");
+      expect(badge).toHaveClass("bg-cool-gray");
+      expect(badge).toHaveAttribute("aria-label", "Place inchangée");
+      // no place count shown when the rank is unchanged
+      expect(badge).not.toHaveTextContent(/[0-9]/);
     });
 
     it("does not render the badge when rankDelta is undefined", () => {
