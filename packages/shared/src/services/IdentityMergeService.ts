@@ -182,6 +182,99 @@ class IdentityMergeService {
     }
   }
 
+  /**
+   * Archive a membership in this context (event/league). Context-scoped:
+   * sets `<context>_memberships.archived_at`, leaving the global player and
+   * its other memberships untouched. Hides the member from match pickers
+   * (which filter on membership.archived_at) while keeping past matches/ELO.
+   *
+   * Unlike `archiveAnonymousPlayer`, this is safe for real accounts — it never
+   * touches `players.archived_at`.
+   */
+  async archiveMembership(
+    kind: 'event' | 'league',
+    membershipId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!sb) return { success: false, error: 'Supabase not configured' };
+    try {
+      const table = kind === 'event' ? 'event_memberships' : 'league_memberships';
+      const { error } = await sb.from(table).update({ archived_at: new Date().toISOString() } as never).eq('id', membershipId);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  }
+
+  /** Restore an archived membership back to the active roster. */
+  async unarchiveMembership(
+    kind: 'event' | 'league',
+    membershipId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!sb) return { success: false, error: 'Supabase not configured' };
+    try {
+      const table = kind === 'event' ? 'event_memberships' : 'league_memberships';
+      const { error } = await sb.from(table).update({ archived_at: null } as never).eq('id', membershipId);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Remove a member from this context — deletes the membership row only.
+   * Blocked (error contains "match") when the member already played in this
+   * context (`membership.matches_played > 0`), so the caller can fall back to
+   * archiving instead. Best-effort: if the removed player was a ghost
+   * (user_id IS NULL) with no remaining memberships, deletes the orphan
+   * player row too.
+   *
+   * Works for both ghosts and real accounts — the global player is never
+   * deleted for an account, only the link to this event/league.
+   */
+  async removeMembership(
+    kind: 'event' | 'league',
+    membershipId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!sb) return { success: false, error: 'Supabase not configured' };
+    try {
+      const table = kind === 'event' ? 'event_memberships' : 'league_memberships';
+      const { data: m } = await sb
+        .from(table)
+        .select('player_id, matches_played')
+        .eq('id', membershipId)
+        .maybeSingle();
+      if (!m) return { success: false, error: 'Membership not found' };
+      const row = m as { player_id: string; matches_played: number | null };
+      if ((row.matches_played ?? 0) > 0) {
+        return { success: false, error: 'match(es) already recorded for this player' };
+      }
+      const { error } = await sb.from(table).delete().eq('id', membershipId);
+      if (error) return { success: false, error: error.message };
+
+      // Best-effort orphan ghost cleanup — never fail the removal on this.
+      try {
+        const { data: p } = await sb.from('players').select('user_id').eq('id', row.player_id).maybeSingle();
+        if (p && (p as { user_id: string | null }).user_id === null) {
+          const [{ data: em }, { data: lm }] = await Promise.all([
+            sb.from('event_memberships').select('id').eq('player_id', row.player_id).limit(1),
+            sb.from('league_memberships').select('id').eq('player_id', row.player_id).limit(1),
+          ]);
+          if ((em?.length ?? 0) === 0 && (lm?.length ?? 0) === 0) {
+            await sb.from('players').delete().eq('id', row.player_id);
+          }
+        }
+      } catch {
+        // ignore — membership already removed
+      }
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  }
+
   /** @deprecated mig 022 */
   async generateGhostInviteToken(_kind: 'event' | 'league', _playerId: string): Promise<{ success: boolean; error?: string; token?: string; expiresAt?: string }> {
     void _kind; void _playerId;

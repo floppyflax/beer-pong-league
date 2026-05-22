@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
@@ -46,9 +46,25 @@ export const LeagueSettings = () => {
   const { isAdmin } = useDetailPagePermissions(id || "", "league");
 
   const {
-    guests: leagueGhosts,
-    refresh: refreshLeagueGhosts,
-  } = useUnclaimedGuests("league", id, { mode: "any" });
+    guests: leaguePlayers,
+    refresh: refreshLeaguePlayers,
+  } = useUnclaimedGuests("league", id, {
+    mode: "any",
+    scope: "all",
+    excludeUserId: league?.creator_user_id ?? null,
+  });
+  const {
+    guests: leagueArchivedPlayers,
+    refresh: refreshLeagueArchivedPlayers,
+  } = useUnclaimedGuests("league", id, {
+    mode: "any",
+    scope: "all",
+    archivedFilter: "archived",
+    excludeUserId: league?.creator_user_id ?? null,
+  });
+  const refreshLeagueGhosts = useCallback(async () => {
+    await Promise.all([refreshLeaguePlayers(), refreshLeagueArchivedPlayers()]);
+  }, [refreshLeaguePlayers, refreshLeagueArchivedPlayers]);
 
   const [name, setName] = useState(league?.name ?? "");
   // Mig 032 — anti-cheat toggle + validator mode (mirror EventSettings).
@@ -188,32 +204,46 @@ export const LeagueSettings = () => {
     reloadData();
   };
 
-  const handleDeleteGhost = async (playerId: string) => {
-    const result = await identityMergeService.deleteAnonymousPlayer(
+  const handleDeleteGhost = async (membershipId: string) => {
+    const result = await identityMergeService.removeMembership(
       "league",
-      playerId,
+      membershipId,
     );
     if (!result.success) {
       if (!result.error || !/match/i.test(result.error)) {
-        toast.error(result.error || "Suppression impossible");
+        toast.error(result.error || "Retrait impossible");
       }
       throw new Error(result.error);
     }
-    toast.success("Joueur supprimé");
+    toast.success("Joueur retiré");
     await refreshLeagueGhosts();
     reloadData();
   };
 
-  const handleArchiveGhost = async (playerId: string) => {
-    const result = await identityMergeService.archiveAnonymousPlayer(
+  const handleArchiveGhost = async (membershipId: string) => {
+    const result = await identityMergeService.archiveMembership(
       "league",
-      playerId,
+      membershipId,
     );
     if (!result.success) {
       toast.error(result.error || "Archivage impossible");
       throw new Error(result.error);
     }
     toast.success("Joueur archivé");
+    await refreshLeagueGhosts();
+    reloadData();
+  };
+
+  const handleUnarchiveGhost = async (membershipId: string) => {
+    const result = await identityMergeService.unarchiveMembership(
+      "league",
+      membershipId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Désarchivage impossible");
+      throw new Error(result.error);
+    }
+    toast.success("Joueur désarchivé");
     await refreshLeagueGhosts();
     reloadData();
   };
@@ -600,13 +630,13 @@ export const LeagueSettings = () => {
           </div>
         )}
 
-        {/* Ghost management entry */}
-        {leagueGhosts.length > 0 && (
+        {/* Players management entry */}
+        {(leaguePlayers.length > 0 || leagueArchivedPlayers.length > 0) && (
           <div className="space-y-2">
             <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
               <span className="inline-flex items-center gap-1.5">
                 <Ghost size={12} />
-                Joueurs fantômes ({leagueGhosts.length})
+                Joueurs ({leaguePlayers.length})
               </span>
             </span>
             <button
@@ -616,10 +646,10 @@ export const LeagueSettings = () => {
             >
               <div className="flex-1 min-w-0">
                 <div className="text-white font-archivo font-semibold text-sm">
-                  Gérer les joueurs fantômes
+                  Gérer les joueurs
                 </div>
                 <div className="text-cool-gray text-xs">
-                  Renommer, supprimer, envoyer un lien d&apos;invitation
+                  Retirer ou archiver un joueur de la ligue
                 </div>
               </div>
             </button>
@@ -729,11 +759,13 @@ export const LeagueSettings = () => {
       <GhostManagementSheet
         isOpen={showGhostMgmt}
         onClose={() => setShowGhostMgmt(false)}
-        guests={leagueGhosts}
+        guests={leaguePlayers}
+        archivedGuests={leagueArchivedPlayers}
         joinPath={`/league/${league.id}/join`}
         onRename={handleRenameGhost}
         onDelete={handleDeleteGhost}
         onArchive={handleArchiveGhost}
+        onUnarchive={handleUnarchiveGhost}
         onGenerateInvite={handleGenerateGhostInvite}
       />
     </div>
