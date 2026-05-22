@@ -159,6 +159,25 @@ describe("withTransitionDeltas", () => {
     expect(withTransitionDeltas(after, before)[0].eloDelta).toBe(12);
   });
 
+  it("affiche '=' (rankDelta 0) pour un joueur qui a joué mais reste sur place", () => {
+    // x et y jouent (leur ELO change) mais gardent leurs rangs 1 et 2.
+    const before = [
+      { ...player("x", 1), elo: 1000 },
+      { ...player("y", 2), elo: 990 },
+    ];
+    const after = [
+      { ...player("x", 1), elo: 1012 },
+      { ...player("y", 2), elo: 978 },
+    ];
+    const out = withTransitionDeltas(after, before);
+    const x = out.find((p) => p.id === "x")!;
+    const y = out.find((p) => p.id === "y")!;
+    expect(x.rankDelta).toBe(0); // a joué, resté → "="
+    expect(x.eloDelta).toBe(12);
+    expect(y.rankDelta).toBe(0);
+    expect(y.eloDelta).toBe(-12);
+  });
+
   it("marque un joueur dépassé sans avoir joué (rankDelta sans eloDelta)", () => {
     // c ne joue pas (ELO inchangé) mais se fait dépasser → descend d'un rang.
     const before = [

@@ -9,7 +9,7 @@ export interface DisplaySourcePlayer {
   elo: number;
   /** 1-based, calculé localement à l'event/league. */
   rank: number;
-  /** Variation de rang depuis avant le dernier match terminé. >0 = monté, <0 = descendu. */
+  /** Variation de rang depuis avant le dernier match terminé. >0 monté, <0 descendu, 0 = resté sur place (joueur du match), undefined = pas de badge. */
   rankDelta?: number;
   /** Delta ELO sur le dernier match terminé (pour l'effet "match qui tombe"). */
   eloDelta?: number;
