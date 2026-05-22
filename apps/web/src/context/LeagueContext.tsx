@@ -997,12 +997,16 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       date: new Date().toISOString(),
       teamA: teamAIds,
       teamB: teamBIds,
-      scoreA: winner === "A" ? 10 : (cupsRem !== undefined ? 10 - cupsRem : 0),
-      scoreB: winner === "B" ? 10 : (cupsRem !== undefined ? 10 - cupsRem : 0),
+      // Score = gobelets restants : le vainqueur marque ses gobelets restants
+      // (1..10), le perdant 0. Fallback 10 (victoire « parfaite ») si la
+      // saisie ne fournit pas le détail. cups_remaining reste null : le score
+      // encode déjà l'info, on ne la duplique pas.
+      scoreA: winner === "A" ? (cupsRem ?? 10) : 0,
+      scoreB: winner === "B" ? (cupsRem ?? 10) : 0,
       // Pending matches don't expose preview deltas — they only land after
       // confirmation.
       eloChanges: antiCheatOn ? undefined : eloChanges,
-      cups_remaining: cupsRem ?? null,
+      cups_remaining: null,
       created_by_user_id: isAuthenticated && user ? user.id : null,
       created_by_anonymous_user_id: !isAuthenticated && localUser ? localUser.anonymousUserId : null,
       status: antiCheatOn ? 'pending' : 'confirmed',
