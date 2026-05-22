@@ -61,17 +61,28 @@ delta = K * (actual - expected)    // actual = 1 pour win, 0 pour loss
 Source-of-truth client : `apps/web/src/utils/elo.ts`. **Ne pas dupliquer**
 — importer depuis là pour la preview.
 
-Source-of-truth serveur : `public.apply_match_elo` + `public.elo_k_factor`
-dans `025_elo_server_side.sql`.
+Source-of-truth serveur : `public.apply_match_elo` + `_apply_elo_for_player`
+dans `025_elo_server_side.sql` ; K-factor contextuel
+`public.elo_k_factor(matches_played, context)` dans
+`033_elo_context_k_factor.sql`.
 
-## K-factor
+## K-factor (contextuel depuis mig 033)
 
-- `K = 32` si `matches_played < 20` (nouveau joueur, variations rapides)
-- `K = 16` sinon (joueur confirmé, variations lentes)
+Le K dépend du **contexte** ELO :
 
-Ne pas inventer un K intermédiaire sans discussion produit. Le helper
-`public.elo_k_factor(matches_played INT) RETURNS INT IMMUTABLE` encapsule
-la règle côté DB.
+- **event** → `K = 64` **fixe**. Events courts (~10-15 matchs/joueur) : le
+  palier 20 ne mord jamais, un K élevé étale le classement (show d'un soir).
+  Le K est un **facteur d'échelle** — il dilate les écarts sans changer
+  l'ordre ni la justesse (les renversements/le spectacle dépendent du format
+  et du nombre de matchs, pas du K).
+- **league** → `K = 32` si `matches_played < 20`, `K = 16` sinon. Classement
+  durable et stable du vrai niveau sur la saison (monter le K en ligue
+  n'ajouterait que du bruit).
+
+Helper DB : `public.elo_k_factor(matches_played INT, context TEXT) RETURNS INT`
+(`'event'` → 64 ; `'league'` → 32/16), routé par `_apply_elo_for_player` via
+`p_event_id` / `p_league_id`. Client : `calculateEloChange(teamA, teamB,
+winner, context)`. Ne pas inventer d'autre K sans discussion produit.
 
 ## Team matches (2v2, 3v3)
 
@@ -79,9 +90,11 @@ la règle côté DB.
    le contexte du match** (event_memberships pour un event match,
    league_memberships pour un league match).
 2. Delta calculé sur les moyennes team A vs team B.
-3. Chaque joueur de la team applique son propre K (selon son
-   `matches_played` à lui) au même `actual − expected`. Un débutant et un
-   joueur confirmé gagnent donc des deltas différents pour le même match.
+3. Chaque joueur de la team applique son propre K au même `actual − expected`
+   (le `expected` est commun — calculé sur la moyenne d'équipe). En **league**,
+   le K dépend du `matches_played` de chaque joueur : un débutant (<20, K=32) et
+   un confirmé (K=16) gagnent donc des deltas différents pour le même match. En
+   **event**, K=64 pour tous → deltas identiques entre coéquipiers.
 
 ## Anti-cheat / confirmation
 

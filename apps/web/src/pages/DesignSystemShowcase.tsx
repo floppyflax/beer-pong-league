@@ -769,7 +769,7 @@ export function DesignSystemShowcase() {
                 <PlayerCard variant="compact" name="Florian" avatarUrl="https://i.pravatar.cc/150?img=12" selected />
                 <PlayerCard variant="compact" name="Amar" />
               </div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pt-2">variant=&quot;leaderRow&quot; — médaillon rang en bas-droite de l&apos;avatar, badge ▲/▼ rang en haut-gauche, ELO (blanc) + ΔELO (lime/rouge) sur la ligne du nom (ELO aligné à droite), stats W/L/% à gauche + dots derniers matchs alignés à droite sous l&apos;ELO</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-cool-gray pt-2">variant=&quot;leaderRow&quot; — médaillon rang en bas-droite de l&apos;avatar, badge ▲/▼/= rang en haut-gauche (= gris = resté sur place), ELO (blanc) + ΔELO (lime/rouge) sur la ligne du nom (ELO aligné à droite), stats W/L/% à gauche + dots derniers matchs alignés à droite sous l&apos;ELO</p>
               <div className="space-y-2 max-w-md">
                 <PlayerCard
                   variant="leaderRow"
@@ -793,6 +793,17 @@ export function DesignSystemShowcase() {
                   wins={10}
                   losses={2}
                   recentResults={[true, false, true, true, true]}
+                />
+                <PlayerCard
+                  variant="leaderRow"
+                  name="Chloé Bernard"
+                  elo={1320}
+                  rank={3}
+                  delta={6}
+                  rankDelta={0}
+                  wins={8}
+                  losses={8}
+                  recentResults={[true, false, false, true, true]}
                 />
                 <PlayerCard
                   variant="leaderRow"

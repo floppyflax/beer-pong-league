@@ -5,6 +5,16 @@ import './index.css'
 import { registerSW } from 'virtual:pwa-register'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { initShared, storageFromLocalStorage } from '@elofight/shared'
+import { reloadForStaleChunk } from './utils/lazyWithRetry'
+
+// A modulepreloaded chunk failed to load — almost always a stale deploy
+// (an old hashed asset 404s and the SPA rewrite serves index.html). Recover
+// with a throttled reload; if throttled, let it surface to the ErrorBoundary.
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadForStaleChunk()) {
+    event.preventDefault()
+  }
+})
 
 const origin =
   typeof window !== 'undefined' && window.location

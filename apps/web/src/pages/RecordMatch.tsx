@@ -23,6 +23,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Sheet } from "@/components/design-system/Sheet";
 import { PButton } from "@/components/ponglo/PButton";
 import { SearchBar, ScreenLayout, StickyCTA } from "@/components/design-system";
+import { deriveMatchScore } from "@/components/design-system/page-specific/recordMatchInternals";
 import { PhotoFinishWizard } from "@/components/match/PhotoFinishWizard";
 import { X, UserPlus, Check, ChevronDown, ChevronLeft, Trophy, Calendar, Minus, Plus, Lock } from "lucide-react";
 import toast from "react-hot-toast";
@@ -759,16 +760,15 @@ export const RecordMatch = () => {
     setPlayerTeams(teams);
     const winner: Team = editedMatch.scoreA > editedMatch.scoreB ? "A" : "B";
     setWinnerTeam(winner);
+    // Score = gobelets restants du vainqueur. Gobelets tombés sur sa rack =
+    // TOTAL_CUPS - score. Clampé à [0, TOTAL_CUPS - 1] : le vainqueur garde
+    // toujours ≥ 1 gobelet (et on tolère d'anciens matchs en convention
+    // legacy où le score du vainqueur valait 10).
     const winnerScore = winner === "A" ? editedMatch.scoreA : editedMatch.scoreB;
-    const loserScore = winner === "A" ? editedMatch.scoreB : editedMatch.scoreA;
-    // Winner has TOTAL_CUPS - (10 - loserScore) cups remaining = loserScore
-    // dropped on its rack? Actually our model: dropped cups on winner's rack
-    // = TOTAL_CUPS - winner_cups_remaining. The recorded scoreA/scoreB only
-    // tells us the loser's points (winner always = TOTAL_CUPS = 10). So
-    // dropped on winner = TOTAL_CUPS - winnerCupsRemaining where
-    // winnerCupsRemaining = TOTAL_CUPS - loserScore.
-    const droppedCount = Math.max(0, TOTAL_CUPS - (TOTAL_CUPS - loserScore));
-    void winnerScore;
+    const droppedCount = Math.min(
+      TOTAL_CUPS - 1,
+      Math.max(0, TOTAL_CUPS - winnerScore),
+    );
     setWinnerDroppedCups(new Set(ELIMINATION_ORDER.slice(0, droppedCount)));
     setStep("compose");
     setEditPrefilled(true);
@@ -806,23 +806,16 @@ export const RecordMatch = () => {
       ? teamAPlayers.length === teamSize && teamBPlayers.length === teamSize
       : teamAPlayers.length >= 1 && teamBPlayers.length >= 1;
 
-  // Derived scores: winner's points = 10 (always — they reached the goal),
-  // loser's points = 10 - (winner's cups remaining).
+  // Score = gobelets restants (cf. deriveMatchScore) : le vainqueur marque ses
+  // gobelets restants (1..10), le perdant 0. C'est exactement ce que la saisie
+  // affiche (TableSide : loser → 0, winner → cupsRemaining), donc le score
+  // persisté == score saisi == score validé.
   const winnerCupsRemaining = TOTAL_CUPS - winnerDroppedCups.size;
   const droppedA = winnerTeam === "A" ? winnerDroppedCups : EMPTY_DROPPED;
   const droppedB = winnerTeam === "B" ? winnerDroppedCups : EMPTY_DROPPED;
-  const scoreA =
-    winnerTeam === "A"
-      ? TOTAL_CUPS
-      : winnerTeam === "B"
-        ? TOTAL_CUPS - winnerCupsRemaining
-        : 0;
-  const scoreB =
-    winnerTeam === "B"
-      ? TOTAL_CUPS
-      : winnerTeam === "A"
-        ? TOTAL_CUPS - winnerCupsRemaining
-        : 0;
+  const { scoreA, scoreB } = winnerTeam
+    ? deriveMatchScore(winnerTeam, winnerCupsRemaining)
+    : { scoreA: 0, scoreB: 0 };
   const winner: Team | null = winnerTeam;
   const isScoreValid = winner !== null;
 
@@ -976,9 +969,10 @@ export const RecordMatch = () => {
       }
 
       // Mig 030 — when anti-cheat is on, the match is pending: skip the
-      // EloChangeDisplay payload (no preview while awaiting confirmation),
-      // skip the photo-finish wizard (no meaningful winner state yet), and
-      // toast a dedicated message. Otherwise proceed with the legacy flow.
+      // EloChangeDisplay payload (no ELO preview while awaiting confirmation)
+      // and toast a dedicated message. The photo-finish wizard still opens —
+      // the winner is chosen at record time, independent of ELO confirmation.
+      // Otherwise proceed with the legacy flow.
       let createdMatchId: string | null = null;
       if (contextType === "event" && event) {
         const result = await recordEventMatch(
@@ -990,6 +984,7 @@ export const RecordMatch = () => {
           participants,
         );
         if (result?.status === 'pending') {
+          createdMatchId = result.matchId;
           toast.success("Score envoyé en validation", { icon: "⏳" });
         } else if (result) {
           sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(result.eloChanges));
@@ -997,8 +992,11 @@ export const RecordMatch = () => {
           toast.success("Match enregistré !");
         }
       } else if (contextType === "league") {
-        const result = await recordMatch(id, teamAIds, teamBIds, winner);
+        const result = await recordMatch(id, teamAIds, teamBIds, winner, {
+          cupsRemaining: winnerCupsRemaining,
+        });
         if (result?.status === 'pending') {
+          createdMatchId = result.matchId;
           toast.success("Score envoyé en validation", { icon: "⏳" });
         } else if (result) {
           sessionStorage.setItem(`eloChanges_${id}`, JSON.stringify(result.eloChanges));
@@ -1279,8 +1277,8 @@ export const RecordMatch = () => {
             })),
           }}
           score={{
-            winner: TOTAL_CUPS,
-            loser: TOTAL_CUPS - winnerCupsRemaining,
+            winner: winnerCupsRemaining,
+            loser: 0,
           }}
           cupsRemaining={winnerCupsRemaining}
           contextLabel={event?.name ?? league?.name}

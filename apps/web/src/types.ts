@@ -6,6 +6,7 @@ export interface Player {
   losses: number;
   matchesPlayed: number;
   streak: number; // Positive for win streak, negative for loss streak
+  avatarUrl?: string | null; // Snapshot of users.avatar_url, propagated to players.avatar_url
 }
 
 export interface Team {
@@ -57,6 +58,15 @@ export interface League {
   /** @deprecated since mig 022. Always null. Kept for legacy callers; use creator_user_id. */
   creator_anonymous_user_id?: string | null;
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
+  /**
+   * Mig 032 — Who validates scores when anti_cheat_enabled = TRUE on a
+   * league-only match (no event linked).
+   *   - 'opponent' (default) : a player from the opposing team confirms.
+   *     Admin (league creator) can always bypass.
+   *   - 'admin' : only the admin can confirm.
+   * Ignored when anti_cheat_enabled = FALSE.
+   */
+  scoreValidator?: 'opponent' | 'admin';
   // Mig 028 — lifecycle + saisons
   // Derived state: see apps/web/src/utils/leagueLifecycle.ts
   pausedAt?: string | null;            // ISO timestamp — admin "Mettre en pause"

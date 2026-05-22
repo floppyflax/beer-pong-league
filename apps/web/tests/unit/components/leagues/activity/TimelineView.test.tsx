@@ -46,10 +46,17 @@ const renderWithRouter = (ui: React.ReactElement) =>
     </BrowserRouter>,
   );
 
+const emptyParticipantsMap = new Map<string, Player[]>();
+
 describe("TimelineView", () => {
   it("renders empty state with CTA when no entries", () => {
     renderWithRouter(
-      <TimelineView entries={[]} players={players} leagueId="lg1" />,
+      <TimelineView
+        entries={[]}
+        leaguePlayers={players}
+        leagueId="lg1"
+        participantsByEvent={emptyParticipantsMap}
+      />,
     );
     expect(screen.getByText(/aucun match/i)).toBeInTheDocument();
     expect(
@@ -61,8 +68,9 @@ describe("TimelineView", () => {
     renderWithRouter(
       <TimelineView
         entries={[{ match: makeMatch("m1", 0), event: null }]}
-        players={players}
+        leaguePlayers={players}
         leagueId="lg1"
+        participantsByEvent={emptyParticipantsMap}
       />,
     );
     expect(screen.getByText("Aujourd'hui")).toBeInTheDocument();
@@ -77,13 +85,12 @@ describe("TimelineView", () => {
           { match: twoDaysAgo, event: null },
           { match: today, event: null },
         ]}
-        players={players}
+        leaguePlayers={players}
         leagueId="lg1"
+        participantsByEvent={emptyParticipantsMap}
       />,
     );
-    // 2 date sections au moins.
     expect(screen.getByText("Aujourd'hui")).toBeInTheDocument();
-    // Le match ancien apparaît en bas (après le today).
     const sections = screen.getAllByRole("region");
     expect(sections.length).toBeGreaterThanOrEqual(2);
   });
@@ -93,8 +100,9 @@ describe("TimelineView", () => {
     renderWithRouter(
       <TimelineView
         entries={[{ match: makeMatch("m1", 0), event }]}
-        players={players}
+        leaguePlayers={players}
         leagueId="lg1"
+        participantsByEvent={new Map([["e1", players]])}
       />,
     );
     const chip = screen.getByRole("button", {
@@ -111,8 +119,9 @@ describe("TimelineView", () => {
     renderWithRouter(
       <TimelineView
         entries={[{ match: makeMatch("m1", 0), event: null }]}
-        players={players}
+        leaguePlayers={players}
         leagueId="lg1"
+        participantsByEvent={emptyParticipantsMap}
       />,
     );
     expect(screen.getByText(/Hors événement/i)).toBeInTheDocument();

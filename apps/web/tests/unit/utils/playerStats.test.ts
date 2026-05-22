@@ -86,13 +86,13 @@ describe("getRankDeltasFromLastMatch", () => {
     const deltas = getRankDeltasFromLastMatch(players, matches);
     expect(deltas.get("a")).toBe(1); // climbed 1 place
     expect(deltas.get("b")).toBe(-1); // dropped 1 place
-    expect(deltas.get("c")).toBe(0); // unchanged
+    expect(deltas.has("c")).toBe(false); // C didn't play → no badge
   });
 
-  it("reports delta for non-participants when they get passed", () => {
+  it("omits non-participants even when their rank shifts", () => {
     // Before match: A 1500, C 1450, B 1400 → A=1, C=2, B=3
     // After match (B beats D, large swing): A 1500, B 1480, C 1450 → A=1, B=2, C=3
-    // C did not play but dropped 1 rank, B climbed 1 rank.
+    // C did not play but dropped 1 rank; only B played and is reported.
     const players = sortedPlayers([
       { id: "a", elo: 1500 },
       { id: "b", elo: 1480 },
@@ -109,9 +109,9 @@ describe("getRankDeltasFromLastMatch", () => {
       },
     ];
     const deltas = getRankDeltasFromLastMatch(players, matches);
-    expect(deltas.get("a")).toBe(0);
-    expect(deltas.get("b")).toBe(1); // climbed
-    expect(deltas.get("c")).toBe(-1); // got passed
+    expect(deltas.get("b")).toBe(1); // climbed — played
+    expect(deltas.has("a")).toBe(false); // A didn't play
+    expect(deltas.has("c")).toBe(false); // C didn't play, even though it dropped a rank
   });
 
   it("handles multi-position climbs", () => {
@@ -143,9 +143,34 @@ describe("getRankDeltasFromLastMatch", () => {
     expect(players.map((p) => p.id)).toEqual(["a", "b"]);
 
     const deltas = getRankDeltasFromLastMatch(current, matches);
-    expect(deltas.get("a")).toBe(3); // 4 → 1
-    expect(deltas.get("b")).toBe(-1); // 1 → 2
-    expect(deltas.get("c")).toBe(-1); // 2 → 3
-    expect(deltas.get("d")).toBe(-1); // 3 → 4
+    expect(deltas.get("a")).toBe(3); // 4 → 1 — the only participant
+    expect(deltas.has("b")).toBe(false); // shifted 1 → 2 but didn't play
+    expect(deltas.has("c")).toBe(false); // shifted 2 → 3 but didn't play
+    expect(deltas.has("d")).toBe(false); // shifted 3 → 4 but didn't play
+  });
+
+  it("keeps a participant who stayed on the same rank (delta 0)", () => {
+    // A and B both play; A wins but doesn't pass C above → A stays rank 2.
+    // Before: C 1600, A 1500, B 1490 → C=1, A=2, B=3
+    // After (A beats B): C 1600, A 1510, B 1480 → C=1, A=2, B=3
+    const players = sortedPlayers([
+      { id: "c", elo: 1600 },
+      { id: "a", elo: 1510 },
+      { id: "b", elo: 1480 },
+    ]);
+    const matches: Match[] = [
+      {
+        date: "2026-05-20",
+        teamA: ["a"],
+        teamB: ["b"],
+        scoreA: 11,
+        scoreB: 9,
+        eloChanges: { a: 10, b: -10 },
+      },
+    ];
+    const deltas = getRankDeltasFromLastMatch(players, matches);
+    expect(deltas.get("a")).toBe(0); // played, stayed on rank 2
+    expect(deltas.get("b")).toBe(0); // played, stayed on rank 3
+    expect(deltas.has("c")).toBe(false); // didn't play
   });
 });

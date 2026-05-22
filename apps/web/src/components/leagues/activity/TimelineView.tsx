@@ -4,6 +4,10 @@
  * Affiche tous les matchs (libres + dans events) classés chronologiquement
  * en ordre décroissant, regroupés par headers de date ("Aujourd'hui",
  * "Hier", jour de semaine si < 7j, sinon "18 mai" ou "18 mai 25").
+ *
+ * Les participants des events sont passés via `participantsByEvent` pour
+ * que les match cards résolvent les noms (cf. GroupedView). Les matchs
+ * libres (sans event) utilisent `leaguePlayers`.
  */
 
 import { useMemo } from "react";
@@ -21,8 +25,11 @@ export interface TimelineMatchEntry {
 
 export interface TimelineViewProps {
   entries: TimelineMatchEntry[];
-  players: Player[];
+  leaguePlayers: Player[];
   leagueId: string;
+  participantsByEvent: Map<string, Player[]>;
+  /** Mig 032 — propagated to TimelineMatchCard for the "Validé" badge. */
+  antiCheatEnabled?: boolean;
 }
 
 const WEEKDAY_NAMES = [
@@ -85,8 +92,10 @@ function dateHeaderLabel(isoDay: string): string {
 
 export const TimelineView = ({
   entries,
-  players,
+  leaguePlayers,
   leagueId,
+  participantsByEvent,
+  antiCheatEnabled = false,
 }: TimelineViewProps) => {
   const navigate = useNavigate();
 
@@ -140,14 +149,20 @@ export const TimelineView = ({
             <span className="flex-1 h-px bg-card/30" aria-hidden="true" />
           </div>
           <div className="space-y-2">
-            {items.map((entry) => (
-              <TimelineMatchCard
-                key={entry.match.id}
-                match={entry.match}
-                event={entry.event}
-                players={players}
-              />
-            ))}
+            {items.map((entry) => {
+              const players = entry.event
+                ? participantsByEvent.get(entry.event.id) ?? []
+                : leaguePlayers;
+              return (
+                <TimelineMatchCard
+                  key={entry.match.id}
+                  match={entry.match}
+                  event={entry.event}
+                  players={players}
+                  antiCheatEnabled={antiCheatEnabled}
+                />
+              );
+            })}
           </div>
         </section>
       ))}

@@ -21,6 +21,7 @@ import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useDetailPagePermissions } from "../hooks/useDetailPagePermissions";
+import { usePendingMatches } from "@/hooks/usePendingMatches";
 import {
   SegmentedTabs,
   FAB,
@@ -125,6 +126,10 @@ export const LeagueDashboard = () => {
   // Story 9-5 - Get permissions for contextual actions
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { isAdmin, canInvite } = useDetailPagePermissions(id || "", "league");
+
+  // Mig 032 — anti-cheat: pending league-only matches the current user can validate.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { count: pendingValidationCount } = usePendingMatches({ leagueId: id });
 
   const handleInviteAddManual = (name: string) => {
     const trimmed = name.trim();
@@ -362,6 +367,19 @@ export const LeagueDashboard = () => {
         />
       ) : null}
 
+      {/* Mig 032 — anti-cheat: pending validation banner. Same visual tone as
+          on EventDashboard (LifecycleStrip pending_validation). */}
+      {pendingValidationCount > 0 && (
+        <LifecycleStrip
+          tone="pending_validation"
+          testId="pending-validation-banner"
+          title={`${pendingValidationCount} match${pendingValidationCount > 1 ? "s" : ""} à valider`}
+          description="Confirme ou refuse les scores en attente avant la mise à jour de l'ELO."
+          actionLabel="Valider"
+          onAction={() => navigate(`/league/${league.id}/validate`)}
+        />
+      )}
+
       {/* SegmentedTabs: Activité / Classement / Stats — le tab Events a fusionné
           dans Activité (cf. LeagueActivityFeed). */}
       <div className="px-4 pt-4 pb-4">
@@ -408,6 +426,7 @@ export const LeagueDashboard = () => {
                       id: p.id,
                       name: p.name,
                       elo: p.elo,
+                      avatar: p.avatarUrl ?? undefined,
                       delta:
                         getDeltaFromLastMatch(p.id, sortedMatches) ?? undefined,
                       rankDelta: rankDeltas.get(p.id),
@@ -432,6 +451,7 @@ export const LeagueDashboard = () => {
                         key={player.id}
                         variant="leaderRow"
                         name={player.name}
+                        avatarUrl={player.avatarUrl ?? undefined}
                         elo={player.elo}
                         delta={delta ?? undefined}
                         rankDelta={rankDeltas.get(player.id)}

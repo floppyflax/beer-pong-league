@@ -14,6 +14,19 @@ vi.mock("../../../src/hooks/useDetailPagePermissions", () => ({
   useDetailPagePermissions: vi.fn(),
 }));
 
+// Mig 032 — usePendingMatches reads auth context + queries Supabase; mock it
+// so the dashboard tests don't need an AuthProvider wrapper.
+vi.mock("../../../src/hooks/usePendingMatches", () => ({
+  usePendingMatches: () => ({
+    pendingMatches: [],
+    count: 0,
+    isLoading: false,
+    refresh: vi.fn(),
+    confirmMatch: vi.fn(),
+    rejectMatch: vi.fn(),
+  }),
+}));
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
@@ -88,13 +101,14 @@ describe("LeagueDashboard - Story 14-17", () => {
   });
 
   describe("AC2 - InfoCard", () => {
-    it("should display status badge En cours", () => {
+    it("should display status badge Active", () => {
       render(
         <BrowserRouter>
           <LeagueDashboard />
         </BrowserRouter>,
       );
-      expect(screen.getByText("En cours")).toBeInTheDocument();
+      // mig 029 — hero status label for an active season league is "Active".
+      expect(screen.getByText("Active")).toBeInTheDocument();
     });
 
     it("should display format info", () => {
@@ -103,8 +117,8 @@ describe("LeagueDashboard - Story 14-17", () => {
           <LeagueDashboard />
         </BrowserRouter>,
       );
-      // DetailHero meta chip: "Championnat par saison" (type === "season")
-      expect(screen.getByText(/Championnat par saison/i)).toBeInTheDocument();
+      // mig 029 — the season is conveyed by the meta chip "Saison N · démarrée le …".
+      expect(screen.getByText(/Saison 1/i)).toBeInTheDocument();
     });
 
     it("should display player count via Joueurs stat cell", () => {
@@ -226,11 +240,13 @@ describe("LeagueDashboard - Story 14-17", () => {
       );
 
       // Tab "Activité" est actif par défaut. Sans event sur la ligue,
-      // le LeagueActivityFeed force le mode timeline (basé sur MatchHistoryCard
+      // le LeagueActivityFeed force le mode timeline (basé sur LeagueMatchCard
       // qui embarque photo + cups badge via MatchEnrichedDisplay).
       expect(screen.getByText(/3 gobelets restants/i)).toBeInTheDocument();
+      // The photo finish is now opened via a "Photo" button (the thumbnail img
+      // is decorative, alt=""); the enlarged collage carries the alt text.
       expect(
-        screen.getByRole("img", { name: /photo de l'équipe gagnante/i }),
+        screen.getByRole("button", { name: /voir la photo finish/i }),
       ).toBeInTheDocument();
     });
   });
@@ -249,9 +265,9 @@ describe("LeagueDashboard - Story 14-17", () => {
         </BrowserRouter>,
       );
 
-      // Open add player modal via Inviter button on the DetailHero
-      const inviterButton = screen.getByRole("button", { name: /Inviter/i });
-      fireEvent.click(inviterButton);
+      // Open add player modal via the "Ajouter" button on the DetailHero
+      const addButton = screen.getByRole("button", { name: "Ajouter" });
+      fireEvent.click(addButton);
 
       const input = screen.getByPlaceholderText("Pseudo du joueur");
       fireEvent.change(input, { target: { value: "   " } });

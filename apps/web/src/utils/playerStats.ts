@@ -53,19 +53,22 @@ export function getLast5MatchResults(
 }
 
 /**
- * Variation de rang vs dernier match — calcule, pour chaque joueur du
- * classement courant (`playersSortedByElo`, déjà trié ELO desc), de combien
- * de places il a monté (>0) ou descendu (<0) depuis l'avant-dernier match.
+ * Variation de rang vs dernier match — calcule, pour chaque **participant du
+ * dernier match**, de combien de places il a monté (>0), descendu (<0) ou s'il
+ * est resté sur place (0) par rapport à l'avant-dernier match.
  *
- * Le calcul reconstruit l'ELO avant le dernier match en retirant
- * `lastMatch.eloChanges[playerId]` à chaque joueur (0 par défaut pour les
- * non-participants), puis re-trie pour obtenir le rang précédent.
+ * Le rang précédent est reconstruit en retirant `lastMatch.eloChanges[playerId]`
+ * à l'ELO courant de **tous** les joueurs du classement (0 par défaut pour les
+ * non-participants), puis en re-triant. Mais seuls les joueurs présents dans
+ * `lastMatch.teamA`/`teamB` sont retournés : un non-participant que le match a
+ * fait reculer/avancer n'apparaît PAS dans la Map (évite d'afficher un "resté
+ * sur place" sur toute la majorité des joueurs non concernés par le match).
  *
  * Retourne une Map vide si aucun match ou si le dernier match n'a pas
  * d'`eloChanges` (match non-ranked / non-confirmé).
  *
- * Un delta de 0 reste présent dans la Map — laisser le consommateur décider
- * de l'afficher ou non.
+ * Convention de lecture côté UI : `undefined` (absent) = n'a pas joué → aucun
+ * badge ; `0` = a joué et resté sur place → badge neutre ; `≠0` = ▲/▼ places.
  */
 export function getRankDeltasFromLastMatch(
   playersSortedByElo: { id: string; elo: number }[],
@@ -77,6 +80,7 @@ export function getRankDeltasFromLastMatch(
   const lastMatch = matches[0];
   if (!lastMatch || !lastMatch.eloChanges) return result;
   const eloChanges = lastMatch.eloChanges;
+  const participants = new Set([...lastMatch.teamA, ...lastMatch.teamB]);
 
   const snapshot = playersSortedByElo.map((p, i) => ({
     id: p.id,
@@ -91,6 +95,7 @@ export function getRankDeltasFromLastMatch(
   });
 
   sortedByPrev.forEach((s, i) => {
+    if (!participants.has(s.id)) return;
     const previousRank = i + 1;
     result.set(s.id, previousRank - s.currentRank);
   });

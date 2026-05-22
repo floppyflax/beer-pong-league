@@ -70,7 +70,7 @@ describe("PlayerCard", () => {
       expect(badge).toHaveAttribute("aria-label", "Descendu de 1 place");
     });
 
-    it("does not render the badge when rankDelta is 0", () => {
+    it("renders a neutral 'stayed put' badge when rankDelta is 0", () => {
       render(
         <PlayerCard
           variant="leaderRow"
@@ -80,7 +80,11 @@ describe("PlayerCard", () => {
           rankDelta={0}
         />,
       );
-      expect(screen.queryByTestId("playercard-rank-delta")).toBeNull();
+      const badge = screen.getByTestId("playercard-rank-delta");
+      expect(badge).toHaveClass("bg-cool-gray");
+      expect(badge).toHaveAttribute("aria-label", "Place inchangée");
+      // no place count shown when the rank is unchanged
+      expect(badge).not.toHaveTextContent(/[0-9]/);
     });
 
     it("does not render the badge when rankDelta is undefined", () => {
@@ -93,6 +97,68 @@ describe("PlayerCard", () => {
         />,
       );
       expect(screen.queryByTestId("playercard-rank-delta")).toBeNull();
+    });
+  });
+
+  describe("variant leaderRow — size display", () => {
+    it("renders without chevron in display size", () => {
+      const { container } = render(
+        <PlayerCard
+          variant="leaderRow"
+          name="Niko"
+          elo={1037}
+          rank={1}
+          wins={5}
+          losses={3}
+          recentResults={[true, false, true, true, true]}
+          size="display"
+        />,
+      );
+      // Le chevron n'est pas rendu en display
+      const svgs = container.querySelectorAll("svg");
+      // Avatar + rank ne génèrent pas de SVG ici, mais on en a 0 ou 1 (avatar)
+      // Le chevron lucide rend un svg — on vérifie qu'aucun ne porte la
+      // lucide-chevron-right class.
+      svgs.forEach((svg) => {
+        expect(svg.getAttribute("class") ?? "").not.toContain(
+          "lucide-chevron-right",
+        );
+      });
+    });
+
+    it("applies the bigger (but compact) display paddings and font sizes", () => {
+      render(
+        <PlayerCard
+          variant="leaderRow"
+          name="Flo"
+          elo={1029}
+          rank={2}
+          size="display"
+        />,
+      );
+      const card = screen.getByTestId("playercard-leaderrow");
+      // Padding/gap compacts mais distincts du défaut
+      expect(card).toHaveClass("p-3");
+      expect(card).toHaveClass("gap-4");
+      // Nom en text-2xl (vs text-base par défaut)
+      const name = screen.getByText("Flo");
+      expect(name.className).toContain("text-2xl");
+    });
+
+    it("keeps default size when size prop is omitted", () => {
+      render(
+        <PlayerCard
+          variant="leaderRow"
+          name="Amar"
+          elo={1010}
+          rank={3}
+        />,
+      );
+      const card = screen.getByTestId("playercard-leaderrow");
+      expect(card).toHaveClass("p-4");
+      expect(card).not.toHaveClass("p-3");
+      // Nom en text-base (taille par défaut)
+      expect(screen.getByText("Amar").className).toContain("text-base");
     });
   });
 });

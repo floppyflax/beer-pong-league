@@ -12,7 +12,7 @@
  * - ELO delta (±N) → left of the ELO so the ELO column stays right-aligned
  */
 
-import { TrendingDown, TrendingUp } from 'lucide-react';
+import { Equal, TrendingDown, TrendingUp } from 'lucide-react';
 import { PAvatar } from './PAvatar';
 import { Sparkline } from './Sparkline';
 
@@ -21,7 +21,7 @@ export interface LeaderboardPlayer {
   name: string;
   elo: number;
   delta?: number;
-  /** Variation de rang vs dernier match (>0 monté, <0 descendu, 0/undefined masqué). */
+  /** Variation de rang vs dernier match (>0 monté, <0 descendu, 0 resté sur place, undefined = n'a pas joué → masqué). */
   rankDelta?: number;
   eloHistory?: number[];
   avatarUrl?: string;
@@ -80,28 +80,34 @@ export function LeaderRow({ rank, player, isMe = false, onClick }: LeaderRowProp
           ring={ring}
           imageUrl={player.avatarUrl}
         />
-        {typeof player.rankDelta === 'number' && player.rankDelta !== 0 && (
+        {typeof player.rankDelta === 'number' && (
           <span
             className={`absolute -top-1 -left-1 min-w-[16px] h-[16px] px-0.5 rounded-full flex items-center gap-0.5 justify-center text-[9px] font-mono font-extrabold tabular-nums ring-2 ${
               isMe ? 'ring-electric-blue/40' : 'ring-navy-soft'
             } ${
               player.rankDelta > 0
                 ? 'bg-lime text-navy'
-                : 'bg-signal-red text-white'
+                : player.rankDelta < 0
+                  ? 'bg-signal-red text-white'
+                  : 'bg-cool-gray text-navy'
             }`}
             data-testid="leader-row-rank-delta"
-            aria-label={`${
-              player.rankDelta > 0 ? 'Monté de' : 'Descendu de'
-            } ${Math.abs(player.rankDelta)} ${
-              Math.abs(player.rankDelta) > 1 ? 'places' : 'place'
-            }`}
+            aria-label={
+              player.rankDelta > 0
+                ? `Monté de ${player.rankDelta} ${player.rankDelta > 1 ? 'places' : 'place'}`
+                : player.rankDelta < 0
+                  ? `Descendu de ${Math.abs(player.rankDelta)} ${Math.abs(player.rankDelta) > 1 ? 'places' : 'place'}`
+                  : 'Place inchangée'
+            }
           >
             {player.rankDelta > 0 ? (
               <TrendingUp size={9} aria-hidden />
-            ) : (
+            ) : player.rankDelta < 0 ? (
               <TrendingDown size={9} aria-hidden />
+            ) : (
+              <Equal size={9} aria-hidden />
             )}
-            {Math.abs(player.rankDelta)}
+            {player.rankDelta !== 0 && Math.abs(player.rankDelta)}
           </span>
         )}
       </div>

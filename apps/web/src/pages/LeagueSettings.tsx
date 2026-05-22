@@ -8,6 +8,7 @@ import {
   Play,
   Plus,
   RotateCcw,
+  ShieldCheck,
   Trash2,
   Trophy,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { GhostManagementSheet } from "@/components/design-system";
 import { PButton } from "@/components/ponglo/PButton";
+import type { LeagueUpdates } from "@/services/DatabaseService";
 
 export const LeagueSettings = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,17 +51,33 @@ export const LeagueSettings = () => {
   } = useUnclaimedGuests("league", id, { mode: "any" });
 
   const [name, setName] = useState(league?.name ?? "");
+  // Mig 032 — anti-cheat toggle + validator mode (mirror EventSettings).
+  const [antiCheatEnabled, setAntiCheatEnabled] = useState<boolean>(
+    league?.anti_cheat_enabled === true,
+  );
+  const [scoreValidator, setScoreValidator] = useState<'opponent' | 'admin'>(
+    league?.scoreValidator ?? 'opponent',
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [showGhostMgmt, setShowGhostMgmt] = useState(false);
 
   useEffect(() => {
-    if (league) setName(league.name);
+    if (league) {
+      setName(league.name);
+      setAntiCheatEnabled(league.anti_cheat_enabled === true);
+      setScoreValidator(league.scoreValidator ?? 'opponent');
+    }
   }, [league?.id]);
 
   const isDirty = useMemo(() => {
     if (!league) return false;
-    return name.trim() !== league.name && name.trim().length > 0;
-  }, [league, name]);
+    const nameDirty = name.trim() !== league.name && name.trim().length > 0;
+    const antiCheatDirty = antiCheatEnabled !== (league.anti_cheat_enabled === true);
+    const validatorDirty =
+      antiCheatEnabled &&
+      scoreValidator !== (league.scoreValidator ?? 'opponent');
+    return nameDirty || antiCheatDirty || validatorDirty;
+  }, [league, name, antiCheatEnabled, scoreValidator]);
 
   if (isLoadingInitialData) {
     return (
@@ -112,13 +130,34 @@ export const LeagueSettings = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
-    if (!trimmed || trimmed === league.name) {
+    if (!trimmed) {
+      toast("Le nom ne peut pas être vide");
+      return;
+    }
+
+    const updates: LeagueUpdates = {};
+    if (trimmed !== league.name) updates.name = trimmed;
+    // Mig 032 — anti-cheat + score validator. We send the validator even
+    // when anti-cheat goes from ON → OFF so the admin's preference survives
+    // a future re-enable.
+    const initialAntiCheat = league.anti_cheat_enabled === true;
+    if (antiCheatEnabled !== initialAntiCheat) {
+      updates.antiCheatEnabled = antiCheatEnabled;
+    }
+    const initialValidator: 'opponent' | 'admin' =
+      league.scoreValidator ?? 'opponent';
+    if (scoreValidator !== initialValidator) {
+      updates.scoreValidator = scoreValidator;
+    }
+
+    if (Object.keys(updates).length === 0) {
       toast("Aucun changement à enregistrer");
       return;
     }
+
     setIsSaving(true);
     try {
-      await updateLeague(league.id, trimmed, league.type);
+      await updateLeague(league.id, updates);
       toast.success("Paramètres enregistrés");
     } catch (err) {
       console.error("Error saving league settings:", err);
@@ -272,6 +311,18 @@ export const LeagueSettings = () => {
   const inputClass =
     "w-full bg-navy-deep border-[1.5px] border-card rounded-md p-3 text-white placeholder-cool-gray focus:outline-none focus:border-lime focus:ring-2 focus:ring-lime/20 transition-colors";
 
+  // Mig 032 — toggle styles (mirror EventSettings / CreateLeague).
+  const toggleClass = (on: boolean) =>
+    `relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-electric-blue focus:ring-offset-navy ${
+      on
+        ? "bg-electric-blue border-electric-blue"
+        : "bg-navy-deep border-card"
+    }`;
+  const toggleKnob = (on: boolean) =>
+    `pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+      on ? "translate-x-5" : "translate-x-0"
+    }`;
+
   return (
     <div className="min-h-screen bg-navy text-white">
       <ContextualHeader
@@ -329,6 +380,96 @@ export const LeagueSettings = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Anti-triche — Mig 032. Toggle + conditional validator radio.
+            Mirror du pattern EventSettings (commit 62393f0). */}
+        <div className="space-y-2">
+          <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck size={12} />
+              Anti-triche
+            </span>
+          </span>
+
+          <div
+            className="flex items-center justify-between gap-4 p-3 bg-navy-deep border border-card rounded-card"
+            data-testid="anti-cheat-toggle-row"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-archivo font-semibold text-sm">
+                Validation des scores
+              </div>
+              <div className="text-cool-gray text-xs mt-0.5">
+                Les matchs restent en attente jusqu&apos;à validation.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAntiCheatEnabled((v) => !v)}
+              className={toggleClass(antiCheatEnabled)}
+              aria-label="Validation des scores"
+              aria-pressed={antiCheatEnabled}
+              data-testid="anti-cheat-toggle"
+            >
+              <span className={toggleKnob(antiCheatEnabled)} />
+            </button>
+          </div>
+
+          {antiCheatEnabled && (
+            <div
+              className="space-y-1.5"
+              data-testid="score-validator-options"
+            >
+              <span className="font-mono uppercase text-[10px] tracking-[2px] text-cool-gray block">
+                Validateur
+              </span>
+              {[
+                {
+                  value: 'opponent' as const,
+                  label: "Par l'équipe adverse",
+                  description:
+                    "Un joueur de l'équipe adverse doit confirmer.",
+                },
+                {
+                  value: 'admin' as const,
+                  label: "Par l'admin",
+                  description:
+                    "Seul l'admin de la ligue peut valider.",
+                },
+              ].map((option) => {
+                const active = scoreValidator === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex items-center gap-3 p-3 rounded-card border cursor-pointer transition-colors ${
+                      active
+                        ? 'border-electric-blue bg-electric-blue/10'
+                        : 'border-card bg-navy-deep hover:border-card-muted'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="score-validator"
+                      value={option.value}
+                      checked={active}
+                      onChange={() => setScoreValidator(option.value)}
+                      className="accent-electric-blue"
+                      data-testid={`score-validator-${option.value}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-archivo font-semibold text-sm">
+                        {option.label}
+                      </div>
+                      <div className="text-cool-gray text-xs">
+                        {option.description}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Lifecycle ligue (mig 029) — état + Clôturer/Réouvrir */}

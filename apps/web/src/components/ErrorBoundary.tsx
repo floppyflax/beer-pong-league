@@ -1,6 +1,7 @@
 import { Component, ReactNode } from 'react';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 import { PButton } from './ponglo/PButton';
+import { isChunkLoadError } from '../utils/lazyWithRetry';
 
 /**
  * Error Boundary component props
@@ -117,8 +118,13 @@ interface DefaultErrorFallbackProps {
 }
 
 function DefaultErrorFallback({ error, errorInfo, reset }: DefaultErrorFallbackProps) {
+  const isStaleChunk = isChunkLoadError(error);
+
   const handleGoHome = () => {
     window.location.href = '/';
+  };
+  const handleReload = () => {
+    window.location.reload();
   };
 
   return (
@@ -129,10 +135,14 @@ function DefaultErrorFallback({ error, errorInfo, reset }: DefaultErrorFallbackP
         </div>
 
         <h1 className="font-archivo font-extrabold uppercase tracking-[-0.5px] text-white text-2xl mb-2">
-          Oups ! Quelque chose s'est mal passé
+          {isStaleChunk
+            ? 'Nouvelle version disponible'
+            : "Oups ! Quelque chose s'est mal passé"}
         </h1>
         <p className="text-cool-gray text-sm leading-relaxed mb-6">
-          Une erreur inattendue s'est produite. Réessaie ou retourne à l'accueil.
+          {isStaleChunk
+            ? "Une nouvelle version de l'app vient d'être déployée. Recharge la page pour continuer."
+            : "Une erreur inattendue s'est produite. Réessaie ou retourne à l'accueil."}
         </p>
 
         {import.meta.env.DEV && (
@@ -156,9 +166,9 @@ function DefaultErrorFallback({ error, errorInfo, reset }: DefaultErrorFallbackP
             size="lg"
             full
             icon={<RefreshCw size={18} />}
-            onClick={reset}
+            onClick={isStaleChunk ? handleReload : reset}
           >
-            Réessayer
+            {isStaleChunk ? 'Recharger' : 'Réessayer'}
           </PButton>
           <PButton
             variant="ghost"

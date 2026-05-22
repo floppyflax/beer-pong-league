@@ -14,7 +14,7 @@ import { WebcamCaptureSheet } from "@/components/WebcamCaptureSheet";
 import { premiumService } from "@/services/PremiumService";
 import { authService } from "@/services/AuthService";
 import { PhotoService } from "@/services/PhotoService";
-import { isMobileDevice } from "@/utils/platform";
+import { supportsGetUserMedia } from "@/utils/platform";
 import { Trophy, Calendar, Mail, LogOut, Crown, ChevronRight, Camera, Image as ImageIcon, Pencil, Check, X } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import toast from "react-hot-toast";
@@ -120,6 +120,9 @@ export const UserProfile = () => {
       const ok = await authService.updateUserProfile(user.id, { avatar_url: url });
       if (!ok) throw new Error("db update failed");
       setAvatarUrl(url);
+      // Avatar is propagated to the user's players row server-side; reload so
+      // leagues / events / rankings reflect the new photo immediately.
+      await reloadData();
       toast.success("Photo de profil mise à jour");
     } catch {
       toast.error("Impossible d'uploader la photo");
@@ -131,8 +134,9 @@ export const UserProfile = () => {
   const handlePickAvatar = async (source: "camera" | "gallery") => {
     if (!user?.id) return;
     setShowAvatarSourceSheet(false);
-    // Desktop + caméra → vraie capture webcam (input.capture est ignoré sur desktop)
-    if (source === "camera" && !isMobileDevice()) {
+    // Caméra → webcam in-app dès que getUserMedia est dispo (desktop, où
+    // input[capture] est ignoré, + mobile moderne). Sinon fallback picker natif.
+    if (source === "camera" && supportsGetUserMedia()) {
       setShowWebcamSheet(true);
       return;
     }

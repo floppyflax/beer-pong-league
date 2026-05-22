@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { authService } from '@/services/AuthService';
-import { supabase } from '@/lib/supabase';
 
-// Mock supabase
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
+// authService now lives in @elofight/shared and resolves the client at call
+// time via the shared runtime's getSupabase() — not the web lib/supabase shim.
+// Inject the spy client there. Built via vi.hoisted so it exists when the
+// (hoisted) mock factory runs; typed nullable to match getSupabase()'s return
+// (keeps the existing `supabase!` assertions valid). The importActual spread
+// preserves configureSupabaseClient, which initShared() calls at boot.
+const { supabase } = vi.hoisted(() => {
+  const client = {
     auth: {
       signInWithOtp: vi.fn(),
       getUser: vi.fn(),
@@ -13,7 +17,14 @@ vi.mock('@/lib/supabase', () => ({
       onAuthStateChange: vi.fn(),
     },
     from: vi.fn(),
-  },
+  };
+  return { supabase: client as typeof client | null };
+});
+
+vi.mock('@elofight/shared/lib/supabase', async (importActual) => ({
+  ...(await importActual<typeof import('@elofight/shared/lib/supabase')>()),
+  getSupabase: () => supabase,
+  isSupabaseAvailable: () => true,
 }));
 
 describe('AuthService', () => {

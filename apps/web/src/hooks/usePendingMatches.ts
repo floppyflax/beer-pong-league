@@ -1,15 +1,24 @@
 /**
- * usePendingMatches — Mig 030
+ * usePendingMatches — Mig 030 + Mig 032
  *
- * Lists `matches.status = 'pending'` for an event and computes which ones
- * the current user is authorized to confirm/reject (mirrors the server-side
- * logic in `confirm_match`).
+ * Lists `matches.status = 'pending'` for an event OR a league and computes
+ * which ones the current user is authorized to confirm/reject (mirrors the
+ * server-side logic in `confirm_match`).
  *
- * Authorization branches on `events.score_validator`:
+ * Context discriminator:
+ *   - `{ eventId }`  → all pending matches attached to this event. Authz
+ *                       branches on events.score_validator. Admin = event
+ *                       creator OR linked-league creator.
+ *   - `{ leagueId }` → pending matches attached to this league with
+ *                       event_id IS NULL (event-linked pending matches are
+ *                       validated via the event's validation page).
+ *                       Authz branches on leagues.score_validator. Admin
+ *                       = league creator.
+ *
+ * Authorization branches on `score_validator`:
  *   - 'opponent' (default) : caller owns a player in the team OPPOSITE to
  *      the match creator. Admin bypass always allowed.
- *   - 'admin'              : caller is the event creator OR the linked
- *      league creator.
+ *   - 'admin'              : caller is the admin (event/league creator).
  *
  * The hook exposes `confirmMatch` / `rejectMatch` that wrap the RPC and
  * surface user-friendly errors via toast. After a successful action the
@@ -24,7 +33,10 @@ import { matchesRepository } from '@/services/repositories/MatchesRepository';
 import { useAuthContext } from '@/context/AuthContext';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useLeague } from '@/context/LeagueContext';
-// `reloadData` is exposed via useLeague() — destructured below.
+
+export type UsePendingMatchesContext =
+  | { eventId: string | undefined; leagueId?: never }
+  | { leagueId: string | undefined; eventId?: never };
 
 export interface PendingMatchSummary {
   id: string;
@@ -80,19 +92,29 @@ async function loadPlayerIdsForUser(userId: string): Promise<Set<string>> {
   );
 }
 
-export function usePendingMatches(eventId: string | undefined): UsePendingMatchesResult {
+export function usePendingMatches(ctx: UsePendingMatchesContext): UsePendingMatchesResult {
+  const eventId = 'eventId' in ctx ? ctx.eventId : undefined;
+  const leagueId = 'leagueId' in ctx ? ctx.leagueId : undefined;
+  const contextId = eventId ?? leagueId;
+
   const { user, isAuthenticated } = useAuthContext();
   const { localUser } = useIdentity();
   const { events, leagues, reloadData } = useLeague();
 
   const [pendingMatches, setPendingMatches] = useState<PendingMatchSummary[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(Boolean(eventId));
+  const [isLoading, setIsLoading] = useState<boolean>(Boolean(contextId));
 
-  const event = useMemo(() => events.find((e) => e.id === eventId), [events, eventId]);
-  const league = useMemo(
-    () => (event?.leagueId ? leagues.find((l) => l.id === event.leagueId) : null),
-    [event?.leagueId, leagues],
+  const event = useMemo(
+    () => (eventId ? events.find((e) => e.id === eventId) : null),
+    [events, eventId],
   );
+  // League selected via two paths: (a) the event's linked league for event ctx,
+  // (b) the league directly for league ctx.
+  const league = useMemo(() => {
+    if (leagueId) return leagues.find((l) => l.id === leagueId) ?? null;
+    if (event?.leagueId) return leagues.find((l) => l.id === event.leagueId) ?? null;
+    return null;
+  }, [leagueId, event?.leagueId, leagues]);
 
   // Caller's user_id — auth.users.id (post-mig 022 they live in `users`
   // unified, but the column on matches/events is the public.users.id).
@@ -105,30 +127,52 @@ export function usePendingMatches(eventId: string | undefined): UsePendingMatche
   );
 
   const isAdmin = useMemo(() => {
-    if (!callerUserId || !event) return false;
-    if (event.creator_user_id === callerUserId) return true;
-    if (league && league.creator_user_id === callerUserId) return true;
-    return false;
-  }, [callerUserId, event, league]);
+    if (!callerUserId) return false;
+    // Event ctx: admin = event creator OR linked league creator.
+    if (eventId) {
+      if (!event) return false;
+      if (event.creator_user_id === callerUserId) return true;
+      if (league && league.creator_user_id === callerUserId) return true;
+      return false;
+    }
+    // League ctx: admin = league creator only.
+    if (!league) return false;
+    return league.creator_user_id === callerUserId;
+  }, [callerUserId, eventId, event, league]);
 
-  const scoreValidator: 'opponent' | 'admin' = event?.scoreValidator ?? 'opponent';
+  // Score validator source depends on the context. Mirror of the server-side
+  // resolution in mig 032 (events.score_validator wins for event-linked
+  // matches, leagues.score_validator for league-only matches).
+  const scoreValidator: 'opponent' | 'admin' = useMemo(() => {
+    if (eventId) return event?.scoreValidator ?? 'opponent';
+    return league?.scoreValidator ?? 'opponent';
+  }, [eventId, event?.scoreValidator, league?.scoreValidator]);
 
   const refresh = useCallback(async () => {
-    if (!eventId || !sb) {
+    if (!contextId || !sb) {
       setPendingMatches([]);
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
     try {
-      const { data, error } = await sb
+      let query = sb
         .from('matches')
         .select(
           'id, created_at, score_a, score_b, team_a_player_ids, team_b_player_ids, created_by_user_id, status',
         )
-        .eq('event_id', eventId)
         .eq('status', 'pending')
         .order('created_at', { ascending: true });
+
+      if (eventId) {
+        query = query.eq('event_id', eventId);
+      } else if (leagueId) {
+        // League-only matches: exclude event-linked rows (those are validated
+        // via the event's validation page).
+        query = query.eq('league_id', leagueId).is('event_id', null);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const rows = (data ?? []) as MatchRow[];
@@ -201,7 +245,7 @@ export function usePendingMatches(eventId: string | undefined): UsePendingMatche
     } finally {
       setIsLoading(false);
     }
-  }, [eventId, callerUserId, isAdmin, scoreValidator]);
+  }, [contextId, eventId, leagueId, callerUserId, isAdmin, scoreValidator]);
 
   useEffect(() => {
     void refresh();
@@ -217,7 +261,7 @@ export function usePendingMatches(eventId: string | undefined): UsePendingMatche
         await matchesRepository.confirmMatch(matchId, 'confirmed', callerUserId);
         toast.success('Match confirmé');
         // Refresh both the local pending list AND the LeagueContext cache so
-        // the EventDashboard match cards reflect the new status + ELO deltas.
+        // the dashboard match cards reflect the new status + ELO deltas.
         await Promise.all([refresh(), reloadData()]);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Validation impossible');
