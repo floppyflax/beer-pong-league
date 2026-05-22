@@ -119,9 +119,13 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+// Mutable so a test can simulate `leagues` being replaced wholesale mid-render
+// (auth token refresh / loadDataFromSupabase churn).
+let mockCurrentLeagues: typeof mockLeagues = mockLeagues;
+
 vi.mock("@/context/LeagueContext", () => ({
   useLeague: () => ({
-    leagues: mockLeagues,
+    leagues: mockCurrentLeagues,
     events: [],
     updatePlayer: vi.fn(),
   }),
@@ -163,6 +167,7 @@ describe("PlayerProfile - Story 14.20", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUser = null;
+    mockCurrentLeagues = mockLeagues;
   });
 
   describe("AC1: Header with name + back", () => {
@@ -457,6 +462,41 @@ describe("PlayerProfile - Story 14.20", () => {
       // rows keep the context name until the next natural context reload.
       const headings = await screen.findAllByRole("heading", { name: /nouveau nom/i });
       expect(headings.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  // Reproduces "flash-then-black": the profile renders, then `leagues` is
+  // replaced wholesale (auth token refresh / loadDataFromSupabase) and no
+  // longer contains the player. The sticky last-resolved player must keep the
+  // profile on screen instead of blanking to a black `return null`.
+  describe("Resilience to leagues churn", () => {
+    it("keeps the profile rendered when leagues is replaced and loses the player", async () => {
+      const tree = (
+        <MemoryRouter initialEntries={[`/player/${PLAYER_1}`]}>
+          <Routes>
+            <Route path="/player/:playerId" element={<PlayerProfile />} />
+          </Routes>
+        </MemoryRouter>
+      );
+      const { rerender } = render(tree);
+
+      // Initial render: player resolved from the leagues context.
+      expect(
+        (await screen.findAllByText("Marc Dupont")).length,
+      ).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("ELO")).toBeInTheDocument();
+
+      // Simulate the churn: leagues replaced, player no longer present.
+      mockCurrentLeagues = [];
+      rerender(tree);
+
+      // Must NOT blank: the sticky player keeps header + stats on screen, and
+      // we must not fall into the "Joueur introuvable" / null branches.
+      expect(
+        screen.getAllByText("Marc Dupont").length,
+      ).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("ELO")).toBeInTheDocument();
+      expect(screen.queryByText(/joueur introuvable/i)).not.toBeInTheDocument();
     });
   });
 

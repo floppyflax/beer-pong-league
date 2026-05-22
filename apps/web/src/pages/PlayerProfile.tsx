@@ -32,7 +32,7 @@ import {
   X,
   Image as ImageIcon,
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { formatRelativeTime, formatJoinedSince } from "@/utils/dateUtils";
 import {
   MatchEnrichedDisplay,
@@ -224,6 +224,28 @@ export const PlayerProfile = () => {
   if (fetchedPlayer) {
     player = fetchedPlayer.player;
     playerLeague = fetchedPlayer.playerLeague;
+  }
+
+  // Sticky last-resolved player. `leagues` is replaced wholesale on every
+  // loadDataFromSupabase (auth token refresh, tab focus, reloadData…). During
+  // that churn the sync lookup can transiently miss this player, which — with
+  // fetchedPlayer force-cleared by the fetch effect — left NOTHING to render
+  // and blanked the page to black (flash-then-black). We retain the last
+  // player resolved for THIS playerId so a transient miss never blanks the UI.
+  // Cleared automatically when navigating to a different playerId.
+  const lastResolvedRef = useRef<{
+    id: string;
+    player: Player;
+    playerLeague: { id: string; name: string } | null;
+  } | null>(null);
+  if (player && playerId) {
+    lastResolvedRef.current = { id: playerId, player, playerLeague };
+  } else if (!player) {
+    const cached = lastResolvedRef.current;
+    if (cached && cached.id === playerId) {
+      player = cached.player;
+      playerLeague = cached.playerLeague;
+    }
   }
 
   // Hooks MUST be called unconditionally before any early returns (Rules of Hooks)
