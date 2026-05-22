@@ -53,9 +53,26 @@ const supabaseMock = {
   }),
 };
 
-vi.mock('../../src/lib/supabase', () => ({
+// Since the shared extraction, MatchesRepository / EloRecalcService read the
+// live `sb` / `supabase` bindings from
+// `@elofight/shared/services/repositories/_base` — the web `src/lib/supabase`
+// shim is no longer on that path. Those bindings are normally populated by
+// `initShared()` → `_initBaseRepositoryClient()` → `getSupabase()`, which
+// returns null under the test env (empty url/key). Mocking the lower-level
+// `lib/supabase` factory is ineffective here: vitest.setup's `beforeAll`
+// imports `@elofight/shared` (→ `_base`) and runs `initShared()` before this
+// file's mocks register, freezing the real `_base` singleton with `sb=null`.
+// So intercept `_base` directly — inject the mock client as `sb`/`supabase`
+// and force `isSupabaseAvailable()` true on the BaseRepository the services
+// extend.
+vi.mock('@elofight/shared/services/repositories/_base', () => ({
   supabase: supabaseMock,
-  isSupabaseAvailable: () => true,
+  sb: supabaseMock,
+  BaseRepository: class {
+    protected isSupabaseAvailable(): boolean {
+      return true;
+    }
+  },
 }));
 
 vi.mock('../../src/services/repositories/LeaguesRepository', () => ({
@@ -84,6 +101,18 @@ const buildMatch = (): Match => ({
   created_by_user_id: 'user-1',
   created_by_anonymous_user_id: null,
 });
+
+// mig 025 invariant: the client never *writes* elo_history / *_memberships
+// stats directly — every mutation goes through the apply_match_elo RPC. A
+// table may still be *read* (resolveToPlayerIds selects *_memberships to map
+// membership ids → players.id), so we assert no insert/update/delete was
+// issued rather than that the table was never accessed.
+const expectNoStatWrites = (table?: QueryBuilder): void => {
+  if (!table) return; // table never accessed at all
+  expect(table.insert).not.toHaveBeenCalled();
+  expect(table.update).not.toHaveBeenCalled();
+  expect(table.delete).not.toHaveBeenCalled();
+};
 
 describe('ELO server-side (migration 025) — MatchesRepository delegates to apply_match_elo RPC', () => {
   beforeEach(() => {
@@ -120,9 +149,9 @@ describe('ELO server-side (migration 025) — MatchesRepository delegates to app
     ]);
 
     // No direct write to elo_history / league_memberships / event_memberships
-    expect(tablesTouched.elo_history?.insert).toBeUndefined();
-    expect(tablesTouched.league_memberships?.update).toBeUndefined();
-    expect(tablesTouched.event_memberships?.update).toBeUndefined();
+    expectNoStatWrites(tablesTouched.elo_history);
+    expectNoStatWrites(tablesTouched.league_memberships);
+    expectNoStatWrites(tablesTouched.event_memberships);
   });
 
   it('recordEventMatch inserts the match (with event_id + league_id) and calls apply_match_elo once', async () => {
@@ -164,9 +193,9 @@ describe('ELO server-side (migration 025) — MatchesRepository delegates to app
     ]);
 
     // Still no direct stat writes
-    expect(tablesTouched.elo_history?.insert).toBeUndefined();
-    expect(tablesTouched.league_memberships?.update).toBeUndefined();
-    expect(tablesTouched.event_memberships?.update).toBeUndefined();
+    expectNoStatWrites(tablesTouched.elo_history);
+    expectNoStatWrites(tablesTouched.league_memberships);
+    expectNoStatWrites(tablesTouched.event_memberships);
   });
 });
 
@@ -189,8 +218,8 @@ describe('ELO server-side — EloRecalcService delegates to recalculate_league_e
     expect(result).toEqual({ success: true, matchesReplayed: 7 });
 
     // No direct table writes — the whole thing is the RPC
-    expect(tablesTouched.league_memberships?.update).toBeUndefined();
-    expect(tablesTouched.elo_history?.delete).toBeUndefined();
+    expectNoStatWrites(tablesTouched.league_memberships);
+    expectNoStatWrites(tablesTouched.elo_history);
   });
 
   it('recalculateLeagueElo surfaces RPC errors as { success: false, error }', async () => {
