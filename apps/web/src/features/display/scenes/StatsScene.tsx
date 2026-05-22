@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Avatar } from "@/components/design-system/Avatar";
 import type { Match } from "@/types";
 import type { DisplaySource } from "../types";
 
@@ -6,10 +7,17 @@ interface Props {
   source: DisplaySource;
 }
 
+interface CardPlayer {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+}
+
 /**
- * Scène stats : 4 KPIs compacts en 2×2 + la tuile "match le plus serré" en
- * pleine largeur dessous (elle loge les noms des équipes + l'heure).
- * Tout est borné en hauteur pour ne jamais cropper, même sur écran court.
+ * Scène stats : 3 chiffres globaux en haut + 2 récompenses joueur (Top ELO &
+ * le plus assidu, avec avatar) + la tuile "match le plus serré" pleine largeur
+ * (avatars d'équipe superposés + noms + heure). Borné en hauteur pour ne jamais
+ * cropper, même sur écran court.
  */
 export function StatsScene({ source }: Props) {
   const { kpis, closest } = useMemo(() => computeStats(source), [source]);
@@ -45,6 +53,8 @@ interface Kpi {
   value: string;
   sub?: string;
   colorClass: string;
+  /** Quand présent, on affiche l'avatar + le nom du joueur cité. */
+  player?: CardPlayer;
 }
 
 function KpiTile({ kpi }: { kpi: Kpi }) {
@@ -59,22 +69,79 @@ function KpiTile({ kpi }: { kpi: Kpi }) {
       >
         {kpi.value}
       </div>
-      {kpi.sub && (
+      {kpi.player ? (
+        <div className="flex items-center gap-2 mt-2 min-w-0">
+          <Avatar
+            name={kpi.player.name}
+            src={kpi.player.avatarUrl}
+            size="sm"
+            className="ring-2 ring-navy-soft"
+          />
+          <span className="font-archivo font-extrabold uppercase tracking-tight text-white truncate text-sm md:text-lg">
+            {kpi.player.name}
+          </span>
+        </div>
+      ) : kpi.sub ? (
         <div className="font-mono text-[10px] md:text-xs uppercase tracking-[2px] text-cool-gray mt-2 truncate">
           {kpi.sub}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
 interface ClosestMatch {
-  teamA: string;
-  teamB: string;
+  teamA: CardPlayer[];
+  teamB: CardPlayer[];
   scoreA: number;
   scoreB: number;
   time: string;
   gap: number;
+}
+
+function ClosestTeam({
+  players,
+  align,
+}: {
+  players: CardPlayer[];
+  align: "left" | "right";
+}) {
+  const isRight = align === "right";
+  return (
+    <div
+      className={`flex-1 min-w-0 flex items-center gap-2 md:gap-3 ${
+        isRight ? "flex-row-reverse" : ""
+      }`}
+    >
+      {/* Avatars superposés (photo quand dispo, sinon initiales) */}
+      <div className={`flex flex-shrink-0 ${isRight ? "flex-row-reverse" : ""}`}>
+        {players.slice(0, 2).map((p, i) => (
+          <Avatar
+            key={p.id}
+            name={p.name}
+            src={p.avatarUrl}
+            size="sm"
+            className={i > 0 ? "-ml-3 ring-2 ring-navy-soft" : "ring-2 ring-navy-soft"}
+          />
+        ))}
+      </div>
+      <div
+        className={`min-w-0 flex flex-col ${
+          isRight ? "items-end text-right" : "items-start text-left"
+        }`}
+      >
+        {players.map((p) => (
+          <span
+            key={p.id}
+            className="truncate max-w-full font-archivo font-extrabold uppercase tracking-tight text-white text-base md:text-2xl leading-tight"
+            title={p.name}
+          >
+            {p.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function ClosestMatchTile({ closest }: { closest: ClosestMatch | null }) {
@@ -91,21 +158,17 @@ function ClosestMatchTile({ closest }: { closest: ClosestMatch | null }) {
         )}
       </div>
       {closest ? (
-        <div className="flex items-center justify-center gap-4 md:gap-6">
-          <span className="flex-1 text-right font-archivo font-extrabold uppercase tracking-tight text-white truncate text-lg md:text-2xl">
-            {closest.teamA}
-          </span>
+        <div className="flex items-center justify-center gap-3 md:gap-5">
+          <ClosestTeam players={closest.teamA} align="left" />
           <span
             className="font-archivo font-black tabular-nums text-lime leading-none flex-shrink-0"
-            style={{ fontSize: "clamp(36px, 8vh, 80px)", letterSpacing: "-2px" }}
+            style={{ fontSize: "clamp(32px, 7vh, 72px)", letterSpacing: "-2px" }}
           >
             {Math.max(closest.scoreA, closest.scoreB)}
             <span className="text-cool-gray">-</span>
             {Math.min(closest.scoreA, closest.scoreB)}
           </span>
-          <span className="flex-1 text-left font-archivo font-extrabold uppercase tracking-tight text-white truncate text-lg md:text-2xl">
-            {closest.teamB}
-          </span>
+          <ClosestTeam players={closest.teamB} align="right" />
         </div>
       ) : (
         <p className="font-mono text-xs uppercase tracking-[2px] text-cool-gray text-center py-2">
@@ -140,13 +203,15 @@ function computeStats(source: DisplaySource): {
     }
   }
 
-  const playerName = (id: string) =>
-    source.players.find((p) => p.id === id)?.name ?? "Joueur";
+  const toCardPlayer = (id: string): CardPlayer => {
+    const p = source.players.find((sp) => sp.id === id);
+    return { id, name: p?.name ?? "Joueur", avatarUrl: p?.avatarUrl };
+  };
 
   const closest: ClosestMatch | null = closestMatch
     ? {
-        teamA: closestMatch.teamA.map(playerName).join(" & "),
-        teamB: closestMatch.teamB.map(playerName).join(" & "),
+        teamA: closestMatch.teamA.map(toCardPlayer),
+        teamB: closestMatch.teamB.map(toCardPlayer),
         scoreA: closestMatch.scoreA,
         scoreB: closestMatch.scoreB,
         time: new Date(closestMatch.date).toLocaleTimeString("fr-FR", {
@@ -157,8 +222,8 @@ function computeStats(source: DisplaySource): {
       }
     : null;
 
-  const topElo = source.players[0]?.elo ?? 0;
-  const topName = source.players[0]?.name ?? "—";
+  const topPlayer = source.players[0];
+  const topElo = topPlayer?.elo ?? 0;
 
   // Joueur le plus assidu : plus grand nombre de matchs joués (wins + losses).
   // Égalité tranchée par nom pour un affichage déterministe.
@@ -169,7 +234,6 @@ function computeStats(source: DisplaySource): {
       return diff !== 0 ? diff : a.name.localeCompare(b.name);
     })[0];
   const mostPlayedCount = mostPlayed ? mostPlayed.wins + mostPlayed.losses : 0;
-  const mostPlayedName = mostPlayed?.name ?? "—";
 
   const kpis: Kpi[] = [
     { label: "Matchs joués", value: String(matchesCount), colorClass: "text-white" },
@@ -180,12 +244,21 @@ function computeStats(source: DisplaySource): {
       colorClass: "text-electric-blue",
     },
     { label: "Cups encaissés", value: String(totalCups), colorClass: "text-ping-yellow" },
-    { label: "Top ELO", value: String(topElo), sub: topName, colorClass: "text-ping-yellow" },
+    {
+      label: "Top ELO",
+      value: String(topElo),
+      colorClass: "text-ping-yellow",
+      player: topPlayer
+        ? { id: topPlayer.id, name: topPlayer.name, avatarUrl: topPlayer.avatarUrl }
+        : undefined,
+    },
     {
       label: "Plus de matchs",
       value: String(mostPlayedCount),
-      sub: mostPlayedName,
       colorClass: "text-lime",
+      player: mostPlayed
+        ? { id: mostPlayed.id, name: mostPlayed.name, avatarUrl: mostPlayed.avatarUrl }
+        : undefined,
     },
   ];
 
