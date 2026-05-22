@@ -59,7 +59,7 @@ export const PlayerProfile = () => {
   // Event-context navigation (?event=) — opened from an event ranking. Drives
   // the contextual ELO + event-scoped stats (invariant #8).
   const urlEventId = searchParams.get("event");
-  const { leagues, events } = useLeague();
+  const { leagues, events, getEventLocalRanking } = useLeague();
   const { user } = useAuthContext();
   const navigate = useNavigate();
   const [fetchedPlayer, setFetchedPlayer] = useState<{
@@ -94,6 +94,18 @@ export const PlayerProfile = () => {
   const [playerNotFound, setPlayerNotFound] = useState(false);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  // Event-context hero stats — sourced from the SAME getEventLocalRanking the
+  // event leaderboard uses (client replay from 1000, K=64). The profile must
+  // show exactly what the ranking shows, not the server event_memberships.elo
+  // (those can diverge until the server-elo refactor lands). Keyed by the event
+  // membership id, which is the URL playerId when navigated from an event.
+  const [eventRank, setEventRank] = useState<{
+    elo: number;
+    wins: number;
+    losses: number;
+    matchesPlayed: number;
+    streak: number;
+  } | null>(null);
 
   // Find player in leagues first (sync)
   let player: Player | null = null;
@@ -224,6 +236,49 @@ export const PlayerProfile = () => {
         setAchievements(parsed);
       });
   }, [playerId]);
+
+  // Event-context hero stats: replay the event ranking (same source as the
+  // event leaderboard) and pick this player's row, so the profile ELO/W-L/
+  // streak match the ranking exactly. Resolved by event membership id (the URL
+  // playerId when navigated from an event ranking).
+  useEffect(() => {
+    if (!urlEventId || !playerId) {
+      setEventRank(null);
+      return;
+    }
+    let cancelled = false;
+    databaseService
+      .loadEventParticipants(urlEventId)
+      .then((participants) => {
+        if (cancelled) return;
+        const ranked = getEventLocalRanking(
+          urlEventId,
+          participants as unknown as Player[],
+        );
+        const me = ranked.find((p) => p.id === playerId);
+        setEventRank(
+          me
+            ? {
+                elo: me.elo,
+                wins: me.wins,
+                losses: me.losses,
+                matchesPlayed: me.matchesPlayed,
+                streak: me.streak,
+              }
+            : null,
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setEventRank(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // getEventLocalRanking is recreated each render (not memoized in the
+    // provider); depending on it would loop. `events` carries the real data
+    // dependency (the ranking reads event.matches).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlEventId, playerId, events]);
 
   if (fetchedPlayer) {
     player = fetchedPlayer.player;
@@ -452,9 +507,16 @@ export const PlayerProfile = () => {
   const currentPlayerId = player!.id;
 
   const playerLosses = playerMatches.length - playerWins;
+
+  // Hero stats: in event context, mirror the event ranking exactly (eventRank).
+  // Otherwise use the resolved player's values / computed match tallies.
+  const heroElo = eventRank ? eventRank.elo : player.elo;
+  const heroWins = eventRank ? eventRank.wins : playerWins;
+  const heroLosses = eventRank ? eventRank.losses : playerLosses;
+  const heroStreak = eventRank ? eventRank.streak : player.streak;
   const winRate =
-    playerMatches.length > 0
-      ? Math.round((playerWins / playerMatches.length) * 100)
+    heroWins + heroLosses > 0
+      ? Math.round((heroWins / (heroWins + heroLosses)) * 100)
       : 0;
 
   // Story 14-35: Resolve avatar and joined_at (from fetchedPlayer or enrichment)
@@ -679,12 +741,12 @@ export const PlayerProfile = () => {
       {/* AC3: StatCards (ELO, W/L, Win rate) */}
       <div className="grid grid-cols-3 gap-2 px-4 py-4">
         <StatCard
-          value={player.elo}
+          value={heroElo}
           label={contextEventId ? "ELO event" : "ELO"}
           variant="accent"
         />
         <StatCard
-          value={`${playerWins}V - ${playerLosses}D`}
+          value={`${heroWins}V - ${heroLosses}D`}
           label="W/L"
         />
         <StatCard value={`${winRate}%`} label="Win rate" variant="success" />
@@ -694,35 +756,35 @@ export const PlayerProfile = () => {
       <div className="px-4 pb-4">
         <div
           className={`p-4 rounded-xl flex items-center gap-3 border ${
-            player.streak >= 3
+            heroStreak >= 3
               ? "bg-ping-yellow/20 border-ping-yellow/50"
-              : player.streak > 0
+              : heroStreak > 0
                 ? "bg-lime/20 border-lime/50"
-                : player.streak < 0
+                : heroStreak < 0
                   ? "bg-signal-red/20 border-signal-red/50"
                   : "bg-navy-soft/50 border-card/50"
           }`}
         >
-          {player.streak >= 3 ? (
+          {heroStreak >= 3 ? (
             <Flame className="text-ping-yellow flex-shrink-0" size={24} />
-          ) : player.streak > 0 ? (
+          ) : heroStreak > 0 ? (
             <TrendingUp className="text-lime flex-shrink-0" size={24} />
-          ) : player.streak < 0 ? (
+          ) : heroStreak < 0 ? (
             <TrendingDown className="text-signal-red flex-shrink-0" size={24} />
           ) : null}
           <div className="min-w-0">
             <div className="font-bold text-white">
-              {player.streak >= 3
+              {heroStreak >= 3
                 ? "En feu !"
-                : player.streak > 0
-                  ? `${player.streak} victoires d'affilée`
-                  : player.streak < 0
-                    ? `${Math.abs(player.streak)} défaites d'affilée`
+                : heroStreak > 0
+                  ? `${heroStreak} victoires d'affilée`
+                  : heroStreak < 0
+                    ? `${Math.abs(heroStreak)} défaites d'affilée`
                     : "Aucune série"}
             </div>
             <div className="text-xs text-cool-gray">
-              {player.streak >= 3
-                ? `${player.streak} victoires d'affilée`
+              {heroStreak >= 3
+                ? `${heroStreak} victoires d'affilée`
                 : "Série actuelle"}
             </div>
           </div>

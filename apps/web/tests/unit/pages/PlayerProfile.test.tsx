@@ -124,12 +124,15 @@ vi.mock("react-router-dom", async () => {
 let mockCurrentLeagues: typeof mockLeagues = mockLeagues;
 // Mutable events context (event-context profile test sets this).
 let mockCurrentEvents: { id: string; name: string; leagueId: string | null; matches: unknown[] }[] = [];
+// Mutable event ranking returned by getEventLocalRanking (event-context test).
+let mockEventRanking: { id: string; name: string; elo: number; wins: number; losses: number; matchesPlayed: number; streak: number }[] = [];
 
 vi.mock("@/context/LeagueContext", () => ({
   useLeague: () => ({
     leagues: mockCurrentLeagues,
     events: mockCurrentEvents,
     updatePlayer: vi.fn(),
+    getEventLocalRanking: () => mockEventRanking,
   }),
 }));
 
@@ -171,6 +174,7 @@ describe("PlayerProfile - Story 14.20", () => {
     mockUser = null;
     mockCurrentLeagues = mockLeagues;
     mockCurrentEvents = [];
+    mockEventRanking = [];
     // clearAllMocks resets call history but NOT implementations — restore the
     // module-level defaults so a per-test mockResolvedValue can't leak forward.
     const { databaseService } = await import("@/services/DatabaseService");
@@ -527,15 +531,17 @@ describe("PlayerProfile - Story 14.20", () => {
         { id: "event-1", name: "Tournoi du Vendredi", leagueId: "league-1", matches: [] },
       ];
       const { databaseService } = await import("@/services/DatabaseService");
+      // Server event_memberships.elo (1500) deliberately ≠ the ranking replay
+      // (1337). The profile must show the RANKING value, not this one.
       vi.mocked(databaseService.loadPlayerById).mockResolvedValue({
         player: {
           id: EVENT_MEMBERSHIP_ID,
           name: "Event Guy",
-          elo: 1337, // event-local ELO (≠ any league ELO)
-          wins: 3,
-          losses: 1,
-          matchesPlayed: 4,
-          streak: 2,
+          elo: 1500,
+          wins: 9,
+          losses: 9,
+          matchesPlayed: 18,
+          streak: 0,
         },
         leagueId: "league-1",
         leagueName: "League des Pingouins",
@@ -543,6 +549,19 @@ describe("PlayerProfile - Story 14.20", () => {
         globalPlayerId: "gp-1",
         userId: "user-x",
       });
+      // The event leaderboard (getEventLocalRanking) — the source of truth the
+      // user actually sees. ELO 1337, distinct from the server value above.
+      mockEventRanking = [
+        {
+          id: EVENT_MEMBERSHIP_ID,
+          name: "Event Guy",
+          elo: 1337,
+          wins: 3,
+          losses: 1,
+          matchesPlayed: 4,
+          streak: 2,
+        },
+      ];
     });
 
     const renderEventContext = () =>
@@ -556,10 +575,19 @@ describe("PlayerProfile - Story 14.20", () => {
         </MemoryRouter>,
       );
 
-    it("shows the event-local ELO and labels it 'ELO event'", async () => {
+    it("shows the ranking ELO (not the server value) and labels it 'ELO event'", async () => {
       renderEventContext();
+      // Ranking replay value, not the server event_memberships.elo (1500).
       expect(await screen.findByText("1337")).toBeInTheDocument();
       expect(await screen.findByText("ELO event")).toBeInTheDocument();
+      expect(screen.queryByText("1500")).not.toBeInTheDocument();
+    });
+
+    it("shows the ranking W/L, not the server tallies", async () => {
+      renderEventContext();
+      // Ranking 3V-1D wins over the server 9V-9D.
+      expect(await screen.findByText("3V - 1D")).toBeInTheDocument();
+      expect(screen.queryByText("9V - 9D")).not.toBeInTheDocument();
     });
 
     it("shows the event name as the context subtitle", async () => {
