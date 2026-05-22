@@ -507,12 +507,21 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     const oldLeagueId = event?.leagueId;
     const newLeagueId = leagueId || null;
 
+    // Resolved caller identity id (same convention as usePendingMatches /
+    // useDetailPagePermissions) — the RPC checks admin against this (mig 036).
+    const callerUserId =
+      isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+
     // Atomic backfill + ELO replay server-side (mig 034). The RPC rewrites
     // matches.league_id for the whole event and recalculates both the old and
     // new league ELO, so the league rankings reflect imported matches at once.
     let result: EventLeagueAssociationResult;
     try {
-      result = await databaseService.associateEventToLeague(eventId, newLeagueId);
+      result = await databaseService.associateEventToLeague(
+        eventId,
+        newLeagueId,
+        callerUserId,
+      );
     } catch (err) {
       // Most common cause: the chosen league no longer exists in DB (stale
       // localStorage cache from a previous session). Surface it to the

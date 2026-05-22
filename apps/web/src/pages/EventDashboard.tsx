@@ -562,7 +562,9 @@ export const EventDashboard = () => {
       )
     )
       return;
-    const result = await matchAdminService.deleteMatch(matchId);
+    const callerUserId =
+      isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+    const result = await matchAdminService.deleteMatch(matchId, callerUserId);
     if (!result.success) {
       toast.error(result.error || "Suppression impossible");
       return;

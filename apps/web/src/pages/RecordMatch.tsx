@@ -14,6 +14,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
+import { useAuthContext } from "@/context/AuthContext";
+import { useIdentity } from "@/hooks/useIdentity";
 import { databaseService } from "@/services/DatabaseService";
 import { matchAdminService } from "@/services/MatchAdminService";
 import { eloRecalcService } from "@/services/EloRecalcService";
@@ -580,6 +582,8 @@ export const RecordMatch = () => {
     isLoadingInitialData,
     reloadData,
   } = useLeague();
+  const { user, isAuthenticated } = useAuthContext();
+  const { localUser } = useIdentity();
 
   /* Context is URL-seeded but locally switchable */
   const [contextType, setContextType] = useState<ContextType | null>(
@@ -936,12 +940,15 @@ export const RecordMatch = () => {
     setIsSubmitting(true);
     try {
       if (isEditMode && editMatchId) {
+        const callerUserId =
+          isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
         const result = await matchAdminService.updateMatch(
           editMatchId,
           teamAIds,
           teamBIds,
           scoreA,
           scoreB,
+          callerUserId,
         );
         if (!result.success) {
           toast.error(result.error || "Modification impossible");

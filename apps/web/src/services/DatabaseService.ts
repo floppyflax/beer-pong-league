@@ -130,8 +130,9 @@ class DatabaseService {
   associateEventToLeague(
     eventId: string,
     leagueId: string | null,
+    callerUserId: string | null,
   ): Promise<EventLeagueAssociationResult> {
-    return eventsRepository.associateEventToLeague(eventId, leagueId);
+    return eventsRepository.associateEventToLeague(eventId, leagueId, callerUserId);
   }
 
   createEvent(data: {

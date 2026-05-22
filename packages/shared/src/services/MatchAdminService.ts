@@ -74,6 +74,8 @@ class MatchAdminService {
     teamBPlayerIds: string[],
     scoreA: number,
     scoreB: number,
+    /** Resolved caller identity id — must match the event/league creator (mig 036). */
+    callerUserId: string | null,
   ): Promise<{
     success: boolean;
     error?: string;
@@ -94,6 +96,7 @@ class MatchAdminService {
         p_team_b_player_ids: resolvedB,
         p_score_a: scoreA,
         p_score_b: scoreB,
+        p_caller_user_id: callerUserId,
       });
       if (error) return { success: false, error: error.message };
       const result = data as { league_id?: string | null; event_id?: string | null } | null;
@@ -112,6 +115,8 @@ class MatchAdminService {
 
   async deleteMatch(
     matchId: string,
+    /** Resolved caller identity id — must match the event/league creator (mig 036). */
+    callerUserId: string | null,
   ): Promise<{
     success: boolean;
     error?: string;
@@ -124,6 +129,7 @@ class MatchAdminService {
       const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
       const { data, error } = await rpc('admin_delete_match', {
         p_match_id: matchId,
+        p_caller_user_id: callerUserId,
       });
       if (error) return { success: false, error: error.message };
       const result = data as { league_id?: string | null; event_id?: string | null } | null;

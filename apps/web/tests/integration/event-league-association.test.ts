@@ -65,12 +65,13 @@ describe('associate_event_to_league — EventsRepository client wrapper (mig 034
     });
 
     const { eventsRepository } = await import('@/services/repositories/EventsRepository');
-    const result = await eventsRepository.associateEventToLeague('event-1', 'league-1');
+    const result = await eventsRepository.associateEventToLeague('event-1', 'league-1', 'user-1');
 
     expect(rpcMock).toHaveBeenCalledTimes(1);
     expect(rpcMock).toHaveBeenCalledWith('associate_event_to_league', {
       p_event_id: 'event-1',
       p_league_id: 'league-1',
+      p_caller_user_id: 'user-1',
     });
 
     expect(result).toEqual({
@@ -89,11 +90,12 @@ describe('associate_event_to_league — EventsRepository client wrapper (mig 034
     });
 
     const { eventsRepository } = await import('@/services/repositories/EventsRepository');
-    await eventsRepository.associateEventToLeague('event-1', '');
+    await eventsRepository.associateEventToLeague('event-1', '', 'user-1');
 
     expect(rpcMock).toHaveBeenCalledWith('associate_event_to_league', {
       p_event_id: 'event-1',
       p_league_id: null,
+      p_caller_user_id: 'user-1',
     });
   });
 
@@ -101,11 +103,12 @@ describe('associate_event_to_league — EventsRepository client wrapper (mig 034
     rpcMock.mockResolvedValue({ data: { matches_propagated: 0, noop: false }, error: null });
 
     const { eventsRepository } = await import('@/services/repositories/EventsRepository');
-    await eventsRepository.associateEventToLeague('event-1', null);
+    await eventsRepository.associateEventToLeague('event-1', null, 'user-1');
 
     expect(rpcMock).toHaveBeenCalledWith('associate_event_to_league', {
       p_event_id: 'event-1',
       p_league_id: null,
+      p_caller_user_id: 'user-1',
     });
   });
 
@@ -116,7 +119,7 @@ describe('associate_event_to_league — EventsRepository client wrapper (mig 034
     // If the implementation tried sb.from('event_memberships').update(...),
     // it would throw because the mocked `sb` has no `from`.
     await expect(
-      eventsRepository.associateEventToLeague('event-1', 'league-1'),
+      eventsRepository.associateEventToLeague('event-1', 'league-1', 'user-1'),
     ).resolves.toBeDefined();
 
     expect(rpcMock).toHaveBeenCalledTimes(1);
@@ -130,7 +133,7 @@ describe('associate_event_to_league — EventsRepository client wrapper (mig 034
 
     const { eventsRepository } = await import('@/services/repositories/EventsRepository');
     await expect(
-      eventsRepository.associateEventToLeague('event-1', 'league-1'),
+      eventsRepository.associateEventToLeague('event-1', 'league-1', 'user-1'),
     ).rejects.toBeTruthy();
   });
 });

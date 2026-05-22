@@ -383,6 +383,9 @@ class EventsRepository extends BaseRepository {
   async associateEventToLeague(
     eventId: string,
     leagueId: string | null,
+    /** Resolved caller identity id (user.id or anonymousUserId) — must match
+     *  the event/league creator. The RPC checks admin against this (mig 036). */
+    callerUserId: string | null,
   ): Promise<EventLeagueAssociationResult> {
     // UI passes "" for detach — normalise to null.
     const targetLeagueId = leagueId && leagueId.length > 0 ? leagueId : null;
@@ -407,6 +410,7 @@ class EventsRepository extends BaseRepository {
       const { data, error } = await sb!.rpc('associate_event_to_league', {
         p_event_id: eventId,
         p_league_id: targetLeagueId,
+        p_caller_user_id: callerUserId,
       });
       if (error) throw error;
 
