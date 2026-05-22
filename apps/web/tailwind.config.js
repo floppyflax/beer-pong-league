@@ -215,6 +215,19 @@ export default {
           "0%, 100%": { opacity: "0" },
           "50%": { opacity: "0.45" },
         },
+        // Respiration lente et discrète de "ma" ligne dans le classement :
+        // la teinte electric-blue s'intensifie légèrement + halo doux qui
+        // apparaît/disparaît. Volontairement subtil (clignotement léger, lent).
+        "me-pulse": {
+          "0%, 100%": {
+            backgroundColor: "rgba(47,107,255,0.10)",
+            boxShadow: "0 0 0 0 rgba(47,107,255,0)",
+          },
+          "50%": {
+            backgroundColor: "rgba(47,107,255,0.17)",
+            boxShadow: "0 0 16px 0 rgba(47,107,255,0.28)",
+          },
+        },
       },
       animation: {
         "invite-sheet-up": "sheet-up 220ms cubic-bezier(0.16, 1, 0.3, 1)",
@@ -222,6 +235,7 @@ export default {
         "glow-pulse": "glow-pulse 1.4s ease-in-out infinite",
         "banner-drop": "banner-drop 3.2s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "screen-flash": "screen-flash 0.55s ease-in-out infinite",
+        "me-pulse": "me-pulse 3.6s ease-in-out infinite",
       },
     },
   },
