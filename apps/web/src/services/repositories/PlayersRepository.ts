@@ -10,6 +10,7 @@
  *   - Pseudo affiché : `membership.pseudo_override` si non-NULL, sinon `players.pseudo`.
  */
 
+import { getSupabase } from '@elofight/shared';
 import type { Player } from '../../types';
 import { BaseRepository, sb } from './_base';
 import { leaguesRepository } from './LeaguesRepository';
@@ -339,13 +340,17 @@ class PlayersRepository extends BaseRepository {
     leagueId?: string;
     leagueName?: string;
     eventId?: string;
+    /** Global players.id (membership id ≠ players.id). */
+    globalPlayerId?: string;
+    /** Owning user; null = ghost (admin-created, unclaimed). */
+    userId?: string | null;
   } | null> {
     if (!this.isSupabaseAvailable()) return null;
     try {
       // 1. Try league_memberships
       const { data: lm } = await sb!
         .from('league_memberships')
-        .select('id, league_id, player_id, pseudo_override, elo, wins, losses, matches_played, streak, player:players(pseudo)')
+        .select('id, league_id, player_id, pseudo_override, elo, wins, losses, matches_played, streak, player:players(pseudo, user_id)')
         .eq('id', playerId)
         .maybeSingle();
       if (lm) {
@@ -359,7 +364,7 @@ class PlayersRepository extends BaseRepository {
           losses: number;
           matches_played: number;
           streak: number;
-          player: { pseudo: string } | null;
+          player: { pseudo: string; user_id: string | null } | null;
         };
         const league = await leaguesRepository.getLeagueById(row.league_id);
         return {
@@ -374,13 +379,17 @@ class PlayersRepository extends BaseRepository {
           },
           leagueId: row.league_id,
           leagueName: league?.name,
+          globalPlayerId: row.player_id,
+          userId: row.player?.user_id ?? null,
         };
       }
 
-      // 2. Try event_memberships
+      // 2. Try event_memberships — read its OWN ELO/W/L/streak (mig 023),
+      //    NOT the league baseline. Standalone events have no league row, so
+      //    falling back to league_memberships would freeze ELO at the default.
       const { data: tm } = await sb!
         .from('event_memberships')
-        .select('id, event_id, player_id, pseudo_override, player:players(pseudo)')
+        .select('id, event_id, player_id, pseudo_override, elo, wins, losses, matches_played, streak, player:players(pseudo, user_id)')
         .eq('id', playerId)
         .maybeSingle();
       if (tm) {
@@ -389,7 +398,12 @@ class PlayersRepository extends BaseRepository {
           event_id: string;
           player_id: string;
           pseudo_override: string | null;
-          player: { pseudo: string } | null;
+          elo: number;
+          wins: number;
+          losses: number;
+          matches_played: number;
+          streak: number;
+          player: { pseudo: string; user_id: string | null } | null;
         };
         const { data: tData } = await sb!
           .from('events')
@@ -397,36 +411,22 @@ class PlayersRepository extends BaseRepository {
           .eq('id', row.event_id)
           .single();
         const tInfo = tData as { league_id: string | null } | null;
-        let elo = 1500, wins = 0, losses = 0, matchesPlayed = 0;
-        if (tInfo?.league_id) {
-          const { data: lmStats } = await sb!
-            .from('league_memberships')
-            .select('elo, wins, losses, matches_played')
-            .eq('league_id', tInfo.league_id)
-            .eq('player_id', row.player_id)
-            .maybeSingle();
-          if (lmStats) {
-            const s = lmStats as { elo: number; wins: number; losses: number; matches_played: number };
-            elo = s.elo;
-            wins = s.wins;
-            losses = s.losses;
-            matchesPlayed = s.matches_played;
-          }
-        }
         const league = tInfo?.league_id ? await leaguesRepository.getLeagueById(tInfo.league_id) : null;
         return {
           player: {
             id: row.id,
             name: row.pseudo_override || row.player?.pseudo || 'Joueur',
-            elo,
-            wins,
-            losses,
-            matchesPlayed,
-            streak: 0,
+            elo: row.elo,
+            wins: row.wins,
+            losses: row.losses,
+            matchesPlayed: row.matches_played,
+            streak: row.streak,
           },
           leagueId: tInfo?.league_id ?? undefined,
           leagueName: league?.name,
           eventId: row.event_id,
+          globalPlayerId: row.player_id,
+          userId: row.player?.user_id ?? null,
         };
       }
       return null;
@@ -630,6 +630,56 @@ class PlayersRepository extends BaseRepository {
     if (error) throw error;
   }
 
+  /**
+   * Admin edit of a GHOST player's global identity (players.pseudo /
+   * avatar_url). Ghost = players.user_id IS NULL. The caller (PlayerProfile)
+   * gates on admin + ghost before invoking. RLS on `players` is permissive.
+   * Updating players.pseudo propagates to every context (no per-league
+   * override is set for manually-added ghosts).
+   */
+  async updateGhostPlayerIdentity(
+    globalPlayerId: string,
+    updates: { pseudo?: string; avatarUrl?: string },
+  ): Promise<void> {
+    if (!this.isSupabaseAvailable()) return;
+    const payload: Record<string, unknown> = {};
+    if (updates.pseudo !== undefined) payload.pseudo = updates.pseudo;
+    if (updates.avatarUrl !== undefined) payload.avatar_url = updates.avatarUrl;
+    if (Object.keys(payload).length === 0) return;
+    const { error } = await sb!
+      .from('players')
+      .update(payload)
+      .eq('id', globalPlayerId);
+    if (error) throw error;
+  }
+
+  /**
+   * Upload a ghost player's photo to the `avatars` bucket. The bucket's INSERT
+   * policy requires the first path segment to equal auth.uid() (mig 017), so
+   * the ghost photo is nested under the admin's own folder.
+   */
+  async uploadGhostAvatar(
+    adminAuthUserId: string,
+    globalPlayerId: string,
+    file: File,
+  ): Promise<string | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    try {
+      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+      const path = `${adminAuthUserId}/ghost-${globalPlayerId}.${ext}`;
+      const { error } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+      return `${data.publicUrl}?t=${Date.now()}`;
+    } catch (error) {
+      console.error('Error uploading ghost avatar:', error);
+      return null;
+    }
+  }
+
   // ───────────────────────────────────────────────────────────────────────
   // DELETE
   // ───────────────────────────────────────────────────────────────────────
@@ -674,39 +724,45 @@ class PlayersRepository extends BaseRepository {
     avatarUrl: string | null;
     joinedAt: string | null;
     userId: string | null;
+    /** Global players.id — needed for admin edits of ghost players. */
+    globalPlayerId: string | null;
   } | null> {
     if (!this.isSupabaseAvailable()) return null;
     try {
       const { data: lm } = await sb!
         .from('league_memberships')
-        .select('joined_at, player:players(user_id, avatar_url)')
+        .select('joined_at, player_id, player:players(user_id, avatar_url)')
         .eq('id', membershipId)
         .maybeSingle();
       if (lm) {
         const row = lm as unknown as {
           joined_at: string | null;
+          player_id: string;
           player: { user_id: string | null; avatar_url: string | null } | null;
         };
         return {
           joinedAt: row.joined_at,
           userId: row.player?.user_id ?? null,
           avatarUrl: row.player?.avatar_url ?? null,
+          globalPlayerId: row.player_id,
         };
       }
       const { data: tm } = await sb!
         .from('event_memberships')
-        .select('joined_at, player:players(user_id, avatar_url)')
+        .select('joined_at, player_id, player:players(user_id, avatar_url)')
         .eq('id', membershipId)
         .maybeSingle();
       if (tm) {
         const row = tm as unknown as {
           joined_at: string | null;
+          player_id: string;
           player: { user_id: string | null; avatar_url: string | null } | null;
         };
         return {
           joinedAt: row.joined_at,
           userId: row.player?.user_id ?? null,
           avatarUrl: row.player?.avatar_url ?? null,
+          globalPlayerId: row.player_id,
         };
       }
       return null;

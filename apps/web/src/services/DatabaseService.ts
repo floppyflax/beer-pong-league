@@ -188,6 +188,8 @@ class DatabaseService {
     leagueId?: string;
     leagueName?: string;
     eventId?: string;
+    globalPlayerId?: string;
+    userId?: string | null;
   } | null> {
     return playersRepository.loadPlayerById(playerId);
   }
@@ -196,8 +198,26 @@ class DatabaseService {
     avatarUrl: string | null;
     joinedAt: string | null;
     userId: string | null;
+    globalPlayerId: string | null;
   } | null> {
     return playersRepository.loadPlayerEnrichment(playerId);
+  }
+
+  /** Admin edit of a ghost player's global identity (pseudo / avatar_url). */
+  updateGhostPlayerIdentity(
+    globalPlayerId: string,
+    updates: { pseudo?: string; avatarUrl?: string },
+  ): Promise<void> {
+    return playersRepository.updateGhostPlayerIdentity(globalPlayerId, updates);
+  }
+
+  /** Upload a ghost player's photo (nested under the admin's avatar folder). */
+  uploadGhostAvatar(
+    adminAuthUserId: string,
+    globalPlayerId: string,
+    file: File,
+  ): Promise<string | null> {
+    return playersRepository.uploadGhostAvatar(adminAuthUserId, globalPlayerId, file);
   }
 
   /**

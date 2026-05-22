@@ -7,10 +7,16 @@
 
 import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
+import { useAuthContext } from "@/context/AuthContext";
 import { ContextualHeader } from "@/components/navigation/ContextualHeader";
-import { StatCard, ListRow } from "@/components/design-system";
+import { StatCard, ListRow, Sheet } from "@/components/design-system";
+import { PButton } from "@/components/ponglo/PButton";
+import { WebcamCaptureSheet } from "@/components/WebcamCaptureSheet";
+import { PhotoService } from "@/services/PhotoService";
+import { supportsGetUserMedia } from "@/utils/platform";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { databaseService } from "@/services/DatabaseService";
+import toast from "react-hot-toast";
 import {
   TrendingUp,
   TrendingDown,
@@ -20,6 +26,11 @@ import {
   Activity,
   Heart,
   Skull,
+  Camera,
+  Pencil,
+  Check,
+  X,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { formatRelativeTime, formatJoinedSince } from "@/utils/dateUtils";
@@ -44,7 +55,8 @@ import type { Match } from "@/types";
 
 export const PlayerProfile = () => {
   const { playerId } = useParams<{ playerId: string }>();
-  const { leagues, events } = useLeague();
+  const { leagues, events, reloadData } = useLeague();
+  const { user } = useAuthContext();
   const navigate = useNavigate();
   const [fetchedPlayer, setFetchedPlayer] = useState<{
     player: Player;
@@ -52,13 +64,27 @@ export const PlayerProfile = () => {
     playersMap: Record<string, string>;
     avatarUrl?: string | null;
     joinedAt?: string | null;
+    eventId?: string | null;
+    globalPlayerId?: string | null;
+    userId?: string | null;
   } | null>(null);
   const [enrichment, setEnrichment] = useState<{
     avatarUrl: string | null;
     joinedAt: string | null;
     userId: string | null;
     anonymousUserId: string | null;
+    globalPlayerId: string | null;
   } | null>(null);
+  // Admin edits of a ghost player — local overrides reflect changes immediately
+  // (fetched-from-DB players are not in the league context that reloadData refreshes).
+  const [nameOverride, setNameOverride] = useState<string | null>(null);
+  const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [showAvatarSourceSheet, setShowAvatarSourceSheet] = useState(false);
+  const [showWebcamSheet, setShowWebcamSheet] = useState(false);
   const [opponentAvatars, setOpponentAvatars] = useState<Record<string, string | null>>({});
   const [eloHistoryFromDb, setEloHistoryFromDb] = useState<{ date: string; elo: number }[]>([]);
   const [playerNotFound, setPlayerNotFound] = useState(false);
@@ -99,7 +125,7 @@ export const PlayerProfile = () => {
           setFetchedPlayer(null);
           return;
         }
-        const { player: p, leagueId, leagueName, eventId } = result;
+        const { player: p, leagueId, leagueName, eventId, globalPlayerId, userId } = result;
         const playersMap: Record<string, string> = {};
         leagues.forEach((l) => {
           l.players.forEach((pl) => {
@@ -114,6 +140,9 @@ export const PlayerProfile = () => {
           playersMap: {} as Record<string, string>,
           avatarUrl: null, // TODO(Phase B): restore via loadPlayerEnrichment
           joinedAt: null,  // TODO(Phase B): restore via loadPlayerEnrichment
+          eventId: eventId ?? null,
+          globalPlayerId: globalPlayerId ?? null,
+          userId: userId ?? null,
         };
 
         if (eventId) {
@@ -404,14 +433,113 @@ export const PlayerProfile = () => {
 
   // Story 14-35: Resolve avatar and joined_at (from fetchedPlayer or enrichment)
   const avatarUrl =
-    fetchedPlayer?.avatarUrl ?? enrichment?.avatarUrl ?? null;
+    avatarOverride ?? fetchedPlayer?.avatarUrl ?? enrichment?.avatarUrl ?? null;
   const joinedAt = fetchedPlayer?.joinedAt ?? enrichment?.joinedAt ?? null;
+  const displayName = nameOverride ?? player.name;
+
+  // ── Admin edit of ghost players (no user attached) ───────────────────────
+  // Ghost = the underlying players row has user_id IS NULL. Admin = the viewer
+  // created the league or event this player belongs to.
+  const ownerUserId = fetchedPlayer
+    ? fetchedPlayer.userId
+    : enrichment
+      ? enrichment.userId
+      : undefined;
+  const globalPlayerId =
+    fetchedPlayer?.globalPlayerId ?? enrichment?.globalPlayerId ?? null;
+  const contextEventId = fetchedPlayer?.eventId ?? null;
+  const isGhost = ownerUserId === null;
+  const canAdminEdit = (() => {
+    if (!user) return false;
+    if (playerLeague) {
+      const lg = leagues.find((l) => l.id === playerLeague.id);
+      if (lg?.creator_user_id === user.id) return true;
+    }
+    if (contextEventId) {
+      const ev = events.find((e) => e.id === contextEventId);
+      if (ev?.creator_user_id === user.id) return true;
+    }
+    return false;
+  })();
+  const showAdminEdit = canAdminEdit && isGhost && Boolean(globalPlayerId);
+
+  const startEditName = () => {
+    setEditedName(displayName);
+    setIsEditingName(true);
+  };
+  const cancelEditName = () => {
+    setIsEditingName(false);
+    setEditedName("");
+  };
+  const saveEditName = async () => {
+    const trimmed = editedName.trim();
+    if (!trimmed || trimmed === displayName || !globalPlayerId) {
+      cancelEditName();
+      return;
+    }
+    setIsSavingName(true);
+    try {
+      await databaseService.updateGhostPlayerIdentity(globalPlayerId, { pseudo: trimmed });
+      setNameOverride(trimmed);
+      setIsEditingName(false);
+      await reloadData();
+      toast.success("Nom mis à jour");
+    } catch {
+      toast.error("Impossible de mettre à jour le nom");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const uploadAvatarFromBlob = async (blob: Blob) => {
+    if (!user?.id || !globalPlayerId) return;
+    setIsUploadingAvatar(true);
+    try {
+      const mime = blob.type || "image/jpeg";
+      const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+      const file = new File([blob], `avatar.${ext}`, { type: mime });
+      const url = await databaseService.uploadGhostAvatar(user.id, globalPlayerId, file);
+      if (!url) throw new Error("upload failed");
+      await databaseService.updateGhostPlayerIdentity(globalPlayerId, { avatarUrl: url });
+      setAvatarOverride(url);
+      await reloadData();
+      toast.success("Photo mise à jour");
+    } catch {
+      toast.error("Impossible d'uploader la photo");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handlePickAvatar = async (source: "camera" | "gallery") => {
+    if (!globalPlayerId) return;
+    setShowAvatarSourceSheet(false);
+    if (source === "camera" && supportsGetUserMedia()) {
+      setShowWebcamSheet(true);
+      return;
+    }
+    try {
+      const result =
+        source === "camera"
+          ? await PhotoService.takePhoto()
+          : await PhotoService.pickFromGallery();
+      await uploadAvatarFromBlob(result.blob);
+    } catch (err) {
+      if (err instanceof Error && err.message === "No file selected") return;
+      toast.error("Impossible d'uploader la photo");
+    }
+  };
+
+  const handleWebcamCapture = async (blob: Blob) => {
+    setShowWebcamSheet(false);
+    await uploadAvatarFromBlob(blob);
+  };
 
   return (
     <div className="min-h-screen bg-navy text-white flex flex-col">
       {/* AC1: Header — nom + retour */}
       <ContextualHeader
-        title={player.name}
+        title={displayName}
         showBackButton={true}
         onBack={() => navigate(-1)}
       />
@@ -419,19 +547,79 @@ export const PlayerProfile = () => {
       {/* AC1, AC2: PAvatar 72px + infos + Membre depuis */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center gap-4">
-          <PAvatar
-            name={player.name}
-            size={72}
-            imageUrl={avatarUrl ?? undefined}
-            ring="#B7FF3B"
-            className="flex-shrink-0"
-          />
+          <div className="relative flex-shrink-0 group">
+            <PAvatar
+              name={displayName}
+              size={72}
+              imageUrl={avatarUrl ?? undefined}
+              ring="#B7FF3B"
+            />
+            {showAdminEdit && (
+              <button
+                type="button"
+                onClick={() => setShowAvatarSourceSheet(true)}
+                disabled={isUploadingAvatar}
+                aria-label="Changer la photo du joueur"
+                className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity disabled:cursor-wait"
+              >
+                {isUploadingAvatar ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera size={18} className="text-white" />
+                )}
+              </button>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-white truncate">
-                {player.name}
-              </h2>
-            </div>
+            {isEditingName ? (
+              <div className="flex items-center gap-2 mb-1">
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void saveEditName();
+                    if (e.key === "Escape") cancelEditName();
+                  }}
+                  maxLength={50}
+                  autoFocus
+                  className="flex-1 min-w-0 bg-navy-deep border border-electric-blue rounded-md px-3 py-1.5 text-white text-base font-archivo font-extrabold uppercase tracking-tight focus:outline-none focus:ring-2 focus:ring-electric-blue/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => void saveEditName()}
+                  disabled={isSavingName}
+                  aria-label="Valider"
+                  className="w-8 h-8 rounded-full bg-lime text-navy flex items-center justify-center flex-shrink-0 disabled:opacity-50"
+                >
+                  <Check size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEditName}
+                  aria-label="Annuler"
+                  className="w-8 h-8 rounded-full border border-card text-cool-gray flex items-center justify-center flex-shrink-0"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-lg font-archivo font-extrabold uppercase tracking-tight text-white truncate">
+                  {displayName}
+                </h2>
+                {showAdminEdit && (
+                  <button
+                    type="button"
+                    onClick={startEditName}
+                    aria-label="Modifier le nom du joueur"
+                    className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-cool-gray hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                )}
+              </div>
+            )}
             {playerLeague && (
               <p className="text-sm text-cool-gray truncate">
                 {playerLeague.name}
@@ -803,6 +991,44 @@ export const PlayerProfile = () => {
           </div>
         </section>
       </div>
+
+      {showAdminEdit && (
+        <>
+          <Sheet
+            isOpen={showAvatarSourceSheet}
+            onClose={() => setShowAvatarSourceSheet(false)}
+            title="Photo du joueur"
+            maxWidth="sm"
+          >
+            <div className="flex flex-col gap-3 pt-2">
+              <PButton
+                variant="primary"
+                size="md"
+                full
+                icon={<Camera size={18} />}
+                onClick={() => void handlePickAvatar("camera")}
+              >
+                Prendre une photo
+              </PButton>
+              <PButton
+                variant="accent"
+                size="md"
+                full
+                icon={<ImageIcon size={18} />}
+                onClick={() => void handlePickAvatar("gallery")}
+              >
+                Choisir depuis la galerie
+              </PButton>
+            </div>
+          </Sheet>
+
+          <WebcamCaptureSheet
+            isOpen={showWebcamSheet}
+            onClose={() => setShowWebcamSheet(false)}
+            onCapture={(blob) => void handleWebcamCapture(blob)}
+          />
+        </>
+      )}
     </div>
   );
 };
