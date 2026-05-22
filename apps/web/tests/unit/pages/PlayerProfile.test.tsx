@@ -36,6 +36,8 @@ vi.mock("recharts", () => ({
 }));
 
 const mockNavigate = vi.fn();
+// Mutable auth user (vitest allows `mock`-prefixed vars inside hoisted factories).
+let mockUser: { id: string } | null = null;
 const PLAYER_1 = "11111111-1111-4111-8111-111111111111";
 const PLAYER_2 = "22222222-2222-4222-8222-222222222222";
 const PLAYER_3 = "33333333-3333-4333-8333-333333333333";
@@ -47,6 +49,7 @@ const mockLeagues = [
     name: "League des Pingouins",
     type: "one-shot" as const,
     createdAt: "2026-01-01",
+    creator_user_id: "admin-1",
     players: [
       {
         id: PLAYER_1,
@@ -124,6 +127,10 @@ vi.mock("@/context/LeagueContext", () => ({
   }),
 }));
 
+vi.mock("@/context/AuthContext", () => ({
+  useAuthContext: () => ({ user: mockUser }),
+}));
+
 vi.mock("@/services/DatabaseService", () => ({
   databaseService: {
     loadPlayerById: vi.fn().mockResolvedValue(null),
@@ -133,9 +140,12 @@ vi.mock("@/services/DatabaseService", () => ({
       joinedAt: null,
       userId: null,
       anonymousUserId: null,
+      globalPlayerId: null,
     }),
     loadAvatarUrlsForPlayerIds: vi.fn().mockResolvedValue({}),
     loadEloHistoryForPlayer: vi.fn().mockResolvedValue([]),
+    updateGhostPlayerIdentity: vi.fn().mockResolvedValue(undefined),
+    uploadGhostAvatar: vi.fn().mockResolvedValue("https://example.com/ghost.png"),
   },
 }));
 
@@ -152,6 +162,7 @@ const renderWithPlayer = (playerId: string) => {
 describe("PlayerProfile - Story 14.20", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUser = null;
   });
 
   describe("AC1: Header with name + back", () => {
@@ -381,6 +392,71 @@ describe("PlayerProfile - Story 14.20", () => {
         const scrollable = container.querySelector(".pb-bottom-nav");
         expect(scrollable).toBeInTheDocument();
       });
+    });
+  });
+
+  // Admin edit of a ghost player (no user attached). Reproduces the bug where
+  // saving the name blanked the profile (regression: reloadData() churned the
+  // global context). The profile must stay rendered after save.
+  describe("Admin ghost edit", () => {
+    const asGhostAdmin = async () => {
+      mockUser = { id: "admin-1" }; // matches league-1.creator_user_id
+      const { databaseService } = await import("@/services/DatabaseService");
+      vi.mocked(databaseService.loadPlayerEnrichment).mockResolvedValue({
+        avatarUrl: null,
+        joinedAt: null,
+        userId: null, // ghost: no account attached
+        anonymousUserId: null,
+        globalPlayerId: "global-p1",
+      });
+      return databaseService;
+    };
+
+    it("shows the edit pencil only for an admin viewing a ghost", async () => {
+      await asGhostAdmin();
+      renderWithPlayer(PLAYER_1);
+      expect(
+        await screen.findByRole("button", { name: /modifier le nom du joueur/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("hides the edit pencil for a non-admin viewer", async () => {
+      mockUser = { id: "someone-else" };
+      renderWithPlayer(PLAYER_1);
+      // Wait for the profile to render, then assert no edit affordance.
+      await screen.findAllByText("Marc Dupont");
+      expect(
+        screen.queryByRole("button", { name: /modifier le nom du joueur/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("saves the new name and KEEPS the profile rendered (no black screen)", async () => {
+      const user = userEvent.setup();
+      const databaseService = await asGhostAdmin();
+      renderWithPlayer(PLAYER_1);
+
+      await user.click(
+        await screen.findByRole("button", { name: /modifier le nom du joueur/i }),
+      );
+      const input = screen.getByDisplayValue("Marc Dupont");
+      await user.clear(input);
+      await user.type(input, "Nouveau Nom");
+      await user.click(screen.getByRole("button", { name: /valider/i }));
+
+      // Persisted to players.pseudo via the ghost RPC.
+      await waitFor(() => {
+        expect(databaseService.updateGhostPlayerIdentity).toHaveBeenCalledWith(
+          "global-p1",
+          { pseudo: "Nouveau Nom" },
+        );
+      });
+
+      // The profile must remain mounted — the regression blanked it here.
+      expect(await screen.findByText("ELO")).toBeInTheDocument();
+      // The header reflects the new name immediately (local override). Match
+      // rows keep the context name until the next natural context reload.
+      const headings = await screen.findAllByRole("heading", { name: /nouveau nom/i });
+      expect(headings.length).toBeGreaterThanOrEqual(1);
     });
   });
 
