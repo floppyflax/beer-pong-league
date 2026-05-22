@@ -1,0 +1,65 @@
+/**
+ * Petit synthétiseur Web Audio pour la sonnerie d'arrivée d'un match en mode
+ * diffusion. Pas d'asset audio à charger : un arpège montant synthétisé.
+ *
+ * Politique autoplay : l'AudioContext ne peut démarrer que dans un geste
+ * utilisateur. On l'arme au 1er geste (cf. `unlockAudio`). Si jamais armé,
+ * `playChime` est un no-op silencieux (le feedback visuel reste).
+ */
+
+type AudioCtor = typeof AudioContext;
+
+let ctx: AudioContext | null = null;
+
+function getCtor(): AudioCtor | null {
+  if (typeof window === "undefined") return null;
+  return (
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: AudioCtor })
+      .webkitAudioContext ??
+    null
+  );
+}
+
+/** Crée/reprend l'AudioContext. À appeler depuis un handler de geste. */
+export function unlockAudio(): void {
+  const Ctor = getCtor();
+  if (!Ctor) return;
+  if (!ctx) {
+    try {
+      ctx = new Ctor();
+    } catch {
+      ctx = null;
+      return;
+    }
+  }
+  if (ctx.state === "suspended") void ctx.resume();
+}
+
+export function isAudioReady(): boolean {
+  return !!ctx && ctx.state === "running";
+}
+
+/**
+ * Joue un arpège montant court (~0.6s), volume modéré. No-op si l'audio n'est
+ * pas armé/running.
+ */
+export function playChime(): void {
+  if (!ctx || ctx.state !== "running") return;
+  const now = ctx.currentTime;
+  // Mi5 · Sol5 · Do6 — accord majeur, montée positive.
+  const notes = [659.25, 783.99, 1046.5];
+  for (let i = 0; i < notes.length; i++) {
+    const t = now + i * 0.09;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = notes[i];
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.linearRampToValueAtTime(0.16, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.45);
+  }
+}

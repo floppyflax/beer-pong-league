@@ -203,11 +203,19 @@ export default {
           "0%, 100%": { boxShadow: "0 0 6px 0 var(--glow, rgba(47,107,255,0.5))" },
           "50%": { boxShadow: "0 0 30px 4px var(--glow, rgba(47,107,255,0.75))" },
         },
+        // Bannière "nouveau match" : descend du haut, maintient, remonte.
+        // Total piloté par la durée d'animation (cf. animation ci-dessous).
+        "banner-drop": {
+          "0%": { transform: "translateY(-120%)", opacity: "0" },
+          "10%, 88%": { transform: "translateY(0)", opacity: "1" },
+          "100%": { transform: "translateY(-120%)", opacity: "0" },
+        },
       },
       animation: {
         "invite-sheet-up": "sheet-up 220ms cubic-bezier(0.16, 1, 0.3, 1)",
         "cup-spin": "cup-spin 1.6s linear infinite",
         "glow-pulse": "glow-pulse 1.4s ease-in-out infinite",
+        "banner-drop": "banner-drop 3.2s cubic-bezier(0.16, 1, 0.3, 1) forwards",
       },
     },
   },

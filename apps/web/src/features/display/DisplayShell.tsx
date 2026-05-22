@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLeague } from "../../context/LeagueContext";
+import { Volume2, VolumeX } from "lucide-react";
 import { PersistentFrame } from "./components/PersistentFrame";
 import { PodiumStand } from "./components/PodiumStand";
 import { RecentMatchesPanel } from "./components/RecentMatchesPanel";
+import { NewMatchBanner } from "./components/NewMatchBanner";
 import { SceneIndicators } from "./components/SceneIndicators";
 import { RankingScene } from "./scenes/RankingScene";
 import { PodiumScene } from "./scenes/PodiumScene";
@@ -17,6 +19,7 @@ import {
 } from "./hooks/useDisplayScenes";
 import { useDisplayAutoRefresh } from "./hooks/useDisplayAutoRefresh";
 import { useRankingReveal } from "./hooks/useRankingReveal";
+import { useNewMatchAlert } from "./hooks/useNewMatchAlert";
 import type { SelfPacedScrollPhase } from "./hooks/useSelfPacedScroll";
 import type { DisplaySource } from "./types";
 
@@ -82,6 +85,9 @@ export function DisplayShell({ source }: Props) {
   // les protagonistes en surbrillance. Le nouveau match clignote dans le rail.
   const { committedPlayers, highlightedPlayerIds, blinkMatchId } =
     useRankingReveal(source, activeSceneId);
+
+  // Feedback d'arrivée d'un nouveau match : bannière (visuel primaire) + son.
+  const { alertMatch, soundOn, audioArmed } = useNewMatchAlert(source);
 
   // Phase rapportée par la scène self-paced active (pour les indicators)
   const [selfPacedPhase, setSelfPacedPhase] =
@@ -156,31 +162,52 @@ export function DisplayShell({ source }: Props) {
   const top3 = source.players.slice(0, 3);
 
   return (
-    <PersistentFrame
-      source={source}
-      rightRail={
-        <>
-          <div className="flex-shrink-0">
-            <PodiumStand players={top3} variant="compact" />
+    <>
+      <PersistentFrame
+        source={source}
+        rightRail={
+          <>
+            <div className="flex-shrink-0">
+              <PodiumStand players={top3} variant="compact" />
+            </div>
+            <RecentMatchesPanel source={source} blinkMatchId={blinkMatchId} />
+          </>
+        }
+      >
+        <div className="flex flex-col h-full min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">{scene}</div>
+          <div className="flex-shrink-0 mt-2">
+            <SceneIndicators
+              scenes={uniqueScenes}
+              activeId={activeSceneId}
+              progress={activeMode === "timed" ? progress : -1}
+              selfPacedPhase={
+                activeMode === "self-paced" ? selfPacedPhase : undefined
+              }
+              isPaused={isPaused}
+            />
           </div>
-          <RecentMatchesPanel source={source} blinkMatchId={blinkMatchId} />
-        </>
-      }
-    >
-      <div className="flex flex-col h-full min-h-0">
-        <div className="flex-1 min-h-0 overflow-hidden">{scene}</div>
-        <div className="flex-shrink-0 mt-2">
-          <SceneIndicators
-            scenes={uniqueScenes}
-            activeId={activeSceneId}
-            progress={activeMode === "timed" ? progress : -1}
-            selfPacedPhase={
-              activeMode === "self-paced" ? selfPacedPhase : undefined
-            }
-            isPaused={isPaused}
-          />
         </div>
+      </PersistentFrame>
+
+      {/* Bannière d'arrivée d'un nouveau match (canal visuel primaire) */}
+      <NewMatchBanner match={alertMatch} source={source} />
+
+      {/* Indicateur état du son (découvrabilité du toggle M) */}
+      <div className="fixed bottom-3 left-4 z-40 flex items-center gap-1.5 font-mono text-[10px] md:text-xs uppercase tracking-[1.5px] text-cool-gray font-bold pointer-events-none">
+        {soundOn && audioArmed ? (
+          <Volume2 size={14} className="text-electric-blue" aria-hidden />
+        ) : (
+          <VolumeX size={14} aria-hidden />
+        )}
+        <span>
+          {!audioArmed
+            ? "Touche = son"
+            : soundOn
+              ? "Son · M"
+              : "Muet · M"}
+        </span>
       </div>
-    </PersistentFrame>
+    </>
   );
 }
