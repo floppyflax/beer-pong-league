@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { Stats } from "@/pages/Stats";
 
@@ -67,9 +68,11 @@ vi.mock("@/context/LeagueContext", () => ({
 
 const renderStats = () =>
   render(
-    <MemoryRouter>
-      <Stats />
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter>
+        <Stats />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 
 beforeEach(() => {
@@ -119,7 +122,7 @@ function buildAlternatingMatches() {
 describe("Stats page", () => {
   it("renders hero KPIs from useHomeData", () => {
     renderStats();
-    expect(screen.getByText("Mes stats")).toBeInTheDocument();
+    expect(screen.getByText("Tes stats")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("67%")).toBeInTheDocument();
     expect(screen.getByText("+2")).toBeInTheDocument();

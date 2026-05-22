@@ -97,6 +97,19 @@ vi.mock('../../../src/hooks/useUnclaimedGuests', () => ({
   useUnclaimedGuests: () => ({ guests: [], refresh: vi.fn() }),
 }));
 
+// Mig 032 — usePendingMatches reads auth context + queries Supabase; mock it
+// so these lifecycle tests don't need an AuthProvider wrapper.
+vi.mock('../../../src/hooks/usePendingMatches', () => ({
+  usePendingMatches: () => ({
+    pendingMatches: [],
+    count: 0,
+    isLoading: false,
+    refresh: vi.fn(),
+    confirmMatch: vi.fn(),
+    rejectMatch: vi.fn(),
+  }),
+}));
+
 const renderDashboard = () =>
   render(
     <BrowserRouter>
@@ -141,7 +154,7 @@ describe('LeagueDashboard — lifecycle (mig 028)', () => {
     expect(resumeLeague).toHaveBeenCalledWith('lg-1');
   });
 
-  it('finished: hides FAB, shows banner, exposes "Réouvrir"', () => {
+  it('finished: hides FAB, shows banner, no inline "Réouvrir" (moved to Paramètres, mig 029)', () => {
     mockCtx.leagues = [{ ...baseLeague, endedAt: '2026-05-20T10:00:00.000Z' }];
     renderDashboard();
 
@@ -152,30 +165,22 @@ describe('LeagueDashboard — lifecycle (mig 028)', () => {
       /Ligue terminée/i,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Réouvrir la ligue/i }));
-    expect(reopenLeague).toHaveBeenCalledWith('lg-1');
+    // mig 029 — Clôturer/Réouvrir a migré vers la page Paramètres : plus
+    // d'action lifecycle inline dans le dashboard.
+    expect(
+      screen.queryByRole('button', { name: /Réouvrir/i }),
+    ).not.toBeInTheDocument();
   });
 
-  it('"Nouvelle saison" appelle startNewLeagueSeason après confirmation', () => {
-    const confirmStub = vi.fn(() => true);
-    vi.stubGlobal('confirm', confirmStub);
+  it('"Nouvelle saison" a migré vers Paramètres — aucun bouton inline (mig 029)', () => {
     renderDashboard();
 
-    const newSeasonBtn = screen.getByRole('button', { name: /Démarrer la Saison 2/i });
-    fireEvent.click(newSeasonBtn);
-
-    expect(confirmStub).toHaveBeenCalled();
-    expect(startNewLeagueSeason).toHaveBeenCalledWith('lg-1');
-    vi.unstubAllGlobals();
-  });
-
-  it('"Nouvelle saison" ne fait rien si l\'admin annule la confirm', () => {
-    vi.stubGlobal('confirm', vi.fn(() => false));
-    renderDashboard();
-
-    fireEvent.click(screen.getByRole('button', { name: /Démarrer la Saison 2/i }));
+    // Le cycle de saison (clôture → nouvelle saison) se gère désormais depuis
+    // les Paramètres ; le dashboard n'expose plus l'action directement.
+    expect(
+      screen.queryByRole('button', { name: /Démarrer la Saison/i }),
+    ).not.toBeInTheDocument();
     expect(startNewLeagueSeason).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
   });
 
   it('non-admin: pas de bouton lifecycle, banner visible pour info', () => {
