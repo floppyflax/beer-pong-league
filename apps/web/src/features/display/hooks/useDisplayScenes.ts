@@ -5,7 +5,8 @@ export type SceneId =
   | "podium"
   | "live-match"
   | "highlight"
-  | "stats";
+  | "stats"
+  | "photo-wall";
 
 export type SceneMode = "timed" | "self-paced";
 

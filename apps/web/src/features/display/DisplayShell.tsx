@@ -10,6 +10,7 @@ import { PodiumScene } from "./scenes/PodiumScene";
 import { LiveMatchScene } from "./scenes/LiveMatchScene";
 import { HighlightScene } from "./scenes/HighlightScene";
 import { StatsScene } from "./scenes/StatsScene";
+import { PhotoWallScene, matchesWithPhotos } from "./scenes/PhotoWallScene";
 import {
   useDisplayScenes,
   type SceneConfig,
@@ -22,13 +23,19 @@ interface Props {
   source: DisplaySource | null;
 }
 
-const SCENES: SceneConfig[] = [
+const BASE_SCENES: SceneConfig[] = [
   { id: "ranking", mode: "self-paced", pinned: true },
   { id: "podium", mode: "timed", durationMs: 12_000 },
   { id: "live-match", mode: "timed", durationMs: 10_000 },
   { id: "highlight", mode: "timed", durationMs: 12_000 },
   { id: "stats", mode: "timed", durationMs: 10_000 },
 ];
+
+const PHOTO_WALL_SCENE: SceneConfig = {
+  id: "photo-wall",
+  mode: "timed",
+  durationMs: 12_000,
+};
 
 /**
  * Shell de la vue diffusion. Orchestre :
@@ -67,6 +74,13 @@ export function DisplayShell({ source }: Props) {
     return () => clearTimeout(timeout);
   }, [source, lastMatchId]);
 
+  // La scène "photo-wall" n'entre dans la rotation que s'il y a des photos.
+  const hasPhotos = source ? matchesWithPhotos(source).length > 0 : false;
+  const scenes = useMemo(
+    () => (hasPhotos ? [...BASE_SCENES, PHOTO_WALL_SCENE] : BASE_SCENES),
+    [hasPhotos],
+  );
+
   // Slideshow
   const {
     activeSceneId,
@@ -76,7 +90,7 @@ export function DisplayShell({ source }: Props) {
     uniqueScenes,
     notifyComplete,
   } = useDisplayScenes({
-    scenes: SCENES,
+    scenes,
     pauseOnNewMatch: true,
     newMatchSceneId: "live-match",
     newMatchHoldMs: 8_000,
@@ -119,6 +133,8 @@ export function DisplayShell({ source }: Props) {
         return <HighlightScene source={source} />;
       case "stats":
         return <StatsScene source={source} />;
+      case "photo-wall":
+        return <PhotoWallScene source={source} />;
       default:
         return null;
     }

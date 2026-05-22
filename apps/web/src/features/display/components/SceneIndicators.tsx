@@ -20,6 +20,7 @@ const SCENE_LABEL: Record<SceneId, string> = {
   "live-match": "Dernier match",
   highlight: "Highlight",
   stats: "Stats",
+  "photo-wall": "Photos",
 };
 
 const PHASE_LABEL: Record<SelfPacedScrollPhase, string> = {
