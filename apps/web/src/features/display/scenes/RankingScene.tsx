@@ -115,7 +115,7 @@ export function RankingScene({
         ref={scrollRef}
         className="flex-1 overflow-y-auto overflow-x-hidden relative min-h-0"
       >
-        <div ref={topListRef} className="space-y-2.5 md:space-y-3 mb-6">
+        <div ref={topListRef} className="space-y-2 mb-6">
           {top10.map((player) => {
             const isHighlighted = highlightedPlayerIds?.has(player.id);
             const isFocused = focusedPlayerId === player.id;

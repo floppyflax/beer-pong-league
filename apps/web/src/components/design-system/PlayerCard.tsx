@@ -345,20 +345,21 @@ export function PlayerCard(props: PlayerCardProps) {
     const isDisplay = props.size === "display";
 
     // Échelle "display" = TV/projecteur, sans chevron (non interactif en
-    // diffusion). Mêmes tokens, juste des tailles doublées.
+    // diffusion). Plus grand que la version par défaut, mais compact pour
+    // afficher davantage de lignes.
     const containerCls = isDisplay
-      ? "flex items-center gap-6 p-6 w-full bg-navy-soft rounded-card border-[1.5px] border-card text-left"
+      ? "flex items-center gap-4 p-3 md:p-4 w-full bg-navy-soft rounded-card border-[1.5px] border-card text-left"
       : `flex items-center gap-3 p-4 w-full bg-navy-soft rounded-card border border-card transition-colors hover:border-card-muted text-left ${
           props.onClick ? "cursor-pointer" : ""
         }`;
     const nameCls = isDisplay
-      ? "text-3xl font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0"
+      ? "text-xl md:text-2xl font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0"
       : "text-base font-archivo font-extrabold uppercase tracking-tight text-white truncate min-w-0";
     const eloCls = isDisplay
-      ? "text-4xl font-archivo font-black tabular-nums text-white tracking-[-1px]"
+      ? "text-2xl md:text-3xl font-archivo font-black tabular-nums text-white tracking-[-1px]"
       : "text-base font-mono font-bold tabular-nums text-white";
     const deltaSizeCls = isDisplay
-      ? "text-lg font-mono font-semibold tabular-nums"
+      ? "text-base font-mono font-semibold tabular-nums"
       : "text-sm font-mono font-semibold tabular-nums";
 
     return (
@@ -371,7 +372,7 @@ export function PlayerCard(props: PlayerCardProps) {
         <Avatar
           name={props.name}
           avatarUrl={props.avatarUrl}
-          size={isDisplay ? 16 : 10}
+          size={isDisplay ? 14 : 10}
           rank={props.rank}
           rankDelta={props.rankDelta}
         />
@@ -394,7 +395,7 @@ export function PlayerCard(props: PlayerCardProps) {
           </div>
           <div
             className={`flex items-center justify-between gap-2 min-w-0 ${
-              isDisplay ? "mt-2" : "mt-0.5"
+              isDisplay ? "mt-1" : "mt-0.5"
             }`}
           >
             <div className="flex items-center gap-2 min-w-0">

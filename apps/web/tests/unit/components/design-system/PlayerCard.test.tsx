@@ -122,7 +122,7 @@ describe("PlayerCard", () => {
       });
     });
 
-    it("applies XL paddings and font sizes in display mode", () => {
+    it("applies the bigger (but compact) display paddings and font sizes", () => {
       render(
         <PlayerCard
           variant="leaderRow"
@@ -133,12 +133,12 @@ describe("PlayerCard", () => {
         />,
       );
       const card = screen.getByTestId("playercard-leaderrow");
-      // Padding XL et gap XL
-      expect(card).toHaveClass("p-6");
-      expect(card).toHaveClass("gap-6");
-      // Nom en text-3xl (vs text-base par défaut)
+      // Padding/gap compacts mais distincts du défaut
+      expect(card).toHaveClass("p-3");
+      expect(card).toHaveClass("gap-4");
+      // Nom en text-2xl (vs text-base par défaut)
       const name = screen.getByText("Flo");
-      expect(name.className).toContain("text-3xl");
+      expect(name.className).toContain("text-2xl");
     });
 
     it("keeps default size when size prop is omitted", () => {
@@ -152,7 +152,9 @@ describe("PlayerCard", () => {
       );
       const card = screen.getByTestId("playercard-leaderrow");
       expect(card).toHaveClass("p-4");
-      expect(card).not.toHaveClass("p-6");
+      expect(card).not.toHaveClass("p-3");
+      // Nom en text-base (taille par défaut)
+      expect(screen.getByText("Amar").className).toContain("text-base");
     });
   });
 });
