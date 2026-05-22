@@ -48,6 +48,7 @@ const mockAddPlayerToEvent = vi.fn();
 const mockAddAnonymousPlayerToEvent = vi
   .fn()
   .mockResolvedValue("new-player-id");
+const mockReloadData = vi.fn().mockResolvedValue(undefined);
 
 const mockEvent = {
   id: "test-event-id",
@@ -68,6 +69,7 @@ const defaultLeagueContext = {
   addPlayerToEvent: mockAddPlayerToEvent,
   addAnonymousPlayerToEvent: mockAddAnonymousPlayerToEvent,
   isLoadingInitialData: false,
+  reloadData: mockReloadData,
 };
 
 const mockUseLeague = vi.fn(() => defaultLeagueContext);
@@ -91,6 +93,41 @@ vi.mock("../../../src/hooks/useMyContextRankings", () => ({
   computeContextRank: () => null,
 }));
 
+// Mock unclaimed-ghosts hook — the "select existing player" list is now sourced
+// from this (claimable ghosts), not from event.playerIds.
+interface MockGuest {
+  playerId: string;
+  anonymousUserId: string;
+  pseudo: string;
+  joinedAt: string;
+  archived: boolean;
+}
+let mockGuests: MockGuest[] = [];
+const mockRefreshGuests = vi.fn();
+vi.mock("../../../src/hooks/useUnclaimedGuests", () => ({
+  useUnclaimedGuests: () => ({
+    guests: mockGuests,
+    isLoading: false,
+    error: null,
+    refresh: mockRefreshGuests,
+  }),
+}));
+
+// Mock the claim service — selecting an existing player runs the claim path.
+// vi.hoisted because vi.mock factories are hoisted above const declarations.
+const { mockClaimAnon, mockClaimAuth, mockClaimById } = vi.hoisted(() => ({
+  mockClaimAnon: vi.fn().mockResolvedValue({ success: true }),
+  mockClaimAuth: vi.fn().mockResolvedValue({ success: true }),
+  mockClaimById: vi.fn().mockResolvedValue({ success: true }),
+}));
+vi.mock("../../../src/services/IdentityMergeService", () => ({
+  identityMergeService: {
+    claimAnonymousPlayer: mockClaimAuth,
+    claimAnonymousPlayerAsAnonymous: mockClaimAnon,
+    claimPlayerById: mockClaimById,
+  },
+}));
+
 // Wrapper component with all providers
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
   <BrowserRouter>
@@ -105,6 +142,7 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => (
 describe("EventJoin - Join flow (Story 4.1 + 14-15)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGuests = [];
     mockUseLeague.mockImplementation(() => defaultLeagueContext);
     mockEnsureIdentity.mockResolvedValue({
       type: "anonymous",
@@ -448,6 +486,7 @@ describe("EventJoin - Join flow (Story 4.1 + 14-15)", () => {
 describe("EventJoin - Story 14-15 (Design system alignment)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGuests = [];
     mockUseLeague.mockImplementation(() => defaultLeagueContext);
     mockEnsureIdentity.mockResolvedValue({
       type: "anonymous",
@@ -455,57 +494,52 @@ describe("EventJoin - Story 14-15 (Design system alignment)", () => {
     });
   });
 
-  it("should allow joining as existing player when event has players", async () => {
-    const eventWithPlayers = {
-      ...mockEvent,
-      playerIds: ["player-1"],
-      leagueId: "league-1",
-    };
-    const leagueWithPlayers = {
-      id: "league-1",
-      name: "Test League",
-      type: "one-shot" as const,
-      createdAt: new Date().toISOString(),
-      players: [{ id: "player-1", name: "Alice" }],
-    };
+  it("should claim an unclaimed ghost when selected as existing player", async () => {
+    // The "select existing player" list is now sourced from unclaimed ghosts;
+    // selecting one runs the claim path (not a local no-op).
+    mockGuests = [
+      {
+        playerId: "membership-1",
+        anonymousUserId: "player-1",
+        pseudo: "Alice",
+        joinedAt: "",
+        archived: false,
+      },
+    ];
 
-    // Use mockImplementation so all renders get this data (React re-renders on click)
+    // handleClaimGuest reads identity.user.anonymousUserId — use the real
+    // nested shape (the flat default in beforeEach is enough for the
+    // create-player tests but not for the claim path).
+    mockEnsureIdentity.mockResolvedValue({
+      type: "anonymous",
+      user: { anonymousUserId: "test-anon-id" },
+    });
+
     mockUseLeague.mockImplementation(() => ({
-      events: [eventWithPlayers],
-      leagues: [leagueWithPlayers],
+      events: [mockEvent],
+      leagues: [],
       addPlayerToEvent: mockAddPlayerToEvent,
       addAnonymousPlayerToEvent: mockAddAnonymousPlayerToEvent,
       isLoadingInitialData: false,
+      reloadData: mockReloadData,
     }));
 
     render(<EventJoin />, { wrapper: Wrapper });
 
-    // Should show "Sélectionner un joueur existant" section
+    // The claim proposal is shown FIRST (before any identity/name prompt).
     expect(
-      screen.getByText(/sélectionner un joueur existant/i),
+      screen.getByText(/êtes-vous une de ces personnes/i),
     ).toBeInTheDocument();
-    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
 
-    // Click on player card to select (PlayerCard renders as button when clickable)
-    const aliceButton = screen.getByRole("button", { name: /alice/i });
-    fireEvent.click(aliceButton);
+    // Click "C'est moi" in the proposal → runs the claim path.
+    fireEvent.click(screen.getByRole("button", { name: /c'est moi/i }));
 
-    // Should show "Rejoindre en tant que ce joueur" button (wait for state update)
     await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /rejoindre en tant que ce joueur/i }),
-      ).toBeInTheDocument();
-    });
-    const joinButton = screen.getByRole("button", {
-      name: /rejoindre en tant que ce joueur/i,
-    });
-    fireEvent.click(joinButton);
-
-    // AC: addPlayerToEvent called with correct args
-    await waitFor(() => {
-      expect(mockAddPlayerToEvent).toHaveBeenCalledWith(
-        "test-event-id",
-        "player-1",
+      expect(mockClaimAnon).toHaveBeenCalledWith(
+        "event",
+        "membership-1",
+        "test-anon-id",
       );
     });
     expect(mockNavigate).toHaveBeenCalledWith("/event/test-event-id");

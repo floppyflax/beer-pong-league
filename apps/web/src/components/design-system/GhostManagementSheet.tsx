@@ -53,8 +53,12 @@ export interface GhostManagementSheetProps {
    * the archived view shows ghosts read-only.
    */
   onUnarchive?: (playerId: string) => Promise<void>;
-  /** Generate an invite token. Returns the raw token (caller assembles URL). */
-  onGenerateInvite: (playerId: string) => Promise<{ token: string }>;
+  /**
+   * Optional: generate an invite token via a server round-trip. When absent
+   * (mig 022+), the component builds the URL directly from `g.anonymousUserId`
+   * (which IS the players.id) — no server call needed.
+   */
+  onGenerateInvite?: (playerId: string) => Promise<{ token: string }>;
   /**
    * Mig 037 — Promote / demote a member to/from co-admin. Pass the membership
    * id + the desired role. Resolve to apply, throw to keep UI in place. Only
@@ -237,7 +241,15 @@ export function GhostManagementSheet({
   const handleGenerateInvite = async (g: UnclaimedGuest) => {
     setPendingId(g.playerId);
     try {
-      const { token } = await onGenerateInvite(g.playerId);
+      // Since mig 022 the ?ghost= param carries players.id directly —
+      // g.anonymousUserId IS the players.id (legacy field name). No server
+      // round-trip needed. If a caller still provides onGenerateInvite for
+      // backwards-compat, use its token instead.
+      let token = g.anonymousUserId;
+      if (onGenerateInvite) {
+        const result = await onGenerateInvite(g.playerId);
+        token = result.token;
+      }
       const url = `${baseOrigin}${joinPath}?ghost=${encodeURIComponent(token)}`;
       setInvite({ playerId: g.playerId, url });
     } catch {

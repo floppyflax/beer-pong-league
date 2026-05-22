@@ -274,10 +274,6 @@ export const PlayerProfile = () => {
     return () => {
       cancelled = true;
     };
-    // getEventLocalRanking is recreated each render (not memoized in the
-    // provider); depending on it would loop. `events` carries the real data
-    // dependency (the ranking reads event.matches).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlEventId, playerId, events]);
 
   if (fetchedPlayer) {

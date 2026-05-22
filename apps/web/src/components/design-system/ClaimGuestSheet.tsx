@@ -154,16 +154,18 @@ export function ClaimGuestSheet({
           )}
         </div>
 
-        {/* Footer — dismiss all */}
+        {/* Footer — dismiss all. Prominent: this is the "I'm new here" exit, the
+            most common path for a first-time joiner, so it gets a full-size
+            filled button rather than a thin outline. */}
         {onDismissAll && guests.length > 0 && (
-          <div className="px-5 pb-5">
+          <div className="px-5 pb-6 pt-1">
             <button
               type="button"
               onClick={onDismissAll}
               disabled={!!pendingId}
-              className="w-full h-11 rounded-full border-2 border-white/20 text-cool-gray font-archivo font-bold uppercase text-[11px] tracking-[1px] hover:bg-white/5 transition disabled:opacity-40"
+              className="w-full h-14 rounded-full bg-white/10 border-2 border-white/25 text-white font-archivo font-extrabold uppercase text-[14px] tracking-[1px] hover:bg-white/15 active:scale-[0.99] transition disabled:opacity-40"
             >
-              Aucun n'est moi
+              Je ne suis pas dans la liste
             </button>
           </div>
         )}

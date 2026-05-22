@@ -28,9 +28,10 @@ import toast from "react-hot-toast";
  * EventJoin — full join flow.
  *
  * Sequence on mount:
- *   1. **`?ghost=TOKEN` short-circuit** — if the URL carries a ghost invite
- *      token (admin-shared link), we ensure an identity then run the
- *      `claim_ghost_by_token` RPC and route straight to the dashboard.
+ *   1. **`?ghost=<players.id>` short-circuit** — if the URL carries a ghost
+ *      player id (admin-shared link, built client-side by GhostManagementSheet),
+ *      we ensure an identity then claim that player via `claimPlayerById` and
+ *      route straight to the dashboard.
  *   2. **IdentityGateSheet** — first visit, no identity choice yet → ask the
  *      user to pick: continue-as-X / connect-by-email / play-anonymous.
  *   3. **ClaimGuestSheet** — once identity is settled, show unclaimed ghost
@@ -49,10 +50,9 @@ export const EventJoin = () => {
   const navigate = useNavigate();
   const {
     events,
-    leagues,
-    addPlayerToEvent,
     addAnonymousPlayerToEvent,
     isLoadingInitialData,
+    reloadData,
   } = useLeague();
   const { user, isAuthenticated } = useAuthContext();
   const { localUser, initializeAnonymousUser } = useIdentityContext();
@@ -73,8 +73,10 @@ export const EventJoin = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   // ---- Claim-sheet state ----
-  const [showClaimSheet, setShowClaimSheet] = useState(false);
-  const [claimDismissed, setClaimDismissed] = useState(false);
+  // `claimDecided` flips once the user has either claimed a ghost or said
+  // "aucun n'est moi". The claim proposal is shown FIRST (before the identity
+  // gate) so a joiner sees existing players before being asked for a name.
+  const [claimDecided, setClaimDecided] = useState(false);
 
   // ---- Ghost-targeted invite shortcut (?ghost=<player_id>) ----
   // Mig 022 dropped the signed-token mechanism in favor of passing the
@@ -95,9 +97,6 @@ export const EventJoin = () => {
   const event =
     events.find((t) => t.id === id) ??
     (fetchedEvent?.id === id ? fetchedEvent : null);
-  const league = event?.leagueId
-    ? leagues.find((l) => l.id === event.leagueId)
-    : null;
 
   // Pseudo to display in the "Continuer en tant que X" CTA.
   const currentPseudo = useMemo<string | null>(() => {
@@ -109,34 +108,23 @@ export const EventJoin = () => {
     return null;
   }, [isAuthenticated, user, localUser]);
 
-  // Get event players with their info (existing logic, unchanged).
-  const eventPlayers = event
-    ? event.playerIds.map((playerId) => {
-        if (league) {
-          const leaguePlayer = league.players.find((p) => p.id === playerId);
-          if (leaguePlayer) {
-            return {
-              id: playerId,
-              name: leaguePlayer.name,
-              hasAccount: false,
-            };
-          }
-        }
-        return {
-          id: playerId,
-          name: `Joueur ${playerId.slice(0, 8)}`,
-          hasAccount: false,
-        };
-      })
-    : [];
-
   // Unclaimed ghosts in this event — shown to BOTH auth + anon users
   // (mode "any"); the claim RPC chooses the right backend on submit.
-  const { guests: unclaimedGuests, refresh: refreshGuests } = useUnclaimedGuests(
-    "event",
-    event?.id ?? null,
-    { mode: "any" },
-  );
+  const {
+    guests: unclaimedGuests,
+    refresh: refreshGuests,
+    isLoading: guestsLoading,
+  } = useUnclaimedGuests("event", event?.id ?? null, { mode: "any" });
+
+  // The "Sélectionner un joueur existant" list = the unclaimed ghosts. Picking
+  // one and confirming runs the SAME claim path as the ClaimGuestSheet (the
+  // sheet is just the proactive prompt; this is the manual fallback after a
+  // dismiss). Listing claimed players here would be a dead end — the claim
+  // refuses them server-side.
+  const eventPlayers = unclaimedGuests.map((g) => ({
+    id: g.playerId,
+    name: g.pseudo,
+  }));
 
   // ---- Effects ----
 
@@ -193,6 +181,9 @@ export const EventJoin = () => {
         return;
       }
 
+      // Refresh context so the dashboard finds the event we just joined
+      // (otherwise it renders "Événement introuvable" and the user loops back).
+      await reloadData();
       toast.success(`Bienvenue dans ${event.name} !`);
       navigate(`/event/${event.id}`);
     })();
@@ -204,21 +195,7 @@ export const EventJoin = () => {
     navigate,
     searchParams,
     setSearchParams,
-  ]);
-
-  // After identity gate is resolved AND there are unclaimed ghosts, surface
-  // the claim sheet automatically (once per session per dismiss).
-  useEffect(() => {
-    if (!gateDecided || claimDismissed) return;
-    if (unclaimedGuests.length === 0) return;
-    if (showAuthModal || showModal) return; // don't stack sheets
-    setShowClaimSheet(true);
-  }, [
-    gateDecided,
-    claimDismissed,
-    unclaimedGuests.length,
-    showAuthModal,
-    showModal,
+    reloadData,
   ]);
 
   // ---- Handlers ----
@@ -266,31 +243,25 @@ export const EventJoin = () => {
       return;
     }
 
+    setClaimDecided(true);
+    await reloadData();
     toast.success(`Tu es maintenant ${guest.pseudo} dans ${event.name} !`);
-    setShowClaimSheet(false);
     navigate(`/event/${event.id}`);
   };
 
   const handleDismissClaim = () => {
-    setShowClaimSheet(false);
-    setClaimDismissed(true);
+    setClaimDecided(true);
     // Trigger a refresh in case other tabs changed the list (cheap).
     refreshGuests();
   };
 
   const handleJoinAsExistingPlayer = async () => {
-    if (!selectedPlayerId || !event) return;
-    const identity = await ensureIdentity();
-    if (!identity) return;
-
+    if (!selectedPlayerId) return;
+    // The selected row is an unclaimed ghost — claim it (same path as the
+    // ClaimGuestSheet). handleClaimGuest handles identity, toast and routing.
     setIsJoining(true);
     try {
-      addPlayerToEvent(event.id, selectedPlayerId);
-      toast.success("Tu as rejoint l'événement !");
-      navigate(`/event/${event.id}`);
-    } catch (error) {
-      console.error("Error joining event:", error);
-      toast.error("Erreur lors de la jonction à l'événement");
+      await handleClaimGuest(selectedPlayerId);
     } finally {
       setIsJoining(false);
     }
@@ -319,6 +290,7 @@ export const EventJoin = () => {
     setIsJoining(true);
     try {
       await addAnonymousPlayerToEvent(event.id, newPlayerName.trim());
+      await reloadData();
       toast.success(`Tu as rejoint l'événement "${event.name}" !`);
       navigate(`/event/${event.id}`);
     } catch (error) {
@@ -352,9 +324,27 @@ export const EventJoin = () => {
     );
   }
 
-  // Show the gate sheet on first visit, unless we're processing a ghost
-  // shortcut (which has its own flow).
-  const showGateSheet = !gateDecided && !ghostPlayerId && !tokenProcessed;
+  // Sheet sequencing (no ghost shortcut in play):
+  //   1. ClaimGuestSheet FIRST — "Es-tu l'un de ces joueurs ?" so a joiner sees
+  //      existing players before being asked for any identity / name.
+  //   2. IdentityGateSheet — only once the claim step is decided (or there are
+  //      no ghosts to claim). Wait for the ghost list to finish loading so we
+  //      don't flash the gate before the proposal.
+  const inGhostFlow = !!ghostPlayerId || tokenProcessed;
+  const guestsReady = !guestsLoading;
+  const showClaimSheet =
+    !inGhostFlow &&
+    !claimDecided &&
+    guestsReady &&
+    unclaimedGuests.length > 0 &&
+    !showAuthModal &&
+    !showModal;
+  const showGateSheet =
+    !inGhostFlow &&
+    !gateDecided &&
+    !showClaimSheet &&
+    guestsReady &&
+    (claimDecided || unclaimedGuests.length === 0);
 
   return (
     <div className="min-h-screen bg-navy">

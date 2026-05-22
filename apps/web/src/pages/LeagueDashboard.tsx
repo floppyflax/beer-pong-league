@@ -507,11 +507,18 @@ export const LeagueDashboard = () => {
         />
       )}
 
-      {/* Invite bottom sheet — add player to the league (manual pseudo).
-          Leagues have no joinCode/QR yet → sheet shows only the "add" section. */}
+      {/* Invite bottom sheet — partage (QR + code + lien) et ajout joueur.
+          Parité event/ligue (mig 016) : la ligue a un join_code résolu par
+          useJoinEvent, on l'expose ici comme pour les events. */}
       <InviteSheet
         isOpen={showAddPlayer}
         onClose={() => setShowAddPlayer(false)}
+        shareData={{
+          joinCode: league.joinCode,
+          joinUrl: `${window.location.origin}/league/${league.id}/join`,
+          shareTitle: league.name,
+          shareText: `Rejoins la ligue ${league.name} !`,
+        }}
         onAddManual={handleInviteAddManual}
       />
 

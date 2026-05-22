@@ -257,17 +257,9 @@ export const LeagueSettings = () => {
     reloadData();
   };
 
-  const handleGenerateGhostInvite = async (playerId: string) => {
-    const result = await identityMergeService.generateGhostInviteToken(
-      "league",
-      playerId,
-    );
-    if (!result.success || !result.token) {
-      toast.error(result.error || "Lien indisponible");
-      throw new Error(result.error);
-    }
-    return { token: result.token };
-  };
+  // Mig 022 — invite links carry players.id directly (?ghost=<id>),
+  // no server token needed; GhostManagementSheet builds the URL inline.
+  // handleGenerateGhostInvite removed — onGenerateInvite prop is optional.
 
   // Mig 037 — Promotion / démotion co-admin (creator only).
   const handleSetAdminRole = async (
@@ -802,7 +794,6 @@ export const LeagueSettings = () => {
         onDelete={handleDeleteGhost}
         onArchive={handleArchiveGhost}
         onUnarchive={handleUnarchiveGhost}
-        onGenerateInvite={handleGenerateGhostInvite}
         onSetAdminRole={handleSetAdminRole}
         isOwnerViewing={isOwner}
       />

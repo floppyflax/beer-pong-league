@@ -34,7 +34,7 @@ export const LeagueJoin = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { leagues, addPlayer, isLoadingInitialData } = useLeague();
+  const { leagues, addPlayer, isLoadingInitialData, reloadData } = useLeague();
   const { user, isAuthenticated } = useAuthContext();
   const { localUser, initializeAnonymousUser } = useIdentityContext();
   const { ensureIdentity, showModal, handleIdentityCreated, handleCancel } =
@@ -51,8 +51,10 @@ export const LeagueJoin = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   // ---- Claim-sheet state ----
-  const [showClaimSheet, setShowClaimSheet] = useState(false);
-  const [claimDismissed, setClaimDismissed] = useState(false);
+  // The claim proposal ("Es-tu l'un de ces joueurs ?") is shown FIRST, before
+  // the identity gate — a joiner sees existing players before being asked for
+  // a name. `claimDecided` flips after a claim or "aucun n'est moi".
+  const [claimDecided, setClaimDecided] = useState(false);
 
   // ---- Token (?ghost=TOKEN) state ----
   const ghostPlayerId = searchParams.get("ghost");
@@ -70,11 +72,19 @@ export const LeagueJoin = () => {
   }, [isAuthenticated, user, localUser]);
 
   // Unclaimed ghosts in this league — for both auth + anon (mode "any").
-  const { guests: unclaimedGuests, refresh: refreshGuests } = useUnclaimedGuests(
-    "league",
-    league?.id ?? null,
-    { mode: "any" },
-  );
+  const {
+    guests: unclaimedGuests,
+    refresh: refreshGuests,
+    isLoading: guestsLoading,
+  } = useUnclaimedGuests("league", league?.id ?? null, { mode: "any" });
+
+  // "Sélectionner un joueur existant" = unclaimed ghosts. Picking one claims it
+  // (same path as the ClaimGuestSheet). Listing already-claimed league players
+  // here would be a dead end — the claim refuses them server-side.
+  const claimablePlayers = unclaimedGuests.map((g) => ({
+    id: g.playerId,
+    name: g.pseudo,
+  }));
 
   // ---- Effects ----
 
@@ -115,6 +125,9 @@ export const LeagueJoin = () => {
         return;
       }
 
+      // Refresh context so the dashboard finds the league we just joined
+      // (otherwise it renders "Ligue introuvable" and the user loops back).
+      await reloadData();
       toast.success(`Bienvenue dans ${league.name} !`);
       navigate(`/league/${league.id}`);
     })();
@@ -126,21 +139,7 @@ export const LeagueJoin = () => {
     navigate,
     searchParams,
     setSearchParams,
-  ]);
-
-  // After identity gate is resolved AND there are unclaimed ghosts, surface
-  // the claim sheet automatically.
-  useEffect(() => {
-    if (!gateDecided || claimDismissed) return;
-    if (unclaimedGuests.length === 0) return;
-    if (showAuthModal || showModal) return;
-    setShowClaimSheet(true);
-  }, [
-    gateDecided,
-    claimDismissed,
-    unclaimedGuests.length,
-    showAuthModal,
-    showModal,
+    reloadData,
   ]);
 
   // ---- Handlers ----
@@ -186,34 +185,24 @@ export const LeagueJoin = () => {
       return;
     }
 
+    setClaimDecided(true);
+    await reloadData();
     toast.success(`Tu es maintenant ${guest.pseudo} dans ${league.name} !`);
-    setShowClaimSheet(false);
     navigate(`/league/${league.id}`);
   };
 
   const handleDismissClaim = () => {
-    setShowClaimSheet(false);
-    setClaimDismissed(true);
+    setClaimDecided(true);
     refreshGuests();
   };
 
   const handleJoinAsExistingPlayer = async () => {
-    if (!selectedPlayerId || !league) return;
-
-    const identity = await ensureIdentity();
-    if (!identity) return;
-
+    if (!selectedPlayerId) return;
+    // The selected row is an unclaimed ghost — claim it (same path as the
+    // ClaimGuestSheet). handleClaimGuest handles identity, toast and routing.
     setIsJoining(true);
     try {
-      // Existing player path — selecting an EXISTING (non-ghost) league_player
-      // is a no-op for now (PR3 doesn't add a "join existing seat" RPC). The
-      // user just lands on the dashboard. Ghost adoption is handled separately
-      // via the ClaimGuestSheet.
-      toast.success("Tu as rejoint la ligue !");
-      navigate(`/league/${league.id}`);
-    } catch (error) {
-      console.error("Error joining league:", error);
-      toast.error("Erreur lors de la jonction à la ligue");
+      await handleClaimGuest(selectedPlayerId);
     } finally {
       setIsJoining(false);
     }
@@ -242,6 +231,7 @@ export const LeagueJoin = () => {
     setIsJoining(true);
     try {
       await addPlayer(league.id, newPlayerName.trim());
+      await reloadData();
       toast.success(`Tu as rejoint la ligue "${league.name}" !`);
       navigate(`/league/${league.id}`);
     } catch (error) {
@@ -273,7 +263,23 @@ export const LeagueJoin = () => {
     );
   }
 
-  const showGateSheet = !gateDecided && !ghostPlayerId && !tokenProcessed;
+  // ClaimGuestSheet first (existing players), then the identity gate. Wait for
+  // the ghost list to load so the gate doesn't flash before the proposal.
+  const inGhostFlow = !!ghostPlayerId || tokenProcessed;
+  const guestsReady = !guestsLoading;
+  const showClaimSheet =
+    !inGhostFlow &&
+    !claimDecided &&
+    guestsReady &&
+    unclaimedGuests.length > 0 &&
+    !showAuthModal &&
+    !showModal;
+  const showGateSheet =
+    !inGhostFlow &&
+    !gateDecided &&
+    !showClaimSheet &&
+    guestsReady &&
+    (claimDecided || unclaimedGuests.length === 0);
 
   return (
     <div className="min-h-screen bg-navy">
@@ -302,7 +308,7 @@ export const LeagueJoin = () => {
 
           {!showCreatePlayer ? (
             <>
-              {league.players.length > 0 && (
+              {claimablePlayers.length > 0 && (
                 <div className="bg-navy-soft rounded-card p-4 md:p-6 border border-card">
                   <div className="flex items-center gap-3 mb-3">
                     <Users size={18} className="text-electric-blue flex-shrink-0" />
@@ -314,7 +320,7 @@ export const LeagueJoin = () => {
                     Clique sur ton nom pour rejoindre la ligue.
                   </p>
                   <div className="space-y-2">
-                    {league.players.map((player) => (
+                    {claimablePlayers.map((player) => (
                       <PlayerCard
                         key={player.id}
                         variant="compact"

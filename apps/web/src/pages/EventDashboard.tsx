@@ -603,18 +603,6 @@ export const EventDashboard = () => {
     await reloadData();
   };
 
-  const handleGenerateGhostInvite = async (playerId: string) => {
-    const result = await identityMergeService.generateGhostInviteToken(
-      "event",
-      playerId,
-    );
-    if (!result.success || !result.token) {
-      toast.error(result.error || "Lien indisponible");
-      throw new Error(result.error);
-    }
-    return { token: result.token };
-  };
-
   return (
     <div className="min-h-screen bg-navy text-white flex flex-col relative">
       {/* DetailHero — bloc bleu pleine largeur (bleed sous padding ResponsiveLayout + App) */}
@@ -1015,7 +1003,6 @@ export const EventDashboard = () => {
           onDelete={handleDeleteGhost}
           onArchive={handleArchiveGhost}
           onUnarchive={handleUnarchiveGhost}
-          onGenerateInvite={handleGenerateGhostInvite}
         />
       )}
 
