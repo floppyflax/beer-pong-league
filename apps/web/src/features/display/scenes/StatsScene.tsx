@@ -75,6 +75,7 @@ function KpiTile({ kpi }: { kpi: Kpi }) {
             name={kpi.player.name}
             src={kpi.player.avatarUrl}
             size="sm"
+            tone="deep"
             className="ring-2 ring-navy-soft"
           />
           <span className="font-archivo font-extrabold uppercase tracking-tight text-white truncate text-sm md:text-lg">
@@ -121,6 +122,7 @@ function ClosestTeam({
             name={p.name}
             src={p.avatarUrl}
             size="sm"
+            tone="deep"
             className={i > 0 ? "-ml-3 ring-2 ring-navy-soft" : "ring-2 ring-navy-soft"}
           />
         ))}
