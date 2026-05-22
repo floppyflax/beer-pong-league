@@ -97,6 +97,12 @@ vi.mock('../../../src/hooks/useUnclaimedGuests', () => ({
   useUnclaimedGuests: () => ({ guests: [], refresh: vi.fn() }),
 }));
 
+// LeagueDashboard renders usePendingMatches, which reads useAuthContext.
+// Without a provider the hook throws; mock it like the other contexts here.
+vi.mock('@/context/AuthContext', () => ({
+  useAuthContext: () => ({ user: { id: 'creator-id' }, isAuthenticated: true }),
+}));
+
 const renderDashboard = () =>
   render(
     <BrowserRouter>
@@ -141,7 +147,7 @@ describe('LeagueDashboard — lifecycle (mig 028)', () => {
     expect(resumeLeague).toHaveBeenCalledWith('lg-1');
   });
 
-  it('finished: hides FAB, shows banner, exposes "Réouvrir"', () => {
+  it('finished: hides FAB, shows banner', () => {
     mockCtx.leagues = [{ ...baseLeague, endedAt: '2026-05-20T10:00:00.000Z' }];
     renderDashboard();
 
@@ -151,12 +157,15 @@ describe('LeagueDashboard — lifecycle (mig 028)', () => {
     expect(screen.getByTestId('league-lifecycle-banner')).toHaveTextContent(
       /Ligue terminée/i,
     );
-
-    fireEvent.click(screen.getByRole('button', { name: /Réouvrir la ligue/i }));
-    expect(reopenLeague).toHaveBeenCalledWith('lg-1');
+    // "Réouvrir la ligue" now lives in LeagueSettings (cf. LeagueDashboard.tsx
+    // §lifecycle comment), so the dashboard no longer exposes that action.
   });
 
-  it('"Nouvelle saison" appelle startNewLeagueSeason après confirmation', () => {
+  // TODO: the "Démarrer la Saison" / "Réouvrir" actions moved from the dashboard
+  // to LeagueSettings. Re-cover them in a LeagueSettings test (none exists yet);
+  // the underlying startNewLeagueSeason/reopenLeague logic is already covered in
+  // useDomainHooks.test.ts.
+  it.skip('"Nouvelle saison" appelle startNewLeagueSeason après confirmation', () => {
     const confirmStub = vi.fn(() => true);
     vi.stubGlobal('confirm', confirmStub);
     renderDashboard();
@@ -169,7 +178,7 @@ describe('LeagueDashboard — lifecycle (mig 028)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('"Nouvelle saison" ne fait rien si l\'admin annule la confirm', () => {
+  it.skip('"Nouvelle saison" ne fait rien si l\'admin annule la confirm', () => {
     vi.stubGlobal('confirm', vi.fn(() => false));
     renderDashboard();
 
