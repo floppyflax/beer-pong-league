@@ -59,6 +59,11 @@ vi.mock("@/services/PremiumService", () => ({
 vi.mock("@/context/LeagueContext", () => ({
   useLeague: () => ({
     reloadData: mockReloadData,
+    // CreateEvent reads `leagues` (league-attachment picker) and calls these
+    // on submit; an empty list = the "no league" state these tests exercise.
+    leagues: [],
+    addAnonymousPlayerToEvent: vi.fn(),
+    associateEventToLeague: vi.fn(),
   }),
 }));
 
