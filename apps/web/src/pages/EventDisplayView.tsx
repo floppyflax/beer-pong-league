@@ -5,18 +5,23 @@ import { databaseService } from "../services/DatabaseService";
 import { TrendingUp, TrendingDown, Zap, Calendar } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import type { Player } from "../types";
+import { isMatchValidated } from "../utils/matchStatus";
+
+/** Refresh cadence for the standalone projection screen (ms). */
+const DISPLAY_REFRESH_MS = 15000;
 
 export const EventDisplayView = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const variant = searchParams.get("variant") === "drama" ? "drama" : "split";
-  const { events, leagues, getEventLocalRanking } = useLeague();
+  const { events, leagues, getEventLocalRanking, reloadData } = useLeague();
   const navigate = useNavigate();
 
   const event = events.find((t) => t.id === id);
   const league = event?.leagueId
     ? leagues.find((l) => l.id === event.leagueId)
     : null;
+  const antiCheat = !!event?.anti_cheat_enabled || !!league?.anti_cheat_enabled;
 
   const [scrollPosition, setScrollPosition] = useState<"top" | "scrolling">("top");
   const [highlightedPlayers, setHighlightedPlayers] = useState<Set<string>>(new Set());
@@ -50,13 +55,15 @@ export const EventDisplayView = () => {
     return getEventLocalRanking(event.id, eventParticipants);
   }, [event, eventParticipants, getEventLocalRanking]);
 
-  // Get recent matches
+  // Get recent matches — validated only, mirroring the server gate so the
+  // projection shows the same matches that count toward the ranking.
   const recentMatches = useMemo(() => {
     if (!event) return [];
     return [...event.matches]
+      .filter((m) => isMatchValidated(m, antiCheat))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
-  }, [event]);
+  }, [event, antiCheat]);
 
   // Generate join URL (points to join page)
   const joinUrl = useMemo(() => {
@@ -64,9 +71,19 @@ export const EventDisplayView = () => {
     return `${window.location.origin}/event/${event.id}/join`;
   }, [event]);
 
-  // Auto-scroll logic
+  // Live screen: poll the server so deletions / un-validations / new matches
+  // recorded on another device propagate to the projection without a reload.
   useEffect(() => {
-    if (!event || sortedPlayers.length <= 10) return;
+    const interval = setInterval(() => {
+      void reloadData();
+    }, DISPLAY_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [reloadData]);
+
+  // Auto-scroll logic — depend on the count (primitive), not the event object,
+  // so the 15s data poll doesn't reset this timer on every no-op refresh.
+  useEffect(() => {
+    if (sortedPlayers.length <= 10) return;
 
     const startAutoScroll = () => {
       // Scroll to bottom after 15 seconds on top
@@ -89,7 +106,7 @@ export const EventDisplayView = () => {
         clearTimeout(autoScrollRef.current);
       }
     };
-  }, [scrollPosition, event, sortedPlayers.length]);
+  }, [scrollPosition, sortedPlayers.length]);
 
   // Track last match ID to detect new matches
   const lastMatchIdRef = useRef<string | null>(null);

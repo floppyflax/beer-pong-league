@@ -3,6 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useLeague } from "../context/LeagueContext";
 import { TrendingUp, TrendingDown, Zap } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { isMatchValidated } from "../utils/matchStatus";
+
+/** Refresh cadence for the standalone projection screen (ms). */
+const DISPLAY_REFRESH_MS = 15000;
 
 const RANK_BADGE: Record<number, string> = {
   1: "bg-ping-yellow text-navy border-ping-yellow-deep shadow-[0_3px_0_#D9B400]",
@@ -12,7 +16,7 @@ const RANK_BADGE: Record<number, string> = {
 
 export const DisplayView = () => {
   const { id } = useParams<{ id: string }>();
-  const { leagues } = useLeague();
+  const { leagues, reloadData } = useLeague();
   const navigate = useNavigate();
 
   const league = leagues.find((l) => l.id === id);
@@ -28,6 +32,7 @@ export const DisplayView = () => {
   const recentMatches = useMemo(() => {
     if (!league) return [];
     return [...league.matches]
+      .filter((m) => isMatchValidated(m, league.anti_cheat_enabled))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
   }, [league]);
@@ -37,8 +42,19 @@ export const DisplayView = () => {
     return `${window.location.origin}/league/${league.id}`;
   }, [league]);
 
+  // Live screen: poll the server so deletions / un-validations / new matches
+  // recorded on another device propagate to the projection without a reload.
   useEffect(() => {
-    if (!league || sortedPlayers.length <= 10) return;
+    const interval = setInterval(() => {
+      void reloadData();
+    }, DISPLAY_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [reloadData]);
+
+  useEffect(() => {
+    // Depend on the count (primitive), not the league object — otherwise the
+    // 15s data poll would reset this timer on every no-op refresh.
+    if (sortedPlayers.length <= 10) return;
     const startAutoScroll = () => {
       if (scrollPosition === "top") {
         autoScrollRef.current = setTimeout(() => setScrollPosition("scrolling"), 15000);
@@ -50,7 +66,7 @@ export const DisplayView = () => {
     return () => {
       if (autoScrollRef.current) clearTimeout(autoScrollRef.current);
     };
-  }, [scrollPosition, league, sortedPlayers.length]);
+  }, [scrollPosition, sortedPlayers.length]);
 
   const lastMatchIdRef = useRef<string | null>(null);
 

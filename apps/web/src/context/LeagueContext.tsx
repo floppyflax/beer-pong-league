@@ -22,6 +22,7 @@ import {
 import toast from "react-hot-toast";
 import { League, Player, Match, Event } from "../types";
 import { calculateEloChange } from "../utils/elo";
+import { isMatchValidated } from "../utils/matchStatus";
 import { useAuth } from "../hooks/useAuth";
 import { useIdentity } from "../hooks/useIdentity";
 import {
@@ -1273,10 +1274,17 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       streak: 0,
     }));
 
-    // Replay all Event matches in chronological order to calculate local ranking
-    const sortedMatches = [...event.matches].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+    // Replay only validated Event matches in chronological order. Mirrors the
+    // server gate (apply_match_elo): a rejected match — or a pending one under
+    // anti-cheat — must not count, so the local ranking stays equal to the
+    // server ranking and reflects un-validations done after the fact.
+    const antiCheat =
+      !!event.anti_cheat_enabled ||
+      !!(event.leagueId &&
+        leagues.find((l) => l.id === event.leagueId)?.anti_cheat_enabled);
+    const sortedMatches = [...event.matches]
+      .filter((m) => isMatchValidated(m, antiCheat))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     sortedMatches.forEach((match) => {
       const teamA = localPlayers.filter((p) => match.teamA.includes(p.id));
