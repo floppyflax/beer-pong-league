@@ -84,6 +84,27 @@ Severity, scope and the trigger skill that holds the pattern.
 
 ### 🟠 DX & maintainability
 
+#### I. Stale RPCs référençant le schéma pré-mig-022/024
+
+- **Why**: `admin_update_match` / `admin_delete_match` (mig 021) ont été
+  recréées contre le schéma `events` en **mig 033**. Mais d'autres
+  fonctions de la même époque référencent encore des tables/colonnes
+  renommées ou supprimées et **échouent au runtime** :
+  - `archive_anonymous_player` (mig 021) — lit `tournament_players` /
+    `league_players` (supersédées par `event_memberships` /
+    `league_memberships` en mig 022) et `tournaments` (renommée mig 024).
+    → l'archivage de ghost via cette RPC est cassé.
+  - le trigger introduit en **mig 026** (`propagate_user_pseudo`) référence
+    aussi les tables `*_players` legacy — à vérifier.
+- **Approach**: une migration `NNN_fix_stale_rpcs.sql` qui recrée
+  `archive_anonymous_player` contre `event_memberships` /
+  `league_memberships` + le mapping `users.auth_user_id = auth.uid()`, et
+  réaligne le trigger mig 026. Suivre le pattern de mig 033.
+- **Skill**: [`postgres-rpc`](../.claude/skills/postgres-rpc/SKILL.md),
+  [`supabase-migrations`](../.claude/skills/supabase-migrations/SKILL.md).
+- **Effort**: ~½ jour (auditer toutes les fonctions mig ≤ 021 + le trigger
+  mig 026, recréer celles qui touchent du schéma renommé).
+
 #### B. Wave 2.2 step 2+ — migrate `useLeague` callers to facade hooks
 
 - **Why**: audit wave 2.2 step 1 introduced `useLeagues` / `useEvents` /

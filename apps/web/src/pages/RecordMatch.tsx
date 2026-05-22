@@ -14,6 +14,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeague } from "@/context/LeagueContext";
+import { useAuthContext } from "@/context/AuthContext";
+import { useIdentity } from "@/hooks/useIdentity";
 import { databaseService } from "@/services/DatabaseService";
 import { matchAdminService } from "@/services/MatchAdminService";
 import { eloRecalcService } from "@/services/EloRecalcService";
@@ -581,6 +583,8 @@ export const RecordMatch = () => {
     isLoadingInitialData,
     reloadData,
   } = useLeague();
+  const { user, isAuthenticated } = useAuthContext();
+  const { localUser } = useIdentity();
 
   /* Context is URL-seeded but locally switchable */
   const [contextType, setContextType] = useState<ContextType | null>(
@@ -929,28 +933,35 @@ export const RecordMatch = () => {
     setIsSubmitting(true);
     try {
       if (isEditMode && editMatchId) {
+        const callerUserId =
+          isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
         const result = await matchAdminService.updateMatch(
           editMatchId,
           teamAIds,
           teamBIds,
           scoreA,
           scoreB,
+          callerUserId,
         );
         if (!result.success) {
           toast.error(result.error || "Modification impossible");
           return;
         }
+        // Rebuild every ELO bubble this match touched: event context and/or
+        // league context, each computed on its own baseline (mig 032).
+        const recalcErrors: string[] = [];
+        if (result.eventId) {
+          const r = await eloRecalcService.recalculateEventElo(result.eventId);
+          if (!r.success && r.error) recalcErrors.push(`événement (${r.error})`);
+        }
         if (result.leagueId) {
-          const recalc = await eloRecalcService.recalculateLeagueElo(
-            result.leagueId,
-          );
-          if (!recalc.success) {
-            toast.error(`Match modifié mais recalcul ELO échoué : ${recalc.error}`);
-          } else {
-            toast.success("Match modifié, ELO recalculé");
-          }
+          const r = await eloRecalcService.recalculateLeagueElo(result.leagueId);
+          if (!r.success && r.error) recalcErrors.push(`ligue (${r.error})`);
+        }
+        if (recalcErrors.length > 0) {
+          toast.error(`Match modifié mais recalcul ELO échoué : ${recalcErrors.join(", ")}`);
         } else {
-          toast.success("Match modifié");
+          toast.success("Match modifié, ELO recalculé");
         }
         await reloadData();
         navigate(backPath);

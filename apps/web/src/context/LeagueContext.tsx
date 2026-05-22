@@ -28,6 +28,7 @@ import { useIdentity } from "../hooks/useIdentity";
 import {
   databaseService,
   type EventUpdates,
+  type EventLeagueAssociationResult,
   type LeagueUpdates,
 } from "../services/DatabaseService";
 import { migrationService } from "../services/MigrationService";
@@ -103,7 +104,10 @@ interface LeagueContextType {
   ) => Promise<string>;
   selectLeague: (id: string) => void;
   selectEvent: (id: string) => void;
-  associateEventToLeague: (eventId: string, leagueId: string) => Promise<void>;
+  associateEventToLeague: (
+    eventId: string,
+    leagueId: string,
+  ) => Promise<EventLeagueAssociationResult>;
   addPlayer: (leagueId: string, name: string) => Promise<void>;
   addPlayerToEvent: (eventId: string, playerId: string) => void;
   addAnonymousPlayerToEvent: (eventId: string, playerName: string) => Promise<string>;
@@ -510,14 +514,26 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
   const associateEventToLeague = async (
     eventId: string,
     leagueId: string
-  ) => {
+  ): Promise<EventLeagueAssociationResult> => {
     const event = events.find((t) => t.id === eventId);
     const oldLeagueId = event?.leagueId;
     const newLeagueId = leagueId || null;
 
-    // Persist + sync players (mig 023 — auto-add event players to league).
+    // Resolved caller identity id (same convention as usePendingMatches /
+    // useDetailPagePermissions) — the RPC checks admin against this (mig 036).
+    const callerUserId =
+      isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+
+    // Atomic backfill + ELO replay server-side (mig 034). The RPC rewrites
+    // matches.league_id for the whole event and recalculates both the old and
+    // new league ELO, so the league rankings reflect imported matches at once.
+    let result: EventLeagueAssociationResult;
     try {
-      await databaseService.associateEventToLeague(eventId, newLeagueId);
+      result = await databaseService.associateEventToLeague(
+        eventId,
+        newLeagueId,
+        callerUserId,
+      );
     } catch (err) {
       // Most common cause: the chosen league no longer exists in DB (stale
       // localStorage cache from a previous session). Surface it to the
@@ -538,7 +554,7 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     setEvents((prev) =>
       prev.map((event) => {
         if (event.id !== eventId) return event;
-        return { ...event, leagueId: leagueId || null };
+        return { ...event, leagueId: newLeagueId };
       })
     );
 
@@ -556,10 +572,10 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // Add to new league cache if provided
-    if (leagueId) {
+    if (newLeagueId) {
       setLeagues((prev) =>
         prev.map((league) => {
-          if (league.id !== leagueId) return league;
+          if (league.id !== newLeagueId) return league;
           if (!league.events?.includes(eventId)) {
             return {
               ...league,
@@ -571,10 +587,32 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
-    // Refresh data so the league dashboard shows the newly synced players.
-    if (leagueId) {
+    // User feedback reflecting what the RPC actually did.
+    if (!result.noop) {
+      if (newLeagueId) {
+        toast.success(
+          result.matchesPropagated > 0
+            ? `Événement rattaché — ${result.matchesPropagated} match${result.matchesPropagated > 1 ? "s" : ""} pris en compte dans la ligue`
+            : "Événement rattaché à la ligue",
+        );
+        if (result.matchesPredatingSeason > 0) {
+          toast(
+            `${result.matchesPredatingSeason} match${result.matchesPredatingSeason > 1 ? "s" : ""} antérieur${result.matchesPredatingSeason > 1 ? "s" : ""} au début de la saison ne compte${result.matchesPredatingSeason > 1 ? "nt" : ""} pas dans le classement.`,
+          );
+        }
+      } else {
+        toast.success("Événement détaché de la ligue");
+      }
+    }
+
+    // Refresh so the league dashboard reflects synced players + replayed ELO.
+    // Needed on BOTH attach (new league integrates matches) and detach (old
+    // league is rolled back).
+    if (!result.noop && (newLeagueId || oldLeagueId)) {
       void loadDataFromSupabase();
     }
+
+    return result;
   };
 
   const deleteEvent = async (id: string) => {

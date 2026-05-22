@@ -18,6 +18,7 @@ import { leaguesRepository, type LeagueUpdates } from './repositories/LeaguesRep
 import {
   eventsRepository,
   type EventUpdates,
+  type EventLeagueAssociationResult,
 } from './repositories/EventsRepository';
 import { playersRepository } from './repositories/PlayersRepository';
 import {
@@ -28,7 +29,13 @@ import {
 
 // Re-export so external callers (LeagueContext, tests) can import the shape
 // of the updates object without digging into the repository module.
-export type { EventUpdates, RecordMatchResult, ConfirmMatchDecision, LeagueUpdates };
+export type {
+  EventUpdates,
+  EventLeagueAssociationResult,
+  RecordMatchResult,
+  ConfirmMatchDecision,
+  LeagueUpdates,
+};
 
 class DatabaseService {
   // ===== Leagues =====
@@ -124,8 +131,9 @@ class DatabaseService {
   associateEventToLeague(
     eventId: string,
     leagueId: string | null,
-  ): Promise<void> {
-    return eventsRepository.associateEventToLeague(eventId, leagueId);
+    callerUserId: string | null,
+  ): Promise<EventLeagueAssociationResult> {
+    return eventsRepository.associateEventToLeague(eventId, leagueId, callerUserId);
   }
 
   createEvent(data: {

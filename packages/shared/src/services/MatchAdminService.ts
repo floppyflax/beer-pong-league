@@ -1,10 +1,14 @@
 /**
- * MatchAdminService — admin edit/delete of recorded matches via mig 021 RPCs.
+ * MatchAdminService — admin edit/delete of recorded matches via the
+ * `admin_update_match` / `admin_delete_match` RPCs (mig 021, realigned to the
+ * events schema in mig 033 — they now return `event_id` + `league_id`).
  *
- * Match edits and deletes are followed by a mandatory ELO rebuild
- * (`EloRecalcService.recalculateLeagueElo`) so league_players stats
- * stay coherent. Events without an associated league have no
- * persistent ELO, so the recalc is a no-op there.
+ * Match edits and deletes are followed by a mandatory ELO rebuild so stats
+ * stay coherent. Since mig 023 events carry their OWN persistent ELO
+ * (`event_memberships.elo`), so the caller must rebuild BOTH contexts when
+ * applicable: `recalculateEventElo(eventId)` for the event bubble AND
+ * `recalculateLeagueElo(leagueId)` for the league bubble (mig 032 added the
+ * per-context recalc RPCs).
  */
 
 import { getSupabase } from '../lib/supabase';
@@ -70,6 +74,8 @@ class MatchAdminService {
     teamBPlayerIds: string[],
     scoreA: number,
     scoreB: number,
+    /** Resolved caller identity id — must match the event/league creator (mig 036). */
+    callerUserId: string | null,
   ): Promise<{
     success: boolean;
     error?: string;
@@ -90,6 +96,7 @@ class MatchAdminService {
         p_team_b_player_ids: resolvedB,
         p_score_a: scoreA,
         p_score_b: scoreB,
+        p_caller_user_id: callerUserId,
       });
       if (error) return { success: false, error: error.message };
       const result = data as { league_id?: string | null; event_id?: string | null } | null;
@@ -108,6 +115,8 @@ class MatchAdminService {
 
   async deleteMatch(
     matchId: string,
+    /** Resolved caller identity id — must match the event/league creator (mig 036). */
+    callerUserId: string | null,
   ): Promise<{
     success: boolean;
     error?: string;
@@ -120,6 +129,7 @@ class MatchAdminService {
       const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
       const { data, error } = await rpc('admin_delete_match', {
         p_match_id: matchId,
+        p_caller_user_id: callerUserId,
       });
       if (error) return { success: false, error: error.message };
       const result = data as { league_id?: string | null; event_id?: string | null } | null;

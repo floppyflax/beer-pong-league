@@ -561,25 +561,33 @@ export const EventDashboard = () => {
     if (
       !confirm(
         event.leagueId
-          ? "Supprimer ce match ? L'ELO de la ligue sera recalculé."
-          : "Supprimer ce match ?",
+          ? "Supprimer ce match ? Les ELO de l'événement et de la ligue seront recalculés."
+          : "Supprimer ce match ? L'ELO de l'événement sera recalculé.",
       )
     )
       return;
-    const result = await matchAdminService.deleteMatch(matchId);
+    const callerUserId =
+      isAuthenticated && user ? user.id : localUser?.anonymousUserId ?? null;
+    const result = await matchAdminService.deleteMatch(matchId, callerUserId);
     if (!result.success) {
       toast.error(result.error || "Suppression impossible");
       return;
     }
+    // Rebuild every ELO bubble this match touched: the event context always,
+    // the league context too when the event propagates to a league (mig 032).
+    const recalcErrors: string[] = [];
+    if (result.eventId) {
+      const r = await eloRecalcService.recalculateEventElo(result.eventId);
+      if (!r.success && r.error) recalcErrors.push(`événement (${r.error})`);
+    }
     if (result.leagueId) {
-      const recalc = await eloRecalcService.recalculateLeagueElo(result.leagueId);
-      if (!recalc.success) {
-        toast.error(`Match supprimé mais recalcul ELO échoué : ${recalc.error}`);
-      } else {
-        toast.success("Match supprimé, ELO recalculé");
-      }
+      const r = await eloRecalcService.recalculateLeagueElo(result.leagueId);
+      if (!r.success && r.error) recalcErrors.push(`ligue (${r.error})`);
+    }
+    if (recalcErrors.length > 0) {
+      toast.error(`Match supprimé mais recalcul ELO échoué : ${recalcErrors.join(", ")}`);
     } else {
-      toast.success("Match supprimé");
+      toast.success("Match supprimé, ELO recalculé");
     }
     await reloadData();
   };

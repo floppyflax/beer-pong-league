@@ -156,6 +156,9 @@ class LeaguesRepository extends BaseRepository {
         list.push({
           id: m.id,
           date: m.created_at || new Date().toISOString(),
+          // Event of origin (null = league-only match). Lets the league
+          // activity feed group by event while showing the LEAGUE-context delta.
+          eventId: m.event_id ?? null,
           teamA: remap(m.team_a_player_ids),
           teamB: remap(m.team_b_player_ids),
           scoreA: m.score_a || 0,
@@ -168,6 +171,7 @@ class LeaguesRepository extends BaseRepository {
           confirmed_at: m.confirmed_at,
           cups_remaining: m.cups_remaining ?? undefined,
           photo_url: m.photo_url ?? undefined,
+          // LEAGUE-context delta (hydrated from elo_history WHERE league_id IS NOT NULL).
           eloChanges: eloByMatch.get(m.id),
         });
         matchesByLeague.set(m.league_id, list);

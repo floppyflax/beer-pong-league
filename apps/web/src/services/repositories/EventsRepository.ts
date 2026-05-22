@@ -35,6 +35,23 @@ export interface EventUpdates {
   propagatesToLeagueElo?: boolean;
 }
 
+/**
+ * Result of `associateEventToLeague` — mirrors the JSONB returned by the
+ * `associate_event_to_league` RPC (mig 034), used to drive the success toast.
+ */
+export interface EventLeagueAssociationResult {
+  /** Number of the event's matches whose `matches.league_id` was (re)written. */
+  matchesPropagated: number;
+  /** Matches replayed on the previous league (null when there was none). */
+  oldLeagueReplayed: number | null;
+  /** Matches replayed on the new league (null on detach). */
+  newLeagueReplayed: number | null;
+  /** Matches predating the target league's current season (set but not ELO-replayed). */
+  matchesPredatingSeason: number;
+  /** TRUE when the event was already in the requested state (nothing changed). */
+  noop: boolean;
+}
+
 class EventsRepository extends BaseRepository {
   /**
    * Charge les events où l'user est creator OU member (via player owned).
@@ -350,102 +367,75 @@ class EventsRepository extends BaseRepository {
   }
 
   /**
-   * Associe / dissocie un event à une ligue (DB + cache local).
+   * Associe / dissocie un event à une ligue, de façon atomique et cohérente
+   * côté ELO, via la RPC `associate_event_to_league` (mig 034).
    *
-   * Effets de bord (mig 023) :
-   *   - Quand on rattache à une ligue (`leagueId !== null`), TOUS les
-   *     `event_memberships` de l'event sont synchronisés vers
-   *     `league_memberships` de la ligue cible : les players manquants y
-   *     sont ajoutés (avec ELO par défaut 1000), les présents sont laissés
-   *     intacts. Côté event, les `event_memberships.elo` des players
-   *     qui avaient déjà un `league_memberships.elo` sont alignés sur ce
-   *     dernier (héritage) — sinon laissés à leur valeur courante.
-   *   - Quand on dissocie (`leagueId === null`), aucune row n'est supprimée
-   *     côté ligue (les players y restent — c'est leur historique). Seul le
-   *     lien `events.league_id` est nullifié.
+   * La RPC (SECURITY DEFINER) :
+   *   - met à jour `events.league_id` ;
+   *   - quand on rattache, crée les `league_memberships` manquantes (ELO 1000,
+   *     SANS héritage — chaque bulle ELO vit indépendamment) ;
+   *   - backfille `matches.league_id` pour TOUS les matchs de l'event ;
+   *   - recalcule l'ELO de l'ancienne ligue (purge l'effet de l'event détaché)
+   *     ET de la nouvelle (intègre les matchs importés).
+   *
+   * `leagueId` vaut `null` ou `''` pour un détachement.
    */
   async associateEventToLeague(
     eventId: string,
     leagueId: string | null,
-  ): Promise<void> {
+    /** Resolved caller identity id (user.id or anonymousUserId) — must match
+     *  the event/league creator. The RPC checks admin against this (mig 036). */
+    callerUserId: string | null,
+  ): Promise<EventLeagueAssociationResult> {
+    // UI passes "" for detach — normalise to null.
+    const targetLeagueId = leagueId && leagueId.length > 0 ? leagueId : null;
+
     if (!this.isSupabaseAvailable()) {
       const events = this.loadEventsFromLocalStorage();
       const event = events.find((t) => t.id === eventId);
       if (event) {
-        event.leagueId = leagueId;
+        event.leagueId = targetLeagueId;
         this.saveEventToLocalStorage(event);
       }
-      return;
+      return {
+        matchesPropagated: 0,
+        oldLeagueReplayed: null,
+        newLeagueReplayed: null,
+        matchesPredatingSeason: 0,
+        noop: true,
+      };
     }
 
     try {
-      // Persist the link first.
-      const { error: linkErr } = await sb!
-        .from('events')
-        .update({ league_id: leagueId })
-        .eq('id', eventId);
-      if (linkErr) throw linkErr;
-
-      // Sync players when rattaching to a league.
-      if (leagueId) {
-        const { data: memberships } = await sb!
-          .from('event_memberships')
-          .select('player_id, elo')
-          .eq('event_id', eventId);
-
-        const tmRows = (memberships ?? []) as Array<{ player_id: string; elo: number }>;
-        if (tmRows.length > 0) {
-          const playerIds = tmRows.map((m) => m.player_id);
-
-          // Find which league memberships already exist.
-          const { data: existingLm } = await sb!
-            .from('league_memberships')
-            .select('player_id, elo')
-            .eq('league_id', leagueId)
-            .in('player_id', playerIds);
-          const existingMap = new Map(
-            ((existingLm ?? []) as Array<{ player_id: string; elo: number }>).map(
-              (lm) => [lm.player_id, lm.elo],
-            ),
-          );
-
-          // Insert missing league_memberships in bulk.
-          const toInsert = playerIds
-            .filter((pid) => !existingMap.has(pid))
-            .map((pid) => ({ league_id: leagueId, player_id: pid }));
-          if (toInsert.length > 0) {
-            const { error: insErr } = await sb!
-              .from('league_memberships')
-              .insert(toInsert);
-            if (insErr) {
-              console.error('associateEventToLeague — insert lm failed', insErr);
-            }
-          }
-
-          // Inheritance pass: align event_memberships.elo with the league
-          // ELO when the player already had one (preserves their league
-          // baseline). Players newly added to the league inherit the event's
-          // current ELO (no realignment needed — both sides at default).
-          for (const tm of tmRows) {
-            const leagueElo = existingMap.get(tm.player_id);
-            if (leagueElo !== undefined && leagueElo !== tm.elo) {
-              await sb!
-                .from('event_memberships')
-                .update({ elo: leagueElo })
-                .eq('event_id', eventId)
-                .eq('player_id', tm.player_id);
-            }
-          }
-        }
-      }
+      const { data, error } = await sb!.rpc('associate_event_to_league', {
+        p_event_id: eventId,
+        p_league_id: targetLeagueId,
+        p_caller_user_id: callerUserId,
+      });
+      if (error) throw error;
 
       // Cache local update.
       const events = this.loadEventsFromLocalStorage();
       const event = events.find((t) => t.id === eventId);
       if (event) {
-        event.leagueId = leagueId;
+        event.leagueId = targetLeagueId;
         this.saveEventToLocalStorage(event);
       }
+
+      const row = (data ?? {}) as {
+        matches_propagated?: number;
+        old_league_replayed?: number | null;
+        new_league_replayed?: number | null;
+        matches_predating_season?: number;
+        noop?: boolean;
+      };
+      return {
+        matchesPropagated: row.matches_propagated ?? 0,
+        oldLeagueReplayed: row.old_league_replayed ?? null,
+        newLeagueReplayed: row.new_league_replayed ?? null,
+        matchesPredatingSeason: row.matches_predating_season ?? 0,
+        noop: row.noop ?? false,
+      };
     } catch (error) {
       console.error('Error associating event to league:', error);
       throw error;
