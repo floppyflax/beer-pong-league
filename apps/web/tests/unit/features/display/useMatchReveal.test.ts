@@ -5,7 +5,10 @@ import type {
   DisplaySource,
   DisplaySourcePlayer,
 } from "@/features/display/types";
-import { useMatchReveal } from "@/features/display/hooks/useMatchReveal";
+import {
+  useMatchReveal,
+  withTransitionDeltas,
+} from "@/features/display/hooks/useMatchReveal";
 
 // jsdom n'a pas AudioContext → la sonnerie est un no-op (testé indirectement).
 
@@ -130,5 +133,58 @@ describe("useMatchReveal", () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "m" }));
     });
     expect(result.current.soundOn).toBe(false);
+  });
+});
+
+describe("withTransitionDeltas", () => {
+  it("dérive places gagnées/perdues et ELO gagné/perdu depuis le diff avant→après", () => {
+    // Avant : b #1 (1099), a #2 (1098). a bat b et passe #1 (+ELO), b descend.
+    const before = [player("b", 1), player("a", 2)]; // elo = 1100 - rank
+    const after = [
+      { ...player("a", 1), elo: 1126 },
+      { ...player("b", 2), elo: 1071 },
+    ];
+    const out = withTransitionDeltas(after, before);
+    const a = out.find((x) => x.id === "a")!;
+    const b = out.find((x) => x.id === "b")!;
+    expect(a.rankDelta).toBe(1); // 2 -> 1 : monté d'une place
+    expect(a.eloDelta).toBe(1126 - 1098); // +28
+    expect(b.rankDelta).toBe(-1); // 1 -> 2 : descendu
+    expect(b.eloDelta).toBe(1071 - 1099); // -28
+  });
+
+  it("ne dépend pas de match.eloChanges (calcul purement positionnel)", () => {
+    const before = [{ ...player("x", 1), elo: 1000 }];
+    const after = [{ ...player("x", 1), elo: 1012 }];
+    expect(withTransitionDeltas(after, before)[0].eloDelta).toBe(12);
+  });
+
+  it("marque un joueur dépassé sans avoir joué (rankDelta sans eloDelta)", () => {
+    // c ne joue pas (ELO inchangé) mais se fait dépasser → descend d'un rang.
+    const before = [
+      { ...player("c", 2), elo: 1000 },
+      { ...player("d", 3), elo: 990 },
+    ];
+    const after = [
+      { ...player("d", 2), elo: 1015 },
+      { ...player("c", 3), elo: 1000 },
+    ];
+    const c = withTransitionDeltas(after, before).find((x) => x.id === "c")!;
+    expect(c.rankDelta).toBe(-1);
+    expect(c.eloDelta).toBeUndefined();
+  });
+
+  it("laisse les deltas undefined quand rien ne change", () => {
+    const before = [{ ...player("x", 1), elo: 1000 }];
+    const after = [{ ...player("x", 1), elo: 1000 }];
+    const x = withTransitionDeltas(after, before)[0];
+    expect(x.rankDelta).toBeUndefined();
+    expect(x.eloDelta).toBeUndefined();
+  });
+
+  it("retourne la liste inchangée sans référence avant (1ère ouverture)", () => {
+    const after = [player("x", 1)];
+    expect(withTransitionDeltas(after, null)).toBe(after);
+    expect(withTransitionDeltas(after, [])).toBe(after);
   });
 });

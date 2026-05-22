@@ -48,6 +48,34 @@ function byRank(
 }
 
 /**
+ * Calcule les deltas de transition (places gagnées/perdues + ELO gagné/perdu)
+ * en comparant le nouvel ordre à l'ordre AFFICHÉ avant le match.
+ *
+ * Indépendant de `match.eloChanges` (souvent vide en local / non garanti) : on
+ * lit directement le rang et l'ELO de chaque joueur avant vs après. Comme le
+ * snapshot reste gelé jusqu'au prochain match, ces deltas persistent à l'écran
+ * pour tous les joueurs concernés (y compris ceux dépassés sans avoir joué).
+ */
+export function withTransitionDeltas(
+  next: DisplaySourcePlayer[],
+  before: DisplaySourcePlayer[] | null,
+): DisplaySourcePlayer[] {
+  if (!before || before.length === 0) return next;
+  const beforeById = new Map(before.map((p) => [p.id, p]));
+  return next.map((p) => {
+    const prev = beforeById.get(p.id);
+    if (!prev) return p; // nouveau joueur : pas de point de comparaison
+    const rankDelta = prev.rank - p.rank; // >0 = a gagné des places
+    const eloDelta = p.elo - prev.elo;
+    return {
+      ...p,
+      rankDelta: rankDelta !== 0 ? rankDelta : undefined,
+      eloDelta: eloDelta !== 0 ? eloDelta : undefined,
+    };
+  });
+}
+
+/**
  * Orchestre toute la séquence d'arrivée d'un nouveau match en mode diffusion :
  *
  * 1. **alert** (~3.5s) : flou de l'arrière-plan + alerte plein écran clignotante
@@ -84,6 +112,9 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
   const lastSeenRef = useRef<string | null>(null);
   const sourceRef = useRef<DisplaySource | null>(source);
   sourceRef.current = source;
+  // Ordre actuellement affiché (gelé) → référence pour les deltas de transition.
+  const committedPlayersRef = useRef<DisplaySourcePlayer[] | null>(null);
+  committedPlayersRef.current = committedPlayers;
   const soundOnRef = useRef(soundOn);
   soundOnRef.current = soundOn;
 
@@ -115,6 +146,8 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
     if (!source) return;
     const latest = source.matches[0]?.id ?? null;
     if (!initializedRef.current) {
+      // Attendre que les joueurs soient chargés pour ne pas geler un snapshot vide.
+      if (source.players.length === 0) return;
       initializedRef.current = true;
       lastSeenRef.current = latest;
       setCommittedPlayers(source.players);
@@ -169,6 +202,10 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
       setBlur(false);
       setAlertMatch(null);
 
+      // Ordre AFFICHÉ avant le match (gelé) → référence pour calculer les
+      // places gagnées/perdues et l'ELO gagné/perdu de chaque joueur.
+      const beforeOrder = committedPlayersRef.current ?? s.players;
+
       const winnerA = match.scoreA > match.scoreB;
       const winners = winnerA ? match.teamA : match.teamB;
       const losers = winnerA ? match.teamB : match.teamA;
@@ -177,11 +214,13 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
       setHighlightedPlayerIds(new Set([...winners, ...losers]));
       // committedPlayers reste l'ANCIEN ordre (gelé) → on voit le classement avant.
 
-      // 3) Après le hold : commit du nouvel ordre → les lignes glissent vers
-      // leurs nouvelles positions (auto-animate).
+      // 3) Après le hold : commit du nouvel ordre avec deltas de transition
+      // (places + ELO, calculés avant→après) → les lignes glissent vers leurs
+      // nouvelles positions (auto-animate) et les badges/deltas apparaissent.
       at(PRE_REVEAL_HOLD_MS, () => {
         const cur = sourceRef.current;
-        if (cur) setCommittedPlayers(cur.players);
+        if (cur)
+          setCommittedPlayers(withTransitionDeltas(cur.players, beforeOrder));
       });
 
       // 4) VISITE séquentielle (après le morph) : vainqueurs (mieux classés
@@ -193,10 +232,15 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
         );
       });
 
-      // 5) Fin : reprise du slideshow.
+      // 5) Fin : recommit (au cas où la source se soit stabilisée tard, ex.
+      // event qui recharge ses participants) puis reprise du slideshow. Les
+      // deltas restent affichés jusqu'au prochain match.
       at(
         PRE_REVEAL_HOLD_MS + 400 + order.length * VISIT_STEP_MS + END_HOLD_MS,
         () => {
+          const cur = sourceRef.current;
+          if (cur)
+            setCommittedPlayers(withTransitionDeltas(cur.players, beforeOrder));
           setFocusedPlayerId(null);
           setHighlightedPlayerIds(new Set());
           setWinnerIds(new Set());

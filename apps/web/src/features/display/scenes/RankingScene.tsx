@@ -120,14 +120,11 @@ export function RankingScene({
             const isWinner = winnerIds?.has(player.id);
             const isLoser = loserIds?.has(player.id);
             const isHighlighted = isWinner || isLoser;
-            const isFocused = focusedPlayerId === player.id;
             return (
               <div
                 key={player.id}
                 ref={setRowRef(player.id)}
-                className={`relative rounded-card transition-transform duration-500 ${
-                  isFocused ? "scale-[1.04]" : isHighlighted ? "scale-[1.02]" : ""
-                }`}
+                className="relative rounded-card"
               >
                 <PlayerCard
                   variant="leaderRow"
@@ -169,9 +166,7 @@ export function RankingScene({
               <div
                 key={player.id}
                 ref={setRowRef(player.id)}
-                className={`relative bg-navy-soft/70 border border-card rounded-card px-4 py-2.5 transition-transform duration-500 ${
-                  focusedPlayerId === player.id ? "scale-[1.04]" : ""
-                }`}
+                className="relative bg-navy-soft/70 border border-card rounded-card px-4 py-2.5"
               >
                 {isHighlighted && (
                   <div
