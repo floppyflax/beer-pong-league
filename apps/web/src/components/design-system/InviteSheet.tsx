@@ -286,7 +286,7 @@ export const InviteSheet = ({
         {/* Content — grid stack quand 2 tabs (évite tout resize entre tabs).
             Les deux panels occupent la même zone grid ; seul l'actif est opaque. */}
         <div
-          className={`px-5 pb-6 overflow-y-auto ${hasBothTabs ? "pt-5 grid [grid-template-areas:'stack']" : ""}`}
+          className={`px-5 pb-6 overflow-y-auto ${hasBothTabs ? "pt-5 grid grid-cols-[minmax(0,1fr)] [grid-template-areas:'stack']" : ""}`}
         >
           {/* --- Share tab --- */}
           {hasShare && shareData && (
