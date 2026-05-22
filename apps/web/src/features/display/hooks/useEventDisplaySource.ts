@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLeague } from "@/context/LeagueContext";
 import { databaseService } from "@/services/DatabaseService";
 import type { Player } from "@/types";
+import { isMatchValidated } from "@/utils/matchStatus";
 import type { DisplaySource } from "../types";
 import { useDisplayRankings } from "./useDisplayRankings";
 
@@ -66,12 +67,35 @@ export function useEventDisplaySource(eventId: string | undefined): DisplaySourc
     // nouveau = potentiellement de nouveaux participants ou stats à jour).
   }, [eventId, event?.matches?.length]);
 
+  // League parente — pour le fallback de noms / contexte ET la détection
+  // anti-cheat : un event sans flag hérite de celui de sa league (même règle
+  // que getEventLocalRanking).
+  const league = useMemo(
+    () =>
+      event?.leagueId
+        ? leagues.find((l) => l.id === event.leagueId)
+        : undefined,
+    [event, leagues],
+  );
+  const antiCheat = !!event?.anti_cheat_enabled || !!league?.anti_cheat_enabled;
+
+  // Matchs validés uniquement, le plus récent en premier. Réplique la porte
+  // serveur (apply_match_elo) : un match pending/rejected ne nourrit pas la
+  // diffusion. Le feed, l'anim de révélation et les recentResults/deltas en
+  // dérivent. Le rang lui-même vient déjà de getEventLocalRanking (filtré).
+  const matchesDesc = useMemo(() => {
+    if (!event) return [];
+    return [...event.matches]
+      .filter((m) => isMatchValidated(m, antiCheat))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [event, antiCheat]);
+
   const sortedPlayers = useMemo(() => {
     if (!event) return [] as Player[];
     return getEventLocalRanking(event.id, participants);
   }, [event, participants, getEventLocalRanking]);
 
-  const displayPlayersRaw = useDisplayRankings(sortedPlayers, event?.matches ?? []);
+  const displayPlayersRaw = useDisplayRankings(sortedPlayers, matchesDesc);
 
   // Injecte la photo du joueur (event_participants.avatar_url) quand dispo.
   const displayPlayers = useMemo(
@@ -82,26 +106,10 @@ export function useEventDisplaySource(eventId: string | undefined): DisplaySourc
     [displayPlayersRaw, avatarById],
   );
 
-  const matchesDesc = useMemo(() => {
-    if (!event) return [];
-    return [...event.matches].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
-  }, [event]);
-
   const joinUrl = useMemo(() => {
     if (!event) return "";
     return `${window.location.origin}/event/${event.id}/join`;
   }, [event]);
-
-  // League associée (utile pour fallback de noms / contexte)
-  const league = useMemo(
-    () =>
-      event?.leagueId
-        ? leagues.find((l) => l.id === event.leagueId)
-        : undefined,
-    [event, leagues],
-  );
 
   return useMemo<DisplaySource | null>(() => {
     if (!event) return null;

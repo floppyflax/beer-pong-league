@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useLeague } from "@/context/LeagueContext";
+import { isMatchValidated } from "@/utils/matchStatus";
 import type { DisplaySource } from "../types";
 import { useDisplayRankings } from "./useDisplayRankings";
 
@@ -17,17 +18,19 @@ export function useLeagueDisplaySource(leagueId: string | undefined): DisplaySou
     [leagues, leagueId],
   );
 
-  const displayPlayers = useDisplayRankings(
-    league?.players ?? [],
-    league?.matches ?? [],
-  );
-
+  // Matchs validés uniquement, le plus récent en premier. Réplique la porte
+  // serveur (apply_match_elo) : sous anti-cheat un match pending/rejected ne
+  // doit pas nourrir la diffusion. Le classement (recentResults/deltas) et le
+  // feed des derniers matchs en dérivent — la projection reste alignée sur le
+  // classement officiel.
   const matchesDesc = useMemo(() => {
     if (!league) return [];
-    return [...league.matches].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
+    return [...league.matches]
+      .filter((m) => isMatchValidated(m, league.anti_cheat_enabled))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [league]);
+
+  const displayPlayers = useDisplayRankings(league?.players ?? [], matchesDesc);
 
   const joinUrl = useMemo(() => {
     if (!league) return "";
