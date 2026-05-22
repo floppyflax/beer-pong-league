@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { Camera, ChevronLeft } from "lucide-react";
 import { QRScanner } from "@/components/join/QRScanner";
 import { useJoinEvent } from "@/hooks/useJoinEvent";
-import { extractCodeFromQR } from "@/utils/extractCodeFromQR";
+import { parseQRData } from "@/utils/extractCodeFromQR";
 import { PButton } from "@/components/ponglo/PButton";
 import { StickyCTA } from "@/components/design-system";
 
@@ -42,25 +42,38 @@ export const Join = () => {
 
   const handleScanCode = async (scannedCode: string) => {
     setShowScanner(false);
-    const extracted = extractCodeFromQR(scannedCode);
-    if (!extracted) {
-      toast.error("QR invalide. Saisis le code manuellement.");
-      inputRef.current?.focus();
+    const parsed = parseQRData(scannedCode);
+
+    // The app's QR codes encode the join URL. Route straight to the join page
+    // (the gate then handles identity). Bare 6-8 char codes go through the
+    // code lookup. Anything else is rejected.
+    if (parsed.type === "event_url" && parsed.entityId) {
+      navigate(`/event/${parsed.entityId}/join`);
       return;
     }
-    setCode(extracted.toUpperCase());
-    setIsJoining(true);
-    try {
-      await joinByCode(extracted);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Erreur lors de la jonction à l'événement";
-      toast.error(message);
-    } finally {
-      setIsJoining(false);
+    if (parsed.type === "league_url" && parsed.entityId) {
+      navigate(`/league/${parsed.entityId}/join`);
+      return;
     }
+    if (parsed.type === "code" && parsed.code) {
+      setCode(parsed.code);
+      setIsJoining(true);
+      try {
+        await joinByCode(parsed.code);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Erreur lors de la jonction à l'événement";
+        toast.error(message);
+      } finally {
+        setIsJoining(false);
+      }
+      return;
+    }
+
+    toast.error("QR invalide. Saisis le code manuellement.");
+    inputRef.current?.focus();
   };
 
   const isValid = CODE_REGEX.test(code);
