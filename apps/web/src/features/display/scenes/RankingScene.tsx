@@ -63,9 +63,9 @@ export function RankingScene({
     // self-paced.
     enabled: enabled && !focusMode,
     paused,
-    holdTopMs: 8_000,
-    scrollSpeedPxPerSec: 30,
-    holdBottomMs: 3_000,
+    holdTopMs: 6_000,
+    scrollSpeedPxPerSec: 55,
+    holdBottomMs: 2_500,
     onComplete: () => {
       onComplete?.();
     },
