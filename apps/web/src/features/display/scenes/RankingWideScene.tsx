@@ -35,7 +35,7 @@ function PlayerRow({
   highlight: "winner" | "loser" | null;
 }) {
   return (
-    <div className="relative bg-navy-soft border-[1.5px] border-cool-gray/20 rounded-card px-3 py-2 mb-2 break-inside-avoid">
+    <div className="relative bg-navy-soft border-[1.5px] border-cool-gray/20 rounded-card px-2.5 py-1 mb-1.5 break-inside-avoid">
       {highlight && (
         <div
           aria-hidden
@@ -51,10 +51,11 @@ function PlayerRow({
           }
         />
       )}
-      <div className="relative flex items-center gap-2.5">
-        {/* Rang : gros pavé à gauche, médaille pour top 3 */}
+      <div className="relative flex items-center gap-2">
+        {/* Rang — réduit à la taille de l'avatar (w-9) pour gagner en
+            densité verticale ; médaille colorée pour top 3. */}
         <div
-          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-archivo font-black text-lg tabular-nums ${rankBadgeClass(player.rank)}`}
+          className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-archivo font-black text-base tabular-nums ${rankBadgeClass(player.rank)}`}
           aria-label={`Rang ${player.rank}`}
         >
           {player.rank}
@@ -73,24 +74,24 @@ function PlayerRow({
           )}
         </div>
 
-        {/* Nom — flex-1 pour pousser stats/ELO à droite */}
-        <div className="flex-1 min-w-0">
-          <div className="font-archivo font-extrabold text-base leading-tight truncate">
-            {player.name}
-          </div>
+        {/* Nom — flex-1 pour pousser stats/ELO à droite, sur une seule ligne. */}
+        <div className="flex-1 min-w-0 font-archivo font-extrabold text-[15px] leading-tight truncate">
+          {player.name}
         </div>
 
-        {/* W/L % — compact, monospace */}
-        <div className="flex-shrink-0 font-mono text-[11px] uppercase tracking-[1px] tabular-nums font-bold text-right leading-tight">
-          <div>
-            <span className="text-lime">{player.wins}</span>
-            <span className="text-cool-gray">-</span>
-            <span className="text-signal-red">{player.losses}</span>
-          </div>
-          <div className="text-white/85">{player.winRate}%</div>
+        {/* V/D — gros, à droite, sur la MÊME ligne que le reste. */}
+        <div className="flex-shrink-0 font-archivo font-black text-lg tabular-nums leading-none">
+          <span className="text-lime">{player.wins}</span>
+          <span className="text-cool-gray/60 mx-0.5">—</span>
+          <span className="text-signal-red">{player.losses}</span>
         </div>
 
-        {/* ELO — bloc principal à droite */}
+        {/* % — discret, séparateur visuel. */}
+        <div className="flex-shrink-0 font-mono text-xs font-bold tabular-nums text-white/75 min-w-[2.4rem] text-right">
+          {player.winRate}%
+        </div>
+
+        {/* ELO — bloc principal à droite. */}
         <div className="flex-shrink-0 font-archivo font-black text-xl text-white tracking-tight tabular-nums min-w-[3rem] text-right">
           {player.elo}
         </div>
