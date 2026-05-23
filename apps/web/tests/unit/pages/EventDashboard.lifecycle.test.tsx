@@ -116,6 +116,13 @@ vi.mock('../../../src/hooks/useDetailPagePermissions', () => ({
   useDetailPagePermissions: () => permissionsMock(),
 }));
 
+vi.mock('../../../src/hooks/useCurrentUserMemberships', () => ({
+  useCurrentUserMemberships: () => ({
+    leagueMembershipByLeague: new Map(),
+    eventMembershipByEvent: new Map(),
+  }),
+}));
+
 vi.mock('../../../src/services/DatabaseService', () => ({
   databaseService: {
     loadEventParticipants: vi.fn().mockResolvedValue([]),

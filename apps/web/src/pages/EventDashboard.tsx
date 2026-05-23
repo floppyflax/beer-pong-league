@@ -24,6 +24,7 @@ import { getEventLifecycle, canLogMatch } from "@/utils/eventLifecycle";
 import { BeerPongMatchIcon } from "@/components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "@/components/EloChangeDisplay";
 import { EmptyState } from "@/components/EmptyState";
+import { SaveProgressBanner } from "@/components/SaveProgressBanner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { DetailedStatsPanel } from "@/components/stats/DetailedStatsPanel";
 import {
@@ -603,18 +604,6 @@ export const EventDashboard = () => {
     await reloadData();
   };
 
-  const handleGenerateGhostInvite = async (playerId: string) => {
-    const result = await identityMergeService.generateGhostInviteToken(
-      "event",
-      playerId,
-    );
-    if (!result.success || !result.token) {
-      toast.error(result.error || "Lien indisponible");
-      throw new Error(result.error);
-    }
-    return { token: result.token };
-  };
-
   return (
     <div className="min-h-screen bg-navy text-white flex flex-col relative">
       {/* DetailHero — bloc bleu pleine largeur (bleed sous padding ResponsiveLayout + App) */}
@@ -659,6 +648,11 @@ export const EventDashboard = () => {
         actions={detailHeroActions}
         menuItems={detailHeroMenuItems}
       />
+
+      {/* Guest → account nudge (anonymous players only). */}
+      <div className="px-4 md:px-6 pt-3">
+        <SaveProgressBanner />
+      </div>
 
       {/* Lifecycle status strip — sits between hero and content, sticky so it
           stays visible while scrolling. Distinct ping-yellow accent so it
@@ -1015,7 +1009,6 @@ export const EventDashboard = () => {
           onDelete={handleDeleteGhost}
           onArchive={handleArchiveGhost}
           onUnarchive={handleUnarchiveGhost}
-          onGenerateInvite={handleGenerateGhostInvite}
         />
       )}
 

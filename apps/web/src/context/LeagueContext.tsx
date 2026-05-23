@@ -32,6 +32,7 @@ import {
 } from "../services/DatabaseService";
 import { migrationService } from "../services/MigrationService";
 import { localUserService } from "../services/LocalUserService";
+import { anonymousUserService } from "../services/AnonymousUserService";
 import { getDeviceFingerprint } from "../utils/deviceFingerprint";
 import { generateEventCode } from "../utils/eventCode";
 
@@ -236,8 +237,21 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     setLoadError(null);
 
     try {
+      // Resolve identity at CALL TIME. LeagueContext consumes a separate
+      // `useIdentity()` instance from the IdentityProvider, so an anon identity
+      // freshly created elsewhere (e.g. the join gate) may not be reflected in
+      // `anonymousUserId` yet. Reading localUserService directly guarantees a
+      // brand-new joiner's data (the event they just joined) is actually loaded
+      // instead of an empty list → fixes "événement introuvable" after joining.
+      const effUserId = userId;
+      let effAnonId = anonymousUserId;
+      if (!effUserId && !effAnonId) {
+        const lu = await localUserService.getLocalUser();
+        if (lu) effAnonId = lu.anonymousUserId;
+      }
+
       // SECURITY: If user has no identity, clear all data and return empty
-      if (!userId && !anonymousUserId) {
+      if (!effUserId && !effAnonId) {
         console.log('🔒 No user identity - clearing all data for security');
         setLeagues([]);
         setEvents([]);
@@ -267,8 +281,8 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
       // Step 2: Load data from Supabase
       const [loadedLeagues, loadedEvents] = await Promise.all([
-        databaseService.loadLeagues(userId, anonymousUserId),
-        databaseService.loadEvents(userId, anonymousUserId),
+        databaseService.loadLeagues(effUserId, effAnonId),
+        databaseService.loadEvents(effUserId, effAnonId),
       ]);
 
       // Supabase is the source of truth as soon as it answers (here we are
@@ -880,6 +894,11 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
 
     // Save to Supabase
     try {
+      // FK safety: players.user_id → users.id. Ensure the anonymous users row
+      // exists before the player insert references it (mig 037 anon RLS).
+      if (!isAuthenticated && localUser) {
+        await anonymousUserService.createAnonymousUser(localUser);
+      }
       await databaseService.addPlayerToLeague(
         leagueId,
         newPlayer,
@@ -939,6 +958,9 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
         localUser = await localUserService.createLocalUser(playerName, deviceFingerprint);
       }
       resolvedUserId = localUser.anonymousUserId;
+      // FK safety: players.user_id → users.id. Ensure the anonymous users row
+      // exists before the player insert references it (mig 037 anon RLS).
+      await anonymousUserService.createAnonymousUser(localUser);
     }
 
     const playerId = await databaseService.addAnonymousPlayerToEvent(

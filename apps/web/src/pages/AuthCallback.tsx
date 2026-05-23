@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useIdentityContext } from '../context/IdentityContext';
 // import { useAuthContext } from '../context/AuthContext'; // Unused
 import { identityMergeService } from '../services/IdentityMergeService';
+import { localUserService } from '../services/LocalUserService';
 import { BeerCupLoader } from '../components/ponglo/BeerCupLoader';
 import { PButton } from '../components/ponglo/PButton';
 
@@ -14,7 +15,7 @@ import { PButton } from '../components/ponglo/PButton';
  */
 export const AuthCallback = () => {
   const navigate = useNavigate();
-  const { localUser } = useIdentityContext();
+  const { clearIdentity } = useIdentityContext();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
@@ -42,32 +43,57 @@ export const AuthCallback = () => {
           return;
         }
 
+        // Read the local (anon) identity directly from storage — not from the
+        // IdentityContext. When the magic link opens a new tab, the React tree
+        // is freshly mounted and the context's async hydration may not have
+        // completed yet by the time this effect fires, giving us a stale null.
+        // Reading from the service directly is synchronous (localStorage) and
+        // always returns the correct value.
+        const storedLocalUser = await localUserService.getLocalUser();
+
         // If user has a local identity, merge it
-        if (localUser && session.user && supabase) {
+        if (storedLocalUser && session.user && supabase) {
           const profile = await supabase
             .from('users')
             .select('*')
             .eq('id', session.user.id)
             .single();
 
-          // Create user profile if doesn't exist
+          // Create user profile if doesn't exist. Set auth_user_id = id so the
+          // canonical users row matches auth.uid() AND claim_player resolves it
+          // (WHERE auth_user_id = auth.uid()) instead of inserting a duplicate.
           if (!profile.data) {
             await supabase.from('users').insert({
               id: session.user.id,
-              pseudo: localUser.pseudo,
+              auth_user_id: session.user.id,
+              is_anonymous: false,
+              pseudo: storedLocalUser.pseudo,
             });
           }
 
-          // Merge anonymous identity to authenticated user
-          const mergeResult = await identityMergeService.mergeAnonymousToUser(
-            localUser.anonymousUserId,
-            session.user.id,
-            localUser.pseudo
-          );
+          // Transfer the anonymous player (claimed or created while playing as
+          // a guest) to this authenticated account, so progress is preserved
+          // under auth.uid() and accessible across devices. claim_player moves
+          // an anon-owned player to the caller's authenticated user.
+          const { data: anonPlayer } = await supabase
+            .from('players')
+            .select('id')
+            .eq('user_id', storedLocalUser.anonymousUserId)
+            .maybeSingle();
 
-          if (!mergeResult.success) {
-            console.warn('Failed to merge identity:', mergeResult.error);
-            // Continue anyway, user is authenticated
+          if (anonPlayer) {
+            const transfer = await identityMergeService.claimAnonymousPlayer(
+              'event',
+              (anonPlayer as { id: string }).id,
+              session.user.id,
+            );
+            if (transfer.success) {
+              // The anonymous identity is now subsumed by the account — drop the
+              // local guest so the app uses the authenticated identity.
+              await clearIdentity?.();
+            } else {
+              console.warn('Failed to transfer anonymous player:', transfer.error);
+            }
           }
         } else if (session.user && supabase) {
           // No local identity, just create profile
@@ -82,6 +108,8 @@ export const AuthCallback = () => {
             const emailUsername = session.user.email?.split('@')[0] || 'Joueur';
             await supabase.from('users').insert({
               id: session.user.id,
+              auth_user_id: session.user.id,
+              is_anonymous: false,
               pseudo: emailUsername,
             });
           }
@@ -89,11 +117,13 @@ export const AuthCallback = () => {
 
         setStatus('success');
 
-        // Check for returnTo in sessionStorage
-        const returnTo = sessionStorage.getItem('authReturnTo');
-        if (returnTo) {
-          sessionStorage.removeItem('authReturnTo'); // Clean up
-        }
+        // Check for returnTo. localStorage first (survives the magic-link
+        // new-tab round-trip), sessionStorage as a fallback (legacy callers).
+        const returnTo =
+          localStorage.getItem('authReturnTo') ??
+          sessionStorage.getItem('authReturnTo');
+        localStorage.removeItem('authReturnTo');
+        sessionStorage.removeItem('authReturnTo');
 
         // Redirect after a short delay
         setTimeout(() => {
@@ -107,7 +137,7 @@ export const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [localUser, navigate]);
+  }, []);
 
   if (status === 'loading') {
     return (

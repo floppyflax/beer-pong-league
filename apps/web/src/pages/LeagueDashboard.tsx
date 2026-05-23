@@ -19,6 +19,7 @@ import {
 import { BeerPongMatchIcon } from "../components/icons/BeerPongMatchIcon";
 import { EloChangeDisplay } from "../components/EloChangeDisplay";
 import { EmptyState } from "../components/EmptyState";
+import { SaveProgressBanner } from "../components/SaveProgressBanner";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useDetailPagePermissions } from "../hooks/useDetailPagePermissions";
 import { usePendingMatches } from "@/hooks/usePendingMatches";
@@ -297,6 +298,11 @@ export const LeagueDashboard = () => {
         actions={detailHeroAdminActions}
       />
 
+      {/* Guest → account nudge (anonymous players only). */}
+      <div className="px-4 md:px-6 pt-3">
+        <SaveProgressBanner />
+      </div>
+
       {/* Mig 028+029+030 — Lifecycle status strip (prio absolue) ou strip de
           rappel (saison/league overdue). Un seul strip à la fois pour ne pas
           surcharger l'admin. */}
@@ -507,11 +513,18 @@ export const LeagueDashboard = () => {
         />
       )}
 
-      {/* Invite bottom sheet — add player to the league (manual pseudo).
-          Leagues have no joinCode/QR yet → sheet shows only the "add" section. */}
+      {/* Invite bottom sheet — partage (QR + code + lien) et ajout joueur.
+          Parité event/ligue (mig 016) : la ligue a un join_code résolu par
+          useJoinEvent, on l'expose ici comme pour les events. */}
       <InviteSheet
         isOpen={showAddPlayer}
         onClose={() => setShowAddPlayer(false)}
+        shareData={{
+          joinCode: league.joinCode,
+          joinUrl: `${window.location.origin}/league/${league.id}/join`,
+          shareTitle: league.name,
+          shareText: `Rejoins la ligue ${league.name} !`,
+        }}
         onAddManual={handleInviteAddManual}
       />
 

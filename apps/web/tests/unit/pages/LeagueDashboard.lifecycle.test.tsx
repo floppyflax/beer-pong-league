@@ -110,6 +110,22 @@ vi.mock('../../../src/hooks/usePendingMatches', () => ({
   }),
 }));
 
+vi.mock('../../../src/context/AuthContext', () => ({
+  useAuthContext: () => ({
+    user: null,
+    isAuthenticated: false,
+    signInWithOTP: vi.fn(),
+    signOut: vi.fn(),
+  }),
+}));
+
+vi.mock('../../../src/hooks/useCurrentUserMemberships', () => ({
+  useCurrentUserMemberships: () => ({
+    leagueMembershipByLeague: new Map(),
+    eventMembershipByEvent: new Map(),
+  }),
+}));
+
 const renderDashboard = () =>
   render(
     <BrowserRouter>

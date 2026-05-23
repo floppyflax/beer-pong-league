@@ -47,6 +47,28 @@ Object.defineProperty(globalThis, 'localStorage', {
   configurable: true,
 });
 
+// happy-dom returns zero for all DOMRect fields (no layout engine). DetailHero
+// uses `getBoundingClientRect().bottom <= 0` to collapse the hero on scroll;
+// with all zeros that condition is immediately true → `collapsed = true` →
+// action buttons become `aria-hidden` and invisible to role queries.
+// Return a realistic non-zero rect so the hero stays expanded in tests.
+Object.defineProperty(Element.prototype, 'getBoundingClientRect', {
+  writable: true,
+  configurable: true,
+  value: () =>
+    ({
+      bottom: 100,
+      top: 0,
+      left: 0,
+      right: 200,
+      width: 200,
+      height: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }) as DOMRect,
+});
+
 // Boot the shared runtime once for the whole suite — services imported
 // by tests (LocalUserService, AuthService, repositories…) call
 // getStorage()/getEnv() at module init and throw without this.

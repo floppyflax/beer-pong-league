@@ -9,9 +9,9 @@
  *   1. **Continuer en tant que {pseudo}** — a one-tap path when the device
  *      already has an authenticated user OR an anonymous localUser. We default
  *      to this so returning visitors don't have to re-pick.
- *   2. **Me connecter par email** — opens the OTP magic-link `AuthModal` so the
- *      user can either link to an existing account or create one. There's no
- *      sign-in/sign-up split because OTP doesn't distinguish them.
+ *   2. **Créer un compte ou se connecter** — opens the OTP magic-link
+ *      `AuthModal` so the user can either link to an existing account or create
+ *      one. There's no sign-in/sign-up split because OTP doesn't distinguish them.
  *   3. **Jouer sans compte** — anonymous path. The parent page is responsible
  *      for triggering `CreateIdentityModal` if no `localUser` exists yet (via
  *      `useRequireIdentity`).
@@ -175,8 +175,8 @@ export function IdentityGateSheet({
             <ActionRow
               variant={currentPseudo ? "secondary" : "primary"}
               icon={<Mail size={18} />}
-              title="Me connecter par email"
-              description="On t'envoie un lien magique"
+              title="Créer un compte ou se connecter"
+              description="Par email — on t'envoie un lien magique"
               onClick={() => onChoose("auth")}
             />
 

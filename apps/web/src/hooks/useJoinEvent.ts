@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, isSupabaseAvailable } from "../lib/supabase";
-import { useAuthContext } from "../context/AuthContext";
-import { useIdentity } from "./useIdentity";
 import toast from "react-hot-toast";
 
 const NETWORK_ERR = "Connexion internet requise pour rejoindre";
@@ -16,12 +14,15 @@ const NETWORK_ERR = "Connexion internet requise pour rejoindre";
  *   - event   →  /event/:id/join
  *   - league  →  /league/:id/join
  *
+ * Identity is NOT created here — the join page owns that (IdentityGateSheet).
+ * This hook only resolves the code and routes; the gate then asks the user to
+ * create an account or play without one, so we must NOT pre-seed a "Joueur"
+ * anonymous identity that would pollute the gate with "Continuer en tant que…".
+ *
  * Conceptually this is `useJoinByCode`.
  */
 export const useJoinEvent = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthContext();
-  const { localUser, initializeAnonymousUser } = useIdentity();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,11 +66,7 @@ export const useJoinEvent = () => {
 
       if (event) {
         if (event.is_finished) throw new Error("Cet événement est terminé");
-
-        if (!isAuthenticated && !localUser) {
-          await initializeAnonymousUser();
-        }
-        toast.success(`Bienvenue dans ${event.name} !`);
+        // Identity is chosen on the join page (gate) — don't pre-create one.
         navigate(`/event/${event.id}/join`);
         return;
       }
@@ -94,10 +91,7 @@ export const useJoinEvent = () => {
       }
 
       if (league) {
-        if (!isAuthenticated && !localUser) {
-          await initializeAnonymousUser();
-        }
-        toast.success(`Bienvenue dans la ligue ${league.name} !`);
+        // Identity is chosen on the join page (gate) — don't pre-create one.
         navigate(`/league/${league.id}/join`);
         return;
       }

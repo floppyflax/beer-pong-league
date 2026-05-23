@@ -36,6 +36,17 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+vi.mock("../../../src/hooks/useCurrentUserMemberships", () => ({
+  useCurrentUserMemberships: () => ({
+    leagueMembershipByLeague: new Map(),
+    eventMembershipByEvent: new Map(),
+  }),
+}));
+
+vi.mock("../../../src/hooks/useUnclaimedGuests", () => ({
+  useUnclaimedGuests: () => ({ guests: [], refresh: vi.fn() }),
+}));
+
 describe("EventDashboard - Story 8.3", () => {
   const mockPlayers = [
     {

@@ -114,19 +114,29 @@ class PlayersRepository extends BaseRepository {
         playerId = player.id;
       }
 
-      // 2. Membership
-      const { error: memErr } = await sb!
+      // 2. Membership — idempotent: the player may already be a member (e.g.
+      // after claim_player transferred an anonymous player to the auth account).
+      // Skip the INSERT silently in that case rather than throwing a UNIQUE error.
+      const { data: existingMem } = await sb!
         .from('league_memberships')
-        .insert({
-          league_id: leagueId,
-          player_id: playerId,
-          elo: player.elo,
-          wins: player.wins,
-          losses: player.losses,
-          matches_played: player.matchesPlayed,
-          streak: player.streak,
-        });
-      if (memErr) throw memErr;
+        .select('id')
+        .eq('league_id', leagueId)
+        .eq('player_id', playerId)
+        .maybeSingle();
+      if (!existingMem) {
+        const { error: memErr } = await sb!
+          .from('league_memberships')
+          .insert({
+            league_id: leagueId,
+            player_id: playerId,
+            elo: player.elo,
+            wins: player.wins,
+            losses: player.losses,
+            matches_played: player.matchesPlayed,
+            streak: player.streak,
+          });
+        if (memErr) throw memErr;
+      }
 
       // localStorage cache
       const leagues = leaguesRepository.loadLeaguesFromLocalStorage();
@@ -271,6 +281,16 @@ class PlayersRepository extends BaseRepository {
       player_id: playerId,
     };
     if (inheritedElo !== null) insertPayload.elo = inheritedElo;
+
+    // Idempotent: the player may already have an event_membership (e.g. after
+    // claim_player transferred their anonymous player to the auth account).
+    const { data: existingEventMem } = await sb!
+      .from('event_memberships')
+      .select('id')
+      .eq('event_id', eventId)
+      .eq('player_id', playerId)
+      .maybeSingle();
+    if (existingEventMem) return (existingEventMem as { id: string }).id;
 
     const { data: mem, error: memErr } = await sb!
       .from('event_memberships')
