@@ -98,6 +98,16 @@ vi.mock('../../../src/hooks/useUnclaimedGuests', () => ({
   useUnclaimedGuests: () => ({ guests: [], refresh: vi.fn() }),
 }));
 
+// Mig 037 — LeagueSettings now reads user/localUser to resolve callerUserId
+// for the promote/demote co-admin RPC. Stub both contexts so the component
+// renders without an AuthProvider wrapper.
+vi.mock('../../../src/context/AuthContext', () => ({
+  useAuthContext: () => ({ user: null, isAuthenticated: false }),
+}));
+vi.mock('../../../src/hooks/useIdentity', () => ({
+  useIdentity: () => ({ localUser: null }),
+}));
+
 const renderSettings = () =>
   render(
     <BrowserRouter>

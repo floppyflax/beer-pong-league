@@ -275,6 +275,60 @@ class IdentityMergeService {
     }
   }
 
+  /**
+   * Mig 037 — Promote / demote a membership to/from co-admin role.
+   *
+   * Calls the SECURITY DEFINER RPC `set_event_membership_role` or
+   * `set_league_membership_role`. The server-side check ensures only the
+   * context creator can call this, and rejects promoting a ghost
+   * (player.user_id IS NULL) or the creator himself.
+   *
+   * The caller must pass `callerUserId` (their `users.id` — the same
+   * identity passed to other admin RPCs like `confirm_match`). Anonymous
+   * users cannot promote anyone, but they can pass their `localUser.anonymousUserId`
+   * if they are the creator of the context (anon-created entities, pre-claim).
+   */
+  async setMembershipRole(
+    kind: 'event' | 'league',
+    membershipId: string,
+    role: 'member' | 'admin',
+    callerUserId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!sb) return { success: false, error: 'Supabase not configured' };
+    try {
+      const rpcName = kind === 'event' ? 'set_event_membership_role' : 'set_league_membership_role';
+      const rpc = sb.rpc.bind(sb) as unknown as Rpc;
+      const { error } = await rpc(rpcName, {
+        p_membership_id: membershipId,
+        p_role: role,
+        p_caller_user_id: callerUserId,
+      });
+      if (error) return { success: false, error: this.humanizeRoleError(error.message) };
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  }
+
+  private humanizeRoleError(message: string): string {
+    if (/ghost player cannot be promoted/i.test(message)) {
+      return 'Impossible de promouvoir un joueur fantôme — il doit d\'abord créer un compte.';
+    }
+    if (/creator cannot be promoted/i.test(message)) {
+      return 'Le créateur est déjà admin.';
+    }
+    if (/only the .* creator can change roles/i.test(message)) {
+      return 'Seul le créateur peut promouvoir ou retirer un admin.';
+    }
+    if (/invalid role/i.test(message)) {
+      return 'Rôle invalide.';
+    }
+    if (/not found/i.test(message)) {
+      return 'Joueur introuvable.';
+    }
+    return message;
+  }
+
   /** @deprecated mig 022 */
   async generateGhostInviteToken(_kind: 'event' | 'league', _playerId: string): Promise<{ success: boolean; error?: string; token?: string; expiresAt?: string }> {
     void _kind; void _playerId;

@@ -57,6 +57,13 @@ export interface League {
   creator_user_id?: string | null; // FK → users.id (auth or anonymous, since mig 022)
   /** @deprecated since mig 022. Always null. Kept for legacy callers; use creator_user_id. */
   creator_anonymous_user_id?: string | null;
+  /**
+   * Mig 037 — Co-admins promus par le créateur. Liste des `users.id` de tous
+   * les joueurs avec un compte et un membership role='admin' actif. Le creator
+   * n'est PAS inclus ici — ses droits dérivent de `creator_user_id`. Voir
+   * `useDetailPagePermissions`.
+   */
+  coAdminUserIds?: string[];
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
   /**
    * Mig 032 — Who validates scores when anti_cheat_enabled = TRUE on a
@@ -121,6 +128,13 @@ export interface Event {
   creator_user_id?: string | null; // FK → users.id (auth or anonymous, since mig 022)
   /** @deprecated since mig 022. Always null. Kept for legacy callers; use creator_user_id. */
   creator_anonymous_user_id?: string | null;
+  /**
+   * Mig 037 — Co-admins promus par le créateur. Liste des `users.id` de tous
+   * les joueurs avec un compte et un membership role='admin' actif. Le creator
+   * n'est PAS inclus ici — ses droits dérivent de `creator_user_id`. Voir
+   * `useDetailPagePermissions`.
+   */
+  coAdminUserIds?: string[];
   anti_cheat_enabled?: boolean; // Anti-cheat mode: requires opponent confirmation
   /**
    * Mig 030 — Who validates scores when anti_cheat_enabled = TRUE.

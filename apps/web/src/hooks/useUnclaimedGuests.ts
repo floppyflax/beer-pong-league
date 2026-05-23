@@ -25,6 +25,8 @@ export interface UnclaimedGuest {
   playerId: string;
   /** players.id — the underlying entity. */
   anonymousUserId: string; // legacy field name kept for consumer compatibility
+  /** users.id of the claiming account (NULL for ghosts). Mig 037 — needed to identify the current admin. */
+  userId: string | null;
   /** Display name (pseudo_override > players.pseudo). */
   pseudo: string;
   joinedAt: string;
@@ -37,6 +39,8 @@ export interface UnclaimedGuest {
   archived: boolean;
   /** True when the underlying player has no account yet (players.user_id IS NULL). */
   isGhost: boolean;
+  /** Mig 037 — membership role. 'admin' = co-admin promu par le créateur. */
+  role: 'member' | 'admin';
 }
 
 interface RawRow {
@@ -44,6 +48,7 @@ interface RawRow {
   joined_at: string | null;
   pseudo_override: string | null;
   archived_at: string | null;
+  role: string | null;
   player: { id: string; pseudo: string; user_id: string | null; archived_at: string | null } | null;
 }
 
@@ -96,6 +101,7 @@ export function useUnclaimedGuests(
         joined_at,
         pseudo_override,
         archived_at,
+        role,
         player:players ( id, pseudo, user_id, archived_at )
       `;
 
@@ -122,10 +128,12 @@ export function useUnclaimedGuests(
         .map((r) => ({
           playerId: r.id,
           anonymousUserId: r.player!.id,
+          userId: r.player!.user_id ?? null,
           pseudo: r.pseudo_override || r.player!.pseudo || "Joueur",
           joinedAt: r.joined_at ?? "",
           archived: r.archived_at !== null || r.player!.archived_at !== null,
           isGhost: r.player!.user_id === null,
+          role: r.role === 'admin' ? 'admin' : 'member',
         }));
       setGuests(filtered);
     } catch (err) {

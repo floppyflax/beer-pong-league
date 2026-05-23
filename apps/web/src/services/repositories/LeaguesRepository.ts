@@ -80,8 +80,13 @@ class LeaguesRepository extends BaseRepository {
       const ids = Array.from(leagueIds);
 
       // 3. Batch-load leagues, memberships, matches, events
-      const [{ data: leaguesData }, { data: allMembers }, { data: allMatches }, { data: allTourns }] =
-        await Promise.all([
+      const [
+        { data: leaguesData },
+        { data: allMembers },
+        { data: allMatches },
+        { data: allTourns },
+        { data: coAdminRows },
+      ] = await Promise.all([
           sb!.from('leagues').select('*').in('id', ids),
           sb!
             .from('league_memberships')
@@ -89,7 +94,27 @@ class LeaguesRepository extends BaseRepository {
             .in('league_id', ids),
           sb!.from('matches').select('*').in('league_id', ids).order('created_at', { ascending: false }),
           sb!.from('events').select('id, league_id').in('league_id', ids),
+          // Mig 037 — co-admins. Join players to surface user_id (excludes ghosts).
+          sb!
+            .from('league_memberships')
+            .select('league_id, player:players!inner(user_id, archived_at)')
+            .in('league_id', ids)
+            .eq('role', 'admin')
+            .is('archived_at', null),
         ]);
+
+      // Mig 037 — bucket co-admin user_ids by league.
+      const coAdminsByLeague = new Map<string, string[]>();
+      ((coAdminRows ?? []) as Array<{
+        league_id: string;
+        player: { user_id: string | null; archived_at: string | null } | null;
+      }>).forEach((r) => {
+        const uid = r.player?.user_id;
+        if (!uid || r.player?.archived_at) return;
+        const list = coAdminsByLeague.get(r.league_id) ?? [];
+        if (!list.includes(uid)) list.push(uid);
+        coAdminsByLeague.set(r.league_id, list);
+      });
 
       const leagueRows = (leaguesData ?? []) as LeagueRow[];
 
@@ -196,6 +221,7 @@ class LeaguesRepository extends BaseRepository {
         joinCode: row.join_code ?? undefined,
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
+        coAdminUserIds: coAdminsByLeague.get(row.id) ?? [],
         anti_cheat_enabled: row.anti_cheat_enabled || false,
         scoreValidator: row.score_validator ?? 'opponent',
         // Mig 028 — lifecycle + saisons
