@@ -52,12 +52,20 @@ function makeSource(
 }
 
 describe("computePairExtremes", () => {
-  it("returns null/null when no pair reaches the min-together threshold", () => {
-    const matches = [match("m1", ["a", "b"], ["c", "d"], 10, 5)];
-    expect(computePairExtremes(matches)).toEqual({ best: null, worst: null });
+  it("returns null/null when there is no match at all", () => {
+    expect(computePairExtremes([])).toEqual({ best: null, worst: null });
   });
 
-  it("finds the best and worst pair by winrate (≥3 together)", () => {
+  it("best needs ≥3 matchs together — null sur 1 seul match", () => {
+    // 1 match seulement : ab (100%), cd (0%) → best inéligible, worst OK.
+    const matches = [match("m1", ["a", "b"], ["c", "d"], 10, 5)];
+    const { best, worst } = computePairExtremes(matches);
+    expect(best).toBeNull();
+    expect(worst && [worst.aId, worst.bId].sort()).toEqual(["c", "d"]);
+    expect(worst?.winRate).toBe(0);
+  });
+
+  it("finds the best and worst pair by winrate", () => {
     // a&b : 3W (100%) ; c&d : 0W/3 (0%)
     const matches = [
       match("m1", ["a", "b"], ["c", "d"], 10, 5),
@@ -68,6 +76,20 @@ describe("computePairExtremes", () => {
     expect(best && [best.aId, best.bId].sort()).toEqual(["a", "b"]);
     expect(best?.winRate).toBe(100);
     expect(worst && [worst.aId, worst.bId].sort()).toEqual(["c", "d"]);
+    expect(worst?.winRate).toBe(0);
+  });
+
+  it("worst : à winrate égal, prend le binôme avec le plus de matchs", () => {
+    // c&d : 0V/1 (0%) ; e&f : 0V/3 (0%) — même winrate, e&f plus de matchs.
+    const matches = [
+      match("m1", ["a", "b"], ["c", "d"], 10, 0),
+      match("m2", ["a", "b"], ["e", "f"], 10, 0),
+      match("m3", ["a", "b"], ["e", "f"], 10, 1),
+      match("m4", ["a", "b"], ["e", "f"], 10, 2),
+    ];
+    const { worst } = computePairExtremes(matches);
+    expect(worst && [worst.aId, worst.bId].sort()).toEqual(["e", "f"]);
+    expect(worst?.total).toBe(3);
     expect(worst?.winRate).toBe(0);
   });
 });

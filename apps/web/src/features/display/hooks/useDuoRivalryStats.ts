@@ -10,6 +10,14 @@ import { computeTopRivalries } from "@/utils/contextStats";
 import type { DisplaySource, DisplaySourcePlayer } from "../types";
 import type { StatCardData, StatSubject } from "../components/StatRevealCard";
 
+/** Nombre min de matchs ensemble pour qu'un binôme soit éligible "meilleur"
+ *  — il faut un minimum de signal pour qu'un 100% de winrate soit crédible. */
+const MIN_TOGETHER_BEST = 3;
+/** Nombre min de matchs ensemble pour le "pire" binôme — abaissé à 1 pour
+ *  que la stat soit utile dès les premiers matchs d'une ligue. À égalité
+ *  de ratio (winrate), le binôme avec le plus de matchs joués gagne. */
+const MIN_TOGETHER_WORST = 1;
+/** Seuil "ensemble" pour la stat "meilleur allié" d'un joueur (focus). */
 const MIN_TOGETHER = 3;
 const MIN_AGAINST = 3;
 /** Un adversaire doit avoir battu le joueur au moins ça pour être sa "bête noire". */
@@ -34,8 +42,13 @@ function pairKey(a: string, b: string): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
 }
 
-/** Agrège toutes les paires de coéquipiers (≥ MIN_TOGETHER ensemble) et renvoie
- *  le meilleur et le pire binôme par winrate. Pur. */
+/** Agrège toutes les paires de coéquipiers et renvoie le meilleur et le pire
+ *  binôme par winrate.
+ *  - Meilleur : ≥ MIN_TOGETHER_BEST matchs ensemble (sinon un 100% sur 1 match
+ *    serait trivialement vainqueur).
+ *  - Pire : ≥ MIN_TOGETHER_WORST match ensemble. À égalité de winrate, le
+ *    binôme avec le plus de matchs joués gagne (signal plus fort).
+ *  Pur. */
 export function computePairExtremes(matches: Match[]): {
   best: PairStat | null;
   worst: PairStat | null;
@@ -63,14 +76,25 @@ export function computePairExtremes(matches: Match[]): {
   let best: PairStat | null = null;
   let worst: PairStat | null = null;
   for (const e of stats.values()) {
-    if (e.total < MIN_TOGETHER) continue;
     const winRate = Math.round((e.wins / e.total) * 100);
     const stat: PairStat = { ...e, winRate };
-    if (!best || winRate > best.winRate || (winRate === best.winRate && e.total > best.total)) {
-      best = stat;
+    if (e.total >= MIN_TOGETHER_BEST) {
+      if (
+        !best ||
+        winRate > best.winRate ||
+        (winRate === best.winRate && e.total > best.total)
+      ) {
+        best = stat;
+      }
     }
-    if (!worst || winRate < worst.winRate || (winRate === worst.winRate && e.total > worst.total)) {
-      worst = stat;
+    if (e.total >= MIN_TOGETHER_WORST) {
+      if (
+        !worst ||
+        winRate < worst.winRate ||
+        (winRate === worst.winRate && e.total > worst.total)
+      ) {
+        worst = stat;
+      }
     }
   }
   if (best && worst && best.aId === worst.aId && best.bId === worst.bId) {
