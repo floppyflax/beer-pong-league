@@ -1,60 +1,53 @@
 import { useEffect, useRef, useState } from "react";
-import type { Match } from "@/types";
 import type { DisplaySource, DisplaySourcePlayer } from "../types";
 import { isAudioReady, playChime, unlockAudio } from "../sound";
 
-export type RevealPhase = "idle" | "alert" | "reveal";
+/**
+ * Le hook ne pose plus jamais d'overlay plein écran ni de pause de la
+ * rotation : l'ancien type avec phases "alert"/"reveal" a été remplacé par
+ * un simple flag idle/silent. Les champs retournés gardent les mêmes noms
+ * pour que DisplayShell + scenes restent compatibles.
+ */
+export type RevealPhase = "idle";
 
 export interface MatchReveal {
   phase: RevealPhase;
-  /** true pendant l'alerte → flou de l'arrière-plan. */
-  blur: boolean;
-  /** Match affiché dans l'alerte plein écran (phase "alert"). */
-  alertMatch: Match | null;
-  /** Ordre du classement affiché (gelé hors reveal, committé au reveal). */
+  /** Toujours false — historiquement déclenchait un blur de l'arrière-plan. */
+  blur: false;
+  /** Toujours null — historiquement le match affiché en plein écran. */
+  alertMatch: null;
+  /** Ordre du classement affiché (committé dès qu'un nouveau match arrive). */
   committedPlayers: DisplaySourcePlayer[];
-  /** Protagonistes en surbrillance (union gagnants + perdants). */
+  /** Protagonistes en surbrillance pendant ~HIGHLIGHT_MS après le match. */
   highlightedPlayerIds: Set<string>;
-  /** Vainqueurs du dernier match → brillance verte. */
+  /** Vainqueurs du dernier match → brillance verte (timed). */
   winnerIds: Set<string>;
-  /** Perdants du dernier match → brillance rouge. */
+  /** Perdants du dernier match → brillance rouge (timed). */
   loserIds: Set<string>;
-  /** Joueur sur lequel le classement doit scroller pendant la visite. */
-  focusedPlayerId: string | null;
+  /** Joueur focalisé — toujours null désormais (plus de visite séquentielle). */
+  focusedPlayerId: null;
   /** Match qui clignote dans le panneau "Derniers matchs". */
   blinkMatchId: string | null;
-  /** Séquence en cours → DisplayShell met en pause la rotation + force le Classement. */
-  active: boolean;
+  /** Toujours false — la rotation ne s'arrête plus pour un match. */
+  active: false;
   soundOn: boolean;
   audioArmed: boolean;
 }
 
-const ALERT_MS = 3_500;
-/** On affiche d'abord le classement AVANT (ancien ordre) ce temps, puis on
- *  anime vers les nouvelles positions. */
-const PRE_REVEAL_HOLD_MS = 3_000;
-const VISIT_STEP_MS = 1_900;
-const END_HOLD_MS = 1_400;
-
-function byRank(
-  ids: string[],
-  players: DisplaySourcePlayer[],
-): string[] {
-  return ids
-    .map((id) => players.find((p) => p.id === id))
-    .filter((p): p is DisplaySourcePlayer => !!p)
-    .sort((a, b) => a.rank - b.rank)
-    .map((p) => p.id);
-}
+/** Durée pendant laquelle les gagnants/perdants sont mis en surbrillance
+ *  sur le Classement après l'arrivée d'un match. Pas de pause de rotation :
+ *  si la scène ranking n'est pas visible à ce moment, c'est invisible — pas
+ *  grave, le diaporama prime. */
+const HIGHLIGHT_MS = 6_000;
+/** Durée du clignotement du match dans le panneau "Derniers matchs". */
+const BLINK_MS = 8_000;
 
 /**
  * Calcule les deltas de transition (places gagnées/perdues + ELO gagné/perdu)
  * en comparant le nouvel ordre à l'ordre AFFICHÉ avant le match.
  *
  * Indépendant de `match.eloChanges` (souvent vide en local / non garanti) : on
- * lit directement le rang et l'ELO de chaque joueur avant vs après. Comme le
- * snapshot reste gelé jusqu'au prochain match, ces deltas persistent à l'écran
- * pour tous les joueurs concernés (y compris ceux dépassés sans avoir joué).
+ * lit directement le rang et l'ELO de chaque joueur avant vs après.
  */
 export function withTransitionDeltas(
   next: DisplaySourcePlayer[],
@@ -78,32 +71,25 @@ export function withTransitionDeltas(
 }
 
 /**
- * Orchestre toute la séquence d'arrivée d'un nouveau match en mode diffusion :
+ * À l'arrivée d'un nouveau match :
+ * - Commit silencieux du nouvel ordre avec deltas de transition (le morph
+ *   auto-animate joue si la scène ranking est visible, sinon invisible).
+ * - Brillance lime/red des vainqueurs/perdants pendant `HIGHLIGHT_MS`.
+ * - Clignotement du match dans "Derniers matchs" pendant `BLINK_MS`.
+ * - Sonnerie courte si le son est armé/activé.
  *
- * 1. **alert** (~3.5s) : flou de l'arrière-plan + alerte plein écran clignotante
- *    "NOUVEAU MATCH" + résultat + sonnerie.
- * 2. **reveal** : retour au Classement (déflouté), commit du nouvel ordre (les
- *    lignes glissent), surbrillance vert/rouge des protagonistes, puis **visite
- *    séquentielle** : on scrolle sur chaque vainqueur (du mieux classé au moins
- *    bien) puis chaque perdant, un par un.
- * 3. **idle** : reprise du slideshow.
- *
- * Tout est consolidé ici (une seule détection de nouveau match) pour éviter des
- * séquences concurrentes. Vit dans le DisplayShell (persiste entre les scènes).
+ * Pas d'overlay plein écran, pas de pause de la rotation, pas de force-jump
+ * vers le Classement → le diaporama continue exactement là où il était.
  */
 export function useMatchReveal(source: DisplaySource | null): MatchReveal {
-  const [phase, setPhase] = useState<RevealPhase>("idle");
-  const [blur, setBlur] = useState(false);
-  const [alertMatch, setAlertMatch] = useState<Match | null>(null);
   const [committedPlayers, setCommittedPlayers] = useState<
     DisplaySourcePlayer[] | null
   >(null);
+  const [winnerIds, setWinnerIds] = useState<Set<string>>(new Set());
+  const [loserIds, setLoserIds] = useState<Set<string>>(new Set());
   const [highlightedPlayerIds, setHighlightedPlayerIds] = useState<Set<string>>(
     new Set(),
   );
-  const [winnerIds, setWinnerIds] = useState<Set<string>>(new Set());
-  const [loserIds, setLoserIds] = useState<Set<string>>(new Set());
-  const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
   const [blinkMatchId, setBlinkMatchId] = useState<string | null>(null);
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
 
@@ -134,7 +120,8 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
   const lastSeenRef = useRef<string | null>(null);
   const sourceRef = useRef<DisplaySource | null>(source);
   sourceRef.current = source;
-  // Ordre actuellement affiché (gelé) → référence pour les deltas de transition.
+  // Ordre actuellement affiché (gelé entre deux matchs) → référence pour les
+  // deltas de transition.
   const committedPlayersRef = useRef<DisplaySourcePlayer[] | null>(null);
   committedPlayersRef.current = committedPlayers;
   const soundOnRef = useRef(soundOn);
@@ -173,7 +160,8 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Détection d'un nouveau match — sans réordonner le classement en arrière-plan.
+  // Détection d'un nouveau match + propagation des modifs joueur (pseudo,
+  // avatar, ajout, suppression) entre deux matchs.
   useEffect(() => {
     if (!source) return;
     const latest = source.matches[0]?.id ?? null;
@@ -186,20 +174,47 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
       return;
     }
     if (latest && latest !== lastSeenRef.current) {
+      // Nouveau match → l'effet pendingMatchId va commit avec deltas. Ne pas
+      // toucher committedPlayers ici (sinon on perd la référence "avant").
       lastSeenRef.current = latest;
       setPendingMatchId(latest);
       setBlinkMatchId(latest);
+      return;
     }
+    // Pas de nouveau match — mais source peut avoir changé pour d'autres
+    // raisons (pseudo édité, avatar mis à jour, joueur ajouté/supprimé). On
+    // reconcilie committedPlayers avec source.players en PRÉSERVANT les
+    // deltas (rankDelta / eloDelta) calculés au dernier match.
+    setCommittedPlayers((prev) => {
+      if (!prev) return source.players;
+      const deltasById = new Map<
+        string,
+        { rankDelta?: number; eloDelta?: number }
+      >();
+      for (const p of prev) {
+        if (p.rankDelta !== undefined || p.eloDelta !== undefined) {
+          deltasById.set(p.id, {
+            rankDelta: p.rankDelta,
+            eloDelta: p.eloDelta,
+          });
+        }
+      }
+      return source.players.map((p) => {
+        const d = deltasById.get(p.id);
+        return d ? { ...p, ...d } : p;
+      });
+    });
   }, [source]);
 
   // Extinction du clignotement du match dans le panneau.
   useEffect(() => {
     if (!blinkMatchId) return;
-    const t = setTimeout(() => setBlinkMatchId(null), 8_000);
+    const t = setTimeout(() => setBlinkMatchId(null), BLINK_MS);
     return () => clearTimeout(t);
   }, [blinkMatchId]);
 
-  // Séquence complète, déclenchée par un match en attente.
+  // Commit silencieux quand un match arrive — déclenche brillance + sonnerie
+  // mais aucune pause de la rotation.
   useEffect(() => {
     if (!pendingMatchId) return;
     const src = sourceRef.current;
@@ -209,97 +224,49 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
       return;
     }
 
-    let cancelled = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const at = (ms: number, fn: () => void) => {
-      timers.push(
-        setTimeout(() => {
-          if (!cancelled) fn();
-        }, ms),
-      );
-    };
+    const beforeOrder = committedPlayersRef.current ?? src.players;
+    const winnerA = match.scoreA > match.scoreB;
+    const winners = winnerA ? match.teamA : match.teamB;
+    const losers = winnerA ? match.teamB : match.teamA;
 
-    // 1) ALERTE : flou + alerte clignotante + sonnerie.
-    setPhase("alert");
-    setBlur(true);
-    setAlertMatch(match);
-    if (soundOnRef.current) playChime();
+    // Commit immédiat : le morph auto-animate joue si la scène ranking est
+    // visible — sinon invisible jusqu'au prochain passage. Le diaporama
+    // continue son cycle.
+    setCommittedPlayers(withTransitionDeltas(src.players, beforeOrder));
+    setWinnerIds(new Set(winners));
+    setLoserIds(new Set(losers));
+    setHighlightedPlayerIds(new Set([...winners, ...losers]));
 
-    // 2) REVEAL : retour au Classement, on montre d'abord l'ancien ordre +
-    // surbrillance verte/rouge des protagonistes (le classement "avant").
-    at(ALERT_MS, () => {
-      const s = sourceRef.current;
-      if (!s) return;
-      setPhase("reveal");
-      setBlur(false);
-      setAlertMatch(null);
+    // Sonnerie courte (signal non visuel, non interruptif).
+    if (soundOnRef.current && isAudioReady()) playChime();
 
-      // Ordre AFFICHÉ avant le match (gelé) → référence pour calculer les
-      // places gagnées/perdues et l'ELO gagné/perdu de chaque joueur.
-      const beforeOrder = committedPlayersRef.current ?? s.players;
-
-      const winnerA = match.scoreA > match.scoreB;
-      const winners = winnerA ? match.teamA : match.teamB;
-      const losers = winnerA ? match.teamB : match.teamA;
-      setWinnerIds(new Set(winners));
-      setLoserIds(new Set(losers));
-      setHighlightedPlayerIds(new Set([...winners, ...losers]));
-      // committedPlayers reste l'ANCIEN ordre (gelé) → on voit le classement avant.
-
-      // 3) Après le hold : commit du nouvel ordre avec deltas de transition
-      // (places + ELO, calculés avant→après) → les lignes glissent vers leurs
-      // nouvelles positions (auto-animate) et les badges/deltas apparaissent.
-      at(PRE_REVEAL_HOLD_MS, () => {
-        const cur = sourceRef.current;
-        if (cur)
-          setCommittedPlayers(withTransitionDeltas(cur.players, beforeOrder));
-      });
-
-      // 4) VISITE séquentielle (après le morph) : vainqueurs (mieux classés
-      // d'abord) puis perdants.
-      const order = [...byRank(winners, s.players), ...byRank(losers, s.players)];
-      order.forEach((pid, i) => {
-        at(PRE_REVEAL_HOLD_MS + 400 + i * VISIT_STEP_MS, () =>
-          setFocusedPlayerId(pid),
-        );
-      });
-
-      // 5) Fin : recommit (au cas où la source se soit stabilisée tard, ex.
-      // event qui recharge ses participants) puis reprise du slideshow. Les
-      // deltas restent affichés jusqu'au prochain match.
-      at(
-        PRE_REVEAL_HOLD_MS + 400 + order.length * VISIT_STEP_MS + END_HOLD_MS,
-        () => {
-          const cur = sourceRef.current;
-          if (cur)
-            setCommittedPlayers(withTransitionDeltas(cur.players, beforeOrder));
-          setFocusedPlayerId(null);
-          setHighlightedPlayerIds(new Set());
-          setWinnerIds(new Set());
-          setLoserIds(new Set());
-          setPhase("idle");
-          setPendingMatchId(null);
-        },
-      );
-    });
-
-    return () => {
-      cancelled = true;
-      timers.forEach(clearTimeout);
-    };
+    setPendingMatchId(null);
   }, [pendingMatchId]);
 
+  // Surbrillance auto-effacée. Effet séparé du déclencheur pour éviter que
+  // le cleanup du re-render qui suit setPendingMatchId(null) n'annule le
+  // timer avant qu'il ne tire (cf. useNewPlayerReveal — même piège).
+  useEffect(() => {
+    if (winnerIds.size === 0 && loserIds.size === 0) return;
+    const t = setTimeout(() => {
+      setWinnerIds(new Set());
+      setLoserIds(new Set());
+      setHighlightedPlayerIds(new Set());
+    }, HIGHLIGHT_MS);
+    return () => clearTimeout(t);
+  }, [winnerIds, loserIds]);
+
   return {
-    phase,
-    blur,
-    alertMatch,
+    phase: "idle",
+    blur: false,
+    alertMatch: null,
     committedPlayers: committedPlayers ?? source?.players ?? [],
     highlightedPlayerIds,
     winnerIds,
     loserIds,
-    focusedPlayerId,
+    focusedPlayerId: null,
     blinkMatchId,
-    active: phase !== "idle",
+    active: false,
     soundOn,
     audioArmed,
   };

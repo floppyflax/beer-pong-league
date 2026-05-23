@@ -95,6 +95,10 @@ export function deriveDisplayPlayers(
     return {
       id: p.id,
       name: p.name,
+      // ⚠️ propagation explicite : sans ça les avatars de league n'arrivent
+      // jamais dans DisplaySource.players (les events s'en sortent via leur
+      // propre avatarById, mais pour la league c'est l'unique source).
+      avatarUrl: p.avatarUrl ?? undefined,
       elo: p.elo,
       rank,
       rankDelta,

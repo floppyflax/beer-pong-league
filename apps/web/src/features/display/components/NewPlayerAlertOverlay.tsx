@@ -9,10 +9,12 @@ interface Props {
 /**
  * Alerte plein écran d'arrivée d'un (ou plusieurs) nouveau(x) joueur(s) :
  * floute l'arrière-plan et affiche au premier plan une carte "NOUVEAU
- * JOUEUR" clignotante avec l'avatar et le nom. Même grammaire visuelle que
- * `NewMatchAlertOverlay` (canal visuel primaire, son en renfort) — palette
- * Everything ELO (electric-blue + ping-yellow pour le sceau "welcome").
+ * JOUEUR" clignotante avec l'avatar et le nom. Canal visuel primaire (son en
+ * renfort) — palette Everything ELO (ping-yellow pour le sceau "welcome").
  * Respecte prefers-reduced-motion.
+ *
+ * Seul événement qui interrompt le diaporama : un nouveau joueur mérite
+ * d'être annoncé. Les matchs commitent en silence (cf. useMatchReveal).
  */
 export function NewPlayerAlertOverlay({ players }: Props) {
   if (players.length === 0) return null;
