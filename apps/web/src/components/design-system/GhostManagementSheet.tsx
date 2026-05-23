@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { Users, Pencil, Trash2, Share2, X, Copy, Loader2, Check, Archive, ArchiveRestore } from "lucide-react";
+import { Users, Pencil, Trash2, Share2, X, Copy, Loader2, Check, Archive, ArchiveRestore, ShieldCheck, ShieldOff } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import type { UnclaimedGuest } from "../../hooks/useUnclaimedGuests";
@@ -55,6 +55,19 @@ export interface GhostManagementSheetProps {
   onUnarchive?: (playerId: string) => Promise<void>;
   /** Generate an invite token. Returns the raw token (caller assembles URL). */
   onGenerateInvite: (playerId: string) => Promise<{ token: string }>;
+  /**
+   * Mig 037 — Promote / demote a member to/from co-admin. Pass the membership
+   * id + the desired role. Resolve to apply, throw to keep UI in place. Only
+   * shown when defined AND `isOwnerViewing` is true (only the creator can
+   * change roles). Hidden on ghost rows.
+   */
+  onSetAdminRole?: (playerId: string, role: 'admin' | 'member') => Promise<void>;
+  /**
+   * True if the user viewing this sheet is the context creator (not a
+   * co-admin). Co-admins can manage players but cannot promote/demote others —
+   * cf. server-side check in `set_*_membership_role`.
+   */
+  isOwnerViewing?: boolean;
   /** Optional title override. */
   title?: string;
 }
@@ -76,6 +89,8 @@ export function GhostManagementSheet({
   onArchive,
   onUnarchive,
   onGenerateInvite,
+  onSetAdminRole,
+  isOwnerViewing = false,
   title = "Joueurs",
 }: GhostManagementSheetProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -195,6 +210,23 @@ export function GhostManagementSheet({
     setPendingId(g.playerId);
     try {
       await onArchive(g.playerId);
+    } catch {
+      // Parent toasts.
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  const handleToggleAdmin = async (g: UnclaimedGuest) => {
+    if (!onSetAdminRole) return;
+    const nextRole: 'admin' | 'member' = g.role === 'admin' ? 'member' : 'admin';
+    const confirmMsg = nextRole === 'admin'
+      ? `Promouvoir "${g.pseudo}" en co-admin ? Il pourra gérer ce contexte (paramètres, joueurs, scores) mais pas le supprimer.`
+      : `Retirer "${g.pseudo}" des admins ? Il redeviendra un joueur normal.`;
+    if (!confirm(confirmMsg)) return;
+    setPendingId(g.playerId);
+    try {
+      await onSetAdminRole(g.playerId, nextRole);
     } catch {
       // Parent toasts.
     } finally {
@@ -405,6 +437,15 @@ export function GhostManagementSheet({
                 Retire ou archive un joueur de ce contexte. Le renommage et le
                 lien d'invitation sont réservés aux joueurs fantômes (ajoutés
                 manuellement, sans compte).
+                {isOwnerViewing && onSetAdminRole && (
+                  <>
+                    <br />
+                    <span className="text-electric-blue/80">
+                      Promouvoir un joueur en co-admin lui donne les mêmes
+                      droits que toi, sauf la suppression.
+                    </span>
+                  </>
+                )}
               </p>
 
               {guests.length === 0 ? (
@@ -467,13 +508,55 @@ export function GhostManagementSheet({
                         ) : (
                           <div className="flex items-center gap-2">
                             <div className="flex-1 min-w-0">
-                              <div className="text-white font-archivo font-bold text-[14px] truncate">
+                              <div className="text-white font-archivo font-bold text-[14px] truncate flex items-center gap-1.5">
                                 {g.pseudo}
+                                {g.role === 'admin' && (
+                                  <ShieldCheck
+                                    size={13}
+                                    className="text-electric-blue flex-shrink-0"
+                                    aria-label="Co-admin"
+                                  />
+                                )}
                               </div>
                               <div className="text-cool-gray text-[10px] uppercase tracking-widest font-mono">
-                                {g.isGhost ? "Fantôme" : "Compte"}
+                                {g.role === 'admin'
+                                  ? 'Co-admin'
+                                  : g.isGhost
+                                    ? 'Fantôme'
+                                    : 'Compte'}
                               </div>
                             </div>
+                            {/* Mig 037 — promote/demote, owner only, on accounts only. */}
+                            {isOwnerViewing && onSetAdminRole && !g.isGhost && (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAdmin(g)}
+                                disabled={isOtherPending || isPending}
+                                className={
+                                  g.role === 'admin'
+                                    ? 'w-9 h-9 rounded-full bg-ping-yellow/10 hover:bg-ping-yellow/20 text-ping-yellow flex items-center justify-center transition-colors disabled:opacity-40'
+                                    : 'w-9 h-9 rounded-full bg-electric-blue/10 hover:bg-electric-blue/20 text-electric-blue flex items-center justify-center transition-colors disabled:opacity-40'
+                                }
+                                aria-label={
+                                  g.role === 'admin'
+                                    ? `Retirer ${g.pseudo} des admins`
+                                    : `Promouvoir ${g.pseudo} en co-admin`
+                                }
+                                title={
+                                  g.role === 'admin'
+                                    ? 'Retirer des admins'
+                                    : 'Promouvoir en co-admin'
+                                }
+                              >
+                                {isPending ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : g.role === 'admin' ? (
+                                  <ShieldOff size={14} />
+                                ) : (
+                                  <ShieldCheck size={14} />
+                                )}
+                              </button>
+                            )}
                             {g.isGhost && (
                               <button
                                 type="button"

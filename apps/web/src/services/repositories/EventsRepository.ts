@@ -94,13 +94,25 @@ class EventsRepository extends BaseRepository {
       if (eventIds.size === 0) return [];
       const ids = Array.from(eventIds);
 
-      const [{ data: eventsData }, { data: allMembers }, { data: allMatches }] = await Promise.all([
+      const [
+        { data: eventsData },
+        { data: allMembers },
+        { data: allMatches },
+        { data: coAdminRows },
+      ] = await Promise.all([
         sb!.from('events').select('*').in('id', ids),
         sb!
           .from('event_memberships')
           .select('id, event_id, player_id, archived_at')
           .in('event_id', ids),
         sb!.from('matches').select('*').in('event_id', ids).order('created_at', { ascending: false }),
+        // Mig 037 — co-admins. Join players to surface user_id (excludes ghosts).
+        sb!
+          .from('event_memberships')
+          .select('event_id, player:players!inner(user_id, archived_at)')
+          .in('event_id', ids)
+          .eq('role', 'admin')
+          .is('archived_at', null),
       ]);
 
       const tournRows = (eventsData ?? []) as EventRow[];
@@ -152,6 +164,19 @@ class EventsRepository extends BaseRepository {
         });
       }
 
+      // Mig 037 — bucket co-admin user_ids by event.
+      const coAdminsByEvent = new Map<string, string[]>();
+      ((coAdminRows ?? []) as Array<{
+        event_id: string;
+        player: { user_id: string | null; archived_at: string | null } | null;
+      }>).forEach((r) => {
+        const uid = r.player?.user_id;
+        if (!uid || r.player?.archived_at) return;
+        const list = coAdminsByEvent.get(r.event_id) ?? [];
+        if (!list.includes(uid)) list.push(uid);
+        coAdminsByEvent.set(r.event_id, list);
+      });
+
       const matchesByEvent = new Map<string, Match[]>();
       ((allMatches ?? []) as MatchRow[]).forEach((m) => {
         if (!m.event_id) return;
@@ -195,6 +220,7 @@ class EventsRepository extends BaseRepository {
         pausedAt: row.paused_at ?? null,
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
+        coAdminUserIds: coAdminsByEvent.get(row.id) ?? [],
         anti_cheat_enabled: row.anti_cheat_enabled || false,
         scoreValidator: row.score_validator ?? 'opponent',
         joinCode: row.join_code,
@@ -228,10 +254,27 @@ class EventsRepository extends BaseRepository {
       if (error) throw error;
       if (!tRow) return null;
 
-      const { data: members } = await sb!
-        .from('event_memberships')
-        .select('id')
-        .eq('event_id', eventId);
+      const [{ data: members }, { data: coAdminRows }] = await Promise.all([
+        sb!
+          .from('event_memberships')
+          .select('id')
+          .eq('event_id', eventId),
+        // Mig 037 — co-admins.
+        sb!
+          .from('event_memberships')
+          .select('player:players!inner(user_id, archived_at)')
+          .eq('event_id', eventId)
+          .eq('role', 'admin')
+          .is('archived_at', null),
+      ]);
+
+      const coAdminUserIds = ((coAdminRows ?? []) as Array<{
+        player: { user_id: string | null; archived_at: string | null } | null;
+      }>)
+        .map((r) => r.player?.user_id)
+        .filter((uid, idx, arr): uid is string =>
+          uid !== null && uid !== undefined && arr.indexOf(uid) === idx,
+        );
 
       const row = tRow as EventRow;
       return {
@@ -250,6 +293,7 @@ class EventsRepository extends BaseRepository {
         pausedAt: row.paused_at ?? null,
         creator_user_id: row.creator_user_id,
         creator_anonymous_user_id: null,
+        coAdminUserIds,
         anti_cheat_enabled: row.anti_cheat_enabled || false,
         scoreValidator: row.score_validator ?? 'opponent',
         joinCode: row.join_code,

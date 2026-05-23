@@ -71,7 +71,7 @@ export const EventSettings = () => {
   const league = event?.leagueId
     ? leagues.find((l) => l.id === event.leagueId)
     : null;
-  const { isAdmin } = useDetailPagePermissions(id || "", "event");
+  const { isAdmin, isOwner } = useDetailPagePermissions(id || "", "event");
 
   // Premium gating for player limit
   const [isPremium, setIsPremium] = useState(false);
@@ -422,6 +422,33 @@ export const EventSettings = () => {
       throw new Error(result.error);
     }
     return { token: result.token };
+  };
+
+  // Mig 037 — Promotion / démotion co-admin (creator only).
+  const handleSetAdminRole = async (
+    membershipId: string,
+    role: 'admin' | 'member',
+  ) => {
+    const callerUserId = user?.id || localUser?.anonymousUserId || null;
+    if (!callerUserId) {
+      toast.error("Identité non résolue");
+      throw new Error("missing caller user id");
+    }
+    const result = await identityMergeService.setMembershipRole(
+      "event",
+      membershipId,
+      role,
+      callerUserId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Action impossible");
+      throw new Error(result.error);
+    }
+    toast.success(
+      role === 'admin' ? "Co-admin promu" : "Co-admin retiré",
+    );
+    await refreshEventGhosts();
+    reloadData();
   };
 
   const inputClass =
@@ -980,6 +1007,8 @@ export const EventSettings = () => {
         onArchive={handleArchiveGhost}
         onUnarchive={handleUnarchiveGhost}
         onGenerateInvite={handleGenerateGhostInvite}
+        onSetAdminRole={handleSetAdminRole}
+        isOwnerViewing={isOwner}
       />
 
       <PaymentModal

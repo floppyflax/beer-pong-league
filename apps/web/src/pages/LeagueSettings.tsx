@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+import { useAuthContext } from "@/context/AuthContext";
 import { useLeague } from "@/context/LeagueContext";
 import { useDetailPagePermissions } from "@/hooks/useDetailPagePermissions";
+import { useIdentity } from "@/hooks/useIdentity";
 import { useUnclaimedGuests } from "@/hooks/useUnclaimedGuests";
 import { identityMergeService } from "@/services/IdentityMergeService";
 import { getLeagueLifecycle } from "@/utils/leagueLifecycle";
@@ -29,6 +31,8 @@ import type { LeagueUpdates } from "@/services/DatabaseService";
 export const LeagueSettings = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthContext();
+  const { localUser } = useIdentity();
   const {
     leagues,
     events,
@@ -43,7 +47,7 @@ export const LeagueSettings = () => {
   } = useLeague();
 
   const league = leagues.find((l) => l.id === id);
-  const { isAdmin } = useDetailPagePermissions(id || "", "league");
+  const { isAdmin, isOwner } = useDetailPagePermissions(id || "", "league");
 
   const {
     guests: leaguePlayers,
@@ -263,6 +267,33 @@ export const LeagueSettings = () => {
       throw new Error(result.error);
     }
     return { token: result.token };
+  };
+
+  // Mig 037 — Promotion / démotion co-admin (creator only).
+  const handleSetAdminRole = async (
+    membershipId: string,
+    role: 'admin' | 'member',
+  ) => {
+    const callerUserId = user?.id || localUser?.anonymousUserId || null;
+    if (!callerUserId) {
+      toast.error("Identité non résolue");
+      throw new Error("missing caller user id");
+    }
+    const result = await identityMergeService.setMembershipRole(
+      "league",
+      membershipId,
+      role,
+      callerUserId,
+    );
+    if (!result.success) {
+      toast.error(result.error || "Action impossible");
+      throw new Error(result.error);
+    }
+    toast.success(
+      role === 'admin' ? "Co-admin promu" : "Co-admin retiré",
+    );
+    await refreshLeagueGhosts();
+    reloadData();
   };
 
   // ── Lifecycle + cycle de saison (mig 029) ──────────────────────────────
@@ -772,6 +803,8 @@ export const LeagueSettings = () => {
         onArchive={handleArchiveGhost}
         onUnarchive={handleUnarchiveGhost}
         onGenerateInvite={handleGenerateGhostInvite}
+        onSetAdminRole={handleSetAdminRole}
+        isOwnerViewing={isOwner}
       />
     </div>
   );
