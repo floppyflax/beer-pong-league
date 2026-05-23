@@ -22,7 +22,6 @@ import {
 import toast from "react-hot-toast";
 import { League, Player, Match, Event } from "../types";
 import { calculateEloChange } from "../utils/elo";
-import { isMatchValidated } from "../utils/matchStatus";
 import { useAuth } from "../hooks/useAuth";
 import { useIdentity } from "../hooks/useIdentity";
 import {
@@ -1306,7 +1305,14 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
     const event = events.find((t) => t.id === eventId);
     if (!event) return [];
 
-    // Get base players: use override (event_players) when provided, else fallback to league.players filtered by event.playerIds
+    // ELO event 100 % serveur (mig 032/036) : le classement event est
+    // `event_memberships.elo` trié, sans replay client. Le serveur
+    // (apply_match_elo / recalculate_event_elo) est la seule source — il
+    // exclut déjà les matchs pending/rejected (et l'edit/delete admin
+    // déclenche recalculate_event_elo côté caller). Les participants passés
+    // par les appelants (loadEventParticipants) portent déjà leur
+    // elo/wins/losses/matchesPlayed/streak par event. Calque exact de
+    // getLeagueGlobalRanking ci-dessous.
     let basePlayers: Player[] = [];
     if (participantsOverride && participantsOverride.length > 0) {
       basePlayers = participantsOverride;
@@ -1314,69 +1320,12 @@ export const LeagueProvider = ({ children }: { children: ReactNode }) => {
       const league = leagues.find((l) => l.id === event.leagueId);
       if (league) {
         basePlayers = league.players.filter((p) =>
-          event.playerIds.includes(p.id)
+          event.playerIds.includes(p.id),
         );
       }
     }
 
-    // Start from base ELO (1000 for local ranking, reset at each Event)
-    // We use the League ELO as starting point, but calculate changes only from Event matches
-    let localPlayers: Player[] = basePlayers.map((p) => ({
-      ...p,
-      elo: 1000, // Reset to 1000 for local ranking
-      wins: 0,
-      losses: 0,
-      matchesPlayed: 0,
-      streak: 0,
-    }));
-
-    // Replay only validated Event matches in chronological order. Mirrors the
-    // server gate (apply_match_elo): a rejected match — or a pending one under
-    // anti-cheat — must not count, so the local ranking stays equal to the
-    // server ranking and reflects un-validations done after the fact.
-    const antiCheat =
-      !!event.anti_cheat_enabled ||
-      !!(event.leagueId &&
-        leagues.find((l) => l.id === event.leagueId)?.anti_cheat_enabled);
-    const sortedMatches = [...event.matches]
-      .filter((m) => isMatchValidated(m, antiCheat))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    sortedMatches.forEach((match) => {
-      const teamA = localPlayers.filter((p) => match.teamA.includes(p.id));
-      const teamB = localPlayers.filter((p) => match.teamB.includes(p.id));
-      const winner = match.scoreA > match.scoreB ? "A" : "B";
-      const newRatings = calculateEloChange(teamA, teamB, winner, 'event');
-
-      // Update local players
-      localPlayers = localPlayers.map((player) => {
-        const isTeamA = match.teamA.includes(player.id);
-        const isTeamB = match.teamB.includes(player.id);
-
-        if (!isTeamA && !isTeamB) return player;
-
-        const isWinner =
-          (winner === "A" && isTeamA) || (winner === "B" && isTeamB);
-        const newElo = newRatings[player.id] || player.elo;
-
-        return {
-          ...player,
-          elo: newElo,
-          matchesPlayed: player.matchesPlayed + 1,
-          wins: player.wins + (isWinner ? 1 : 0),
-          losses: player.losses + (isWinner ? 0 : 1),
-          streak: isWinner
-            ? player.streak > 0
-              ? player.streak + 1
-              : 1
-            : player.streak < 0
-            ? player.streak - 1
-            : -1,
-        };
-      });
-    });
-
-    return localPlayers.sort((a, b) => b.elo - a.elo);
+    return [...basePlayers].sort((a, b) => b.elo - a.elo);
   };
 
   // Calculate global ranking for a League (includes all matches, including Event matches)
