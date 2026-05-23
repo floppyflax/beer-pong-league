@@ -14,8 +14,13 @@ const MIN_TOGETHER = 3;
 const MIN_AGAINST = 3;
 /** Un adversaire doit avoir battu le joueur au moins ça pour être sa "bête noire". */
 const MIN_NEMESIS_WINS = 2;
-/** Nombre min de matchs joués pour qu'un joueur soit éligible au focus. */
-const MIN_PLAYED = 3;
+/** Nombre min de matchs joués pour qu'un joueur soit éligible au focus.
+ *  À 1 → dès qu'un joueur a joué au moins une rencontre, il peut apparaître
+ *  en focus (au minimum la tuile "Bilan", plus les autres si la data suit). */
+const MIN_PLAYED = 1;
+/** Nombre min de matchs sur un format pour qu'il soit jugé "favori" — sinon
+ *  l'info repose sur trop peu de signal pour être pertinente. */
+const MIN_FORMAT_MATCHES = 3;
 
 interface PairStat {
   aId: string;
@@ -217,7 +222,7 @@ export function useDuoRivalryStats(source: DisplaySource | null): DuoRivalryStat
 
       // Format favori
       const formats = computeWinRateByFormat(playerId, matches)
-        .filter((f) => f.matches >= MIN_PLAYED)
+        .filter((f) => f.matches >= MIN_FORMAT_MATCHES)
         .sort((a, b) => b.matches - a.matches);
       if (formats[0]) {
         tiles.push({
@@ -242,8 +247,10 @@ export function useDuoRivalryStats(source: DisplaySource | null): DuoRivalryStat
       return { player, tiles };
     };
 
+    // Aligné sur le fallback de PlayerFocusScene : ≥ 1 tuile suffit ("Bilan"
+    // est toujours présente dès qu'un joueur a joué un match).
     const focusAvailable = eligiblePlayerIds.some(
-      (id) => (playerFocusFor(id)?.tiles.length ?? 0) >= 3,
+      (id) => (playerFocusFor(id)?.tiles.length ?? 0) >= 1,
     );
 
     return {
