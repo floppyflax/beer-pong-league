@@ -1,21 +1,23 @@
 import { useEffect, useRef, useState } from "react";
+import type { Match } from "@/types";
 import type { DisplaySource, DisplaySourcePlayer } from "../types";
 import { isAudioReady, playChime, unlockAudio } from "../sound";
 
 /**
- * Le hook ne pose plus jamais d'overlay plein écran ni de pause de la
- * rotation : l'ancien type avec phases "alert"/"reveal" a été remplacé par
- * un simple flag idle/silent. Les champs retournés gardent les mêmes noms
- * pour que DisplayShell + scenes restent compatibles.
+ * À l'arrivée d'un nouveau match : courte phase "alert" qui pose un overlay
+ * plein écran avec le résultat (mêmes codes visuels que l'alerte "nouveau
+ * joueur"), puis retour à idle. Pas de visite séquentielle des protagonistes
+ * ni de force-jump vers le classement — le diaporama reprend exactement là
+ * où il était à la fin de l'overlay.
  */
-export type RevealPhase = "idle";
+export type RevealPhase = "idle" | "alert";
 
 export interface MatchReveal {
   phase: RevealPhase;
-  /** Toujours false — historiquement déclenchait un blur de l'arrière-plan. */
-  blur: false;
-  /** Toujours null — historiquement le match affiché en plein écran. */
-  alertMatch: null;
+  /** true pendant l'alerte → utilisé pour le backdrop blur de l'overlay. */
+  blur: boolean;
+  /** Match affiché dans l'overlay plein écran (phase "alert"). */
+  alertMatch: Match | null;
   /** Ordre du classement affiché (committé dès qu'un nouveau match arrive). */
   committedPlayers: DisplaySourcePlayer[];
   /** Protagonistes en surbrillance pendant ~HIGHLIGHT_MS après le match. */
@@ -24,15 +26,19 @@ export interface MatchReveal {
   winnerIds: Set<string>;
   /** Perdants du dernier match → brillance rouge (timed). */
   loserIds: Set<string>;
-  /** Joueur focalisé — toujours null désormais (plus de visite séquentielle). */
+  /** Joueur focalisé — toujours null (plus de visite séquentielle). */
   focusedPlayerId: null;
   /** Match qui clignote dans le panneau "Derniers matchs". */
   blinkMatchId: string | null;
-  /** Toujours false — la rotation ne s'arrête plus pour un match. */
-  active: false;
+  /** true pendant l'overlay → DisplayShell met la rotation en pause. */
+  active: boolean;
   soundOn: boolean;
   audioArmed: boolean;
 }
+
+/** Durée de l'overlay plein écran. Aligné sur l'alerte "nouveau joueur"
+ *  pour cohérence visuelle (cf. useNewPlayerReveal.ALERT_MS). */
+const ALERT_MS = 4_000;
 
 /** Durée pendant laquelle les gagnants/perdants sont mis en surbrillance
  *  sur le Classement après l'arrivée d'un match. Pas de pause de rotation :
@@ -72,16 +78,18 @@ export function withTransitionDeltas(
 
 /**
  * À l'arrivée d'un nouveau match :
- * - Commit silencieux du nouvel ordre avec deltas de transition (le morph
- *   auto-animate joue si la scène ranking est visible, sinon invisible).
+ * - Phase "alert" (~ALERT_MS) : overlay plein écran avec le résultat — la
+ *   rotation est mise en pause par DisplayShell mais reprend juste après,
+ *   sans visite séquentielle ni force-jump vers le classement.
+ * - Commit du nouvel ordre avec deltas de transition (le morph auto-animate
+ *   joue dès qu'on repasse sur la scène ranking).
  * - Brillance lime/red des vainqueurs/perdants pendant `HIGHLIGHT_MS`.
  * - Clignotement du match dans "Derniers matchs" pendant `BLINK_MS`.
  * - Sonnerie courte si le son est armé/activé.
- *
- * Pas d'overlay plein écran, pas de pause de la rotation, pas de force-jump
- * vers le Classement → le diaporama continue exactement là où il était.
  */
 export function useMatchReveal(source: DisplaySource | null): MatchReveal {
+  const [phase, setPhase] = useState<RevealPhase>("idle");
+  const [alertMatch, setAlertMatch] = useState<Match | null>(null);
   const [committedPlayers, setCommittedPlayers] = useState<
     DisplaySourcePlayer[] | null
   >(null);
@@ -213,8 +221,9 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
     return () => clearTimeout(t);
   }, [blinkMatchId]);
 
-  // Commit silencieux quand un match arrive — déclenche brillance + sonnerie
-  // mais aucune pause de la rotation.
+  // Trigger : un match arrive → commit + ouverture de l'overlay (phase alert).
+  // Le minuteur de fermeture est porté par un useEffect séparé pour éviter
+  // que son cleanup ne soit annulé par le re-render qui suit setPhase.
   useEffect(() => {
     if (!pendingMatchId) return;
     const src = sourceRef.current;
@@ -229,19 +238,33 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
     const winners = winnerA ? match.teamA : match.teamB;
     const losers = winnerA ? match.teamB : match.teamA;
 
-    // Commit immédiat : le morph auto-animate joue si la scène ranking est
-    // visible — sinon invisible jusqu'au prochain passage. Le diaporama
-    // continue son cycle.
+    // Commit du nouvel ordre : le morph auto-animate joue dès qu'on
+    // repasse sur la scène ranking (la rotation reprend juste après l'overlay).
     setCommittedPlayers(withTransitionDeltas(src.players, beforeOrder));
     setWinnerIds(new Set(winners));
     setLoserIds(new Set(losers));
     setHighlightedPlayerIds(new Set([...winners, ...losers]));
 
-    // Sonnerie courte (signal non visuel, non interruptif).
+    // Sonnerie courte (renfort de l'overlay visuel).
     if (soundOnRef.current && isAudioReady()) playChime();
 
+    // Overlay plein écran — fermeture gérée par l'effet suivant.
+    setAlertMatch(match);
+    setPhase("alert");
     setPendingMatchId(null);
   }, [pendingMatchId]);
+
+  // Fermeture de l'overlay après ALERT_MS. Effet séparé pour éviter que le
+  // cleanup au re-render qui suit setPhase("alert") n'annule le timer (cf.
+  // useNewPlayerReveal — même piège).
+  useEffect(() => {
+    if (phase !== "alert") return;
+    const t = setTimeout(() => {
+      setPhase("idle");
+      setAlertMatch(null);
+    }, ALERT_MS);
+    return () => clearTimeout(t);
+  }, [phase]);
 
   // Surbrillance auto-effacée. Effet séparé du déclencheur pour éviter que
   // le cleanup du re-render qui suit setPendingMatchId(null) n'annule le
@@ -257,16 +280,16 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
   }, [winnerIds, loserIds]);
 
   return {
-    phase: "idle",
-    blur: false,
-    alertMatch: null,
+    phase,
+    blur: phase === "alert",
+    alertMatch,
     committedPlayers: committedPlayers ?? source?.players ?? [],
     highlightedPlayerIds,
     winnerIds,
     loserIds,
     focusedPlayerId: null,
     blinkMatchId,
-    active: false,
+    active: phase !== "idle",
     soundOn,
     audioArmed,
   };

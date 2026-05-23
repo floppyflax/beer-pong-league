@@ -75,7 +75,7 @@ describe("useMatchReveal", () => {
     expect(result.current.focusedPlayerId).toBeNull();
   });
 
-  it("commit silencieux sur un nouveau match : pas d'overlay, brillance timed", () => {
+  it("nouveau match : overlay plein écran ~4s puis idle (sans visite séquentielle)", () => {
     const P0 = [player("a", 1), player("b", 2)];
     const src0 = makeSource(P0, [match("m1", ["a"], ["b"])]);
     const { result, rerender } = renderHook(
@@ -91,30 +91,43 @@ describe("useMatchReveal", () => {
     ]);
     rerender({ s: src1 });
 
-    // Pas d'overlay plein écran, pas de pause du diaporama (active=false).
-    expect(result.current.phase).toBe("idle");
-    expect(result.current.active).toBe(false);
-    expect(result.current.alertMatch).toBeNull();
-    expect(result.current.blur).toBe(false);
+    // Phase ALERT : overlay actif + blur + match annoncé + actif (la rotation
+    // se met en pause via DisplayShell).
+    expect(result.current.phase).toBe("alert");
+    expect(result.current.active).toBe(true);
+    expect(result.current.blur).toBe(true);
+    expect(result.current.alertMatch?.id).toBe("m2");
 
-    // Mais : brillance lime/red des protagonistes + clignotement RecentMatches.
+    // En parallèle : brillance lime/red + clignotement RecentMatches + commit.
     expect([...result.current.winnerIds]).toEqual(["a"]);
     expect([...result.current.loserIds]).toEqual(["b"]);
     expect([...result.current.highlightedPlayerIds].sort()).toEqual(["a", "b"]);
     expect(result.current.blinkMatchId).toBe("m2");
-    // Nouveau ordre commité immédiatement avec deltas.
     expect(result.current.committedPlayers.map((p) => p.id)).toEqual(["a", "b"]);
 
-    // Après HIGHLIGHT_MS (6s) : brillance retombe, blink reste un peu.
+    // Pas de visite séquentielle des protagonistes (focusedPlayerId reste null).
+    expect(result.current.focusedPlayerId).toBeNull();
+
+    // Après ALERT_MS (~4s) : l'overlay se ferme, on repasse en idle. La
+    // brillance reste (HIGHLIGHT_MS = 6s).
     act(() => {
-      vi.advanceTimersByTime(6_100);
+      vi.advanceTimersByTime(4_100);
+    });
+    expect(result.current.phase).toBe("idle");
+    expect(result.current.active).toBe(false);
+    expect(result.current.alertMatch).toBeNull();
+    expect(result.current.winnerIds.size).toBe(1);
+
+    // Après HIGHLIGHT_MS (6s depuis le début) : brillance retombe.
+    act(() => {
+      vi.advanceTimersByTime(2_000);
     });
     expect(result.current.winnerIds.size).toBe(0);
     expect(result.current.loserIds.size).toBe(0);
     expect(result.current.highlightedPlayerIds.size).toBe(0);
     expect(result.current.blinkMatchId).toBe("m2");
 
-    // Après BLINK_MS (8s) : blink retombe aussi.
+    // Après BLINK_MS (8s depuis le début) : blink retombe aussi.
     act(() => {
       vi.advanceTimersByTime(2_000);
     });

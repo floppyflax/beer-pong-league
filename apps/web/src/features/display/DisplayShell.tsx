@@ -5,6 +5,7 @@ import { Volume2, VolumeX } from "lucide-react";
 import { PersistentFrame } from "./components/PersistentFrame";
 import { PodiumStand } from "./components/PodiumStand";
 import { RecentMatchesPanel } from "./components/RecentMatchesPanel";
+import { NewMatchAlertOverlay } from "./components/NewMatchAlertOverlay";
 import { NewPlayerAlertOverlay } from "./components/NewPlayerAlertOverlay";
 import { SceneIndicators } from "./components/SceneIndicators";
 import { RankingScene } from "./scenes/RankingScene";
@@ -77,26 +78,26 @@ export function DisplayShell({ source }: Props) {
     resume,
   } = useDisplayScenes({ scenes });
 
-  // Arrivée d'un nouveau match : commit silencieux du classement + brillance
-  // timed + clignotement du match dans le panneau. Pas d'overlay plein écran,
-  // pas de pause de la rotation — le diaporama continue exactement là où
-  // il était.
+  // Arrivée d'un nouveau match : courte alerte plein écran avec le résultat
+  // (~4 s, comme l'alerte nouveau joueur) + commit du classement en
+  // arrière-plan. Pas de visite séquentielle ni de force-jump : la rotation
+  // reprend juste après l'overlay, là où elle en était.
   const reveal = useMatchReveal(source);
 
   // Orchestration d'arrivée d'un nouveau joueur : alerte plein écran + son,
-  // puis refresh immédiat (pousser nom/avatar à jour). C'est le SEUL événement
-  // qui interrompt la rotation aujourd'hui (par design — un nouveau joueur
-  // mérite d'être annoncé, un match peut passer en arrière-plan).
+  // puis refresh immédiat (pousser nom/avatar à jour). Mise en pause pendant
+  // une alerte match pour ne pas empiler deux overlays.
   const playerReveal = useNewPlayerReveal(source, {
+    paused: reveal.active,
     onAfterAlert: reloadData,
     soundOn: reveal.soundOn,
   });
 
-  // Pause de la rotation uniquement pendant l'alerte "nouveau joueur".
+  // Pause de la rotation pendant l'une OU l'autre alerte plein écran.
   useEffect(() => {
-    if (playerReveal.active) pause();
+    if (reveal.active || playerReveal.active) pause();
     else resume();
-  }, [playerReveal.active, pause, resume]);
+  }, [reveal.active, playerReveal.active, pause, resume]);
 
   // Phase rapportée par la scène self-paced active (pour les indicators)
   const [selfPacedPhase, setSelfPacedPhase] =
@@ -217,9 +218,10 @@ export function DisplayShell({ source }: Props) {
         </div>
       </PersistentFrame>
 
-      {/* Alerte plein écran nouveau(x) joueur(s) — seule interruption qui
-          subsiste. Les matchs commitent en silence pour laisser le diaporama
-          rouler. */}
+      {/* Alerte plein écran d'arrivée d'un match (courte — ~4s). */}
+      <NewMatchAlertOverlay match={reveal.alertMatch} source={source} />
+
+      {/* Alerte plein écran nouveau(x) joueur(s) — même grammaire visuelle. */}
       <NewPlayerAlertOverlay players={playerReveal.alertPlayers} />
 
       {/* Indicateur état du son (découvrabilité du toggle M) */}
