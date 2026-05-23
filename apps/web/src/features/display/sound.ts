@@ -10,6 +10,12 @@
 type AudioCtor = typeof AudioContext;
 
 let ctx: AudioContext | null = null;
+let masterGain: GainNode | null = null;
+
+/** Gain global appliqué à toutes les notes — mode TV/projecteur en salle
+ *  bruyante. Monter trop haut (>3) clip l'accord final tenu (3 oscillos
+ *  additionnés à 0.12 + 0.11 + 0.10). */
+const MASTER_GAIN = 2.5;
 
 function getCtor(): AudioCtor | null {
   if (typeof window === "undefined") return null;
@@ -32,6 +38,15 @@ export function unlockAudio(): void {
       ctx = null;
       return;
     }
+    // Bus master — toutes les notes y sont routées (cf. emitChime). Permet
+    // de monter le volume global sans toucher chaque enveloppe individuelle.
+    try {
+      masterGain = ctx.createGain();
+      masterGain.gain.value = MASTER_GAIN;
+      masterGain.connect(ctx.destination);
+    } catch {
+      masterGain = null;
+    }
   }
   if (ctx.state === "suspended") void ctx.resume();
 }
@@ -42,6 +57,9 @@ export function isAudioReady(): boolean {
 
 function emitChime(audioCtx: AudioContext): void {
   const now = audioCtx.currentTime;
+  // Sortie de l'enveloppe : on passe par `masterGain` si dispo (volume global
+  // appliqué), fallback `destination` (compat si l'unlock a raté ce nœud).
+  const out: AudioNode = masterGain ?? audioCtx.destination;
   const note = (
     freq: number,
     start: number,
@@ -57,7 +75,7 @@ function emitChime(audioCtx: AudioContext): void {
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.linearRampToValueAtTime(peak, t + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.connect(gain).connect(audioCtx.destination);
+    osc.connect(gain).connect(out);
     osc.start(t);
     osc.stop(t + dur + 0.03);
   };
