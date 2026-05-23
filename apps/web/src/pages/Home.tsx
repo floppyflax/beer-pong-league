@@ -178,11 +178,16 @@ export const Home = () => {
                     <div
                       className="flex items-center gap-0.5"
                       role="img"
-                      aria-label={`5 derniers résultats : ${recentResults
+                      aria-label={`5 derniers résultats (du plus ancien au plus récent) : ${[
+                        ...recentResults,
+                      ]
+                        .reverse()
                         .map((won) => (won ? "victoire" : "défaite"))
                         .join(", ")}`}
                     >
-                      {recentResults.map((won, i) => (
+                      {/* Convention : index 0 = plus récent. À l'écran : plus
+                          récent à DROITE → reverse une copie pour le rendu. */}
+                      {[...recentResults].reverse().map((won, i) => (
                         <span
                           key={i}
                           className={`w-2.5 h-2.5 rounded-full ${

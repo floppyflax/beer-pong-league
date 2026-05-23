@@ -110,14 +110,17 @@ function ResultDots({
   results: boolean[];
   size?: "md" | "lg";
 }) {
-  const slots = Array.from({ length: 5 }, (_, i) => results[i]);
+  // Convention de l'array : index 0 = match LE PLUS RÉCENT. À l'écran on
+  // veut le plus récent à DROITE (lecture gauche→droite, dernier événement
+  // à la fin) → on construit les slots dans l'ordre inverse.
+  const slots = Array.from({ length: 5 }, (_, i) => results[4 - i]);
   const dotCls = size === "lg" ? "w-4 h-4" : "w-2.5 h-2.5";
   const gapCls = size === "lg" ? "gap-1.5" : "gap-0.5";
   return (
     <div
       className={`flex ${gapCls}`}
       role="img"
-      aria-label="5 derniers résultats"
+      aria-label="5 derniers résultats (du plus ancien au plus récent)"
     >
       {slots.map((won, i) => {
         const cls =

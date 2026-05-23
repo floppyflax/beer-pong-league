@@ -114,7 +114,9 @@ describe('ListRow (Story 14-4)', () => {
       expect(screen.getByTestId('listrow-chevron')).toBeInTheDocument();
     });
 
-    it('should display recent results as 5 colored circles (green=win, red=loss)', () => {
+    it('should display recent results as 5 colored circles (green=win, red=loss) with most recent on the RIGHT', () => {
+      // Convention array : index 0 = plus récent. Rendu : plus récent à
+      // droite → ordre visuel inversé de l'array.
       render(
         <ListRow
           variant="player"
@@ -124,15 +126,18 @@ describe('ListRow (Story 14-4)', () => {
           recentResults={[true, false, true, true, false]}
         />
       );
-      const container = screen.getByRole('img', { name: 'Derniers résultats' });
+      const container = screen.getByRole('img', {
+        name: 'Derniers résultats (du plus ancien au plus récent)',
+      });
       expect(container).toBeInTheDocument();
       const circles = container.querySelectorAll('div[class*="rounded-full"]');
       expect(circles).toHaveLength(5);
-      expect(circles[0]).toHaveClass('bg-lime');
-      expect(circles[1]).toHaveClass('bg-signal-red');
+      // Affichage de gauche à droite = array reversed : [false, true, true, false, true]
+      expect(circles[0]).toHaveClass('bg-signal-red');
+      expect(circles[1]).toHaveClass('bg-lime');
       expect(circles[2]).toHaveClass('bg-lime');
-      expect(circles[3]).toHaveClass('bg-lime');
-      expect(circles[4]).toHaveClass('bg-signal-red');
+      expect(circles[3]).toHaveClass('bg-signal-red');
+      expect(circles[4]).toHaveClass('bg-lime');
     });
   });
 

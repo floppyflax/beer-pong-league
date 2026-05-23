@@ -270,8 +270,14 @@ export function Stats() {
               title="Forme récente"
             />
             <div className="bg-navy-soft rounded-card border border-card p-4 flex items-center gap-4">
-              <div className="flex items-center gap-1" role="img" aria-label="5 derniers résultats">
-                {recentResults.map((won, i) => (
+              <div
+                className="flex items-center gap-1"
+                role="img"
+                aria-label="5 derniers résultats (du plus ancien au plus récent)"
+              >
+                {/* Convention : index 0 = plus récent. À l'écran : plus récent
+                    à DROITE → reverse une copie pour le rendu. */}
+                {[...recentResults].reverse().map((won, i) => (
                   <span
                     key={i}
                     className={`w-3 h-3 rounded-full ${won ? "bg-lime" : "bg-signal-red"}`}

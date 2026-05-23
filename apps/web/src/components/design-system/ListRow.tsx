@@ -112,16 +112,26 @@ export function ListRow(props: ListRowProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-cool-gray truncate">{props.subtitle}</span>
           {props.recentResults && props.recentResults.length > 0 && (
-            <div className="flex gap-0.5" role="img" aria-label="Derniers résultats">
-              {props.recentResults.slice(0, 5).map((won, i) => (
-                <div
-                  key={i}
-                  className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                    won ? 'bg-lime' : 'bg-signal-red'
-                  }`}
-                  title={won ? 'Victoire' : 'Défaite'}
-                />
-              ))}
+            <div
+              className="flex gap-0.5"
+              role="img"
+              aria-label="Derniers résultats (du plus ancien au plus récent)"
+            >
+              {/* Convention : index 0 = plus récent. À l'écran : plus récent
+                  à DROITE → on reverse une copie pour le rendu. */}
+              {props.recentResults
+                .slice(0, 5)
+                .slice()
+                .reverse()
+                .map((won, i) => (
+                  <div
+                    key={i}
+                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      won ? 'bg-lime' : 'bg-signal-red'
+                    }`}
+                    title={won ? 'Victoire' : 'Défaite'}
+                  />
+                ))}
             </div>
           )}
         </div>
