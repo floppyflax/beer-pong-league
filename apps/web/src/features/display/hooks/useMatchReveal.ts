@@ -107,8 +107,28 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
   const [blinkMatchId, setBlinkMatchId] = useState<string | null>(null);
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
 
-  const [soundOn, setSoundOn] = useState(true);
+  // Préférence son persistée localStorage → reste cohérente quand l'écran
+  // diffuse en boucle ou qu'on alterne event/league. Par défaut ACTIVÉ.
+  const [soundOn, setSoundOn] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const v = window.localStorage.getItem("display:soundOn");
+      return v === null ? true : v === "1";
+    } catch {
+      return true;
+    }
+  });
   const [audioArmed, setAudioArmed] = useState(false);
+
+  // Persiste la pref son.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem("display:soundOn", soundOn ? "1" : "0");
+    } catch {
+      // localStorage indispo (mode privé Safari) — on continue sans persister.
+    }
+  }, [soundOn]);
 
   const initializedRef = useRef(false);
   const lastSeenRef = useRef<string | null>(null);
@@ -120,17 +140,27 @@ export function useMatchReveal(source: DisplaySource | null): MatchReveal {
   const soundOnRef = useRef(soundOn);
   soundOnRef.current = soundOn;
 
-  // Armement audio au 1er geste (politique autoplay).
+  // Armement audio au 1er geste (politique autoplay des navigateurs). On
+  // élargit à tous les événements user plausibles sur un écran de diffusion
+  // (un simple bougé de souris suffit), avec `once: true` pour ne pas
+  // spammer le listener.
   useEffect(() => {
     const arm = () => {
       unlockAudio();
       setAudioArmed(isAudioReady());
     };
-    window.addEventListener("keydown", arm);
-    window.addEventListener("pointerdown", arm);
+    const events: (keyof WindowEventMap)[] = [
+      "keydown",
+      "pointerdown",
+      "pointermove",
+      "wheel",
+      "touchstart",
+      "click",
+    ];
+    const opts: AddEventListenerOptions = { once: true, passive: true };
+    events.forEach((ev) => window.addEventListener(ev, arm, opts));
     return () => {
-      window.removeEventListener("keydown", arm);
-      window.removeEventListener("pointerdown", arm);
+      events.forEach((ev) => window.removeEventListener(ev, arm, opts));
     };
   }, []);
 
