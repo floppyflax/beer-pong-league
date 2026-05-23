@@ -36,22 +36,44 @@ import { ChevronLeft, MoreVertical } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /**
- * Tracks vertical scroll on the closest scrollable ancestor (or window) and
- * returns true once the threshold is crossed. Used by DetailHero to collapse
- * into a compact pinned header.
+ * Watches a 1px sentinel placed just before the sticky hero and toggles
+ * `collapsed` as soon as the sentinel's bottom edge passes the top of the
+ * viewport. The scroll listener attaches to the closest scrollable ancestor
+ * (or window) so the hero collapses correctly on mobile (window scroll) and
+ * on desktop with sidebar — where `ResponsiveLayout` scrolls an inner
+ * `overflow-auto` div, not the window. Collapsing on the first scrolled
+ * pixel avoids the visible "pop" of a fixed scroll threshold.
  */
-function useScrollPast(threshold: number) {
-  const [past, setPast] = useState(false);
+function useStuckSentinel() {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY ?? document.documentElement.scrollTop;
-      setPast(y > threshold);
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    let parent: HTMLElement | null = sentinel.parentElement;
+    let scrollParent: HTMLElement | Window = window;
+    while (parent) {
+      const overflowY = window.getComputedStyle(parent).overflowY;
+      if (overflowY === "auto" || overflowY === "scroll") {
+        scrollParent = parent;
+        break;
+      }
+      parent = parent.parentElement;
+    }
+
+    const update = () => {
+      setCollapsed(sentinel.getBoundingClientRect().bottom <= 0);
     };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [threshold]);
-  return past;
+    update();
+    scrollParent.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
+    return () => {
+      scrollParent.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return { sentinelRef, collapsed };
 }
 
 export interface DetailHeroStat {
@@ -258,18 +280,24 @@ export const DetailHero = ({
           ? "grid-cols-4"
           : "grid-cols-3";
 
-  // Once the page has scrolled past ~80px, collapse into a compact pinned
-  // header (back + title only). The whole section is `position: sticky` so
-  // it stays at the top of the viewport while the rest of the page scrolls
-  // behind it.
-  const collapsed = useScrollPast(80);
+  const { sentinelRef, collapsed } = useStuckSentinel();
 
   return (
-    <section
-      className={`sticky top-0 z-20 ${toneBg} px-5 ${
-        collapsed ? "pt-3 pb-3 shadow-modal" : "pt-12 pb-5 shadow-glow-electric"
-      } text-white transition-[padding,box-shadow] duration-200 ${className}`}
-    >
+    <>
+      {/* 1px sentinel just above the sticky hero. As soon as it leaves the
+          viewport, the hero collapses — gives a smooth transition from the
+          first scrolled pixel instead of a delayed "pop" at a fixed
+          threshold. Margin-bottom -1 keeps the sentinel from shifting layout. */}
+      <div
+        ref={sentinelRef}
+        aria-hidden
+        style={{ height: 1, marginBottom: -1, pointerEvents: "none" }}
+      />
+      <section
+        className={`sticky top-0 z-20 ${toneBg} px-5 ${
+          collapsed ? "pt-3 pb-3 shadow-modal" : "pt-12 pb-5 shadow-glow-electric"
+        } text-white transition-[padding,box-shadow] duration-200 ${className}`}
+      >
       {/* Top row: back + title + admin badge */}
       <div className="flex items-center gap-3">
         {onBack && (
@@ -395,6 +423,7 @@ export const DetailHero = ({
           {menuItems.length > 0 && <OverflowMenu items={menuItems} />}
         </div>
       )}
-    </section>
+      </section>
+    </>
   );
 };
