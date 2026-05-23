@@ -310,7 +310,7 @@ describe('Anti-cheat status decision (mig 030) — admin auto-confirm', () => {
   });
 });
 
-describe('ELO server-side — EloRecalcService delegates to recalculate_league_elo RPC', () => {
+describe('ELO server-side — EloRecalcService delegates to recalculate_*_elo RPCs', () => {
   beforeEach(() => {
     Object.keys(tablesTouched).forEach((k) => delete tablesTouched[k]);
     rpcCalls.length = 0;
@@ -345,6 +345,37 @@ describe('ELO server-side — EloRecalcService delegates to recalculate_league_e
     expect(result).toEqual({
       success: false,
       error: 'permission denied for function recalculate_league_elo',
+    });
+  });
+
+  it('recalculateEventElo calls the RPC and returns matchesReplayed from the response', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({ data: 4, error: null });
+
+    const { eloRecalcService } = await import('../../src/services/EloRecalcService');
+    const result = await eloRecalcService.recalculateEventElo('event-1');
+
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('recalculate_event_elo', {
+      p_event_id: 'event-1',
+    });
+    expect(result).toEqual({ success: true, matchesReplayed: 4 });
+
+    // No direct table writes — the whole thing is the RPC (event autonome, reset 1000)
+    expectNoStatWrites(tablesTouched.event_memberships);
+    expectNoStatWrites(tablesTouched.elo_history);
+  });
+
+  it('recalculateEventElo surfaces RPC errors as { success: false, error }', async () => {
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'permission denied for function recalculate_event_elo' },
+    });
+
+    const { eloRecalcService } = await import('../../src/services/EloRecalcService');
+    const result = await eloRecalcService.recalculateEventElo('event-1');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'permission denied for function recalculate_event_elo',
     });
   });
 });
