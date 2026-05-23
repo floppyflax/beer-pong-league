@@ -93,17 +93,10 @@ export function RankingScene({
   // quand le classement change. API core (impérative) pour éviter le souci de
   // double copie de React de l'entrée /react en monorepo. auto-animate respecte
   // prefers-reduced-motion nativement.
-  const topListRef = useRef<HTMLDivElement>(null);
-  const restListRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (topListRef.current) autoAnimate(topListRef.current);
+    if (listRef.current) autoAnimate(listRef.current);
   }, []);
-  useEffect(() => {
-    if (restListRef.current) autoAnimate(restListRef.current);
-  }, []);
-
-  const top10 = players.slice(0, 10);
-  const rest = players.slice(10);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -115,8 +108,12 @@ export function RankingScene({
         ref={scrollRef}
         className="flex-1 overflow-y-auto overflow-x-hidden relative min-h-0"
       >
-        <div ref={topListRef} className="space-y-2 mb-6">
-          {top10.map((player) => {
+        {/* Toute la liste utilise le MÊME rendu (PlayerCard leaderRow display) :
+            même structure visuelle pour le rang 1 et le rang 11+, pour ne pas
+            créer de "rupture" à la cassure du top 10. La self-paced scroll
+            descend naturellement dans la liste complète. */}
+        <div ref={listRef} className="space-y-2">
+          {players.map((player) => {
             const isWinner = winnerIds?.has(player.id);
             const isLoser = loserIds?.has(player.id);
             const isHighlighted = isWinner || isLoser;
@@ -155,53 +152,6 @@ export function RankingScene({
             );
           })}
         </div>
-
-        {rest.length > 0 && (
-          <div ref={restListRef} className="space-y-2">
-            {rest.map((player) => {
-              const isWinner = winnerIds?.has(player.id);
-              const isLoser = loserIds?.has(player.id);
-              const isHighlighted = isWinner || isLoser;
-              return (
-              <div
-                key={player.id}
-                ref={setRowRef(player.id)}
-                className="relative bg-navy-soft border-[1.5px] border-cool-gray/20 rounded-card px-4 py-2.5"
-              >
-                {isHighlighted && (
-                  <div
-                    aria-hidden
-                    className={`absolute inset-0 rounded-card pointer-events-none animate-glow-pulse ring-2 ${
-                      isWinner ? "bg-lime/25 ring-lime" : "bg-signal-red/25 ring-signal-red"
-                    }`}
-                    style={
-                      { ["--glow"]: isWinner ? GLOW_WIN : GLOW_LOSE } as CSSProperties
-                    }
-                  />
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 flex items-center justify-center font-archivo font-black text-base bg-navy-deep text-white rounded-full border-[1.5px] border-cool-gray/40">
-                      {player.rank}
-                    </div>
-                    <div>
-                      <div className="font-archivo font-bold text-base truncate">
-                        {player.name}
-                      </div>
-                      <div className="font-mono text-[10px] uppercase tracking-[1.5px] text-white/80 font-bold">
-                        {player.wins}V — {player.losses}D
-                      </div>
-                    </div>
-                  </div>
-                  <div className="font-archivo font-black text-2xl text-white tracking-tight">
-                    {player.elo}
-                  </div>
-                </div>
-              </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { PersistentFrame } from "./components/PersistentFrame";
 import { PodiumStand } from "./components/PodiumStand";
 import { RecentMatchesPanel } from "./components/RecentMatchesPanel";
 import { NewMatchAlertOverlay } from "./components/NewMatchAlertOverlay";
+import { NewPlayerAlertOverlay } from "./components/NewPlayerAlertOverlay";
 import { SceneIndicators } from "./components/SceneIndicators";
 import { RankingScene } from "./scenes/RankingScene";
 import { RankingWideScene } from "./scenes/RankingWideScene";
@@ -22,6 +23,7 @@ import {
 } from "./hooks/useDisplayScenes";
 import { useDisplayAutoRefresh } from "./hooks/useDisplayAutoRefresh";
 import { useMatchReveal } from "./hooks/useMatchReveal";
+import { useNewPlayerReveal } from "./hooks/useNewPlayerReveal";
 import type { SelfPacedScrollPhase } from "./hooks/useSelfPacedScroll";
 import type { DisplaySource } from "./types";
 
@@ -82,12 +84,21 @@ export function DisplayShell({ source }: Props) {
   // ordre, surbrillance, visite séquentielle des protagonistes).
   const reveal = useMatchReveal(source);
 
-  // Pendant la séquence : on met la rotation en pause et on force le Classement
-  // (au passage en phase "reveal").
+  // Orchestration d'arrivée d'un nouveau joueur : alerte plein écran + son,
+  // puis refresh immédiat (pousser nom/avatar à jour). Mise en pause pendant
+  // un match reveal pour ne pas écraser sa séquence.
+  const playerReveal = useNewPlayerReveal(source, {
+    paused: reveal.active,
+    onAfterAlert: reloadData,
+    soundOn: reveal.soundOn,
+  });
+
+  // Pendant l'une ou l'autre séquence : on met la rotation en pause et on
+  // force le Classement (au passage en phase "reveal" du match reveal).
   useEffect(() => {
-    if (reveal.active) pause();
+    if (reveal.active || playerReveal.active) pause();
     else resume();
-  }, [reveal.active, pause, resume]);
+  }, [reveal.active, playerReveal.active, pause, resume]);
   useEffect(() => {
     if (reveal.phase === "reveal") jumpTo("ranking");
   }, [reveal.phase, jumpTo]);
@@ -217,6 +228,9 @@ export function DisplayShell({ source }: Props) {
 
       {/* Alerte plein écran floutée (canal visuel primaire) + sonnerie */}
       <NewMatchAlertOverlay match={reveal.alertMatch} source={source} />
+
+      {/* Alerte plein écran nouveau(x) joueur(s) — même grammaire que match */}
+      <NewPlayerAlertOverlay players={playerReveal.alertPlayers} />
 
       {/* Indicateur état du son (découvrabilité du toggle M) */}
       <div className="fixed bottom-3 left-4 z-40 flex items-center gap-1.5 font-mono text-[10px] md:text-xs uppercase tracking-[1.5px] text-cool-gray font-bold pointer-events-none">
