@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useIdentityContext } from '../context/IdentityContext';
 // import { useAuthContext } from '../context/AuthContext'; // Unused
 import { identityMergeService } from '../services/IdentityMergeService';
+import { localUserService } from '../services/LocalUserService';
 import { BeerCupLoader } from '../components/ponglo/BeerCupLoader';
 import { PButton } from '../components/ponglo/PButton';
 
@@ -14,7 +15,7 @@ import { PButton } from '../components/ponglo/PButton';
  */
 export const AuthCallback = () => {
   const navigate = useNavigate();
-  const { localUser, clearIdentity } = useIdentityContext();
+  const { clearIdentity } = useIdentityContext();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
@@ -42,8 +43,16 @@ export const AuthCallback = () => {
           return;
         }
 
+        // Read the local (anon) identity directly from storage — not from the
+        // IdentityContext. When the magic link opens a new tab, the React tree
+        // is freshly mounted and the context's async hydration may not have
+        // completed yet by the time this effect fires, giving us a stale null.
+        // Reading from the service directly is synchronous (localStorage) and
+        // always returns the correct value.
+        const storedLocalUser = await localUserService.getLocalUser();
+
         // If user has a local identity, merge it
-        if (localUser && session.user && supabase) {
+        if (storedLocalUser && session.user && supabase) {
           const profile = await supabase
             .from('users')
             .select('*')
@@ -58,7 +67,7 @@ export const AuthCallback = () => {
               id: session.user.id,
               auth_user_id: session.user.id,
               is_anonymous: false,
-              pseudo: localUser.pseudo,
+              pseudo: storedLocalUser.pseudo,
             });
           }
 
@@ -69,7 +78,7 @@ export const AuthCallback = () => {
           const { data: anonPlayer } = await supabase
             .from('players')
             .select('id')
-            .eq('user_id', localUser.anonymousUserId)
+            .eq('user_id', storedLocalUser.anonymousUserId)
             .maybeSingle();
 
           if (anonPlayer) {
@@ -128,7 +137,7 @@ export const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [localUser, navigate]);
+  }, []);
 
   if (status === 'loading') {
     return (

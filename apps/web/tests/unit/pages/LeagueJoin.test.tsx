@@ -65,20 +65,22 @@ vi.mock("../../../src/hooks/useUnclaimedGuests", () => ({
   }),
 }));
 
-const { mockClaimAnon, mockClaimAuth, mockClaimById, mockRename } = vi.hoisted(
-  () => ({
+// userOwnsPlayer must be hoisted so the vi.mock factory can reference it.
+const { mockClaimAnon, mockClaimAuth, mockClaimById, mockRename, mockOwnsPlayer } =
+  vi.hoisted(() => ({
     mockClaimAnon: vi.fn().mockResolvedValue({ success: true }),
     mockClaimAuth: vi.fn().mockResolvedValue({ success: true }),
     mockClaimById: vi.fn().mockResolvedValue({ success: true }),
     mockRename: vi.fn().mockResolvedValue({ success: true }),
-  }),
-);
+    mockOwnsPlayer: vi.fn().mockResolvedValue(false),
+  }));
 vi.mock("../../../src/services/IdentityMergeService", () => ({
   identityMergeService: {
     claimAnonymousPlayer: mockClaimAuth,
     claimAnonymousPlayerAsAnonymous: mockClaimAnon,
     claimPlayerById: mockClaimById,
     renameAnonymousPlayer: mockRename,
+    userOwnsPlayer: mockOwnsPlayer,
   },
 }));
 
@@ -104,6 +106,7 @@ describe("LeagueJoin — step flow (gate → claim → name)", () => {
     };
     mockAuthCtx = { user: null, isAuthenticated: false };
     mockIdentityCtx = { localUser: null, initializeAnonymousUser: mockInitAnon };
+    mockOwnsPlayer.mockResolvedValue(false);
   });
 
   it("renders the league and shows the identity gate first", () => {
@@ -157,6 +160,55 @@ describe("LeagueJoin — step flow (gate → claim → name)", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/league/test-league-id"),
     );
     expect(mockRename).not.toHaveBeenCalled();
+  });
+
+  it("with participants: claim → modify name → rename called", async () => {
+    mockGuests = [
+      { playerId: "lm1", anonymousUserId: "p1", pseudo: "Alice", joinedAt: "", archived: false },
+    ];
+    renderPage();
+
+    fireEvent.click(screen.getByText(/jouer sans compte/i));
+    await waitFor(() =>
+      expect(screen.getByText(/êtes-vous une de ces personnes/i)).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /c'est moi/i }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/nom du joueur/i)).toBeInTheDocument(),
+    );
+    fireEvent.change(screen.getByLabelText(/nom du joueur/i), {
+      target: { value: "Alex" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /c'est parti/i }));
+
+    await waitFor(() =>
+      expect(mockRename).toHaveBeenCalledWith("league", "lm1", "Alex"),
+    );
+    expect(mockNavigate).toHaveBeenCalledWith("/league/test-league-id");
+  });
+
+  it("identified user with existing player joins directly (no create step)", async () => {
+    // Parcours 6: identity already has a player → auto-join with that player,
+    // no "choisis ton pseudo" step needed.
+    mockIdentityCtx = {
+      localUser: { anonymousUserId: "anon-1", pseudo: "Bob" },
+      initializeAnonymousUser: mockInitAnon,
+    };
+    mockOwnsPlayer.mockResolvedValue(true);
+    mockGuests = [];
+
+    renderPage();
+
+    // Gate offers "Continuer en tant que Bob" — pick it.
+    fireEvent.click(screen.getByRole("button", { name: /continuer en tant que/i }));
+
+    // Joins with the existing player — no name prompt needed.
+    await waitFor(() =>
+      expect(mockAddPlayer).toHaveBeenCalledWith("test-league-id", "Bob"),
+    );
+    expect(mockNavigate).toHaveBeenCalledWith("/league/test-league-id");
+    expect(screen.queryByText(/choisis ton pseudo/i)).not.toBeInTheDocument();
   });
 
   it("\"not in the list\" goes to the create-name step", async () => {
