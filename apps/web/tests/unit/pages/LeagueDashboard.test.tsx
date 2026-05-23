@@ -27,6 +27,22 @@ vi.mock("../../../src/hooks/usePendingMatches", () => ({
   }),
 }));
 
+vi.mock("../../../src/context/AuthContext", () => ({
+  useAuthContext: () => ({
+    user: null,
+    isAuthenticated: false,
+    signInWithOTP: vi.fn(),
+    signOut: vi.fn(),
+  }),
+}));
+
+vi.mock("../../../src/hooks/useCurrentUserMemberships", () => ({
+  useCurrentUserMemberships: () => ({
+    leagueMembershipByLeague: new Map(),
+    eventMembershipByEvent: new Map(),
+  }),
+}));
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {

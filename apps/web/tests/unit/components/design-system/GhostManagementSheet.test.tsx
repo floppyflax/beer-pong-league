@@ -16,6 +16,7 @@ const guest: UnclaimedGuest = {
   pseudo: "Alice",
   joinedAt: "",
   archived: false,
+  isGhost: true,    // user_id IS NULL → ghost player, shows invite button
 };
 
 const baseProps = {

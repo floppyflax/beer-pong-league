@@ -79,6 +79,13 @@ vi.mock("../../../src/hooks/useDetailPagePermissions", () => ({
   useDetailPagePermissions: () => ({ isAdmin: false, canInvite: false }),
 }));
 
+vi.mock("../../../src/hooks/useCurrentUserMemberships", () => ({
+  useCurrentUserMemberships: () => ({
+    leagueMembershipByLeague: new Map(),
+    eventMembershipByEvent: new Map(),
+  }),
+}));
+
 vi.mock("../../../src/services/DatabaseService", () => ({
   databaseService: {
     loadEventParticipants: vi.fn().mockResolvedValue([]),
