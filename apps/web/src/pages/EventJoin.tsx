@@ -48,7 +48,7 @@ export const EventJoin = () => {
   const navigate = useNavigate();
   const { events, addAnonymousPlayerToEvent, isLoadingInitialData, reloadData } =
     useLeague();
-  const { user, isAuthenticated } = useAuthContext();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthContext();
   const { localUser, initializeAnonymousUser } = useIdentityContext();
 
   // ---- Ghost-targeted invite shortcut (?ghost=<players.id>) ----
@@ -181,6 +181,16 @@ export const EventJoin = () => {
       unclaimedGuests.length > 0 && !claimDismissed ? "claim" : "create",
     );
   }, [step, guestsReady, unclaimedGuests.length, claimDismissed]);
+
+  // Authenticated users already have an identity — skip the gate sheet and
+  // go straight to the claim/create branch. Anonymous users with a local
+  // identity still see the gate so the "create an account" path stays
+  // discoverable (cf. 6f71362).
+  useEffect(() => {
+    if (step === "gate" && !authLoading && isAuthenticated && !ghostPlayerId) {
+      setStep("postgate");
+    }
+  }, [step, authLoading, isAuthenticated, ghostPlayerId]);
 
   // ---- Handlers ----
 

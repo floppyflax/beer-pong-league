@@ -211,6 +211,56 @@ describe("LeagueJoin — step flow (gate → claim → name)", () => {
     expect(screen.queryByText(/choisis ton pseudo/i)).not.toBeInTheDocument();
   });
 
+  it("authenticated user skips the gate and lands on the claim sheet", async () => {
+    mockAuthCtx = {
+      user: { id: "auth-user-1", email: "user@test.dev", user_metadata: {} },
+      isAuthenticated: true,
+      isLoading: false,
+    };
+    mockGuests = [
+      { playerId: "lm1", anonymousUserId: "p1", pseudo: "Alice", joinedAt: "", archived: false },
+    ];
+
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByText(/êtes-vous une de ces personnes/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/jouer sans compte/i)).not.toBeInTheDocument();
+  });
+
+  it("authenticated user with no participants + no existing player → create-name step", async () => {
+    mockAuthCtx = {
+      user: { id: "auth-user-1", email: "user@test.dev", user_metadata: {} },
+      isAuthenticated: true,
+      isLoading: false,
+    };
+    mockGuests = [];
+    mockOwnsPlayer.mockResolvedValue(false);
+
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByText(/choisis ton pseudo/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/jouer sans compte/i)).not.toBeInTheDocument();
+  });
+
+  it("anonymous localUser still sees the gate", async () => {
+    mockIdentityCtx = {
+      localUser: { anonymousUserId: "anon-1", pseudo: "Bob" },
+      initializeAnonymousUser: mockInitAnon,
+    };
+    mockAuthCtx = { user: null, isAuthenticated: false, isLoading: false };
+
+    renderPage();
+
+    expect(screen.getByText(/jouer sans compte/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /continuer en tant que/i }),
+    ).toBeInTheDocument();
+  });
+
   it("\"not in the list\" goes to the create-name step", async () => {
     mockGuests = [
       { playerId: "lm1", anonymousUserId: "p1", pseudo: "Alice", joinedAt: "", archived: false },
