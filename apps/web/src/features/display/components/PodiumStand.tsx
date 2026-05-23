@@ -28,7 +28,7 @@ const RANK_BG: Record<number, string> = {
 export function PodiumStand({ players, variant = "compact" }: Props) {
   if (players.length === 0) {
     return (
-      <div className="bg-navy-soft border border-card rounded-card p-4 md:p-5 text-center">
+      <div className="bg-navy-soft border-[1.5px] border-cool-gray/25 rounded-card p-4 md:p-5 text-center">
         <h3 className="font-archivo font-extrabold uppercase tracking-[-0.4px] text-base md:text-lg mb-2">
           Podium
         </h3>
@@ -57,7 +57,7 @@ export function PodiumStand({ players, variant = "compact" }: Props) {
 
   return (
     <div
-      className={`bg-navy-soft border border-card rounded-card ${
+      className={`bg-navy-soft border-[1.5px] border-cool-gray/25 rounded-card ${
         isFs ? "p-8 lg:p-10" : "p-4 md:p-5"
       }`}
       data-testid="podium-stand"

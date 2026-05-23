@@ -56,8 +56,8 @@ export function SceneIndicators({
         return (
           <div key={s.id} className="flex flex-col items-center gap-1 min-w-[80px]">
             <div
-              className={`relative h-1.5 w-16 md:w-20 rounded-full overflow-hidden ${
-                isActive ? "bg-cool-gray/30" : "bg-cool-gray/20"
+              className={`relative h-2 w-16 md:w-20 rounded-full overflow-hidden ${
+                isActive ? "bg-cool-gray/45" : "bg-cool-gray/25"
               }`}
             >
               {isActive && isTimed && (
@@ -72,7 +72,7 @@ export function SceneIndicators({
             </div>
             <span
               className={`font-mono text-[9px] md:text-[10px] uppercase tracking-[1.5px] font-bold ${
-                isActive ? "text-white" : "text-cool-gray/60"
+                isActive ? "text-white" : "text-cool-gray"
               }`}
             >
               {SCENE_LABEL[s.id]}

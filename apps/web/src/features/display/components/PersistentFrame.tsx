@@ -24,7 +24,7 @@ export function PersistentFrame({ source, children, rightRail }: Props) {
     <div className="h-screen w-screen bg-navy text-white overflow-hidden relative select-none fixed inset-0">
       {/* Cup pattern décoratif */}
       <svg
-        className="absolute inset-0 w-full h-full opacity-[0.04] pointer-events-none"
+        className="absolute inset-0 w-full h-full opacity-[0.06] pointer-events-none"
         viewBox="0 0 400 800"
         preserveAspectRatio="xMidYMid slice"
         aria-hidden
@@ -41,7 +41,7 @@ export function PersistentFrame({ source, children, rightRail }: Props) {
       </svg>
 
       {/* Header — titre/méta à gauche, QR à droite */}
-      <div className="absolute top-0 left-0 right-0 px-6 md:px-10 py-3 md:py-4 bg-navy/80 backdrop-blur-md border-b border-card z-20">
+      <div className="absolute top-0 left-0 right-0 px-6 md:px-10 py-3 md:py-4 bg-navy-deep/95 backdrop-blur-md border-b-2 border-cool-gray/25 z-20">
         <div className="flex items-center justify-between gap-6">
           <div className="flex-1 min-w-0">
             <h1 className="font-archivo font-black uppercase tracking-[-1px] text-2xl md:text-5xl truncate leading-none">

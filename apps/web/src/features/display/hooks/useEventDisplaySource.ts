@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLeague } from "@/context/LeagueContext";
 import { databaseService } from "@/services/DatabaseService";
 import type { Player } from "@/types";
@@ -24,15 +24,38 @@ export function useEventDisplaySource(eventId: string | undefined): DisplaySourc
   const [participants, setParticipants] = useState<Player[]>([]);
   const [avatarById, setAvatarById] = useState<Record<string, string>>({});
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(true);
+  // Tick incrémenté par un setInterval pour forcer un re-fetch périodique
+  // des participants (un nouveau joueur qui rejoint sans avoir encore joué
+  // ne change pas `event.matches.length` — il faut poller indépendamment).
+  // Aligné sur la cadence de `useDisplayAutoRefresh` (10s par défaut).
+  const [refreshTick, setRefreshTick] = useState(0);
+  // Premier chargement réussi → on n'affiche plus le spinner sur les refresh
+  // périodiques (sinon l'écran flash toutes les 10s).
+  const hasLoadedOnceRef = useRef(false);
+
+  useEffect(() => {
+    if (!eventId) return;
+    const id = setInterval(() => {
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      ) {
+        return;
+      }
+      setRefreshTick((t) => t + 1);
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [eventId]);
 
   useEffect(() => {
     if (!eventId) {
       setParticipants([]);
       setIsLoadingParticipants(false);
+      hasLoadedOnceRef.current = false;
       return;
     }
     let cancelled = false;
-    setIsLoadingParticipants(true);
+    if (!hasLoadedOnceRef.current) setIsLoadingParticipants(true);
     databaseService
       .loadEventParticipants(eventId)
       .then((raw) => {
@@ -53,9 +76,10 @@ export function useEventDisplaySource(eventId: string | undefined): DisplaySourc
           if (p.avatarUrl) avatars[p.id] = p.avatarUrl;
         }
         setAvatarById(avatars);
+        hasLoadedOnceRef.current = true;
       })
       .catch(() => {
-        if (!cancelled) setParticipants([]);
+        if (!cancelled && !hasLoadedOnceRef.current) setParticipants([]);
       })
       .finally(() => {
         if (!cancelled) setIsLoadingParticipants(false);
@@ -63,9 +87,11 @@ export function useEventDisplaySource(eventId: string | undefined): DisplaySourc
     return () => {
       cancelled = true;
     };
-    // Recharge sur changement d'eventId ou de nombre de matchs (un match
-    // nouveau = potentiellement de nouveaux participants ou stats à jour).
-  }, [eventId, event?.matches?.length]);
+    // Recharge sur :
+    // - changement d'eventId
+    // - nouveau match (matches.length) — stats à jour
+    // - tick périodique — nouveaux participants qui ont rejoint sans match
+  }, [eventId, event?.matches?.length, refreshTick]);
 
   // League parente — pour le fallback de noms / contexte ET la détection
   // anti-cheat : un event sans flag hérite de celui de sa league (même règle

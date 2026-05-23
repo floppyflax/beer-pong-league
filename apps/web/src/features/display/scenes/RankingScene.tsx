@@ -166,7 +166,7 @@ export function RankingScene({
               <div
                 key={player.id}
                 ref={setRowRef(player.id)}
-                className="relative bg-navy-soft/70 border border-card rounded-card px-4 py-2.5"
+                className="relative bg-navy-soft border-[1.5px] border-cool-gray/20 rounded-card px-4 py-2.5"
               >
                 {isHighlighted && (
                   <div
@@ -181,14 +181,14 @@ export function RankingScene({
                 )}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 flex items-center justify-center font-archivo font-bold text-base bg-navy text-cool-gray rounded-full border border-card">
+                    <div className="w-10 h-10 flex items-center justify-center font-archivo font-black text-base bg-navy-deep text-white rounded-full border-[1.5px] border-cool-gray/40">
                       {player.rank}
                     </div>
                     <div>
                       <div className="font-archivo font-bold text-base truncate">
                         {player.name}
                       </div>
-                      <div className="font-mono text-[10px] uppercase tracking-[1.5px] text-cool-gray font-bold">
+                      <div className="font-mono text-[10px] uppercase tracking-[1.5px] text-white/80 font-bold">
                         {player.wins}V — {player.losses}D
                       </div>
                     </div>

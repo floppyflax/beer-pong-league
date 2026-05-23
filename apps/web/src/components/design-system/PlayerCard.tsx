@@ -374,9 +374,13 @@ export function PlayerCard(props: PlayerCardProps) {
     // Surbrillance légère de ma propre ligne dans le classement — mêmes tokens
     // que LeaderRow.isMe (electric-blue ténu) pour rester cohérent. Animation
     // de respiration lente et discrète (désactivée si prefers-reduced-motion).
+    // En mode display (TV/projecteur), border-cool-gray/25 donne plus de
+    // séparation visuelle à distance que border-card (alpha 0.06).
     const surfaceCls = isMe
       ? "bg-electric-blue/10 border-electric-blue/30 animate-me-pulse motion-reduce:animate-none"
-      : "bg-navy-soft border-card";
+      : isDisplay
+        ? "bg-navy-soft border-cool-gray/25"
+        : "bg-navy-soft border-card";
 
     // Échelle "display" = TV/projecteur, sans chevron (non interactif en
     // diffusion). Plus grand que la version par défaut, mais compact pour

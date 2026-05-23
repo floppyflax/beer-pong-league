@@ -33,7 +33,7 @@ export function RecentMatchesPanel({ source, max = 10, blinkMatchId }: Props) {
     });
 
   return (
-    <div className="bg-navy-soft border border-card rounded-card p-4 md:p-5 flex-1 min-h-0 flex flex-col">
+    <div className="bg-navy-soft border-[1.5px] border-cool-gray/25 rounded-card p-4 md:p-5 flex-1 min-h-0 flex flex-col">
       <h3 className="font-archivo font-extrabold uppercase tracking-[-0.4px] text-lg md:text-xl mb-3 flex-shrink-0">
         Derniers matchs
       </h3>
@@ -53,8 +53,8 @@ export function RecentMatchesPanel({ source, max = 10, blinkMatchId }: Props) {
                 key={match.id}
                 className={`rounded-card border-[1.5px] p-3 transition-all ${
                   index === 0
-                    ? "bg-electric-blue/10 border-electric-blue shadow-[0_3px_0_#0052D4]"
-                    : "bg-navy/60 border-card"
+                    ? "bg-electric-blue/15 border-electric-blue shadow-[0_3px_0_#0052D4]"
+                    : "bg-navy-deep border-cool-gray/20"
                 } ${isBlinking ? "animate-glow-pulse ring-2 ring-electric-blue" : ""}`}
                 style={
                   isBlinking
@@ -62,7 +62,7 @@ export function RecentMatchesPanel({ source, max = 10, blinkMatchId }: Props) {
                     : undefined
                 }
               >
-                <div className="font-mono text-[10px] uppercase tracking-[1.5px] text-cool-gray font-bold mb-2">
+                <div className="font-mono text-[10px] uppercase tracking-[1.5px] text-white/85 font-bold mb-2">
                   {new Date(match.date).toLocaleTimeString("fr-FR", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -86,12 +86,12 @@ export function RecentMatchesPanel({ source, max = 10, blinkMatchId }: Props) {
                 {/* Versus : noms + avatars primaires, score secondaire au centre */}
                 <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
                   <TeamSide players={teamA} isWinner={winnerA} align="left" />
-                  <div className="font-mono text-xs tabular-nums text-cool-gray flex items-baseline gap-0.5 flex-shrink-0">
-                    <span className={winnerA ? "text-white font-bold" : ""}>
+                  <div className="font-mono text-sm tabular-nums text-white/85 font-bold flex items-baseline gap-0.5 flex-shrink-0">
+                    <span className={winnerA ? "text-white font-black" : ""}>
                       {match.scoreA}
                     </span>
-                    <span className="opacity-50">-</span>
-                    <span className={!winnerA ? "text-white font-bold" : ""}>
+                    <span className="opacity-60">-</span>
+                    <span className={!winnerA ? "text-white font-black" : ""}>
                       {match.scoreB}
                     </span>
                   </div>
@@ -152,7 +152,7 @@ function TeamSide({
               className={`truncate max-w-full text-sm leading-tight ${
                 isWinner
                   ? "font-archivo font-extrabold text-white"
-                  : "font-medium text-cool-gray"
+                  : "font-semibold text-white/75"
               }`}
               title={p.name}
             >
