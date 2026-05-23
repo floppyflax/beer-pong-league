@@ -16,6 +16,7 @@ interface Props {
 
 const SCENE_LABEL: Record<SceneId, string> = {
   ranking: "Classement",
+  "ranking-wide": "Classement +",
   podium: "Podium",
   "live-match": "Dernier match",
   highlight: "Highlight",

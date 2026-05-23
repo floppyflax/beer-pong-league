@@ -8,6 +8,7 @@ import { RecentMatchesPanel } from "./components/RecentMatchesPanel";
 import { NewMatchAlertOverlay } from "./components/NewMatchAlertOverlay";
 import { SceneIndicators } from "./components/SceneIndicators";
 import { RankingScene } from "./scenes/RankingScene";
+import { RankingWideScene } from "./scenes/RankingWideScene";
 import { PodiumScene } from "./scenes/PodiumScene";
 import { LiveMatchScene } from "./scenes/LiveMatchScene";
 import { HighlightScene } from "./scenes/HighlightScene";
@@ -31,6 +32,7 @@ interface Props {
 
 const BASE_SCENES: SceneConfig[] = [
   { id: "ranking", mode: "self-paced", pinned: true },
+  { id: "ranking-wide", mode: "timed", durationMs: 15_000 },
   { id: "podium", mode: "timed", durationMs: 12_000 },
   { id: "live-match", mode: "timed", durationMs: 10_000 },
   { id: "highlight", mode: "timed", durationMs: 12_000 },
@@ -141,6 +143,14 @@ export function DisplayShell({ source }: Props) {
             focusedPlayerId={reveal.focusedPlayerId}
           />
         );
+      case "ranking-wide":
+        return (
+          <RankingWideScene
+            players={reveal.committedPlayers}
+            winnerIds={reveal.winnerIds}
+            loserIds={reveal.loserIds}
+          />
+        );
       case "podium":
         return <PodiumScene source={source} />;
       case "live-match":
@@ -196,6 +206,7 @@ export function DisplayShell({ source }: Props) {
     <>
       <PersistentFrame
         source={source}
+        fullWidth={activeSceneId === "ranking-wide"}
         rightRail={
           <>
             <div className="flex-shrink-0">

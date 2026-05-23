@@ -9,6 +9,12 @@ interface Props {
   children: ReactNode;
   /** Encart "rail" droit : podium + autres widgets persistants. */
   rightRail?: ReactNode;
+  /**
+   * Quand true, masque le rail droit et passe la zone scène en pleine largeur.
+   * Utilisé par les scènes wide (ex : ranking-wide) qui ont besoin de tout
+   * l'espace horizontal.
+   */
+  fullWidth?: boolean;
 }
 
 /**
@@ -19,7 +25,12 @@ interface Props {
  * croqué, et le rail droit récupère toute sa hauteur pour afficher plus de
  * matchs.
  */
-export function PersistentFrame({ source, children, rightRail }: Props) {
+export function PersistentFrame({
+  source,
+  children,
+  rightRail,
+  fullWidth = false,
+}: Props) {
   return (
     <div className="h-screen w-screen bg-navy text-white overflow-hidden relative select-none fixed inset-0">
       {/* Cup pattern décoratif */}
@@ -102,18 +113,27 @@ export function PersistentFrame({ source, children, rightRail }: Props) {
         </div>
       </div>
 
-      {/* Body — grid 2 colonnes : scène + rail droit */}
+      {/* Body — grid 2 colonnes : scène + rail droit (ou pleine largeur) */}
       <div className="pt-24 md:pt-40 pb-6 md:pb-8 px-6 md:px-10 lg:px-12 h-full w-full relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5 md:gap-8 lg:gap-10 h-full">
+        <div
+          className={`grid gap-5 md:gap-8 lg:gap-10 h-full ${
+            fullWidth
+              ? "grid-cols-1"
+              : "grid-cols-1 lg:grid-cols-[1fr_400px]"
+          }`}
+        >
           {/* Col gauche : scène active */}
           <div className="min-w-0 h-full overflow-hidden flex flex-col">
             {children}
           </div>
 
-          {/* Col droite : rail (podium + matchs), pleine hauteur */}
-          <div className="hidden lg:flex flex-col gap-4 md:gap-6 h-full overflow-hidden min-h-0">
-            {rightRail}
-          </div>
+          {/* Col droite : rail (podium + matchs), pleine hauteur — masqué en
+              fullWidth pour libérer l'espace aux scènes wide. */}
+          {!fullWidth && (
+            <div className="hidden lg:flex flex-col gap-4 md:gap-6 h-full overflow-hidden min-h-0">
+              {rightRail}
+            </div>
+          )}
         </div>
       </div>
 
