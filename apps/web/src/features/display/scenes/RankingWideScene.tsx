@@ -1,5 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from "react";
-import autoAnimate from "@formkit/auto-animate";
+import { type CSSProperties } from "react";
 import { getInitials } from "@/utils/string";
 import type { DisplaySourcePlayer } from "../types";
 
@@ -36,7 +35,7 @@ function PlayerRow({
   highlight: "winner" | "loser" | null;
 }) {
   return (
-    <div className="relative bg-navy-soft border-[1.5px] border-cool-gray/20 rounded-card px-3 py-2">
+    <div className="relative bg-navy-soft border-[1.5px] border-cool-gray/20 rounded-card px-3 py-2 mb-2 break-inside-avoid">
       {highlight && (
         <div
           aria-hidden
@@ -52,17 +51,17 @@ function PlayerRow({
           }
         />
       )}
-      <div className="relative flex items-center gap-3">
+      <div className="relative flex items-center gap-2.5">
         {/* Rang : gros pavé à gauche, médaille pour top 3 */}
         <div
-          className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-archivo font-black text-xl tabular-nums ${rankBadgeClass(player.rank)}`}
+          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-archivo font-black text-lg tabular-nums ${rankBadgeClass(player.rank)}`}
           aria-label={`Rang ${player.rank}`}
         >
           {player.rank}
         </div>
 
         {/* Avatar compact */}
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-navy-deep flex items-center justify-center font-mono font-bold text-cool-gray overflow-hidden border border-card">
+        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-navy-deep flex items-center justify-center font-mono font-bold text-cool-gray overflow-hidden border border-card">
           {player.avatarUrl ? (
             <img
               src={player.avatarUrl}
@@ -70,19 +69,19 @@ function PlayerRow({
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-xs">{getInitials(player.name)}</span>
+            <span className="text-[11px]">{getInitials(player.name)}</span>
           )}
         </div>
 
         {/* Nom — flex-1 pour pousser stats/ELO à droite */}
         <div className="flex-1 min-w-0">
-          <div className="font-archivo font-extrabold text-lg leading-tight truncate">
+          <div className="font-archivo font-extrabold text-base leading-tight truncate">
             {player.name}
           </div>
         </div>
 
         {/* W/L % — compact, monospace */}
-        <div className="flex-shrink-0 font-mono text-xs uppercase tracking-[1.5px] tabular-nums font-bold text-right leading-tight">
+        <div className="flex-shrink-0 font-mono text-[11px] uppercase tracking-[1px] tabular-nums font-bold text-right leading-tight">
           <div>
             <span className="text-lime">{player.wins}</span>
             <span className="text-cool-gray">-</span>
@@ -92,7 +91,7 @@ function PlayerRow({
         </div>
 
         {/* ELO — bloc principal à droite */}
-        <div className="flex-shrink-0 font-archivo font-black text-2xl text-white tracking-tight tabular-nums min-w-[3.5rem] text-right">
+        <div className="flex-shrink-0 font-archivo font-black text-xl text-white tracking-tight tabular-nums min-w-[3rem] text-right">
           {player.elo}
         </div>
       </div>
@@ -101,35 +100,25 @@ function PlayerRow({
 }
 
 /**
- * Scène classement wide : pleine largeur (rail droit masqué), 2 colonnes de
- * lignes très compactes. Affiche bien plus de joueurs en un coup d'œil que la
- * scène `ranking` classique. Pas de scroll : si le nombre de joueurs dépasse
- * la hauteur, la grille se compresse via overflow-hidden (et c'est OK car la
- * scène est `timed` — la rotation reprend).
+ * Scène classement wide : pleine largeur (rail droit masqué), 1 à 3 colonnes
+ * selon la taille d'écran via CSS `columns-*`. Affiche bien plus de joueurs
+ * en un coup d'œil que la scène `ranking` classique. Pas de scroll : si le
+ * nombre de joueurs dépasse la hauteur, la grille se compresse via
+ * `overflow-hidden` (et c'est OK car la scène est `timed` — la rotation
+ * reprend).
  *
  * Colonnes :
- *  - gauche  = ranks 1..ceil(n/2)
- *  - droite  = ranks ceil(n/2)+1..n
+ *  - mobile        → 1 col
+ *  - tablet (md)   → 2 cols
+ *  - desktop (lg+) → 3 cols
+ *
+ * Les lignes ont `break-inside-avoid` pour ne jamais être coupées entre deux
+ * colonnes. Le flux CSS-columns remplit naturellement de haut en bas, puis
+ * passe à la colonne suivante.
  *
  * Pas de forme récente (5 derniers résultats) — la densité prime ici.
  */
 export function RankingWideScene({ players, winnerIds, loserIds }: Props) {
-  const leftRef = useRef<HTMLDivElement>(null);
-  const rightRef = useRef<HTMLDivElement>(null);
-
-  // Réordonnancement animé quand le classement change (cohérent avec la scène
-  // `ranking` classique). auto-animate respecte prefers-reduced-motion.
-  useEffect(() => {
-    if (leftRef.current) autoAnimate(leftRef.current);
-  }, []);
-  useEffect(() => {
-    if (rightRef.current) autoAnimate(rightRef.current);
-  }, []);
-
-  const half = Math.ceil(players.length / 2);
-  const left = players.slice(0, half);
-  const right = players.slice(half);
-
   const highlightFor = (id: string): "winner" | "loser" | null => {
     if (winnerIds?.has(id)) return "winner";
     if (loserIds?.has(id)) return "loser";
@@ -142,9 +131,9 @@ export function RankingWideScene({ players, winnerIds, loserIds }: Props) {
         Classement complet
       </h2>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 overflow-hidden">
-        <div ref={leftRef} className="space-y-2 overflow-hidden">
-          {left.map((player) => (
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="columns-1 md:columns-2 lg:columns-3 gap-3 md:gap-4 h-full">
+          {players.map((player) => (
             <PlayerRow
               key={player.id}
               player={player}
@@ -152,17 +141,6 @@ export function RankingWideScene({ players, winnerIds, loserIds }: Props) {
             />
           ))}
         </div>
-        {right.length > 0 && (
-          <div ref={rightRef} className="space-y-2 overflow-hidden">
-            {right.map((player) => (
-              <PlayerRow
-                key={player.id}
-                player={player}
-                highlight={highlightFor(player.id)}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

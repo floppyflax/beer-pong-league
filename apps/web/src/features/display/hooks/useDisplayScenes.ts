@@ -63,34 +63,41 @@ export interface UseDisplayScenesResult {
 }
 
 /**
- * Génère la séquence effective de scènes en interlacent le pinned entre
- * chaque autre scène.
+ * Génère la séquence effective de scènes en interlacent les pinned entre
+ * chaque autre scène. Quand plusieurs scènes sont pinned, elles alternent
+ * cycliquement entre les autres.
  *
- * Ex : pinned = ranking, autres = [podium, live-match, highlight, stats]
- *  → [ranking, podium, ranking, live-match, ranking, highlight, ranking, stats]
+ * Ex 1 (1 pinned) : pinned = [ranking], autres = [podium, live-match, highlight, stats]
+ *   → [ranking, podium, ranking, live-match, ranking, highlight, ranking, stats]
+ *
+ * Ex 2 (2 pinned alternés) : pinned = [ranking, ranking-wide],
+ *   autres = [podium, live-match, highlight, stats]
+ *   → [ranking, podium, ranking-wide, live-match, ranking, highlight, ranking-wide, stats]
  *
  * Si aucune scène n'est pinned, retourne la liste telle quelle.
  */
 function buildSequence(scenes: SceneConfig[]): SceneConfig[] {
-  const pinned = scenes.find((s) => s.pinned);
-  if (!pinned) return scenes;
-  const others = scenes.filter((s) => s.id !== pinned.id);
-  if (others.length === 0) return [pinned];
+  const pinneds = scenes.filter((s) => s.pinned);
+  if (pinneds.length === 0) return scenes;
+  const pinnedIds = new Set(pinneds.map((p) => p.id));
+  const others = scenes.filter((s) => !pinnedIds.has(s.id));
+  if (others.length === 0) return pinneds;
   const seq: SceneConfig[] = [];
-  for (const o of others) {
-    seq.push(pinned, o);
-  }
+  others.forEach((o, i) => {
+    seq.push(pinneds[i % pinneds.length], o);
+  });
   return seq;
 }
 
 /**
- * Liste unique des scènes pour l'UI indicators : pinned d'abord, puis les
- * autres dans l'ordre. Permet d'afficher 1 dot par scène distincte.
+ * Liste unique des scènes pour l'UI indicators : pinneds d'abord (dans
+ * l'ordre déclaré), puis les autres. Permet d'afficher 1 dot par scène.
  */
 function buildUniqueScenes(scenes: SceneConfig[]): SceneConfig[] {
-  const pinned = scenes.find((s) => s.pinned);
-  const others = scenes.filter((s) => s.id !== pinned?.id);
-  return pinned ? [pinned, ...others] : others;
+  const pinneds = scenes.filter((s) => s.pinned);
+  const pinnedIds = new Set(pinneds.map((p) => p.id));
+  const others = scenes.filter((s) => !pinnedIds.has(s.id));
+  return [...pinneds, ...others];
 }
 
 const DEFAULT_MAX_SELF_PACED_MS = 60_000;

@@ -13,10 +13,9 @@ import { PodiumScene } from "./scenes/PodiumScene";
 import { LiveMatchScene } from "./scenes/LiveMatchScene";
 import { HighlightScene } from "./scenes/HighlightScene";
 import { StatsScene } from "./scenes/StatsScene";
-import { PhotoWallScene, matchesWithPhotos } from "./scenes/PhotoWallScene";
+import { PhotoWallScene } from "./scenes/PhotoWallScene";
 import { DuosRivalriesScene } from "./scenes/DuosRivalriesScene";
 import { PlayerFocusScene } from "./scenes/PlayerFocusScene";
-import { useDuoRivalryStats } from "./hooks/useDuoRivalryStats";
 import {
   useDisplayScenes,
   type SceneConfig,
@@ -30,32 +29,22 @@ interface Props {
   source: DisplaySource | null;
 }
 
+// Deux scènes "Classement" pinned alternent : à chaque retour au classement
+// on bascule entre le mode normal (scroll vertical, self-paced) et le mode
+// wide (3 colonnes denses, timed). Toutes les autres scènes sont toujours
+// présentes dans la rotation — chaque scène gère son propre empty state
+// quand la donnée associée manque (photos, duos, focus joueur).
 const BASE_SCENES: SceneConfig[] = [
   { id: "ranking", mode: "self-paced", pinned: true },
-  { id: "ranking-wide", mode: "timed", durationMs: 15_000 },
+  { id: "ranking-wide", mode: "timed", durationMs: 15_000, pinned: true },
   { id: "podium", mode: "timed", durationMs: 12_000 },
   { id: "live-match", mode: "timed", durationMs: 10_000 },
   { id: "highlight", mode: "timed", durationMs: 12_000 },
   { id: "stats", mode: "timed", durationMs: 10_000 },
+  { id: "photo-wall", mode: "timed", durationMs: 12_000 },
+  { id: "player-focus", mode: "timed", durationMs: 12_000 },
+  { id: "duos", mode: "timed", durationMs: 12_000 },
 ];
-
-const PHOTO_WALL_SCENE: SceneConfig = {
-  id: "photo-wall",
-  mode: "timed",
-  durationMs: 12_000,
-};
-
-const DUOS_SCENE: SceneConfig = {
-  id: "duos",
-  mode: "timed",
-  durationMs: 12_000,
-};
-
-const PLAYER_FOCUS_SCENE: SceneConfig = {
-  id: "player-focus",
-  mode: "timed",
-  durationMs: 12_000,
-};
 
 /**
  * Shell de la vue diffusion. Orchestre :
@@ -71,18 +60,9 @@ export function DisplayShell({ source }: Props) {
   // Auto-refresh : l'écran se met à jour seul quand un match tombe ailleurs.
   useDisplayAutoRefresh(reloadData, { intervalMs: 10_000, enabled: !!source });
 
-  // Scènes optionnelles : photo-wall si des photos, duos si des stats duo/rivalité.
-  const hasPhotos = source ? matchesWithPhotos(source).length > 0 : false;
-  const duoStats = useDuoRivalryStats(source);
-  const hasDuos = duoStats.duosAvailable;
-  const hasPlayerFocus = duoStats.focusAvailable;
-  const scenes = useMemo(() => {
-    const s = [...BASE_SCENES];
-    if (hasPhotos) s.push(PHOTO_WALL_SCENE);
-    if (hasPlayerFocus) s.push(PLAYER_FOCUS_SCENE);
-    if (hasDuos) s.push(DUOS_SCENE);
-    return s;
-  }, [hasPhotos, hasPlayerFocus, hasDuos]);
+  // Toutes les scènes sont toujours présentes — chacune gère son empty state
+  // (placeholder lisible) quand la donnée associée n'est pas disponible.
+  const scenes = BASE_SCENES;
 
   // Slideshow
   const {
