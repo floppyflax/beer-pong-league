@@ -88,7 +88,10 @@ export function useNewPlayerReveal(
   }, [source]);
 
   // Trigger : on a des pending et la séquence n'est ni active ni mise en
-  // pause par le parent (typiquement pendant un matchReveal).
+  // pause par le parent (typiquement pendant un matchReveal). Ne fait QUE
+  // commuter en phase "alert" — la fermeture est gérée par le useEffect
+  // suivant (sinon le cleanup du même effet annule son propre timer dès
+  // le re-render qui suit setPhase, et l'alerte reste bloquée).
   useEffect(() => {
     if (phase !== "idle") return;
     if (paused) return;
@@ -112,7 +115,13 @@ export function useNewPlayerReveal(
     setAlertPlayers(players);
     setPendingIds([]);
     if (soundOnRef.current && isAudioReady()) playChime();
+  }, [phase, paused, pendingIds]);
 
+  // Fermeture : dès qu'on entre en phase "alert", on programme un retour à
+  // "idle" après ALERT_MS. Cleanup tire uniquement à l'unmount ou si la
+  // phase change pour autre chose — pas sur un simple rerender.
+  useEffect(() => {
+    if (phase !== "alert") return;
     const t = setTimeout(() => {
       setPhase("idle");
       setBlur(false);
@@ -125,9 +134,8 @@ export function useNewPlayerReveal(
         // Silencieux : un échec de refresh ne doit pas casser l'écran.
       }
     }, ALERT_MS);
-
     return () => clearTimeout(t);
-  }, [phase, paused, pendingIds]);
+  }, [phase]);
 
   return {
     phase,
