@@ -2,7 +2,7 @@
 
 Application web + mobile de gestion de ligues et événements de beer-pong avec classement ELO. Backend Supabase, paiement Stripe, hébergement Vercel. Monorepo **web (React + Vite) / mobile (React Native) / shared**.
 
-> **Ce fichier est lu par Claude à chaque session.** Il reste volontairement court : pointeurs denses vers `docs/` et `.claude/`. Pour les règles complètes, voir `docs/product-context.md`.
+> **Ce fichier est lu par Claude à chaque session.** Il reste volontairement court : pointeurs denses vers `docs/` et `.claude/`. Vue d'ensemble projet : [`README.md`](README.md). Pour les règles complètes, voir `docs/product-context.md`.
 
 ---
 
